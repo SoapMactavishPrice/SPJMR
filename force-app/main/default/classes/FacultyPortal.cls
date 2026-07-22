@@ -6,6 +6,49 @@ public with sharing class FacultyPortal {
     }
     
     @AuraEnabled(cacheable=true)
+    public static List<SlotMaster__c> getSlotMasterList() {
+        String currentUserEmail = UserInfo.getUserEmail();
+
+        List<Account> accList = [
+            SELECT Id FROM Account
+            WHERE PersonEmail = :currentUserEmail
+            LIMIT 1
+        ];
+
+        if (accList.isEmpty()) {
+            return new List<SlotMaster__c>();
+        }
+
+        Account accountEmp = accList[0];
+
+        Set<Id> panelIds = new Set<Id>();
+        for (PanelInterviewer__c ptm : [
+            SELECT Id, Account__c, PanelMaster__c FROM PanelInterviewer__c
+            WHERE Account__c = :accountEmp.Id
+        ]) {
+            if (ptm.PanelMaster__c != null) panelIds.add(ptm.PanelMaster__c);
+        }
+
+        Set<Id> slotIds = new Set<Id>();
+        for (ApplicationSlotBooking__c booking : [
+            SELECT SlotMaster__c FROM ApplicationSlotBooking__c
+            WHERE Panel_Master__c IN :panelIds
+            AND SlotMaster__c != null
+        ]) {
+            slotIds.add(booking.SlotMaster__c);
+        }
+
+        return [
+            SELECT Id, Name, SlotDate__c, SlotStartTime__c, SlotEndtime__c,
+                   Location__c, Status__c, Mode__c,
+                   Capacity__c, BookedCapacity__c
+            FROM SlotMaster__c
+            WHERE Id IN :slotIds
+            ORDER BY SlotDate__c ASC, SlotStartTime__c ASC
+        ];
+    }
+
+    @AuraEnabled(cacheable=true)
     public static List<BookingWrapper> getAssignedSlotBookings() {
         String currentUserEmail = UserInfo.getUserEmail();
         List<ScoringTemplate__c> sctemp = [SELECT Id FROM ScoringTemplate__c LIMIT 3];

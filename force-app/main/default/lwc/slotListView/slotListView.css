@@ -1,0 +1,45 @@
+/* Purple header */
+.custom-table thead th {
+    background-color: #531F75;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+}
+
+/* Table Cell Spacing */
+.custom-table td {
+    padding: 10px;
+}
+
+/* Alternate Row Coloring */
+.custom-table tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+.custom-table tbody tr:nth-child(even) {
+    background-color: #DFD1EB;
+}
+
+/* Optional: Smooth border look */
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.custom-table td, .custom-table th {
+    border: 1px solid #ddd;
+}
+
+/* Link color styling */
+.custom-table a {
+    color: #FF8C00;
+    font-weight: 500;
+}
+
+/* Title Styling */
+.title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
