@@ -1,0 +1,114 @@
+<template>
+
+    <template lwc:if={isPresent}>
+
+        <template lwc:if={isLoaded}>
+
+            <div class="icon-row">
+                
+                <template for:each={stepList} for:item="step">
+
+                    <div class="icon-wrapper"
+                        key={step.name}
+                        data-name={step.name}
+                        onclick={handleStepClick}>
+
+                         <button 
+            class="step-btn" 
+            data-name={step.name} 
+            onclick={handleStepClick}>
+        </button>
+        <div lwc:dom="manual" class="icon-slot" data-name={step.name}></div>
+        <div class="step-label">{step.label}</div>
+                        
+                    </div>
+
+                </template>
+
+            </div>
+
+            <div class="current-section">
+                <div class="progress-indicator">
+                    <div class="progress-wrapper">
+                        <lightning-progress-bar 
+                            value={progress} 
+                            size="medium">
+                        </lightning-progress-bar>
+                    </div>
+                </div>
+                
+                <template lwc:if={isProgram}>
+                    <c-af-program-details-container-gmp application-id={applicationId}></c-af-program-details-container-gmp>
+                </template>
+                <template lwc:if={isBasic}>
+                    <c-af-basic-details-container-gmp application-id={applicationId}></c-af-basic-details-container-gmp>
+                </template>
+                <template lwc:if={isAcademic}>
+                    <c-af-academic-details-container-gmp application-id={applicationId}></c-af-academic-details-container-gmp>
+                </template>
+                <template lwc:if={isExam}>
+                    <c-af-competitive-exam-details-container-gmp application-id={applicationId}></c-af-competitive-exam-details-container-gmp>
+                </template>
+                <template lwc:if={isWork}>
+                    <c-af-work-experience-container-gmp application-id={applicationId}></c-af-work-experience-container-gmp>
+                </template>
+                <template lwc:if={isProfile}>
+                    <c-af-profile-information-container-gmp application-id={applicationId}></c-af-profile-information-container-gmp>
+                </template>
+                <template lwc:if={isTerms}>
+                    <c-af-terms-and-conditions-container-gmp application-id={applicationId}></c-af-terms-and-conditions-container-gmp>
+                </template>
+                <template lwc:if={isPayment}>
+                    <c-af-payments-container-g-m-p application-id={applicationId}></c-af-payments-container-g-m-p>
+                </template>
+            </div>
+
+            <div class="navigate-form">
+                <lightning-button 
+                    class="prev-btn"
+                    label="Previous" 
+                    onclick={previousStage} 
+                    disabled={isPreviousDisabled}>
+                </lightning-button>
+
+                <lightning-button 
+                    class="next-btn"
+                    label={strNextLabel} 
+                    onclick={nextStage} 
+                    disabled={isNextDisabled}>
+                </lightning-button>
+            </div>
+
+        </template>
+        <template lwc:else>
+            <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+        </template>
+
+    </template>
+    <template lwc:else>
+        <template lwc:if={showError}>
+            <div class="not-allowed-container">
+                <div class="not-allowed-card">
+                    
+                    <lightning-icon
+                        icon-name="utility:error"
+                        alternative-text="Access Denied"
+                        size="large"
+                        class="error-icon">
+                    </lightning-icon>
+
+                    <h2 class="error-heading">
+                        Access Denied
+                    </h2>
+
+                    <p class="error-message">
+                        You are not authorized to edit this application.
+                        Please ensure you are accessing your own application.
+                    </p>
+
+                </div>
+            </div>
+        </template>
+    </template>
+
+</template>

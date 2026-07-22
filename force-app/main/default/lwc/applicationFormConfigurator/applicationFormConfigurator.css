@@ -1,0 +1,41 @@
+.droppable {
+    min-height: 80px;
+    border: 2px dashed #ccc;
+    padding: 8px;
+    border-radius: 4px;
+    transition: border-color 0.2s ease;
+    background-color: #fafafa;
+}
+
+.droppable.drag-over {
+    border-color: #1589ee; /* SLDS blue */
+    background-color: #f0f8ff;
+}
+
+li[draggable="true"] {
+    cursor: grab;
+}
+
+li[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.container {
+  display: flex;
+  height: 80vh; 
+}
+
+.left-panel {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.right-panel {
+  flex: 1;
+  height: 95%;
+  overflow-y: auto;
+}
+
+.green-tick {
+    --slds-c-icon-color-foreground-default: #28a745; /* Salesforce SLDS green */
+}

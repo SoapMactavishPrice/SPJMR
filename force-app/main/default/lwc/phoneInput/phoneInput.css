@@ -1,0 +1,5 @@
+.phone-wrapper {
+    display: grid;
+    grid-template-columns: 35% 60%;
+    gap: 8px;
+}

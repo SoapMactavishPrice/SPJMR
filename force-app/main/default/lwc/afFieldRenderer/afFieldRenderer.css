@@ -1,0 +1,59 @@
+.field-wrapper { margin-bottom: 8px; }
+.field-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    margin-bottom: 0.1rem;
+    font-size: 12px;
+}
+.field-label__text {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+.req { color:var(--lwc-colorTextError, red); margin-left:4px; }
+.error { color:var(--lwc-colorTextError, red); font-size:12px; margin-top:4px; }
+.static-label {
+    display: block;
+    font-weight: bold;
+    font-size: 14px;
+    padding-top: 6px;
+    min-width: 0;
+}
+.static-label__text {
+    display: block;
+    min-width: 0;
+}
+.note-box { background:#f4f7fb; padding:12px; border-left:4px solid #1976d2; margin-bottom:12px; border-radius:4px; }
+
+.rich-text-block {
+    line-height: 1.5;
+}
+
+.text-area-body {
+    --sds-c-textarea-sizing-min-height:100px;
+}
+
+.textarea-container {
+    position: relative;
+    padding-bottom: 18px;
+}
+
+.textarea-counter {
+    position: absolute;
+    right: 12px;
+    bottom: 0px;
+    font-size: 11px;
+    color: #706e6b;
+    pointer-events: none;
+}
+
+.textarea-counter--warning {
+    color: #b7791f;
+    font-weight: 600;
+}
+
+.textarea-counter--danger {
+    color: var(--lwc-colorTextError, #ba0517);
+    font-weight: 700;
+}

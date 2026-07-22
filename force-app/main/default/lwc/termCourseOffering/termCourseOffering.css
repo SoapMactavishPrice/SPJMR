@@ -1,0 +1,8 @@
+.slds-scrollable_x {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.slds-modal__container {
+    max-width: 500px;
+}

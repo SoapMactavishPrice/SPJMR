@@ -1,0 +1,16 @@
+<template>
+    <lightning-modal-header label="Schedule your interview"></lightning-modal-header>
+    <lightning-modal-body>
+        <c-slot-scheduler
+            program-code={programCode}
+            booking-info={bookingInfo}
+            onslotselected={confirmSlotSelection}></c-slot-scheduler>
+    </lightning-modal-body>
+    <lightning-modal-footer>
+        <lightning-button
+            variant="neutral"
+            label="Cancel"
+            onclick={handleCancel}>
+        </lightning-button>
+    </lightning-modal-footer>
+</template>

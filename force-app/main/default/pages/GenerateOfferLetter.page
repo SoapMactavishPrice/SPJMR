@@ -1,0 +1,83 @@
+<apex:page controller="GenerateOfferLetterController" renderAs="pdf" showHeader="false" sidebar="false">
+    <head></head>
+    <body style="font-family: Arial, sans-serif; font-size: 12pt; color: #111; margin: 40pt;">
+        <div style="width: 100%;">
+            <div style="text-align: right; margin-bottom: 30px; color: #444;">
+                S.P. Jain Institute of Management and Research
+            </div>
+
+            <div style="margin-bottom: 20px; text-align: right;  margin-bottom: 30px; color: #444;">{!OfferDate_Formatted}</div>
+
+            <div style="margin-bottom: 18px;">
+                <div style="font-weight: 600;">Application No: {!ApplicationNumber}</div>
+                <br/>
+                <div>{!ApplicantName}</div>
+                <div>{!ApplicantAddress}</div>
+                
+            </div>
+
+            <div style="margin-bottom: 16px;">Dear {!firstName},</div>
+
+            <div style="font-weight: 600; margin-bottom: 18px;">Congratulations!</div>
+
+            <div style="margin: 10px 0 18px 0; line-height: 1.5;">
+                You did it! Your months of preparation for the entrance exams and interviews paid off. We are excited to welcome you to
+                <span style="font-weight: 600;">S.P. Jain Institute of Management and Research, Class of 2027</span>.
+                You have been selected for admission to our <span style="font-weight: 600;">Post Graduate Diploma in Management (PGDM), {!BatchName}</span> in the
+                <span style="font-weight: 600;">{!SpecialisationName}</span> specialisation.
+            </div>
+
+            <div style="margin: 10px 0 18px 0; line-height: 1.5;">
+                Consistent with SPJIMR's mission of 'Influencing Practice' and 'Promoting Value Based Growth', 
+                the PGDM programme is widely acclaimed for its pedagogic innovations as well 
+                as for its focus on social sensitivity and global relevance. As we all know, the environment is changing fast. 
+                At SPJIMR, innovation and adaptation are key to being ahead of the curve. 
+                Toward that, we are making one significant change to our PGDM and PGDM (BM) Programmes.
+                After many years of our student internships during Autumns, we are shifting to Summer Internships 
+                like all other B-schools. This will give us the leverage to invite many more companies on campus and give 
+                our students a wider choice. In addition, with our host of award-winning experiential learning initiatives 
+                and exposure to cutting-edge management theory and practice, we believe that the SPJIMR PGDM journey has the potential to transform your life.
+            </div>
+
+            <div style="margin: 10px 0 18px 0; line-height: 1.5;">
+                We look forward to your acceptance of the offer of admission on our admission portal along with the deposit 
+                of acceptance fees of <span style="font-weight: 600;">Rs. 50,000</span>, by <span style="font-weight: 600;">{!acceptanceFeeDateFormatted}</span>, 
+                by electronic fund transfer. The signed letter of acceptance (as detailed in Annexure 1) needs to be uploaded to the admission portal 
+                also by <span style="font-weight: 600;">March 27, 2025</span>. The aggregate fees for the first year is <span style="font-weight: 600;">
+                Rs. 12,15,000 (Rupees twelve lakhs fifteen thousand only)</span>. The balance amount of <span style="font-weight: 600;">Rs.11,65,000</span> 
+                after payment of acceptance fees needs to be paid by <span style="font-weight: 600;">{!balanceAmountDateFormatted}</span>.
+            </div>
+
+            <div style="margin: 10px 0 18px 0; line-height: 1.5;">
+                Should you choose to withdraw your acceptance, the refund will be in accordance with the refund policy, as detailed in Annexure 3. 
+                Please refer to the offer details document and annexures for more information on the admission requirements.
+            </div>
+
+            <div style="margin: 10px 0 18px 0; line-height: 1.5;">
+                The phase for online foundation of the programme will begin from <span style="font-weight: 600;">{!onlineFoundationDateFormatted}</span> 
+                and continue until (on-campus) commencement of programme.
+            </div>
+
+            <div style="margin: 10px 0 18px 0; line-height: 1.5;">
+                The (on-campus) programme will commence on <span style="font-weight: 600;">{!oncampusCommenceDate_Formatted}</span>. 
+                This will be in conformance with the required safety measures undertaken by the institute. 
+                SPJIMR reserves the right to conduct sessions/classes on an online or on-campus mode as deemed 
+                fit by the Institute in light of Central and State Government directives to comply with procedures that do not endanger public health safety norms.
+            </div>
+
+            <div style="margin: 10px 0 18px 0; font-weight: 600;">Welcome to our community, Welcome to SPJIMR!</div>
+
+            <div style="margin-top: 36px;">
+                Best Wishes,<br/><br/>
+                <apex:image url="{!$Resource.LeadManager_CentralAdmissionsSignature}" width="70" height="70"/>
+                <div style="font-weight: 600;">Ms. Divea Shreeram</div>
+                Lead Manager – Central Admissions
+            </div>
+
+            <div style="margin-top: 22px; font-size: 10pt; color: #333;">
+                PS: SPJIMR offers merit cum means based financial assistance to eligible candidates. 
+                In case you want to avail this, please send a detailed write-up with your reasoning to <span style="font-weight: 600;">admissions.pgdm@spjimr.org</span>.
+            </div>
+        </div>
+    </body>
+</apex:page>

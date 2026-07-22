@@ -1,0 +1,146 @@
+.section {
+    padding: 1.5rem;
+    font-family: 'Nunito Sans', sans-serif;
+}
+
+.card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.label {
+    font-size: 18px;
+    font-weight: 700;
+    color: #3b1863; /* SPJIMR Purple */
+}
+
+.uploaded-box {
+    display: flex;
+    align-items: center;
+    background: #f0f9f0;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border-left: 4px solid #2e844a; /* Salesforce success-green */
+    margin-bottom: 1rem;
+}
+
+.uploaded-text {
+    margin-left: 8px;
+    font-weight: 600;
+    color: #2e844a;
+}
+
+.message{
+    color: #3b1863;
+    font-size: 12px;
+}
+
+.row {
+    display: flex;
+}
+
+.space-between {
+    justify-content: space-between;
+}
+
+.center {
+    align-items: center;
+}
+
+.annexure-row {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.annexure-title {
+    font-size: 15px;
+}
+
+.download-btn {
+    --sds-c-button-text-color: #3b1863;
+}
+
+.fee-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 16px;
+}
+
+.fee-row.total {
+    font-weight: 700;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}
+
+.empty {
+    font-size: 14px;
+    color: #777;
+    padding: 8px 0;
+}
+
+.compact-field .slds-form-element {
+    width: auto !important;
+    display: inline-block !important;
+}
+
+.compact-field .slds-form-element__control {
+    width: auto !important;
+}
+.uploaded-box {
+    display: flex;
+    align-items: flex-start; /* icon aligns to top */
+    background: #f0f9f0;
+    padding: 12px 14px;
+    border-radius: 6px;
+    border-left: 4px solid #2e844a;
+    margin-bottom: 1rem;
+    gap: 10px;
+}
+
+.uploaded-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.uploaded-text {
+    font-weight: 600;
+    color: #2e844a;
+    margin-bottom: 8px;
+}
+
+.uploaded-letter {
+    border: 1px solid #d8dde6;
+    border-radius: 6px;
+    padding: 8px 12px;
+    background-color: #ffffff;
+    width: fit-content;
+}
+
+.uploaded-letter a {
+    text-decoration: none;
+    font-weight: 600;
+    color: #3b1863; /* SPJIMR purple */
+}
+
+.uploaded-letter a:hover {
+    text-decoration: underline;
+}
+
+.delete-icon {
+    --sds-c-icon-color-foreground-default: #6b6d70; /* neutral grey */
+    cursor: pointer;
+    margin-left: 12px;
+}
+
+.delete-icon:hover {
+    --sds-c-icon-color-foreground-default: #ba0517; /* Salesforce error red */
+}
+
+
+.tshirt-size{
+    padding-top: 15px;
+}

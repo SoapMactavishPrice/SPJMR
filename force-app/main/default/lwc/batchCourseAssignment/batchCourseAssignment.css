@@ -1,0 +1,64 @@
+/* Increase modal width for ScreenAction */
+:host {
+    --slds-c-modal-sizing-width: 95vw;
+    --slds-c-modal-sizing-max-width: 1500px;
+    width: 100%;
+    display: block;
+}
+
+/* Target the modal container directly - for ScreenAction modals */
+:host .slds-modal__container,
+.slds-modal__container {
+    width: 95vw !important;
+    max-width: 1500px !important;
+    min-width: 1300px !important;
+}
+
+/* Ensure lightning-card takes full width */
+lightning-card {
+    width: 100%;
+}
+
+/* Table styling */
+.slds-table_container {
+    overflow-x: auto;
+}
+
+/* Row hover effect */
+.slds-table tbody tr:hover {
+    background-color: #f3f3f3;
+}
+
+/* Center align checkbox columns */
+.slds-table td.slds-text-align_center {
+    vertical-align: middle;
+}
+
+/* Style for disabled combobox */
+lightning-combobox[disabled] {
+    opacity: 0.5;
+}
+
+/* Ensure proper spacing for inputs */
+.slds-table lightning-input,
+.slds-table lightning-combobox {
+    width: 100%;
+}
+
+/* Checkbox alignment */
+.slds-table lightning-input[type="checkbox"] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #f3f2f2;
+}
+
+.table-scroll-container {
+    max-height: 400px;
+    overflow-y: auto;
+}

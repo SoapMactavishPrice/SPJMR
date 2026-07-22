@@ -1,0 +1,192 @@
+<!--
+  @description       : 
+  @author            : Sujin
+-->
+<template>
+    <lightning-card title="Program – Verifier Allocation">
+        <div class="slds-p-around_small">
+
+            <!-- Mode Switch -->
+            <lightning-combobox
+                label="Type"
+                value={mode}
+                options={modeOptions}
+                onchange={handleModeChange}>
+            </lightning-combobox>
+
+            <!-- Page Size -->
+            <div class="slds-m-top_small">
+                <lightning-combobox
+                    label="Page Size"
+                    value={pageSizeString}
+                    options={pageSizeOptions}
+                    onchange={handlePageSizeChange}>
+                </lightning-combobox>
+            </div>
+
+            <!-- LOADING -->
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-m-vertical_medium">
+                    <lightning-spinner alternative-text="Loading"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- ================================
+                 ALLOCATE MODE
+            ================================= -->
+            <template if:true={isAllocate}>
+
+                <h2 class="slds-m-top_medium"><b>Applications</b></h2>
+
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;">
+                                <lightning-input type="checkbox"
+                                    checked={allocateAllAppsSelected}
+                                    onchange={handleAllocateAppSelectAll}>
+                                </lightning-input>
+                            </th>
+                            <th>Application</th>
+                            <th>Applicant</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template if:true={allocateApplications}>
+                            <template for:each={allocateApplications} for:item="a">
+                                <tr key={a.appId}>
+                                    <td>
+                                        <lightning-input type="checkbox"
+                                            data-id={a.appId}
+                                            checked={a.isSelected}
+                                            onchange={handleAllocateAppCheckbox}>
+                                        </lightning-input>
+                                    </td>
+                                    <td>{a.appName}</td>
+                                    <td>{a.applicantName}</td>
+                                </tr>
+                            </template>
+                        </template>
+
+                        <template if:false={allocateApplications}>
+                            <tr>
+                                <td colspan="3">No applications found.</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <!-- Pagination -->
+                <div class="pagination-container slds-m-top_small slds-align_absolute-center">
+                    <lightning-button-icon icon-name="utility:chevronleft"
+                                           alternative-text="Previous"
+                                           onclick={handleAllocateAppPrev}
+                                           disabled={isAllocateAppsPrevDisabled}>
+                    </lightning-button-icon>
+
+                    <span class="page-info slds-m-horizontal_small">
+                        Page {allocateAppsPageNumber} of {allocateAppsTotalPages}
+                    </span>
+
+                    <lightning-button-icon icon-name="utility:chevronright"
+                                           alternative-text="Next"
+                                           onclick={handleAllocateAppNext}
+                                           disabled={isAllocateAppsNextDisabled}>
+                    </lightning-button-icon>
+                </div>
+            </template>
+
+            <!-- ================================
+                 REASSIGN MODE
+            ================================= -->
+            <template if:true={isReassign}>
+
+                <h2 class="slds-m-top_medium"><b>Applications Assigned</b></h2>
+
+                <!-- From Verifiers -->
+                <h3 class="slds-m-top_small">Select From-Verifier(s)</h3>
+                <template if:true={reassignVerifiers}>
+                    <template for:each={reassignVerifiers} for:item="v">
+                        <div key={v.ptmId} class="slds-m-vertical_x-small">
+                            <lightning-input type="checkbox"
+                                data-id={v.ptmId}
+                                label={v.name}
+                                checked={v.isFromSelected}
+                                onchange={handleReassignFromCheckbox}>
+                            </lightning-input>
+                        </div>
+                    </template>
+                </template>
+
+                <!-- Applications Table -->
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-m-top_small">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;">
+                                <lightning-input type="checkbox"
+                                    checked={reassignAllAppsSelected}
+                                    onchange={handleReassignAppSelectAll}>
+                                </lightning-input>
+                            </th>
+                            <th>Application</th>
+                            <th>Applicant</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template if:true={reassignApplications}>
+                            <template for:each={reassignApplications} for:item="a">
+                                <tr key={a.currentVerificationId}>
+                                    <td>
+                                        <lightning-input type="checkbox"
+                                            data-id={a.currentVerificationId}
+                                            checked={a.isSelected}
+                                            onchange={handleReassignAppCheckbox}>
+                                        </lightning-input>
+                                    </td>
+                                    <td>{a.appName}</td>
+                                    <td>{a.applicantName}</td>
+                                </tr>
+                            </template>
+                        </template>
+
+                        <template if:false={reassignApplications}>
+                            <tr>
+                                <td colspan="3">No applications found.</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <!-- Pagination -->
+                <div class="pagination-container slds-m-top_small slds-align_absolute-center">
+                    <lightning-button-icon icon-name="utility:chevronleft"
+                                           alternative-text="Previous"
+                                           onclick={handleReassignAppPrev}
+                                           disabled={isReassignAppsPrevDisabled}>
+                    </lightning-button-icon>
+
+                    <span class="page-info slds-m-horizontal_small">
+                        Page {reassignAppsPageNumber} of {reassignAppsTotalPages}
+                    </span>
+
+                    <lightning-button-icon icon-name="utility:chevronright"
+                                           alternative-text="Next"
+                                           onclick={handleReassignAppNext}
+                                           disabled={isReassignAppsNextDisabled}>
+                    </lightning-button-icon>
+                </div>
+
+                <!-- Reassign Button -->
+                <div class="slds-m-top_medium">
+                    <lightning-button label="Reassign"
+                                      variant="brand"
+                                      onclick={handleReassign}
+                                      disabled={isReassignButtonDisabled}>
+                    </lightning-button>
+                </div>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

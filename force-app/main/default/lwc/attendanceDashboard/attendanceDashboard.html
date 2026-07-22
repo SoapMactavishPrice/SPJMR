@@ -1,0 +1,186 @@
+<template>
+    <div class="attendance-wrapper">    
+        <div class="attendance-header">
+            Attendance Report
+        </div>
+        
+     <!-- Filters Row -->
+<div class="filter-row">
+
+    <!-- Term -->
+    <div class="term-selector">
+        <label class="filter-label">Term</label>
+
+        <lightning-combobox
+            name="term"
+            variant="label-hidden"
+            options={termOptions}
+            value={selectedTermValue}
+            onchange={handleTermChange}>
+        </lightning-combobox>
+     <!-- Course dropdown — same style as Term, stacked below -->
+       <div class="course-selector">
+    <label class="filter-label">Course(s) — select one or more</label>
+
+    <div class="course-picker-box" onclick={toggleCourseDropdown}>
+
+        <template for:each={selectedCourseChips} for:item="chip">
+            <span class="course-chip" key={chip.value}>
+                {chip.label}
+                <button
+                    type="button"
+                    class="chip-remove"
+                    data-value={chip.value}
+                    onclick={handleRemoveCourse}>
+                    &times;
+                </button>
+            </span>
+        </template>
+
+        <span class="add-course-link">+ add course</span>
+
+        <template lwc:if={isCourseDropdownOpen}>
+            <div class="dropdown-panel" onclick={stopPanelClick}>
+                <template for:each={unselectedCourseOptions} for:item="course">
+                    <div
+                        class="dropdown-item"
+                        key={course.value}
+                        data-value={course.value}
+                        onclick={handleAddCourse}>
+                        {course.label}
+                    </div>
+                </template>
+                <template lwc:if={noMoreCourses}>
+                    <div class="dropdown-empty">No more courses</div>
+                </template>
+            </div>
+        </template>
+
+    </div>
+</div>
+    </div>
+    <!-- Date Filters -->
+    <div class="date-range-row">
+
+        <div class="date-field">
+            <lightning-input
+                type="date"
+                variant="label-hidden"
+                placeholder="From Date"
+                value={startDate}
+                onchange={handleStartDateChange}>
+            </lightning-input>
+        </div>
+
+        <div class="date-field">
+            <lightning-input
+                type="date"
+                variant="label-hidden"
+                placeholder="To Date"
+                value={endDate}
+                data-id="endDateInput"
+                onchange={handleEndDateChange}>
+            </lightning-input>
+        </div>
+
+        <lightning-button
+            label="Search"
+            variant="brand"
+            onclick={handleSearchClick}>
+        </lightning-button>
+
+        <lightning-button
+            label="Clear"
+            variant="base"
+            onclick={handleClearClick}>
+        </lightning-button>
+
+    </div>
+
+</div>
+        
+        <!-- Attendance Summary -->
+        <div class="attendance-body slds-grid slds-gutters">
+
+            <!-- Left -->
+            <div class="slds-col slds-size_4-of-12 donut-col">
+
+                <div class="slds-align_absolute-center">
+                    <div class="donut" style={donutStyle}>
+                        <div class="donut-text" style={donutTextStyle}>
+                            {overallAttendancePercent}%
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slds-text-align_center slds-m-top_medium">
+                    <div class="overall-text">
+                        Overall Attendance
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right -->
+            <div class="slds-col slds-size_8-of-12 table-col">
+
+                <div class="tab-container">
+                    <button class={dayClass} onclick={handleDayClick}>Day</button>
+                    <button class={weekClass} onclick={handleWeekClick}>Week</button>
+                    <button class={monthClass} onclick={handleMonthClick}>Month</button>
+                    <button class={yearClass} onclick={handleYearClick}>Year</button>
+                </div>
+
+                <template lwc:if={noRecordsMessage}>
+                    <p class="slds-text-color_weak slds-m-top_small">
+                        {noRecordsMessage}
+                    </p>
+                </template>
+
+                <div class="table-container slds-m-top_medium">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th class="course-col" scope="col">Course</th>
+                                <th class="session-count-col" scope="col">
+                                    <span class="th-line">Total</span>
+                                    <span class="th-line">Sessions</span>
+                                </th>
+                                <th scope="col">Present</th>
+                                <th scope="col">Absent</th>
+                                <th scope="col">Sanctioned Leave</th>
+                                <th scope="col">Late</th>
+                                <th class="attendance-col" scope="col">Attendance %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={records} for:item="rec">
+                                <tr key={rec.id}>
+                                    <td class="course-col" title={rec.courseName}>{rec.courseName}</td>
+                                    <td class="session-count-col">{rec.totalSessions}</td>
+                                    <td>{rec.presentCount}</td>
+                                    <td>{rec.absentCount}</td>
+                                    <td>{rec.leaveCount}</td>
+                                    <td>{rec.lateCount}</td>
+                                    <td class="attendance-col">{rec.percentage}%</td>
+                                </tr>
+                            </template>
+                        </tbody>
+                        <tfoot>
+                            <tr class="footer-row">
+                                <td class="course-col">Total</td>
+                                <td class="session-count-col">{totalsRow.totalSessions}</td>
+                                <td>{totalsRow.presentCount}</td>
+                                <td>{totalsRow.absentCount}</td>
+                                <td>{totalsRow.leaveCount}</td>
+                                <td>{totalsRow.lateCount}</td>
+                                <td class="attendance-col">{overallAttendancePercent}%</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</template>

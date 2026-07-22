@@ -1,0 +1,39 @@
+<template>
+  <div class="sidebar">
+    <template if:true={headerText}>
+      <div class="text">{headerText}</div>
+    </template>
+    <template if:true={isNavReady}>
+  <ul>
+    <template for:each={processedMenuItems} for:item="item">
+      <li key={item.id} style="margin:0px 0px 0px 0px">
+        <c-main-navigation
+          item={item}
+          is-expanded={item.isExpanded}
+          active-item-id={activeItemId}
+          onitemselected={handleItemSelected}
+          ontoggleexpand={handleToggleExpand}
+          onensureparentexpanded={handleEnsureParentExpanded}>
+        </c-main-navigation>
+      </li>
+    </template>
+  </ul>
+</template>
+    <template if:true={error}>
+      <div class="error">Error loading navigation menu</div>
+    </template>
+  </div>
+</template>
+
+<!-- <template if:true={hasMenuItems}>
+      <ul>
+        <template for:each={processedMenuItems} for:item="item">
+          <li key={item.id} style="margin:0px 0px 0px 0px">
+            <c-main-navigation is-expanded={item.isExpanded} item={item} active-item-id={activeItemId}
+              onitemselected={handleItemSelected} ontoggleexpand={handleToggleExpand}
+              onensureparentexpanded={handleEnsureParentExpanded}></c-main-navigation>
+
+          </li>
+        </template>
+      </ul>
+    </template> -->

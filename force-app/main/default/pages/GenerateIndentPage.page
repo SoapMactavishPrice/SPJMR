@@ -1,0 +1,118 @@
+<apex:page controller="GenerateIndent" showHeader="false" sidebar="false">
+    <apex:slds />
+    <script>
+        function selectAllCheckboxes(obj,receivedInputID){
+        var inputCheckBox = document.getElementsByTagName("input");                
+        for(var i=0; i<inputCheckBox.length; i++){        
+            if(inputCheckBox[i].id.indexOf(receivedInputID)!=-1) {                                    
+                inputCheckBox[i].checked = obj.checked;
+            }
+        }
+    }
+    
+    function selectAll(obj,receivedInputID){
+            if (!obj.checked) {
+                let inputCheckBox = document.getElementsByTagName("input");
+                for(let i=0; i<inputCheckBox.length; i++){          
+                    if(inputCheckBox[i].id.indexOf(receivedInputID)!=-1){
+                        inputCheckBox[i].checked = obj.checked;
+                    }
+                }
+            }
+        }
+    
+    </script>
+    <apex:pageblock title="Material Planning Details">
+        <apex:pageBlockSection columns="2">
+            <apex:outputField label="Material Plan No" value="{!mp.name}"/>
+           <!-- <apex:outputField label="Project Name" value="{!mp.Project_Name__c}" />-->
+            <apex:outputField label="BOM" value="{!mp.BOM__c}" />
+            <!--<apex:outputField label="Date" value="{!mp.Date__c}" />-->
+        </apex:pageBlockSection>
+    </apex:pageblock>
+    <apex:form rendered="{!showList}">
+        <apex:pageBlock title="Select Material Planning Items">
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandbutton value="Add" action="{!AddRec}" Style="float:right;" styleClass="slds-button slds-button_brand"/>
+                <apex:commandbutton value="Cancel" action="{!cancel}" Style="float:right;" styleClass="slds-button slds-button_neutral"/>
+            </apex:pageBlockButtons> 
+            <apex:pageBlockTable value="{!wpList}" var="a" Styleclass="slds-table slds-table_bordered"  id="AccountTable">
+                <!--<apex:column Headervalue="SELECT"  Styleclass="slds-hint-parent">
+                    <apex:inputCheckbox value="{!a.isChecked}"></apex:inputCheckbox>
+                </apex:column>-->
+                
+                <apex:column headerValue="Action" >
+                    <apex:facet name="header">
+                        <apex:inputCheckbox id="chk_sel_vendor" onclick="selectAllCheckboxes(this,'inputId')" style="margin-left: 3px;">
+                            <apex:actionSupport event="onchange" />
+                        </apex:inputCheckbox>
+                    </apex:facet>
+                    <apex:inputCheckbox id="inputId" value="{!a.pro.id}" onclick="selectAll(this,'chk_sel_vendor')">
+                         <apex:actionSupport event="onchange" />
+                    </apex:inputCheckbox>
+                </apex:column>
+                
+                <apex:column Headervalue="PRODUCT"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.pro.Item_Name__c}"/>
+                </apex:column>
+                <!-- <apex:column Headervalue="MAKE"  Styleclass="slds-hint-parent">
+<apex:outputfield value="{!a.pro.Make__c}"/>
+</apex:column>-->
+                <apex:column Headervalue="BOM QUANTITY"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.pro.BOM_Quantity__c}"/>
+                </apex:column>
+                <apex:column Headervalue="AVAILABLE STOCK"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.pro.Available_Stock__c}"/>
+                </apex:column>
+                <apex:column Headervalue="PENDING QUANTITY"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.pro.Pending_Quantity__c}"/>
+                </apex:column>
+                <apex:column Headervalue="BLOCKED QUANTITY TILL DATE "  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.pro.Quantity_To_Block__c}"/>
+                </apex:column>
+                <apex:column Headervalue="TO INDENT QUANTITY"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.pro.IQ__c}"/>
+                </apex:column>
+                
+            </apex:pageBlockTable>
+        </apex:pageBlock>
+        
+    </apex:form>
+    
+    <apex:form rendered="{!showform}">
+        <apex:pageBlock title="Select Material Planning Items">
+            <!--<apex:actionFunction name="callsend" action="{!sendAndRefresh}"></apex:actionFunction>-->
+            <apex:pageMessages ></apex:pageMessages>
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandbutton value="Block And Generate Indent" action="{!saveRec}" Style="float:right;" styleClass="slds-button slds-button_brand" />
+                <apex:commandbutton value="Cancel" action="{!cancel}" Style="float:right;" styleClass="slds-button slds-button_neutral"/>
+            </apex:pageBlockButtons> 
+            <apex:pageBlockTable value="{!spList}" var="a" Styleclass="slds-table slds-table_bordered">
+                <apex:column Headervalue="PRODUCT"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.Item_Name__c}"/>
+                </apex:column>
+                <!--<apex:column Headervalue="MAKE"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.Make__c}"/>
+                    </apex:column>-->
+                <apex:column Headervalue="BOM QUANTITY"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.BOM_Quantity__c}"/>
+                </apex:column>
+                <apex:column Headervalue="AVAILABLE STOCK"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.Available_Stock__c}"/>
+                </apex:column>
+                <apex:column Headervalue="PENDING QUANTITY"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.Pending_Quantity__c}"/>
+                </apex:column>
+                <apex:column Headervalue="QUANTITY TO BLOCK"  Styleclass="slds-hint-parent">
+                    <apex:Inputfield value="{!a.Quantity_To_Block__c}"></apex:Inputfield>
+                </apex:column>
+                <apex:column Headervalue="INDENT QUANTITY"  Styleclass="slds-hint-parent">
+                    <apex:outputfield value="{!a.IQ__c}"/>
+                </apex:column>
+                
+            </apex:pageBlockTable>
+        </apex:pageBlock>
+        
+    </apex:form>
+    
+</apex:page>

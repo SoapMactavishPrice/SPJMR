@@ -1,0 +1,81 @@
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 12px;
+}
+
+.box {
+    text-align: center;
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+}
+
+.box:hover {
+    filter: brightness(0.97);
+}
+
+.box:focus {
+    outline: 2px solid #1b96ff;
+    outline-offset: 2px;
+}
+
+.published { background: #e3f2fd; }
+.completed { background: #e8f5e9; }
+.republished { background: #fff3e0; }
+.cancelled { background: #ffebee; }
+
+.no-data {
+    margin-top: 8px;
+}
+
+.modal-container {
+    width: 96vw;
+    max-width: 96vw;
+}
+
+.modal-content {
+    max-height: 70vh;
+}
+
+.table-wrap {
+    overflow: auto;
+    padding: 12px;
+}
+
+.col-session-name {
+    min-width: 12rem;
+    max-width: 22rem;
+}
+
+.col-session-time {
+    white-space: nowrap;
+}
+
+.cell-wrap {
+    white-space: normal;
+    word-break: break-word;
+}
+
+.session-record-link {
+    word-break: break-word;
+}
+
+.col-url {
+    max-width: 20rem;
+}
+
+.session-url-link {
+    word-break: break-all;
+}
+
+.term-message {
+    padding: 12px 16px;
+    color: var(--lwc-colorTextDefault, #080707);
+    font-size: 14px;
+    line-height: 1.4;
+}

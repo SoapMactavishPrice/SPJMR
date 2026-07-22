@@ -1,0 +1,347 @@
+<apex:page controller="POPdf" applyBodyTag="false" standardStylesheets="false">
+    <apex:slds />
+    <html>
+        <head>
+            <style>
+                @page{
+                size: A4 landscape;
+                }
+            </style>
+        </head>
+        <apex:pageMessages ></apex:pageMessages>
+        <div class="slds-scope" style="display:{!IF( approval == 'Approved', 'block', 'none')};width=90%">
+            <apex:form >
+                
+                <body class="pdf" style="font-family: Verdana, Geneva, sans-serif;">
+                    <div style="width:90%;margin-top:-20px;margin-left: 70px;text-align:center;display:inline-flex;">
+                        <div style="min-width:500px;margin:30px auto;text-align:center;">
+                            <div Style="Float:left;">To*:</div>
+                            <apex:inputText value="{!emailId}" label="Enter Email Id" styleClass="slds-input" style="width:100%;Margin-top:5px;" required="true"></apex:inputText>
+                            <div Style="Float:left;"> Subject*:</div>
+                            <apex:inputText value="{!subject}" label="Enter Subject" styleClass="slds-input" style="width:100%;Margin-top:5px;" required="false"></apex:inputText>
+                            <!-- <div Style="Float:left;">Body:</div>
+<apex:inputTextarea value="{!body}" label="Body" styleClass="slds-input" style="width:100%;Margin-top:5px;"></apex:inputTextarea>&nbsp;-->
+                            <div Style="Float:left;">Body:</div> &nbsp;
+                            <apex:inputtextarea label="RichText"  richtext="true" value="{!body}" id="Body" cols="100" rows="5"/>
+                        </div>
+                    </div>
+                    <div class="default" style="width:90%;margin-left: 72px;border: 1px solid black;">
+                        <table width="100%">
+                            <tr> 
+                                <td style="width:60%; border: 0px solid black;  border-collapse: collapse; border-left:0px solid black;vertical-align:middle;text-align:left">
+                                    <p style="font-size:25px;font-weight:bold;">{!quo.Company_Master__r.Name}</p>
+                                    <p style="font-size:13px;font-weight:bold;color:red;">GSTIN/UIN :{!quo.Company_Master__r.GSTIN_UIN_Number__c}</p>
+                                </td>
+                                <td style="width:20%; border: 0px solid black;  border-collapse: collapse; border-left:0px solid black;vertical-align:middle;text-align:center">
+                                    &nbsp;
+                                </td>
+                                <td style="width:20%;text-align:center">
+                                    <!-- <apex:outputText value="{!quo.Company_Master__r.Logo__c}" escape="false" style="" /> -->
+                                    <apex:image style="width:170px;height:55px" url="{!accountImageURL}"/>
+                                </td>
+                            </tr>
+                        </table>
+                        <p style="text-align:Center;font-size:13px;font-weight:bold;border-bottom:1px solid black;"></p>
+                        
+                        <table width="100%">
+                            <tr >
+                                <td>
+                                    <p style="text-align:left">{!quo.Company_Master__r.Company_Address__c} </p>
+                                    <p style="text-align:left">{!quo.Company_Master__r.Company_City__c},{!quo.Company_Master__r.Company_State__c},{!quo.Company_Master__r.Company_Country__c}</p>      
+                                    <p style="text-align:left">Ph : {!quo.Company_Master__r.Phone_1__c}, {!quo.Company_Master__r.Phone_2__c}, {!quo.Company_Master__r.Phone_3__c}</p>
+                                    <p style="text-align:left">Email : {!quo.Company_Master__r.Email__c}, Website : {!quo.Company_Master__r.Website__c}</p>
+                                </td>
+                            </tr>
+                        </table>
+                        <table width="100%">
+                            <tr style="padding-top: 50px; line-height:60px;"> 
+                                <td colspan="4" style="border: 0px solid black;  border-collapse: collapse; border-left:0px solid black;">
+                                    <!-- <p style="vertical-align:middle;text-align:center;font-size: 20px;font-weight:bold">A.R. ELECTRO POWER PVT. LTD. </p> -->
+                                    <p style="vertical-align:middle;text-align:center;font-size: 18px;font-weight:bold"><u>Purchase Order</u></p>
+                                </td>
+                            </tr>
+                        </table>
+                        <table width="100%">
+                            <tr>
+                                <td style="width:16%; "><b style="margin-left:5px">Vendor Name &amp; Address : </b></td>
+                                <td style="width:40%; margin-left: 15px; vertical-align: top" rowspan="4">
+                                    <p>{!quo.Vendor_Name__r.Name}</p>
+                                    <p style="margin-right: 100px">
+                                        {!vendorAddress}
+                                    </p>
+<!--
+                                    <p>{!quo.Vendor_Name__r.Address_1__c}</p>
+                                    <p>{!quo.Vendor_Name__r.Address_2__c}</p>
+                                    <p>{!quo.Vendor_Name__r.Address_3__c}</p>
+                                    <p>{!quo.Vendor_Name__r.Address_4__c}</p>
+-->
+                                </td>
+                                <td style="width:10%" height="18px"><b>Date : </b></td>
+                                <td style="width:30%;">
+                                    <apex:outputText value="{0,date,dd/MM/yy}"> 
+                                        <apex:param value="{!quo.PO_Date__c}" /> 
+                                    </apex:outputText>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"></td>
+                                <td height="18px"><b>Reference No. : </b></td>
+                                <td>{!quo.Document_Number__c}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"></td>
+                                <td height="18px"><b>Indent No. </b></td>
+                                <td>{!quo.Purchase_Requisition__r.Name}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2"></td>
+                                <td height="18px"><b>PR No. </b></td>
+                                <td>{!quo.Purchase_Requisition__r.Name}</td>
+                            </tr>
+                            <tr>
+                                <!-- <td colspan="2"></td> -->
+                                <!-- <td><p style="margin-left:5px"><b>GST No. : </b></p></td>
+                                <td style="width:40%; margin-left: 15px; vertical-align: top">
+                                    <p>{!quo.Vendor_Name__r.GST_Number__c}</p>
+                                </td> -->
+
+                                <td style="width:16%; "><b style="margin-left:5px">GST No. : </b></td>
+                                <td style="width:40%; margin-left: 15px; vertical-align: top">
+                                    <p>{!quo.Vendor_Name__r.GST_Number__c}</p>
+                                </td>
+
+                                <td height="18px"><b>SPA No. </b></td>
+                                <td>Remaining</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <p style="margin-left:5px"><b>Bill To. : </b></p>
+                                </td>
+                                <td>
+                                    <p style="margin-left: 5px;">{!quo.PO_Bill_To__r.Line_1_Block__c} </p> 
+                                    <p style="margin-left: 5px;">{!quo.PO_Bill_To__r.Line_2_Building_Floor_Room__c}  </p>
+                                    <p style="margin-left: 5px;">{!quo.PO_Bill_To__r.Line_3_Street_PO_Box__c}  </p>
+                                    <p style="margin-left: 5px;">{!quo.PO_Bill_To__r.City__c} </p>
+                                    <p style="margin-left: 5px;">{!quo.PO_Bill_To__r.State__c}  </p>
+                                    <p style="margin-left: 5px;">{!quo.PO_Bill_To__r.Zip_Code__c} </p>
+                                    <p style="margin-left: 5px;">{!quo.PO_Bill_To__r.Country_Name__c} </p>
+                                </td>
+                                <td>
+                                    <p><b>Ship To. : </b></p>
+                                </td>
+                                <td>
+                                    <p>{!quo.PO_Ship_To__r.Line_1_Block__c} </p> 
+                                    <p>{!quo.PO_Ship_To__r.Line_2_Building_Floor_Room__c}  </p>
+                                    <p>{!quo.PO_Ship_To__r.Line_3_Street_PO_Box__c}  </p>
+                                    <p>{!quo.PO_Ship_To__r.City__c} </p>
+                                    <p>{!quo.PO_Ship_To__r.State__c}  </p>
+                                    <p>{!quo.PO_Ship_To__r.Zip_Code__c} </p>
+                                    <p>{!quo.PO_Ship_To__r.Country_Name__c} </p>
+                                </td>
+                            </tr>
+                        </table>
+                        <table width="100%">
+                            <tr>
+                                <td style="padding-left:5px" colspan="4">
+                                    <p style="vertical-align:middle;text-align:left;margin-top: 22px;">
+                                        <b>We are please to Issue order for the following items : </b>
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                        <div style="width:100%; margin-top:20px; border: 0.5px solid black; border-collapse: collapse">
+                            <table width="100%" style="table-paginate: paginate;border-spacing: 0; border-collapse: collapse; margin-left:auto; margin-right:auto;margin-top: -1px;" >
+                                <thead>
+                                    <tr>
+                                        <th width="5%" style="text-align: center; border: 0.5px solid black;border-collapse: collapse"><p>Sr. No.</p></th>
+                                        <th width="12%" style="text-align: center; border: 0.5px solid black;border-collapse: collapse"><p>Item Name</p></th>
+                                        <!--<th width="23%" style="text-align: left; border: 0.5px solid black;border-collapse: collapse"><p>Size &amp; Description</p></th>-->
+                                        <!-- <th width="10%" style="text-align: center;border: 0.5px solid black;border-collapse: collapse"><p>Colour</p></th> -->
+                                        <th width="10%" style="text-align: center;border: 0.5px solid black;border-collapse: collapse"><p>UOM</p></th>
+                                        <th width="10%" style="text-align: center;border: 0.5px solid black;border-collapse: collapse"><p>Quantity</p></th>
+                                        <th width="10%" style="text-align: center;border: 0.5px solid black;border-collapse: collapse"><p>Unit Price</p></th>
+                                         <th width="10%" style="text-align: center;border: 0.5px solid black;border-collapse: collapse"><p>MRP</p></th>
+                                        <th width="10%" style="text-align: center;border: 0.5px solid black;border-collapse: collapse"><p>Discount</p></th>
+                                        <th width="10%" style="text-align: center;border: 0.5px solid black;border-collapse: collapse"><p>Net Amount</p></th>
+                                        <th width="10%" style="text-align: center;border: 0.5px solid black;border-collapse: collapse"><p>Tax Code</p></th>
+                                        
+                                        <th width="10%" style="text-align: center;border: 0.5px solid black;border-collapse: collapse"><p>Total Amount</p></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <apex:variable value="{!1}" var="srno" />
+                                    <apex:variable value="{!0}" var="net_total" />
+                                    <apex:variable value="{!0}" var="total_amount" />
+                                    <apex:repeat value="{!qlList}" var="q">
+                                        <tr>
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <p style="text-align:center">{!srno}</p>
+                                            </td>
+                                            <!--<td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <p style="">{!q.Item_Code__c}</p>
+                                            </td>-->
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <p style="text-align:center">{!q.Item_Name__r.Name}</p>
+                                            </td>
+                                            <!--
+                                                <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <p style="text-align:center">{!q.Color__c}</p>
+                                                </td>
+                                                -->
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <p style="text-align:center">{!q.Sales_UOM__r.name}</p>
+                                            </td>
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <p style="text-align:center; ">{!q.Qty__c}</p>
+                                            </td>
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <!-- <p style="text-align:center; ">{!q.Unit_Price__c}</p> -->
+                                                <p style="text-align:center; "><apex:outputText value="{0, number, ###,###,###,##0.00}"><apex:param value="{!q.Unit_Price__c}"/></apex:outputText></p>
+                                            </td>
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <!-- <p style="text-align:center; ">{!q.MRP_Price__c}</p> -->
+                                                <p style="text-align:center; "><apex:outputText value="{0, number, ###,###,###,##0.00}"><apex:param value="{!q.MRP_Price__c}"/></apex:outputText></p>
+                                            </td>
+                                            <!--
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                            <p style="text-align:center; ">{!q.Unit_Price__c * q.Qty__c}</p>
+                                            </td>
+                                            --> 
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <p style="text-align:center; ">
+                                                    {!q.Discount_In_Percentage__c}
+                                                    <apex:outputtext value="{!IF(ISNULL(q.Discount_In_Percentage__c), '', ' %')}"/>
+                                                </p>
+                                            </td>
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <!-- <p style="text-align:center; ">{!q.Price_After_Discount__c}</p> -->
+                                                <p style="text-align:center; "><apex:outputText value="{0, number, ###,###,###,##0.00}"><apex:param value="{!q.Price_After_Discount__c}"/></apex:outputText></p>
+                                            </td>
+                                            <!--<td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <p style="text-align:center; ">{!q.Price_After_Discount__c}</p>
+                                            </td>-->
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <p style="text-align:center; ">{!q.Tax_Code__r.Name}</p>
+                                            </td>
+                                            <td style="border: 0.5px solid black;border-collapse: collapse">
+                                                <!-- <p style="text-align:center; ">{!q.Total_Price_After_Tax__c}</p> -->
+                                                <p style="text-align:center; ">
+                                                    <apex:outputText value="{0, number, ###,###,###,##0.00}"><apex:param value="{!q.Total_Price_After_Tax__c}"/></apex:outputText>
+                                                </p>
+                                            </td>
+                                            
+                                        </tr>
+                                        <apex:variable value="{!srno+1}" var="srno"/>
+                                        <apex:variable value="{!total_amount + q.Total_Price_After_Tax__c}" var="total_amount" />
+                                    </apex:repeat>
+                                    <tr>
+                                        <td colspan="8" style="border: 0.5px solid black;border-collapse: collapse;"></td>
+                                        <td style="border: 0.5px solid black; border-collapse:collapse;text-align:center; font-weight:bold; padding-right:5px">Total Amount</td>
+                                        <td style="border: 0.5px solid black; border-collapse:collapse;text-align:center; padding-right:10px">
+                                            <p>
+                                                <!-- {!total_amount} -->
+                                                <apex:outputText value="{0, number, ###,###,###,##0.00}"><apex:param value="{!total_amount}"/></apex:outputText>
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <table width="100%" style="border-spacing: 0; margin-top: 0px;font-size: 13px">
+                            <tr>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                    <p style="margin-top:5px;margin-left:5px">
+                                        <b>GST</b><span style="color:black;margin-left:120px"> &nbsp;&nbsp;:  {!quo.Tax_Code__r.name}</span> 
+                                    </p>
+                                </td>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                	<p style="margin-top:5px;margin-left:5px">
+                                        <b>Inspection By</b><span style="color:black;margin-left:25px"> &nbsp;&nbsp;:  {!quo.Inspection_By__r.name}</span> 
+                                    </p>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                    <p style="margin-top:5px;margin-left:5px">
+                                        <b>Drum length/Tolerence</b><span style="color:black;margin-left:7px"> &nbsp;&nbsp;:  {!quo.Drum_Length_Tolerance__c}</span> 
+                                    </p>
+                                </td>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                	<p style="margin-top:5px;margin-left:5px">
+                                        <b>Freight Charges</b><span style="color:black;margin-left:11px"> &nbsp;&nbsp;:  {!quo.Freight_Cost__c}</span> 
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                    <p style="margin-top:5px;margin-left:5px">
+                                        <b>Quantity Tolerence </b><span style="color:black;margin-left:32px"> &nbsp;&nbsp;:  {!quo.Quantity_Tolerance__c}</span> 
+                                    </p>
+                                </td>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                	<p style="margin-top:5px;margin-left:5px">
+                                        <b>Delivery Schedule</b><span style="color:black;margin-left:0px"> &nbsp;&nbsp;:  {!quo.Delivery_Schedule__c}</span> 
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                    <p style="margin-top:5px;margin-left:5px">
+                                        <b>Embossing / Printing</b><span style="color:black;margin-left:20px"> &nbsp;&nbsp;:  {!quo.Embossing_Printing__c}</span> 
+                                    </p>
+                                </td>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                	<p style="margin-top:5px;margin-left:5px">
+                                        <b>Special Remarks</b><span style="color:black;margin-left:7px"> &nbsp;&nbsp;:  {!quo.Remarks__c}</span> 
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                    <p style="margin-top:5px;margin-left:5px">
+                                        <b>Payment Terms</b><span style="color:black;margin-left:55px"> &nbsp;&nbsp;:  {!quo.Payment_Terms__c}</span> 
+                                    </p>
+                                </td>
+                                <td style="width:50%;padding-left:5px;border: 0.5px solid black; border-collapse:collapse;" height="18px">
+                                	
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td colspan="4" style="padding-left:5px">
+                                    <p>
+                                        <b>Contact Person : </b>
+                                        {!quo.Kind_Attention__r.Name}, Email: {!quo.Kind_Attention__r.Business_Email__c}, Ph. No.:{!quo.Kind_Attention__r.Phone}
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                            
+                            <table width="100%" style="table-paginate: paginate;border-spacing: 0;margin-top: -1px;">
+                                <tr>
+                                    <td style="border: 0.5px solid black;border-collapse: collapse;">
+                                        <p style="text-align:left; margin-left:5px">
+                                            Incase of any discrepancy / information / details required, please contact us immediately. 
+                                        </p>
+                                        <p style="padding-left: -25px; color: white">
+                                            .
+                                        </p>
+                                        <p style="text-align:left; font-weight:bold; margin-left: 5px">
+                                            For, {!quo.Company_Master__r.Name}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div style="display: flex;   justify-content: center;">
+                        <apex:commandButton action="{!Cancel}" value="Cancel" styleClass="slds-button slds-button_destructive slds-button__icon_right slds-button--brand slds-m-top--medium" style="Margin-top:5px;margin-left: -1px;float:right" immediate="true"></apex:commandButton>
+                        <apex:commandButton action="{!SavePdf}" value="Save" styleClass="slds-button slds-button_brand" style="Margin-top:5px;float:right;margin-right:5px; margin-left:5px" immediate="true"></apex:commandButton>
+                        <apex:commandButton action="{!saveAndSend}" value="Save And Send" styleClass="slds-button slds-button_brand" style="Margin-top:5px;float:right" ></apex:commandButton>
+                    </div>
+                </body>
+            </apex:form>
+        </div>
+    </html>
+</apex:page>

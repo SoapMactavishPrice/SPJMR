@@ -1,0 +1,102 @@
+<template>
+
+    <lightning-card title="Leave Request">
+
+        <div class="slds-p-around_medium">
+
+            <lightning-input
+                type="date"
+                label="Start Date"
+                name="startDate"
+                value={startDate}
+                onchange={handleChange}>
+            </lightning-input>
+
+            <lightning-input
+                type="date"
+                label="End Date"
+                name="endDate"
+                value={endDate}
+                onchange={handleChange}>
+            </lightning-input>
+
+            <lightning-combobox
+                label="Type of Leave"
+                name="leaveType"
+                value={leaveType}
+                options={leaveTypeOptions}
+                onchange={handleChange}>
+            </lightning-combobox>
+
+            <lightning-textarea
+                label="Remark"
+                name="remark"
+                value={remark}
+                onchange={handleChange}>
+            </lightning-textarea>
+
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    label="Preview Sessions"
+                    variant="brand"
+                    onclick={handlePreview}>
+                </lightning-button>
+            </div>
+
+        </div>
+    </lightning-card>
+
+    <!-- Spinner -->
+    <template if:true={isLoading}>
+        <div class="slds-is-relative">
+            <lightning-spinner alternative-text="Loading">
+            </lightning-spinner>
+        </div>
+    </template>
+
+    <!-- Modal -->
+    <template if:true={showModal}>
+        <section role="dialog"
+                 class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">
+                        Sessions Found
+                    </h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <lightning-datatable
+                        key-field="enrollmentId"
+                        data={sessions}
+                        columns={columns}
+                        hide-checkbox-column>
+                    </lightning-datatable>
+
+                </div>
+
+                <footer class="slds-modal__footer">
+
+                    <lightning-button
+                        label="Cancel"
+                        onclick={handleCancel}>
+                    </lightning-button>
+
+                    <lightning-button
+                        variant="brand"
+                        label="Confirm Submit"
+                        onclick={handleSubmit}
+                        class="slds-m-left_small">
+                    </lightning-button>
+
+                </footer>
+
+            </div>
+        </section>
+
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+</template>

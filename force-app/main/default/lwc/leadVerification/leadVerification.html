@@ -1,0 +1,38 @@
+<template>
+    <template lwc:if={bool_isLoading}>
+        <div class="brand-page">
+            <lightning-spinner alternative-text="Loading" size="large"></lightning-spinner>
+        </div>
+    </template>
+    <template lwc:else>
+        <div class="brand-page">
+            <div class="brand-card">
+                <div class="brand-header">
+                    <img
+                        class="brand-logo"
+                        src={logoUrl}
+                        alt="SPJIMR"
+                    />
+                    <p class="brand-subtitle">Lead Verification</p>
+                </div>
+
+                <div class="status-section">
+                    <template lwc:if={boolean_Success}>
+                        <lightning-icon icon-name="action:approval" alternative-text="Approved" title="Approved"></lightning-icon>
+                        <div class="status-text">Thank you for Verifying!</div>
+                    </template>
+
+                    <template lwc:if={boolean_Error}>
+                        <lightning-icon icon-name="utility:error" variant="error" alternative-text="Not Approved" title="Not Approved"></lightning-icon>
+                        <div class="status-text">Email could not be verified!</div>
+                    </template>
+
+                    <template lwc:if={boolean_LoggedIn}>
+                        <lightning-icon icon-name="utility:info" variant="warning" alternative-text="Logged In" title="Already Approved"></lightning-icon>
+                        <div class="status-text">{loggedInPrompt}</div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </template>
+</template>

@@ -1,0 +1,86 @@
+<apex:page controller="EditAllBatchWisePaymentClass" sidebar="false" showHeader="false">
+    
+    <html>
+       
+        <apex:slds />
+        <style>
+            table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            }
+            
+            th, td {
+            text-align: left;
+            padding: 8px;
+            }
+            
+            tr:nth-child(even){background-color: #f2f2f2}
+            
+            .dateFormat{
+            visibility:hidden;            
+            }
+        </style>
+        <body class="slds-scope"><br/>
+            
+            <div class="slds-box" style="width: 98%;margin:auto"> 
+                 <apex:pagemessages />  
+                <div class="slds-scope" style="display:{!IF( ProgCount > 0, 'block', 'none')};width=90%">
+                    <apex:form >
+                        <p class="slds-text-title_caps" style="text-align:center;font-size:20px">Fee Plan Information</p> 
+                        <apex:repeat value="{!sMap}" var="par">
+                            <table class="slds-table slds-table_bordered slds-scrollable--x slds-table_col-bordered slds-table_resizable-cols"  style="width:100%">  
+                                <tr class="slds-text-align_center">
+                                    <td colspan='11' style="font-weight: 600;font-size: initial;" class="slds-text-align_center">
+                                        <apex:outputText value="{!par}"></apex:outputText></td>
+                                </tr>
+                                <tr > 
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Fee Plan Name</th>
+                                    <!--  <th style="background-color:#bd000c;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Fee Plan Category</th>  -->
+                                    <th style="background-color:#631856;color:white;white-space:auto;width:16.66%" class="slds-text-align_left">Actual Fees</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Total Tax Amt</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Total Benefit Amt</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Total Fee Amt</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Total Amt Rcvd</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Remaining Amt</th>  
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Tax Applicable</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Benefit Applicable</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Refund Applicable</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Pro Rata Applicable</th>
+                                </tr>
+                                <br/>
+                                <apex:repeat value="{!sMap[par]}" var="child"> 
+                                    <tr >
+                                        <td class="slds-text-align_left"><apex:outputText value="{!child.Fee_Plan_Name__r.Name}"/></td>
+                                        <!--   <td class="slds-text-align_left"><apex:outputField value="{!child.Fee_Plan_Category__c}"/></td>  -->
+                                        <td class="slds-text-align_left"><apex:outputField value="{!child.Actual_Fees__c }" /></td>
+                                        <td class="slds-text-align_left"><apex:outputField value="{!child.Tax_Amount__c}" /></td>
+                                        <td class="slds-text-align_left"><apex:outputField value="{!child.Total_Benefit_Amount__c}" /></td>
+                                        <td class="slds-text-align_left"><apex:outputField value="{!child.Grand_Total__c}" /></td>
+                                        <td class="slds-text-align_left"><apex:outputField value="{!child.Total_Amount_Received__c}"/></td>
+                                        <td class="slds-text-align_left"><apex:outputField value="{!child.Remaining_Amt__c}" /></td>
+                                        <td class="slds-text-align_center"><apex:outputField value="{!child.Tax_Applicable__c}" /></td>
+                                        <td class="slds-text-align_center"><apex:outputField value="{!child.Benefit_Applicable__c}" /></td>
+                                        <td class="slds-text-align_center"><apex:outputField value="{!child.Refund_Applicable__c}"/></td>
+                                        <td class="slds-text-align_center"><apex:outputField value="{!child.Pro_Rata_Fees_Applicable__c}" /></td>
+                                    </tr>   
+                                </apex:repeat>
+                            </table>
+                        </apex:repeat>
+                        <div align="center" draggable="false">
+                            <apex:commandButton value="Cancel" action="{!Cancel}" styleClass="slds-button slds-button_destructive slds-button__icon_right slds-button--brand slds-m-top--medium"/>
+                        </div>
+                        <apex:actionRegion >
+                            <div align="center" draggable="false"  style="display:{!IF( ProgCount == 0, 'block', 'none')};width=90%">
+                                <apex:commandButton value="Cancel" action="{!Cancel}" styleClass="slds-button slds-button_destructive slds-button__icon_right slds-button--brand slds-m-top--medium"/>
+                            </div>
+                        </apex:actionRegion> 
+                    </apex:form>
+                </div>
+               
+            </div><br/>
+            
+        </body>
+    </html>
+</apex:page>

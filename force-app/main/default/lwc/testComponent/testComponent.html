@@ -1,0 +1,23 @@
+<template>
+    <lightning-button label="Click Me Hi!" onclick={handleClick}></lightning-button>
+     <template lwc:if={isTokenUnsuccessful}>
+                <div class="slds-m-top_large slds-text-color_destructive">
+                    {tokenError}
+                </div> 
+            </template>
+            <template lwc:elseif={isErrorVerifyToken}>
+                <div class="slds-m-top_large slds-text-color_destructive">
+                    {tokenError}
+                </div>
+            </template>
+            <template lwc:elseif={isErrorGeneratingToken}> 
+                <div class="slds-m-top_large slds-text-color_destructive">
+                    {tokenError}
+                </div>
+            </template>
+            <template lwc:if={isSussessfulCreate}>
+                <div class="slds-m-top_large slds-text-color_success">
+                    {successMessage}
+                </div>
+            </template>
+</template>

@@ -1,0 +1,15 @@
+.slds-modal__container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.slds-modal__content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.slds-modal__footer {
+    flex-shrink: 0;
+    margin-top: auto;
+}

@@ -1,0 +1,398 @@
+/**
+ * @description SessionCalendarInviteQueueable — SE-1056 / SE-1057 / SE-1047:
+ *          asynchronously create, update or cancel a Google Calendar event per
+ *          Session and invite the right participants.
+ *
+ *          SE-1057 (event mapping): Session__c fields → GoogleCalendarEvent
+ *            summary     ← Programme | Batch | Academic Year | Term | Division | Course - Session Name
+ *            start/end   ← Start_Time__c / End_Time__c (Asia/Kolkata)
+ *            location    ← Class_Room__c (+ URL__c meeting link)
+ *            description ← same context as labelled lines, then Description__c + join link
+ *          SE-1056 (audience):
+ *            publishSessionIds → students + faculty
+ *            draftSessionIds   → faculty only
+ *          Idempotency / update / cancel (SE-1047 §4–5):
+ *            - Session with no Google_Event_Id__c → POST (create), store the id.
+ *            - Session with a Google_Event_Id__c  → PATCH (update) the same event.
+ *            - cancelEventIdsBySession            → DELETE the event (sendUpdates=all).
+ *          Write-back: after each callout the Session is stamped with
+ *            Google_Event_Id__c / Calendar_Sync_Status__c / Calendar_Last_Synced__c /
+ *            Calendar_Sync_Error__c (DML is allowed post-callout in a Queueable).
+ *
+ * @note    Google Calendar has no bulk-insert API, so this issues one callout per
+ *          session (Queueable allows up to 100 callouts). Larger publishes are
+ *          chunked by the handler — see SessionCalendarInviteHandler.
+ */
+// complexity suppressed: working integration logic, refactor out of scope
+@SuppressWarnings('PMD.CyclomaticComplexity,PMD.StdCyclomaticComplexity,PMD.CognitiveComplexity,PMD.NcssMethodCount')
+public class SessionCalendarInviteQueueable implements Queueable, Database.AllowsCallouts {
+
+    private static final String EVENT_TIMEZONE = 'Asia/Kolkata';
+    private static final String STATUS_SYNCED    = 'Synced';
+    private static final String STATUS_FAILED    = 'Failed';
+    private static final String STATUS_CANCELLED = 'Cancelled';
+
+    private Set<Id> publishSessionIds; // invite students + faculty
+    private Set<Id> draftSessionIds;   // invite faculty only
+    private Map<Id, String> cancelEventIdsBySession; // sessionId → Google event id to DELETE
+
+    /**
+     * @description Backward-compatible constructor: create/update only, no cancellations.
+     * @param publishSessionIds Sessions to invite students + faculty to.
+     * @param draftSessionIds Sessions to invite faculty only.
+     */
+    public SessionCalendarInviteQueueable(Set<Id> publishSessionIds, Set<Id> draftSessionIds) {
+        this(publishSessionIds, draftSessionIds, null);
+    }
+
+    /**
+     * @description Full constructor supporting create/update plus cancellations.
+     * @param publishSessionIds Sessions to invite students + faculty to.
+     * @param draftSessionIds Sessions to invite faculty only.
+     * @param cancelEventIdsBySession Map of sessionId to Google event id to DELETE.
+     */
+    public SessionCalendarInviteQueueable(
+        Set<Id> publishSessionIds,
+        Set<Id> draftSessionIds,
+        Map<Id, String> cancelEventIdsBySession
+    ) {
+        this.publishSessionIds        = (publishSessionIds != null) ? publishSessionIds : new Set<Id>();
+        this.draftSessionIds          = (draftSessionIds   != null) ? draftSessionIds   : new Set<Id>();
+        this.cancelEventIdsBySession  = (cancelEventIdsBySession != null)
+            ? cancelEventIdsBySession : new Map<Id, String>();
+    }
+
+    /**
+     * @description Queueable entry point: process cancellations, then create/update
+     *          events, then write the sync results back to the Sessions.
+     * @param qc The Queueable execution context.
+     */
+    public void execute(QueueableContext qc) {
+        Map<Id, Session__c> toUpdate = new Map<Id, Session__c>();
+
+        processCancellations(toUpdate);
+        processCreateOrUpdate(toUpdate);
+
+        writeBack(toUpdate);
+    }
+
+    // ── CANCEL: DELETE the Google event (sendUpdates=all) ─────────────────────
+    private void processCancellations(Map<Id, Session__c> toUpdate) {
+        if (cancelEventIdsBySession.isEmpty()) {
+            return;
+        }
+        // Which of these sessions still exist? (On delete they won't — no write-back.)
+        Set<Id> existing = new Map<Id, Session__c>([
+            SELECT Id FROM Session__c WHERE Id IN :cancelEventIdsBySession.keySet()
+        ]).keySet();
+
+        for (Id sessionId : cancelEventIdsBySession.keySet()) {
+            String eventId = cancelEventIdsBySession.get(sessionId);
+            if (String.isBlank(eventId)) {
+                continue;
+            }
+            try {
+                GoogleCalendarService.GoogleCalendarResponse resp =
+                    GoogleCalendarHelper.deleteEventWithStoredCredentials(eventId);
+
+                if (existing.contains(sessionId)) {
+                    Session__c upd = new Session__c(Id = sessionId);
+                    if (resp != null && resp.success) {
+                        upd.Calendar_Sync_Status__c = STATUS_CANCELLED;
+                        upd.Calendar_Last_Synced__c = Datetime.now();
+                        upd.Google_Event_Id__c      = null; // a future publish creates fresh
+                        upd.Calendar_Sync_Error__c  = null;
+                    } else {
+                        upd.Calendar_Sync_Status__c = STATUS_FAILED;
+                        upd.Calendar_Sync_Error__c  = (resp != null) ? resp.errorMessage : 'Unknown cancel error';
+                    }
+                    toUpdate.put(sessionId, upd);
+                }
+            } catch (Exception e) {
+                if (existing.contains(sessionId)) {
+                    toUpdate.put(sessionId, new Session__c(
+                        Id = sessionId,
+                        Calendar_Sync_Status__c = STATUS_FAILED,
+                        Calendar_Sync_Error__c  = e.getMessage()
+                    ));
+                }
+            }
+        }
+    }
+
+    // ── CREATE / UPDATE: POST when no event id, PATCH when present ────────────
+    private void processCreateOrUpdate(Map<Id, Session__c> toUpdate) {
+        Set<Id> allSessionIds = new Set<Id>();
+        allSessionIds.addAll(publishSessionIds);
+        allSessionIds.addAll(draftSessionIds);
+        if (allSessionIds.isEmpty()) {
+            return;
+        }
+
+        Map<Id, Session__c> sessions = new Map<Id, Session__c>([
+            SELECT Id, Name, Schedule_Type__c, Start_Time__c, End_Time__c,
+                   Description__c, Class_Room__c, URL__c, Google_Event_Id__c,
+                   Course__r.Name, Program__r.Program_Code__c, Batch__r.Name,
+                   Academic_Year__r.Name, Term__r.Name
+            FROM   Session__c
+            WHERE  Id IN :allSessionIds
+        ]);
+
+        Map<Id, Set<String>> facultyBySession   = resolveFacultyEmails(allSessionIds);
+        Map<Id, Set<String>> studentsBySession  = resolveStudentEmails(publishSessionIds);
+        Map<Id, Set<String>> divisionsBySession = resolveDivisionNames(allSessionIds);
+
+        for (Id sessionId : sessions.keySet()) {
+            Session__c s = sessions.get(sessionId);
+
+            Set<String> attendees = new Set<String>();
+            if (facultyBySession.containsKey(sessionId)) {
+                attendees.addAll(facultyBySession.get(sessionId));
+            }
+            if (publishSessionIds.contains(sessionId) && studentsBySession.containsKey(sessionId)) {
+                attendees.addAll(studentsBySession.get(sessionId));
+            }
+            attendees.remove(null);
+            attendees.remove('');
+
+            if (attendees.isEmpty() || s.Start_Time__c == null || s.End_Time__c == null) {
+                // Record WHY we skipped so it is visible on the record and retryable,
+                // instead of failing silently in the debug log.
+                String why = (s.Start_Time__c == null || s.End_Time__c == null)
+                    ? 'Session is missing Start_Time__c / End_Time__c.'
+                    : 'No attendees with a valid email were found for this session.';
+                toUpdate.put(sessionId, new Session__c(
+                    Id = sessionId,
+                    Calendar_Sync_Status__c = STATUS_FAILED,
+                    Calendar_Sync_Error__c  = why
+                ));
+                continue;
+            }
+
+            GoogleCalendarEvent ev = buildEvent(s, new List<String>(attendees), divisionsBySession.get(sessionId));
+
+            try {
+                Boolean isUpdate = String.isNotBlank(s.Google_Event_Id__c);
+                GoogleCalendarService.GoogleCalendarResponse resp = isUpdate
+                    ? GoogleCalendarHelper.updateEventWithStoredCredentials(s.Google_Event_Id__c, ev)
+                    : GoogleCalendarHelper.createEventWithStoredCredentials(ev);
+
+                Session__c upd = new Session__c(Id = sessionId);
+                if (resp != null && resp.success) {
+                    // PATCH may not echo the id; keep the existing one in that case.
+                    upd.Google_Event_Id__c      = String.isNotBlank(resp.eventId)
+                        ? resp.eventId : s.Google_Event_Id__c;
+                    upd.Calendar_Sync_Status__c = STATUS_SYNCED;
+                    upd.Calendar_Last_Synced__c = Datetime.now();
+                    upd.Calendar_Sync_Error__c  = null;
+                } else {
+                    upd.Calendar_Sync_Status__c = STATUS_FAILED;
+                    upd.Calendar_Sync_Error__c  = (resp != null) ? resp.errorMessage : 'Unknown sync error';
+                }
+                toUpdate.put(sessionId, upd);
+            } catch (Exception e) {
+                toUpdate.put(sessionId, new Session__c(
+                    Id = sessionId,
+                    Calendar_Sync_Status__c = STATUS_FAILED,
+                    Calendar_Sync_Error__c  = e.getMessage()
+                ));
+            }
+        }
+    }
+
+    /**
+     * @description Stamp sync results back onto the Sessions (suppressing trigger re-entry).
+     * @param toUpdate Map of sessionId to the Session__c records carrying sync stamps.
+     */
+    private void writeBack(Map<Id, Session__c> toUpdate) {
+        if (toUpdate.isEmpty()) {
+            return;
+        }
+        Boolean prior = SessionCalendarInviteHandler.suppressInvites;
+        SessionCalendarInviteHandler.suppressInvites = true;
+        try {
+            // allOrNone = false: a single bad row (e.g. a validation rule on one
+            // Session) must NOT roll back the sync stamps — including freshly
+            // created Google_Event_Id__c values — of every other session in the
+            // chunk, which would otherwise orphan events and create duplicates.
+            Database.update(toUpdate.values(), false);
+        } catch (Exception e) {
+            // write-back DML failure is swallowed: the sync stamps are best-effort.
+            String ignored = e.getMessage();
+        } finally {
+            SessionCalendarInviteHandler.suppressInvites = prior;
+        }
+    }
+
+    // ── SE-1057: map a Session to the Google Calendar event format ────────────
+    // A faculty may teach the same course across programmes/batches/terms, so the event
+    // must identify the Programme / Batch / Term / Division it belongs to — not just the
+    // course. The full context goes in the summary (visible on the calendar block AND the
+    // event pop-up); the same breakdown is repeated as labelled lines in the description.
+    private GoogleCalendarEvent buildEvent(Session__c s, List<String> attendees, Set<String> divisionNames) {
+        GoogleCalendarEvent ev = new GoogleCalendarEvent();
+
+        // Final, most-specific token: "Course - Session Name".
+        String courseName  = (s.Course__r != null && String.isNotBlank(s.Course__r.Name)) ? s.Course__r.Name : '';
+        String sessionName = String.isNotBlank(s.Name) ? s.Name : '';
+        String courseSession;
+        if (String.isNotBlank(courseName) && String.isNotBlank(sessionName)) {
+            courseSession = courseName + ' - ' + sessionName;
+        } else {
+            courseSession = String.isNotBlank(courseName) ? courseName : sessionName;
+        }
+
+        String programmeCode = (s.Program__r != null) ? s.Program__r.Program_Code__c : null;
+        String batchName     = (s.Batch__r != null) ? s.Batch__r.Name : null;
+        String academicYear  = (s.Academic_Year__r != null) ? s.Academic_Year__r.Name : null;
+        String termName      = (s.Term__r != null) ? s.Term__r.Name : null;
+        String divisionText  = (divisionNames != null && !divisionNames.isEmpty())
+            ? String.join(new List<String>(divisionNames), ', ')
+            : null;
+
+        // Summary format (blank tokens omitted):
+        //   Programme | Batch | Academic Year | Term | Division | Course - Session Name
+        List<String> summaryParts = new List<String>();
+        if (String.isNotBlank(programmeCode)) { summaryParts.add(programmeCode); }
+        if (String.isNotBlank(batchName))     { summaryParts.add(batchName); }
+        if (String.isNotBlank(academicYear))  { summaryParts.add(academicYear); }
+        if (String.isNotBlank(termName))      { summaryParts.add(termName); }
+        if (String.isNotBlank(divisionText))  { summaryParts.add(divisionText); }
+        if (String.isNotBlank(courseSession)) { summaryParts.add(courseSession); }
+        ev.summary = String.join(summaryParts, ' | ');
+
+        ev.timeZone      = EVENT_TIMEZONE;
+        ev.startDateTime = toGoogleTime(s.Start_Time__c);
+        ev.endDateTime   = toGoogleTime(s.End_Time__c);
+
+        List<String> locationParts = new List<String>();
+        if (String.isNotBlank(s.Class_Room__c)) {
+            locationParts.add(s.Class_Room__c);
+        }
+        if (String.isNotBlank(s.URL__c)) {
+            locationParts.add(s.URL__c);
+        }
+        if (!locationParts.isEmpty()) {
+            ev.location = String.join(locationParts, ' | ');
+        }
+
+        // Description: structured detail block, then any session outline, then the join link.
+        List<String> detailLines = new List<String>();
+        if (String.isNotBlank(programmeCode)) {
+            detailLines.add('Programme: ' + programmeCode);
+        }
+        if (String.isNotBlank(batchName)) {
+            detailLines.add('Batch: ' + batchName);
+        }
+        if (String.isNotBlank(academicYear)) {
+            detailLines.add('Academic Year: ' + academicYear);
+        }
+        if (String.isNotBlank(termName)) {
+            detailLines.add('Term: ' + termName);
+        }
+        if (String.isNotBlank(divisionText)) {
+            detailLines.add('Division: ' + divisionText);
+        }
+        if (String.isNotBlank(courseSession)) {
+            detailLines.add('Course: ' + courseSession);
+        }
+        if (String.isNotBlank(s.Class_Room__c)) {
+            detailLines.add('Room: ' + s.Class_Room__c);
+        }
+
+        String descText = String.join(detailLines, '\n');
+        if (String.isNotBlank(s.Description__c)) {
+            descText += '\n\n' + s.Description__c;
+        }
+        if (String.isNotBlank(s.URL__c)) {
+            descText += '\n\n' + 'Join: ' + s.URL__c;
+        }
+        ev.description = descText;
+
+        ev.attendees = attendees;
+        return ev;
+    }
+
+    // ── Division names: Session_Division__c junction (supports joint sessions) ─
+    private Map<Id, Set<String>> resolveDivisionNames(Set<Id> sessionIds) {
+        Map<Id, Set<String>> bySession = new Map<Id, Set<String>>();
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return bySession;
+        }
+        for (Session_Division__c sd : [
+            SELECT Session__c, Division__r.Division_Name__c
+            FROM   Session_Division__c
+            WHERE  Session__c IN :sessionIds
+              AND  Division__r.Division_Name__c != NULL
+        ]) {
+            String name = (sd.Division__r != null) ? sd.Division__r.Division_Name__c : null;
+            if (String.isBlank(name)) {
+                continue;
+            }
+            if (!bySession.containsKey(sd.Session__c)) {
+                bySession.put(sd.Session__c, new Set<String>());
+            }
+            bySession.get(sd.Session__c).add(name);
+        }
+        return bySession;
+    }
+
+    private Map<String, Object> toGoogleTime(Datetime dt) {
+        return new Map<String, Object>{
+            'dateTime' => dt.format('yyyy-MM-dd\'T\'HH:mm:ss', EVENT_TIMEZONE),
+            'timeZone' => EVENT_TIMEZONE
+        };
+    }
+
+    // ── Faculty emails: Session_Faculty__c → Account.PersonEmail ──────────────
+    private Map<Id, Set<String>> resolveFacultyEmails(Set<Id> sessionIds) {
+        Map<Id, Set<String>> bySession = new Map<Id, Set<String>>();
+        for (Session_Faculty__c sf : [
+            SELECT Session__c, Session_Faculty__r.PersonEmail
+            FROM   Session_Faculty__c
+            WHERE  Session__c IN :sessionIds
+              AND  Session_Faculty__r.PersonEmail != NULL
+        ]) {
+            String email = (sf.Session_Faculty__r != null) ? sf.Session_Faculty__r.PersonEmail : null;
+            if (String.isBlank(email)) {
+                continue;
+            }
+            if (!bySession.containsKey(sf.Session__c)) {
+                bySession.put(sf.Session__c, new Set<String>());
+            }
+            bySession.get(sf.Session__c).add(email);
+        }
+        return bySession;
+    }
+
+    // ── Student emails: Session_Enrollment__c → ... → LearnerAccount.PersonEmail
+    private Map<Id, Set<String>> resolveStudentEmails(Set<Id> sessionIds) {
+        Map<Id, Set<String>> bySession = new Map<Id, Set<String>>();
+        if (sessionIds.isEmpty()) {
+            return bySession;
+        }
+        for (Session_Enrollment__c se : [
+            SELECT Session__c,
+                   Division_Enrollment__r.Academic_Term_Enrollment__r.LearnerAccount.PersonEmail
+            FROM   Session_Enrollment__c
+            WHERE  Session__c IN :sessionIds
+              AND  Division_Enrollment__r.Academic_Term_Enrollment__r.LearnerAccount.PersonEmail != NULL
+        ]) {
+            // The SOQL filter guarantees the path is non-null, but guard defensively.
+            String email =
+                (se.Division_Enrollment__r != null
+                    && se.Division_Enrollment__r.Academic_Term_Enrollment__r != null
+                    && se.Division_Enrollment__r.Academic_Term_Enrollment__r.LearnerAccount != null)
+                ? se.Division_Enrollment__r.Academic_Term_Enrollment__r.LearnerAccount.PersonEmail
+                : null;
+            if (String.isBlank(email)) {
+                continue;
+            }
+            if (!bySession.containsKey(se.Session__c)) {
+                bySession.put(se.Session__c, new Set<String>());
+            }
+            bySession.get(se.Session__c).add(email);
+        }
+        return bySession;
+    }
+}

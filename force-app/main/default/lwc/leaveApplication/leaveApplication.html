@@ -1,0 +1,292 @@
+<template>
+<!-- ================= LOADING OVERLAY ================= -->
+<template if:true={isLoading}>
+    <div class="loading-overlay">
+        <div class="loading-box">
+            <div class="spinner-ring"></div>
+            <p class="loading-text">Please wait...</p>
+        </div>
+    </div>
+</template>
+    <!-- Success Message -->
+    <template if:true={showSuccess}>
+        <div class="success-banner">
+            ✔ Leave Application submitted successfully!
+        </div>
+    </template>
+    
+    <!-- Error Message -->
+    <template if:true={errorMessage}>
+        <div class="error-banner">
+            ⚠ {errorMessage}
+        </div>
+    </template>
+    
+    <!-- MAIN CARD -->
+    <div class="leave-wrapper">
+    
+        <!-- Header -->
+        <div class="leave-header">
+            Leave Application
+        </div>
+    
+        <!-- Body -->
+        <div class="leave-body">
+    
+            <!-- From -->
+<!-- From Row -->
+<div class="datetime-row">
+    <div class="datetime-half">
+        <lightning-input type="date"
+            value={fromDateOnly}
+            min={todayDateString}
+            placeholder="From Date"
+            onchange={handleFromDate}
+            variant="label-hidden">
+        </lightning-input>
+    </div>
+    <div class="datetime-half">
+        <lightning-input type="time"
+            value={fromTimeOnly}
+            placeholder="From Time"
+            onchange={handleFromTime}
+            variant="label-hidden">
+        </lightning-input>
+    </div>
+</div>
+
+<!-- To Row -->
+<div class="datetime-row">
+    <div class="datetime-half">
+        <lightning-input type="date"
+            value={toDateOnly}
+            min={todayDateString}
+            placeholder="To Date"
+            onchange={handleToDate}
+            variant="label-hidden">
+        </lightning-input>
+    </div>
+    <div class="datetime-half">
+        <lightning-input type="time"
+            value={toTimeOnly}
+            placeholder="To Time"
+            onchange={handleToTime}
+            variant="label-hidden">
+        </lightning-input>
+    </div>
+</div>
+    
+            <!-- Leave Type -->
+            <div class="slds-form-element">
+                <div class="slds-form-element__control">
+                    <select class="slds-select"
+                        value={leaveType}
+                        onchange={handleLeaveType}>
+                        <option value="" disabled selected hidden>Leave Type</option>
+                        <option value="Marriage Leave">Marriage Leave</option>
+                        <option value="Medical Leave">Medical Leave</option>
+                        <option value="Emergency Leave">Emergency Leave</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+    
+            <!-- Reason -->
+            <div class="slds-form-element">
+                <div class="slds-form-element__control">
+                    <textarea class="slds-textarea"
+                        placeholder="Reason"
+                        rows="4"
+                        value={reason}
+                        onchange={handleReason}>
+                    </textarea>
+                </div>
+            </div>
+    
+            <!-- Buttons -->
+            <div class="button-wrapper">
+
+                <button class="purple-btn"
+                    onclick={triggerFileUpload}
+                    type="button">
+                    Upload Document
+                </button>
+
+            <button class="purple-btn"
+                onclick={handleApply}
+                type="button">
+                Apply Leave
+            </button>
+    
+                <input
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx"
+                    class="hidden-input"
+                    onchange={handleFileChange}
+                />
+    
+            </div>
+
+            <!-- ===== IMAGE / FILE PREVIEW SECTION ===== -->
+            <template if:true={hasUploadedFiles}>
+                <div class="preview-wrapper">
+
+                    <div class="preview-heading">Uploaded Files</div>
+
+                    <div class="preview-grid">
+                        <template for:each={uploadedFiles} for:item="file">
+                            <div key={file.id} class="preview-card">
+
+                                <!-- Image Preview -->
+                                <template if:true={file.isImage}>
+                                    <div class="preview-img-box">
+                                        <img src={file.dataUrl}
+                                             alt={file.name}
+                                             class="preview-img"
+                                             data-url={file.dataUrl}
+                                             data-name={file.name}
+                                             onclick={handleImageClick} />
+                                    </div>
+                                </template>
+
+<!-- PDF Preview -->
+<template if:true={file.isPdf}>
+    <div class="preview-pdf-box"
+         data-url={file.dataUrl}
+         data-name={file.name}
+         onclick={handlePdfClick}>
+        <div class="pdf-icon-box">
+            <span class="pdf-icon">📄</span>
+            <span class="pdf-label">PDF</span>
+        </div>
+    </div>
+</template>
+
+<!-- Other files (doc, docx, etc.) -->
+<template if:true={file.isOther}>
+    <div class="preview-file-icon"
+         data-url={file.dataUrl}
+         data-name={file.name}
+         onclick={handleOtherFileClick}>
+        📁
+    </div>
+</template>
+
+
+                                <!-- File Name -->
+                                <p class="preview-filename" title={file.name}>{file.name}</p>
+
+                                <!-- Remove Button -->
+                                <button class="remove-btn"
+                                        data-id={file.id}
+                                        onclick={handleRemoveFile}
+                                        type="button">
+                                    ✕
+                                </button>
+
+                            </div>
+                        </template>
+                    </div>
+
+                </div>
+            </template>
+            <!-- ===== END PREVIEW SECTION ===== -->
+    
+        </div> <!-- END leave-body -->
+    
+    </div> <!-- END leave-wrapper -->
+    
+    
+    <!-- ================= POPUP ================= -->
+    
+    <template if:true={showModal}>
+    
+        <section role="dialog"
+                 tabindex="-1"
+                 aria-modal="true"
+                 class="slds-modal slds-fade-in-open custom-modal-wrapper">
+    
+            <div class="slds-modal__container custom-modal-container">
+    
+                <!-- Header -->
+                <header class="custom-header">
+                    <h2>Proceed & Confirm Leave Request</h2>
+                    <button class="close-circle"
+                            onclick={closeModal}>
+                        ×
+                    </button>
+                </header>
+    
+                <!-- Body -->
+                <div class="custom-body">
+    
+                    <!-- Warning -->
+                    <div class="warning-box">
+                        ⚠ You are requesting leave on dates where academic sessions/events are scheduled.
+                        These will NOT be counted for attendance.
+                    </div>
+    
+                    <!-- Section Title -->
+                    <div class="section-title">
+                        Your Event and Session list
+                    </div>
+    
+                    <!-- Sessions -->
+                    <div class="session-scroll">
+                        <template if:true={sessions}>
+                            <template for:each={sessions} for:item="item">
+                                <div key={item.enrollmentId}
+                                     class="event-box">
+                                    <p class="event-title">{item.sessionName}</p>
+                                    <p>Start: {item.startTimeFormatted}</p>
+                                    <p>End: {item.endTimeFormatted}</p>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+    
+                    <!-- Button -->
+                    <div class="btn-center">
+                        <button class="purple-btn"
+                                onclick={handleProceed}
+                                type="button">
+                            Proceed Leave Request
+                        </button>
+                    </div>
+    
+                </div>
+    
+            </div>
+        </section>
+    
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    
+    </template>
+
+
+    <!-- ================= IMAGE LIGHTBOX ================= -->
+    <template if:true={showLightbox}>
+        <div class="lightbox-backdrop" onclick={closeLightbox}>
+            <div class="lightbox-container" onclick={stopPropagation}>
+
+                <!-- Close Button -->
+                <button class="lightbox-close" onclick={closeLightbox} type="button">
+                    ✕
+                </button>
+
+                <!-- Image Name -->
+                <p class="lightbox-filename">{lightboxImageName}</p>
+
+                <!-- Full Image -->
+                <img src={lightboxImageUrl}
+                     alt={lightboxImageName}
+                     class="lightbox-img" />
+
+            </div>
+        </div>
+    </template>
+    <!-- ================= END LIGHTBOX ================= -->
+ 
+
+</template>

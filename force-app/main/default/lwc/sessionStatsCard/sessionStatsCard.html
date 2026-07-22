@@ -1,0 +1,111 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 03-03-2026
+  @last modified by  : 
+-->
+<template>
+    <lightning-card title="Sessions Overview">
+        <template if:true={showTermCompletionMessage}>
+            <p class="term-message">{stats.termCompletionMessage}</p>
+        </template>
+        <template if:false={showTermCompletionMessage}>
+            <div class="grid">
+                <button class="box published" data-status="published" data-label="Published" onclick={handleTileClick}>Published<br/><b>{stats.published}</b></button>
+                <button class="box completed" data-status="completed" data-label="Completed" onclick={handleTileClick}>Completed<br/><b>{stats.completed}</b></button>
+                <button class="box republished" data-status="republished" data-label="Republished" onclick={handleTileClick}>Republished<br/><b>{stats.republished}</b></button>
+                <button class="box cancelled" data-status="cancelled" data-label="Cancelled" onclick={handleTileClick}>Cancelled<br/><b>{stats.cancelled}</b></button>
+            </div>
+        </template>
+    </lightning-card>
+
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-label={detailsTitle} class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container modal-container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">{detailsTitle}</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_none modal-content">
+                    <template if:true={isLoadingDetails}>
+                        <div class="slds-p-around_medium">
+                            <lightning-spinner size="small" alternative-text="Loading session details"></lightning-spinner>
+                        </div>
+                    </template>
+                    <template if:false={isLoadingDetails}>
+                        <template if:true={hasDetails}>
+                            <div class="table-wrap">
+                                <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                                    <thead>
+                                        <tr class="slds-line-height_reset">
+                                            <th class="col-session-name" scope="col">Session Name</th>
+                                            <th scope="col">Course Name</th>
+                                            <th scope="col">Date of Session</th>
+                                            <th scope="col">Time of Session</th>
+                                            <th scope="col">Room</th>
+                                            <th scope="col">Remarks</th>
+                                            <th scope="col">URL</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={details} for:item="row">
+                                            <tr key={row.sessionId}>
+                                                <td class="col-session-name">
+                                                    <template if:true={row.sessionId}>
+                                                        <a
+                                                            class="session-record-link"
+                                                            href={row.sessionRecordUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            title={row.sessionName}
+                                                        >{row.sessionName}</a>
+                                                    </template>
+                                                    <template if:false={row.sessionId}>
+                                                        <span title={row.sessionName}>{row.sessionName}</span>
+                                                    </template>
+                                                </td>
+                                                <td><div class="cell-wrap" title={row.courseName}>{row.courseName}</div></td>
+                                                <td>
+                                                    <lightning-formatted-date-time value={row.sessionDate} year="numeric" month="short" day="2-digit"></lightning-formatted-date-time>
+                                                </td>
+                                                <td class="col-session-time">
+                                                    <template if:true={row.sessionTime}>
+                                                        <lightning-formatted-date-time value={row.sessionTime} hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                                        <template if:true={row.sessionEndTime}>
+                                                            <span class="time-range-sep"> - </span>
+                                                            <lightning-formatted-date-time value={row.sessionEndTime} hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                                                        </template>
+                                                    </template>
+                                                </td>
+                                                <td><div class="cell-wrap" title={row.room}>{row.room}</div></td>
+                                                <td><div class="cell-wrap" title={row.remarks}>{row.remarks}</div></td>
+                                                <td class="col-url">
+                                                    <template if:true={row.url}>
+                                                        <a
+                                                            class="session-url-link"
+                                                            href={row.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            title={row.url}
+                                                        >{row.url}</a>
+                                                    </template>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                        <template if:false={hasDetails}>
+                            <p class="no-data slds-p-around_medium">No sessions found for this status.</p>
+                        </template>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={handleCloseModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

@@ -1,0 +1,135 @@
+<template>
+    <lightning-card title="Enroll Students in Division">
+        <div class="slds-p-around_medium">
+            <template lwc:if={isLoading}>
+                <div class="slds-text-align_center">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    <p class="slds-m-top_small">Loading enrollments...</p>
+                </div>
+            </template>
+
+            <template lwc:else>
+                <!-- Message if no enrollments available -->
+                <template lwc:if={showNoEnrollmentsMessage}>
+                    <div class="slds-align_absolute-center slds-m-vertical_large">
+                        <div class="slds-box slds-theme_info slds-text-align_center" style="padding: 2rem;">
+                            <lightning-icon icon-name="utility:info" size="medium" class="slds-m-bottom_small"></lightning-icon>
+                            <div class="slds-text-heading_medium slds-m-top_small">
+                                All Academic Term Enrollments are already assigned to a Division
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template lwc:else>
+                    <template lwc:if={hasEnrollments}>
+                        <div class="slds-m-bottom_medium">
+                            <lightning-input
+                                type="search"
+                                label="Search Students"
+                                value={searchKey}
+                                onchange={handleSearchChange}
+                                placeholder="Search by name or roll number..."
+                                class="slds-m-bottom_small">
+                            </lightning-input>
+                        </div>
+
+                        <div class="slds-scrollable_x table-scroll-container">
+                            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                                <thead class="sticky-header">
+                                    <tr class="slds-line-height_reset">
+                                        <th scope="col" class="slds-text-align_center" style="width: 80px;">
+                                            <lightning-input
+                                                type="checkbox"
+                                                checked={isAllSelected}
+                                                onchange={handleSelectAll}>
+                                            </lightning-input>
+                                        </th>
+                                        <th scope="col" style="width: 50px;">
+                                            <div class="slds-truncate" title="#">#</div>
+                                        </th>
+                                        <th scope="col">
+                                            <div class="slds-truncate" title="Student Name">Student Name</div>
+                                        </th>
+                                        <th scope="col">
+                                            <div class="slds-truncate" title="Roll Number">Roll Number</div>
+                                        </th>
+                                        <th scope="col">
+    <div class="slds-truncate" title="Specialisation">Specialisation</div>
+</th>
+                                        
+                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template lwc:if={hasFilteredEnrollments}>
+                                        <template for:each={filteredEnrollments} for:item="enrollment" for:index="index">
+                                            <tr key={enrollment.uniqueKey} class="slds-hint-parent">
+                                                <td class="slds-text-align_center">
+                                                    <lightning-input
+                                                        type="checkbox"
+                                                        checked={enrollment.selected}
+                                                        data-unique-key={enrollment.uniqueKey}
+                                                        onchange={handleSelectChange}
+                                                        class="slds-m-vertical_x-small">
+                                                    </lightning-input>
+                                                </td>
+                                                <td>
+                                                    <div class="slds-truncate">{enrollment.rowNumber}</div>
+                                                </td>
+                                                <td>
+                                                    <div class="slds-truncate" title={enrollment.studentName}>{enrollment.studentName}</div>
+                                                </td>
+                                                <td>
+                                                    <div class="slds-truncate" title={enrollment.rollNumber}>{enrollment.rollNumber}</div>
+                                                </td>
+                                                <td>
+    <div class="slds-truncate" title={enrollment.specialisation}>
+        {enrollment.specialisation}
+    </div>
+</td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                    <template lwc:else>
+                                        <tr>
+                                            <td colspan="5" class="slds-text-align_center slds-p-vertical_large">
+                                                <p class="slds-text-heading_medium">No enrollments found</p>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Selected count display -->
+                        <template lwc:if={hasSelectedEnrollments}>
+                            <div class="slds-m-top_medium slds-box slds-theme_info">
+                                <div class="slds-text-body_regular">
+                                    <lightning-icon icon-name="utility:info" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                    {selectedCount} enrollment(s) selected
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+                </template>
+
+                <!-- Action buttons - always shown when not loading -->
+                <div class="slds-m-top_medium slds-grid slds-grid_align-end">
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        onclick={closeAction}
+                        class="slds-m-right_small">
+                    </lightning-button>
+                    <lightning-button
+                        label="Save"
+                        variant="brand"
+                        onclick={saveSelected}
+                        disabled={isSaveDisabled}>
+                    </lightning-button>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

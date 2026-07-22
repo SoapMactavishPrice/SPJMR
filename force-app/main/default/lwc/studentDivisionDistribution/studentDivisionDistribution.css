@@ -1,0 +1,27 @@
+.table-container {
+  overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.slds-table {
+  min-width: 100%;
+}
+
+.slds-table th {
+  position: sticky;
+  top: 0;
+  background-color: #f3f2f2;
+  z-index: 1;
+  font-weight: bold;
+}
+
+.slds-table td,
+.slds-table th {
+  white-space: nowrap;
+  padding: 0.5rem;
+}
+
+.slds-card {
+  min-height: 400px;
+}

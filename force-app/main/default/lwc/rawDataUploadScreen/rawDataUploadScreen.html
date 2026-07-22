@@ -1,0 +1,177 @@
+<template>
+    <lightning-tabset>
+        <lightning-tab label="Upload Data">
+                    <div class="page-container">
+
+                <lightning-card>
+                    <template lwc:if={isLoading}>
+
+            <div class="slds-p-around_large">
+
+                
+
+                <div class="slds-m-top_large">
+
+                    <div class="slds-text-heading_small slds-m-bottom_small">
+                        Importing Data into Salesforce. Please do not refresh until the import is complete.
+                    </div>
+
+                    <lightning-progress-bar
+                        value={progressValue}
+                        size="large"
+                        variant="circular">
+                    </lightning-progress-bar>
+
+                    <div class="slds-text-color_success">
+
+                        {progressLabel}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </template>
+                    <template lwc:elseif={showError}>
+                        <div class="slds-p-around_large">
+                            {errorMessage}
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <div class="slds-p-around_large">
+                        <div class="slds-text-align_center slds-m-bottom_large">
+                            <h1 class="slds-text-heading_large">
+                                Lead Raw Data Import
+                            </h1>
+                            <p class="slds-text-color_weak slds-m-top_x-small">
+                                Upload a CSV file to create new "Raw Data" Leads
+                            </p>
+                        </div>
+
+                        <!-- List Name -->
+                        <lightning-input
+                            label="List Title"
+                            value={fileName}
+                            onchange={handleFileNameChange}
+                            required>
+                        </lightning-input>
+
+                    
+                        <lightning-textarea
+                            class="slds-m-top_medium"
+                            label="Description"
+                            value={description}
+                            onchange={handleDescriptionChange}
+                            max-length="255"
+                            >
+                        </lightning-textarea>
+                        <div class="slds-grid slds-wrapper">
+                            <div class="slds-col">
+                                <div class="slds-m-top_large">
+                                    <lightning-input
+                                        type="file"
+                                        accept=".csv"
+                                        label="CSV File"
+                                        onchange={handleFileSelection}
+                                        disabled={isDisabledUpload}>
+                                    </lightning-input>
+                        </div>
+                            </div>
+                            <div class="slds-m-top_large">
+                                <div class="slds-col">
+                                    Selected File: {selectedFileName}
+                                </div>
+                            </div>
+                        </div>
+                        
+
+                        <!-- Info Box -->
+                        <div
+                            class="slds-box slds-theme_alert-texture slds-m-top_large">
+
+                            <h3 class="slds-text-title_bold">
+                                Import Information
+                            </h3>
+
+                            <ul class="slds-list_dotted slds-m-top_small">
+                                <li>
+                                    Duplicate Leads are identified using Email and Phone.
+                                </li>
+                                <li>
+                                    Existing Leads will not be recreated.
+                                </li>
+                                <li>
+                                    Lead Programme will be created for matching Leads.
+                                </li>
+                                <li>
+                                    Processing continues in the background after submission.
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="slds-grid">
+                            <div class="slds-col">
+                                <lightning-button label="Start Raw Data Upload" onclick={handleBatchStart} disabled={isDisabledBatch}></lightning-button>
+                            </div>
+                            <div class="slds-col">
+                            
+                            </div>
+                        </div>
+                        
+                    </div>
+                    </template>
+                
+                </lightning-card>
+
+            </div>
+        </lightning-tab>
+        <lightning-tab label="View Summary">
+             <lightning-datatable
+        key-field="Id"
+        data={imports}
+        columns={importColumns}
+        onrowaction={handleRowSelection}
+        hide-checkbox-column
+        show-row-number-column
+        row-number-offset={rowOffset}>
+    </lightning-datatable>
+
+    <template if:true={summary}>
+
+        <div class="slds-m-top_large">
+
+            <lightning-layout>
+
+                <lightning-layout-item size="4">
+                    <h2>Success : {summary.successCount}</h2>
+                </lightning-layout-item>
+
+                <lightning-layout-item size="4">
+                    <h2>Failed : {summary.failedCount}</h2>
+                </lightning-layout-item>
+                 <lightning-layout-item size="4">
+                    <h2>Description : {summary.description}</h2>
+                </lightning-layout-item>
+
+
+            </lightning-layout>
+
+        </div>
+
+        <template if:true={summary.failedCount}>
+
+            <lightning-datatable
+                key-field="Row_Number__c"
+                data={summary.failedRows}
+                columns={failedColumns}
+                hide-checkbox-column>
+            </lightning-datatable>
+
+        </template>
+
+    </template>
+
+        </lightning-tab>
+    </lightning-tabset>
+     
+</template>

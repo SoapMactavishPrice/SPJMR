@@ -1,0 +1,41 @@
+<template>
+    <lightning-modal-header label="Generate Offer Letter"></lightning-modal-header>
+
+    <lightning-modal-body>
+        <div class="slds-p-around_medium">
+
+            <lightning-input
+                type="date"
+                label="Offer Letter Date"
+                value={offerDate}
+                onchange={handleDateChange}
+                required>
+            </lightning-input>
+
+            <lightning-combobox
+                label="Result"
+                value={result}
+                options={resultOptions}
+                onchange={handleResultChange}
+                required
+                class="slds-m-top_medium">
+            </lightning-combobox>
+
+        </div>
+    </lightning-modal-body>
+
+    <lightning-modal-footer>
+        <lightning-button
+            label="Cancel"
+            onclick={handleCancel}>
+        </lightning-button>
+
+        <lightning-button
+            variant="brand"
+            label="Confirm"
+            class="slds-m-left_small"
+            onclick={handleConfirm}
+            disabled={isConfirmDisabled}>
+        </lightning-button>
+    </lightning-modal-footer>
+</template>

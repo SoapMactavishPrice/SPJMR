@@ -1,0 +1,30 @@
+<template>
+    <lightning-quick-action-panel header="Create B2C Application">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Creating application..." size="medium"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+                <p class="slds-text-body_regular">
+                    This will create an Application and related records for this Opportunity.
+                </p>
+            </template>
+        </div>
+
+        <div slot="footer">
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                onclick={handleCancel}
+                class="slds-m-right_small"
+            ></lightning-button>
+            <lightning-button
+                variant="brand"
+                label="Create Application"
+                onclick={handleCreate}
+                disabled={isLoading}
+            ></lightning-button>
+        </div>
+    </lightning-quick-action-panel>
+</template>

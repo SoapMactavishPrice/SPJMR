@@ -1,0 +1,69 @@
+<template>
+    <div class="table-wrapper">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Booking Slot</th>
+
+                    <th>
+                    
+                            Applicant Name
+                        
+                    </th>
+
+                    <th>Application Name</th>
+                    <th>Panel</th>
+                    <th>Round</th>
+                    <th>Date</th>
+                    <th>Slot Start Time</th>
+                    <th>Slot End Time</th>
+                    <th>Status</th>
+
+                </tr>
+            </thead>
+
+            <tbody>
+                <template for:each={data} for:item="row" for:index="index">
+                    <tr key={row.Id} class={row.rowClass}>
+                        <td>
+                            <a data-id={row.slotId} onclick={handleSlotClick}>
+                                {row.bookingSlot}
+                            </a>
+                        </td>
+
+                        <td>
+                                <a data-id={row.applicantId} onclick={handleApplicantClick}>
+                                    {row.applicantName}
+                                </a>
+                        </td>
+
+                        <td>
+                            <a data-id={row.applicationId} onclick={handleApplicationClick}>
+                                {row.applicationName}
+                            </a>
+                        </td>
+
+                        <td>
+                            <a data-id={row.panelId} onclick={handlePanelClick}>
+                                {row.panelName}
+                            </a>
+                        </td>
+
+                        <td>
+                            <a data-id={row.roundId} onclick={handleRoundClick}>
+                                {row.roundName}
+                            </a>
+                        </td>
+                        <td>
+                            {row.slotDate}
+                        </td>
+
+                        <td>{row.startTime}</td>
+                        <td>{row.endTime}</td>
+                        <td>{row.evaluationStatus}</td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+</template>

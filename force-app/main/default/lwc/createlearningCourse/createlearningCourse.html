@@ -1,0 +1,295 @@
+<template>
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="create-learning-title">
+        <div class="modal-container">
+
+            <!-- Header -->
+            <header class="modal-header">
+                <h2 id="create-learning-title" class="modal-title">
+                    Create Course Record
+                </h2>
+                <button type="button"
+                        class="modal-close"
+                        onclick={handleCancel}
+                        aria-label="Close">
+                    ×
+                </button>
+            </header>
+
+            <!-- Body -->
+            <div class="modal-body">
+                <lightning-messages></lightning-messages>
+
+                <template if:true={errorMessage}>
+                    <div class="slds-m-bottom_medium slds-theme_error slds-p-around_small">
+                        {errorMessage}
+                    </div>
+                </template>
+                <div class="slds-form slds-form_stacked">
+                    <lightning-input
+                        class="slds-m-bottom_medium"
+                        label="Name"
+                        type="text"
+                        value={name}
+                        onchange={handleNameChange}
+                        placeholder="Enter Name"
+                        required
+                        message-when-value-missing="Name is required">
+                    </lightning-input>
+                    <lightning-input
+                        class="slds-m-bottom_medium"
+                        label="Course Given Name"
+                        type="text"
+                        value={courseGivenName}
+                        onchange={handleCourseGivenNameChange}
+                        placeholder="Course Name">
+                    </lightning-input>
+                    <lightning-input
+                        class="slds-m-bottom_medium"
+                        label="Course Code"
+                        type="text"
+                        value={courseNumber}
+                        onchange={handleCourseNumberChange}
+                        placeholder="Course Code"
+                        required
+                        message-when-value-missing="Course Code is required">
+                    </lightning-input>
+
+                    <!-- Course Department: custom typeahead with inline-create -->
+                    <div class="slds-m-bottom_medium">
+                        <div class="slds-form-element">
+                            <label class="slds-form-element__label">
+                                <abbr class="slds-required" title="required">*</abbr>
+                                Course Department
+                            </label>
+                            <div class="slds-form-element__control department-lookup-wrap">
+                                <template if:true={hasSelectedDepartment}>
+                                    <div class="slds-input-has-icon slds-input-has-icon_right">
+                                        <input
+                                            type="text"
+                                            class="slds-input department-search-input"
+                                            readonly
+                                            value={selectedDepartmentLabel}
+                                            placeholder="Select a department"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                            title="Clear"
+                                            onclick={handleClearDepartment}
+                                            aria-label="Clear selection">
+                                            <lightning-icon icon-name="utility:clear" size="x-small" alternative-text="Clear"></lightning-icon>
+                                        </button>
+                                    </div>
+                                </template>
+                                <template if:false={hasSelectedDepartment}>
+                                    <div class={departmentDropdownTriggerClass}>
+                                        <div class="slds-combobox slds-combobox-picker">
+                                            <input
+                                                type="text"
+                                                class="slds-input slds-combobox__input department-search-input"
+                                                placeholder="Search Department Master..."
+                                                value={departmentSearchTerm}
+                                                oninput={handleDepartmentSearchInput}
+                                                onfocus={handleDepartmentFocus}
+                                                onblur={handleDepartmentBlur}
+                                                autocomplete="off"
+                                                aria-expanded={showDepartmentDropdown}
+                                                aria-controls="department-listbox"
+                                            />
+                                            <template if:true={isLoadingDepartments}>
+                                                <span class="slds-spinner slds-spinner_small slds-spinner_inline slds-m-left_x-small" role="status"></span>
+                                            </template>
+                                        </div>
+                                        <template if:true={showDepartmentDropdown}>
+                                            <div
+                                                id="department-listbox"
+                                                class="department-dropdown slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid"
+                                                role="listbox">
+                                                <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                                    <template if:true={isLoadingDepartments}>
+                                                        <li class="slds-listbox__item slds-p-around_x-small">
+                                                            <span class="slds-text-body_small slds-text-color_weak">Searching...</span>
+                                                        </li>
+                                                    </template>
+                                                    <template if:false={isLoadingDepartments}>
+                                                        <template for:each={departmentOptions} for:item="opt">
+                                                            <li
+                                                                key={opt.value}
+                                                                role="option"
+                                                                class="slds-listbox__item department-option-item"
+                                                                data-id={opt.value}
+                                                                data-label={opt.label}
+                                                                onmousedown={handleDepartmentSelect}>
+                                                                <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small">
+                                                                    <span class="slds-media__body">
+                                                                        <span class="slds-truncate" title={opt.label}>{opt.label}</span>
+                                                                    </span>
+                                                                </div>
+                                                            </li>
+                                                        </template>
+                                                        <template if:true={noDepartmentResults}>
+                                                            <li class="slds-listbox__item slds-p-around_x-small">
+                                                                <span class="slds-text-body_small slds-text-color_weak">No departments found.</span>
+                                                            </li>
+                                                        </template>
+                                                    </template>
+                                                    <li class="slds-listbox__item new-dept-action"
+                                                        role="option"
+                                                        onmousedown={handleNewDepartmentClick}>
+                                                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small new-dept-option">
+                                                            <span class="slds-media__figure slds-listbox__option-icon">
+                                                                <lightning-icon icon-name="utility:add" size="x-small" alternative-text="New"></lightning-icon>
+                                                            </span>
+                                                            <span class="slds-media__body">
+                                                                <span class="slds-truncate">New Department Master</span>
+                                                            </span>
+                                                        </div>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <lightning-input-rich-text
+                        class="slds-m-bottom_medium"
+                        label="Description"
+                        value={description}
+                        onchange={handleDescriptionChange}
+                        placeholder="Description">
+                    </lightning-input-rich-text>
+
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="modal-footer">
+                <lightning-button
+                    label="Cancel"
+                    onclick={handleCancel}
+                    class="slds-m-right_small">
+                </lightning-button>
+
+                <lightning-button
+                    variant="brand"
+                    label="Save"
+                    onclick={handleSave}
+                    disabled={isSaving}
+                    title="Create Learning record, then Learning Course with this Learning as parent">
+                </lightning-button>
+            </footer>
+
+        </div>
+
+        <!-- Nested overlay: New Department Master -->
+        <template if:true={showNewDeptOverlay}>
+            <div class="nested-overlay" role="dialog" aria-modal="true">
+                <div class="nested-modal">
+                    <header class="modal-header">
+                        <h2 class="modal-title">{newDeptOverlayTitle}</h2>
+                        <button type="button"
+                                class="modal-close"
+                                onclick={handleOverlayCancel}
+                                aria-label="Close">
+                            ×
+                        </button>
+                    </header>
+
+                    <!-- Step 1: Record type picker -->
+                    <template if:true={isRecordTypeStep}>
+                        <div class="modal-body">
+                            <fieldset class="slds-form-element">
+                                <legend class="slds-form-element__legend slds-form-element__label">Select a record type</legend>
+                                <div class="slds-form-element__control">
+                                    <template for:each={recordTypeOptionsWithChecked} for:item="rt">
+                                        <span key={rt.value} class="slds-radio">
+                                            <input type="radio"
+                                                   id={rt.value}
+                                                   name="newDeptRecordType"
+                                                   value={rt.value}
+                                                   checked={rt.checked}
+                                                   onchange={handleRecordTypeChange} />
+                                            <label class="slds-radio__label" for={rt.value}>
+                                                <span class="slds-radio_faux"></span>
+                                                <span class="slds-form-element__label">{rt.label}</span>
+                                            </label>
+                                        </span>
+                                    </template>
+                                </div>
+                            </fieldset>
+                        </div>
+                        <footer class="modal-footer">
+                            <lightning-button label="Cancel" onclick={handleOverlayCancel} class="slds-m-right_small"></lightning-button>
+                            <lightning-button variant="brand" label="Next" onclick={handleOverlayNext} disabled={nextDisabled}></lightning-button>
+                        </footer>
+                    </template>
+
+                    <!-- Step 2: Department creation form -->
+                    <template if:true={isFormStep}>
+                        <div class="modal-body">
+                            <template if:true={newDeptError}>
+                                <div class="slds-m-bottom_medium slds-theme_error slds-p-around_small">
+                                    {newDeptError}
+                                </div>
+                            </template>
+                            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+                                <span class="required-asterisk">*</span> = Required Information
+                            </p>
+                            <h3 class="dept-section-title">Information</h3>
+                            <div class="slds-grid slds-gutters slds-wrap">
+                                <div class="slds-col slds-size_1-of-2 slds-p-bottom_medium">
+                                    <lightning-input
+                                        label="Department Name"
+                                        type="text"
+                                        value={newDeptName}
+                                        onchange={handleNewDeptNameChange}
+                                        required
+                                        message-when-value-missing="Department Name is required">
+                                    </lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-p-bottom_medium">
+                                    <div class="slds-form-element">
+                                        <label class="slds-form-element__label">isActive</label>
+                                        <div class="slds-form-element__control slds-p-top_x-small">
+                                            <lightning-input
+                                                type="checkbox"
+                                                variant="label-hidden"
+                                                checked={newDeptIsActive}
+                                                onchange={handleNewDeptIsActiveChange}>
+                                            </lightning-input>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-p-bottom_medium">
+                                    <lightning-input
+                                        label="Department Code"
+                                        type="text"
+                                        value={newDeptCode}
+                                        onchange={handleNewDeptCodeChange}
+                                        required
+                                        message-when-value-missing="Department Code is required">
+                                    </lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-p-bottom_medium">
+                                    <lightning-combobox
+                                        label="Currency"
+                                        value={newDeptCurrency}
+                                        options={currencyOptions}
+                                        onchange={handleNewDeptCurrencyChange}>
+                                    </lightning-combobox>
+                                </div>
+                            </div>
+                        </div>
+                        <footer class="modal-footer">
+                            <lightning-button label="Cancel" onclick={handleOverlayCancel} class="slds-m-right_small"></lightning-button>
+                            <lightning-button variant="brand" label="Save" onclick={handleNewDeptSave} disabled={isSavingDept}></lightning-button>
+                        </footer>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

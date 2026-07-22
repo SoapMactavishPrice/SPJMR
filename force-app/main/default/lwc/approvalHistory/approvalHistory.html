@@ -1,0 +1,68 @@
+<template>
+    <lightning-card title={cardTitle} icon-name="standard:approval">
+
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
+
+            <template if:true={error}>
+                <div class="slds-text-color_error">{error}</div>
+            </template>
+
+            <template if:true={hasRows}>
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th scope="col"><div class="slds-truncate" title="Step Name">Step Name</div></th>
+                            <th scope="col"><div class="slds-truncate" title="Date">Date</div></th>
+                            <th scope="col"><div class="slds-truncate" title="Status">Status</div></th>
+                            <th scope="col"><div class="slds-truncate" title="Assigned To">Assigned To</div></th>
+                            <th scope="col"><div class="slds-truncate" title="Approved By">Approved By</div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={rows} for:item="row">
+                            <tr key={row.key} class="slds-hint-parent">
+                                <td>
+                                    <div class="slds-truncate" title={row.stepName}>{row.stepName}</div>
+                                </td>
+                                <td>
+                                    <div class="slds-truncate">
+                                        <lightning-formatted-date-time
+                                            value={row.stepDate}
+                                            year="numeric"
+                                            month="2-digit"
+                                            day="2-digit"
+                                            hour="2-digit"
+                                            minute="2-digit">
+                                        </lightning-formatted-date-time>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class={row.statusClass}>{row.status}</span>
+                                </td>
+                                <td>
+                                    <div class="assigned-users" title={row.assignedTo}>
+                                        {row.assignedTo}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="slds-truncate" title={row.approvedBy}>{row.approvedBy}</div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </template>
+
+            <template if:false={hasRows}>
+                <template if:false={isLoading}>
+                    <p class="slds-text-color_weak slds-p-around_small">No approval history found.</p>
+                </template>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

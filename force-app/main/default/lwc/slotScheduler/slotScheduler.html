@@ -1,0 +1,35 @@
+<template>
+    <lightning-card title="Book Interview Slots" icon-name="standard:service_appointment">
+       
+        
+
+        <lightning-combobox
+            options={locationOptions}
+            value={selectedLocation}
+            onchange={handleLocationChange}
+            label="Available Locations"
+            placeholder="Select Interview Location">
+        </lightning-combobox>
+        <template lwc:if={selectedLocation}>
+            <template lwc:if={noSlots}>
+                <p class="no-slots">No slots available for the selected location.</p>
+            </template>
+            <template lwc:else>
+                <lightning-combobox
+                    options={slotOptions}
+                    value={selectedSlot}
+                    onchange={handleSlotChange}
+                    label="Available Slots"
+                    placeholder="Select Slot">
+                </lightning-combobox>
+                <div class="slds-p-top_small slds-p-right_small slds-p-bottom_small">
+                    <lightning-button label="Book Slot"
+                    variant="brand"
+                    onclick={handleBookSlot} 
+                    disabled={isBookingInProgress}></lightning-button>
+
+                </div>
+            </template>
+        </template>
+    </lightning-card>
+</template>

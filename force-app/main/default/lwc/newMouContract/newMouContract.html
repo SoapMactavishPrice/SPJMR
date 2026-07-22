@@ -1,0 +1,167 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 02-04-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <lightning-quick-action-panel header="New MOU / Contract">
+
+        <!-- Parent Fields -->
+        <lightning-input
+            label="Programme Architecture"
+            value={mou.Programme_Architecture__c}
+            data-field="Programme_Architecture__c"
+            onchange={handleParentFieldChange}>
+        </lightning-input>
+
+        <lightning-textarea
+            label="Payment Terms"
+            value={mou.Payment_Terms__c}
+            data-field="Payment_Terms__c"
+            onchange={handleParentFieldChange}>
+        </lightning-textarea>
+
+        <lightning-combobox
+            label="Status"
+            value={mou.Status__c}
+            options={statusOptions}
+            data-field="Status__c"
+            onchange={handleParentFieldChange}>
+        </lightning-combobox>
+
+        <lightning-textarea
+            label="Terms and Conditions"
+            value={mou.Terms_and_Conditions__c}
+            data-field="Terms_and_Conditions__c"
+            onchange={handleParentFieldChange}>
+        </lightning-textarea>
+
+        <lightning-input
+            label="Assign Director"
+            value={mou.Assign_Director__c}
+            data-field="Assign_Director__c"
+            onchange={handleParentFieldChange}>
+        </lightning-input>
+
+        <lightning-input
+            label="Contract Start Date"
+            type="date"
+            value={mou.Contract_Start_Date__c}
+            data-field="Contract_Start_Date__c"
+            onchange={handleParentFieldChange}>
+        </lightning-input>
+
+        <lightning-input
+            label="Contract End Date"
+            type="date"
+            value={mou.Contract_End_Date__c}
+            data-field="Contract_End_Date__c"
+            onchange={handleParentFieldChange}>
+        </lightning-input>
+
+        <!-- Add Program Row -->
+        <div class="slds-m-top_medium">
+            <lightning-button label="Add Program"
+                              onclick={addRow}
+                              variant="brand">
+            </lightning-button>
+        </div>
+
+        <!-- Program Rows -->
+        <template for:each={rows} for:item="row" for:index="index">
+            <div key={row.key} class="slds-box slds-m-top_medium">
+
+                <lightning-combobox label="Program"
+                                    value={row.programId}
+                                    options={programOptions}
+                                    data-index={index}
+                                    onchange={handleProgramChange}>
+                </lightning-combobox>
+
+                <lightning-input label="Participants"
+                                 type="number"
+                                 value={row.participants}
+                                 data-index={index}
+                                 onchange={handleParticipantsChange}>
+                </lightning-input>
+
+                <lightning-input label="Matched Slab"
+                                 value={row.slabLabel}
+                                 disabled>
+                </lightning-input>
+
+                <lightning-button label="Remove"
+                                  variant="destructive"
+                                  data-index={index}
+                                  onclick={removeRow}>
+                </lightning-button>
+
+            </div>
+        </template>
+
+        <!-- ============================
+             PRIMARY CONTACTS SECTION
+        ============================== -->
+        <h2 class="slds-text-heading_medium slds-m-top_large">
+            Select Primary Contacts
+        </h2>
+
+        <template if:true={isLoadingContacts}>
+            <lightning-spinner alternative-text="Loading Primary Contacts"></lightning-spinner>
+        </template>
+
+        <template if:true={contacts.length}>
+            <template for:each={contacts} for:item="con">
+                <div key={con.Id} class="slds-box slds-m-top_small">
+
+                    <lightning-input type="checkbox"
+                                     label={con.Name}
+                                     checked={con._checked}
+                                     data-id={con.Id}
+                                     onchange={handleContactSelect}>
+                    </lightning-input>
+
+                    <p><b>Company:</b> {con.Company_Master__r.Name}</p>
+                    <p><b>Email:</b> {con.Email__c}</p>
+
+                </div>
+            </template>
+
+            <!-- Pagination -->
+            <div class="slds-m-top_medium">
+                <lightning-button label="Previous"
+                                  onclick={prevPage}
+                                  disabled={disablePrev}>
+                </lightning-button>
+
+                <lightning-button label="Next"
+                                  onclick={nextPage}
+                                  disabled={disableNext}>
+                </lightning-button>
+            </div>
+
+            <p class="slds-text-color_weak slds-m-top_x-small">
+                Page {pageNumber} • Selected: {selectedContactsCount}
+            </p>
+        </template>
+
+        <template if:false={contacts.length}>
+            <p class="slds-text-color_weak">No Primary Contacts Found</p>
+        </template>
+
+        <!-- Footer -->
+        <div slot="footer">
+            <lightning-button label="Cancel"
+                              onclick={close}>
+            </lightning-button>
+
+            <lightning-button label="Save Contract"
+                              variant="brand"
+                              onclick={save}>
+            </lightning-button>
+        </div>
+
+    </lightning-quick-action-panel>
+</template>

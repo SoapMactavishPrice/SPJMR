@@ -1,0 +1,34 @@
+<template>
+    <lightning-modal-header label="Create Department"></lightning-modal-header>
+
+    <lightning-modal-body>
+        <lightning-record-edit-form
+            object-api-name="Department_Master__c"
+            onsuccess={handleSuccess}
+            onerror={handleError}>
+
+            <lightning-messages></lightning-messages>
+
+            <lightning-input-field field-name="Name"></lightning-input-field>
+
+            <lightning-input-field field-name="Department_Code__c"></lightning-input-field>
+
+            <lightning-input-field field-name="IsActive__c"></lightning-input-field>
+
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    label="Cancel"
+                    onclick={handleCancel}>
+                </lightning-button>
+
+                <lightning-button
+                    type="submit"
+                    variant="brand"
+                    label="Save"
+                    class="slds-m-left_small">
+                </lightning-button>
+            </div>
+
+        </lightning-record-edit-form>
+    </lightning-modal-body>
+</template>

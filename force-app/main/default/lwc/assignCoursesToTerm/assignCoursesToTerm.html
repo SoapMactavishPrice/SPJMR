@@ -1,0 +1,37 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 11-22-2025
+  @last modified by  : 
+-->
+<template>
+    <lightning-card title="Assign Courses to Term">
+
+        <template if:true={courses}>
+            <lightning-datatable
+                key-field="rowId"
+                data={courses}
+                columns={columns}
+                hide-checkbox-column=false
+                show-row-number-column
+                onsave={handleSave}
+                draft-values={draftValues}
+                onrowselection={handleRowSelection}>
+            </lightning-datatable>
+
+            <div class="slds-m-top_medium">
+                <lightning-button 
+                    variant="brand" 
+                    label="Save Selected Courses"
+                    onclick={handleFinalSave}>
+                </lightning-button>
+            </div>
+        </template>
+
+        <template if:false={courses}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </template>
+
+    </lightning-card>
+</template>

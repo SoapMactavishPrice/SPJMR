@@ -1,0 +1,144 @@
+<template>
+    <label class="slds-form-element__label slds-p-around_large table-label" for="allApplicationsGrid">
+        {tableLabel}
+    </label>
+
+    <div class="custom-table-container">
+        <table class="custom-table applications-table">
+            <thead class="applications-header">
+                <tr>
+                    <th>All Applications</th>
+                    <th>Applications No.</th>
+                    <th>Status</th>
+                    <template lwc:if={showStage}>
+                        <th class="stage-head">Stage</th>
+                    </template>
+                    <template lwc:if={showAction}>
+                        <th class="action-head">Action</th>
+                    </template>
+                    <template lwc:if={showInterview}>
+                        <th class="interview-head">Interview</th>
+                    </template>
+                </tr>
+            </thead>
+
+            <tbody>
+                <template for:each={tableData} for:item="row">
+                    <tr key={row.Id} class="application-row">
+
+                        <!-- Program Name -->
+                        <td>{row.programName}</td>
+
+                        <!-- Application Name -->
+                        <td>{row.applicationName}</td>
+
+                        <!-- Status -->
+                        <td>{row.applicationStatus}</td>
+
+                        <!-- Stage -->
+                        <template lwc:if={showStage}>
+                            <td class="stage-data">
+                                <template lwc:if={row.hideStage}>
+                                    -
+                                </template>
+
+                                <template lwc:else>
+                                    {row.applicationStage}
+                                </template>
+                            </td>
+                        </template>
+                        <!-- ACTION COLUMN -->
+                        <td class="action-data">
+
+                        <template lwc:if={row.hideAction}>
+                            <span>-</span>
+                        </template>
+
+                        <template lwc:elseif={row.actionModel}>
+                            <div class="action-container">
+
+                                <template for:each={row.actionModel.secondaryActions}
+                                        for:item="secondary">
+
+                                    <c-ap-preview-pdf
+                                        key={secondary.key}
+                                        record-id={row.applicationId}>
+                                    </c-ap-preview-pdf>
+
+                                </template>
+
+                                <lightning-button
+                                    label={row.actionModel.primaryAction.label}
+                                    title={row.actionModel.primaryAction.title}
+                                    variant={row.actionModel.primaryAction.variant}
+                                    disabled={row.actionModel.primaryAction.disabled}
+                                    data-program-code={row.programCode}
+                                    data-application-id={row.applicationId}
+                                    data-action-name={row.actionModel.primaryAction.key}
+                                    stage-name={row.applicationStage}
+                                    onclick={handleAction}>
+                                </lightning-button>
+
+                            </div>
+                        </template>
+
+                    </td>
+                        <!-- INTERVIEW COLUMN -->
+                        <template lwc:if={showInterview}>
+                            <td class="interview-data">
+
+                                <template lwc:if={row.hideInterview}>
+                                    -
+                                </template>
+
+                                <template lwc:else>
+
+                                    <template lwc:if={row.allowSchedule}>
+
+                                        <template lwc:if={row.isScheduled}>
+
+                                            <span lwc:if={row.bookingInfo}>
+                                                <p>
+                                                    Interview scheduled for {row.bookingInfo.bookingDate}
+                                                    from {row.bookingInfo.bookingStartTime}
+                                                    to {row.bookingInfo.bookingEndTime}
+                                                </p>
+                                            </span>
+
+                                        </template>
+
+                                        <template lwc:else>
+
+                                            <lightning-button
+                                                label="Schedule"
+                                                title="Schedule"
+                                                variant="base"
+                                                data-program-code={row.programCode}
+                                                onclick={handleSchedule}
+                                                data-action-name="schedule">
+                                            </lightning-button>
+
+                                        </template>
+
+                                    </template>
+
+                                    <template lwc:else>
+
+                                        <span lwc:if={row.bookingInfo}>
+                                            Interview scheduled for {row.bookingInfo.bookingDate}
+                                            from {row.bookingInfo.bookingStartTime}
+                                            to {row.bookingInfo.bookingEndTime}
+                                        </span>
+
+                                    </template>
+
+                                </template>
+
+                            </td>
+                        </template>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+</template>

@@ -1,0 +1,483 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 12-03-2025
+  @last modified by  : 
+-->
+<template>
+    <lightning-card title="Timetable Wizard">
+        <div class="slds-p-around_medium">
+            <div class="slds-m-bottom_medium">
+                <lightning-radio-group 
+                    name="radioGroup"
+                    label="Timetable Type"
+                    options={timetableTypeOptions}
+                    value={timetableType}
+                    onchange={handleTimetableTypeChange}
+                    type="radio">
+                </lightning-radio-group>
+            </div>
+
+            <!-- Dedicated Timetable: Cascading Picklists -->
+            <template if:true={isDedicated}>
+                <div class="slds-grid slds-gutters slds-m-top_medium">
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox
+                            label="Program"
+                            value={selectedProgram}
+                            placeholder="Select Program"
+                            options={programOptions}
+                            onchange={handleProgramChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox
+                            label="Term"
+                            value={selectedTerm}
+                            placeholder="Select Term"
+                            options={termOptions}
+                            onchange={handleTermChange}
+                            disabled={isProgramNotSelected}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox
+                            label="Division"
+                            value={selectedDivision}
+                            placeholder="Select Division"
+                            options={divisionOptions}
+                            onchange={handleDivisionChange}
+                            disabled={isTermNotSelected}>
+                        </lightning-combobox>
+                    </div>
+                </div>
+                
+                <!-- Additional Details Section -->
+                <template if:true={showDetailsSection}>
+                    <div class="slds-grid slds-gutters slds-m-top_medium">
+                        <div class="slds-col slds-size_1-of-1">
+                            <lightning-input
+                                label="Description"
+                                value={description}
+                                onchange={handleDescriptionChange}
+                                placeholder="Enter description">
+                            </lightning-input>
+                        </div>
+                    </div>
+                    <div class="slds-grid slds-gutters slds-m-top_medium">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                type="date"
+                                label="Start Date"
+                                value={startDate}
+                                onchange={handleStartDateChange}
+                                required>
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                type="date"
+                                label="End Date"
+                                value={endDate}
+                                onchange={handleEndDateChange}
+                                required>
+                            </lightning-input>
+                        </div>
+                    </div>
+                    <div class="slds-m-top_medium">
+                        <lightning-button
+                            variant="brand"
+                            label="Create Timetable"
+                            onclick={handleCreateTimetable}
+                            disabled={isCreateDisabled}>
+                        </lightning-button>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Common Timetable: Multi-select Picklists -->
+            <template if:true={isCommon}>
+                <div class="slds-grid slds-gutters slds-m-top_medium">
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-dual-listbox
+                            label="Program(s)"
+                            source-label="Available"
+                            selected-label="Selected"
+                            options={programOptions}
+                            value={selectedPrograms}
+                            onchange={handleProgramsChange}
+                            max={programOptionsLength}>
+                        </lightning-dual-listbox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-dual-listbox
+                            label="Term(s)"
+                            source-label="Available"
+                            selected-label="Selected"
+                            options={termOptions}
+                            value={selectedTerms}
+                            onchange={handleTermsChange}
+                            max={termOptionsLength}>
+                        </lightning-dual-listbox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-dual-listbox
+                            label="Division(s)"
+                            source-label="Available"
+                            selected-label="Selected"
+                            options={divisionOptions}
+                            value={selectedDivisions}
+                            onchange={handleDivisionsChange}
+                            max={divisionOptionsLength}>
+                        </lightning-dual-listbox>
+                    </div>
+                </div>
+                
+                <!-- Additional Details Section -->
+                <template if:true={showDetailsSection}>
+                    <div class="slds-grid slds-gutters slds-m-top_medium">
+                        <div class="slds-col slds-size_1-of-1">
+                            <lightning-input
+                                label="Description"
+                                value={description}
+                                onchange={handleDescriptionChange}
+                                placeholder="Enter description">
+                            </lightning-input>
+                        </div>
+                    </div>
+                    <div class="slds-grid slds-gutters slds-m-top_medium">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                type="date"
+                                label="Start Date"
+                                value={startDate}
+                                onchange={handleStartDateChange}
+                                required>
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                type="date"
+                                label="End Date"
+                                value={endDate}
+                                onchange={handleEndDateChange}
+                                required>
+                            </lightning-input>
+                        </div>
+                    </div>
+                    <div class="slds-m-top_medium">
+                        <lightning-button
+                            variant="brand"
+                            label="Create Timetable"
+                            onclick={handleCreateTimetable}
+                            disabled={isCreateDisabled}>
+                        </lightning-button>
+                    </div>
+                </template>
+            </template>
+        </div>
+
+
+
+
+        <div class="calendar-container">
+        <!-- Header Section -->
+        <div class="calendar-header">
+            <div class="header-left">
+                <h1 class="calendar-title">Timetable</h1>
+                <p class="calendar-subtitle">{formattedDateRange}</p>
+            </div>
+            <div class="header-right">
+                <div class="navigation-buttons">
+                    <button class="nav-btn" onclick={handlePreviousWeek} title="Previous Week">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15,18 9,12 15,6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="today-btn" onclick={handleToday}>Today</button>
+                    <button class="nav-btn" onclick={handleNextWeek} title="Next Week">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9,6 15,12 9,18"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="view-toggle">
+                    <button class={dayViewClass} onclick={handleDayView}>Day</button>
+                    <button class={weekViewClass} onclick={handleWeekView}>Week</button>
+                    <button class={monthViewClass} onclick={handleMonthView}>Month</button>
+                </div>
+                <button class="add-event-btn" onclick={handleAddEvent}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Event
+                </button>
+            </div>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div class="calendar-body">
+            <!-- Days Header -->
+            <div class="days-header">
+                <div class="time-column-header"></div>
+                <template for:each={weekDays} for:item="day">
+                    <div key={day.key} class={day.headerClass}>
+                        <span class="day-name">{day.name}</span>
+                        <span class={day.dateClass}>{day.date}</span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Time Grid -->
+            <div class="time-grid-container">
+                <div class="time-grid">
+                    <!-- Time Labels -->
+                    <div class="time-labels">
+                        <template for:each={timeSlots} for:item="slot">
+                            <div key={slot.key} class="time-label">
+                                <span>{slot.time}</span>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Day Columns -->
+                    <div class="day-columns">
+                        <template for:each={weekDays} for:item="day">
+                            <div key={day.key} 
+                                 class={day.columnClass}
+                                 data-day={day.key}
+                                 ondragover={handleDragOver}
+                                 ondrop={handleDrop}
+                                 ondragleave={handleDragLeave}>
+                                <!-- Hour Lines -->
+                                <template for:each={timeSlots} for:item="slot">
+                                    <div key={slot.key} 
+                                         class="hour-cell" 
+                                         data-hour={slot.hour} 
+                                         data-day={day.key} 
+                                         onclick={handleCellClick}
+                                         ondragover={handleCellDragOver}
+                                         ondrop={handleCellDrop}></div>
+                                </template>
+                                
+                                <!-- Events for this day -->
+                                <template for:each={day.events} for:item="event">
+                                    <div key={event.id} 
+                                         class={event.eventClass}
+                                         style={event.style}
+                                         draggable="true"
+                                         ondragstart={handleDragStart}
+                                         ondragend={handleDragEnd}
+                                         onclick={handleEventClick}
+                                         onmouseenter={handleEventMouseEnter}
+                                         onmouseleave={handleEventMouseLeave}
+                                         data-id={event.id}>
+                                        <div class="event-content">
+                                            <div class="event-header">
+                                                <span class="event-time">{event.timeRange}</span>
+                                                <template if:true={event.isRecurring}>
+                                                    <span class="recurring-icon" title={event.recurringLabel}>
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                                            <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+                                                        </svg>
+                                                    </span>
+                                                </template>
+                                            </div>
+                                            <span class="event-title">{event.title}</span>
+                                            <span class="event-location" if:true={event.location}>{event.location}</span>
+                                        </div>
+                                        <!-- Resize Handle -->
+                                        <div class="resize-handle" 
+                                             onmousedown={handleResizeStart}
+                                             data-id={event.id}></div>
+                                    </div>
+                                </template>
+
+                                <!-- Drop Zone Indicator -->
+                                <div class="drop-zone-indicator" if:true={day.showDropIndicator} style={day.dropIndicatorStyle}></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Current Time Indicator -->
+                <div if:true={showCurrentTime} class="current-time-indicator" style={currentTimeStyle}>
+                    <div class="current-time-dot"></div>
+                    <div class="current-time-line"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Modal -->
+        <template if:true={showModal}>
+            <div class="modal-overlay" onclick={handleCloseModal}>
+                <div class="modal-content" onclick={handleModalClick}>
+                    <div class="modal-header">
+                        <h2>{modalTitle}</h2>
+                        <button class="close-btn" onclick={handleCloseModal}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="eventTitle">Event Title <span class="required">*</span></label>
+                            <input type="text" id="eventTitle" value={eventTitle} onchange={handleTitleChange} placeholder="Enter event title" />
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="eventDate">Date <span class="required">*</span></label>
+                                <input type="date" id="eventDate" value={eventDate} onchange={handleDateChange} />
+                            </div>
+                            <div class="form-group">
+                                <label for="eventColor">Color</label>
+                                <div class="color-picker">
+                                    <template for:each={colorOptions} for:item="color">
+                                        <button key={color.value} 
+                                                class={color.buttonClass}
+                                                data-color={color.value}
+                                                onclick={handleColorSelect}
+                                                title={color.label}>
+                                            <template if:true={color.isSelected}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                                                    <polyline points="20,6 9,17 4,12"></polyline>
+                                                </svg>
+                                            </template>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="startTime">Start Time <span class="required">*</span></label>
+                                <input type="time" id="startTime" value={eventStartTime} onchange={handleStartTimeChange} />
+                            </div>
+                            <div class="form-group">
+                                <label for="endTime">End Time <span class="required">*</span></label>
+                                <input type="time" id="endTime" value={eventEndTime} onchange={handleEndTimeChange} />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventLocation">Location</label>
+                            <div class="input-with-icon">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <input type="text" id="eventLocation" value={eventLocation} onchange={handleLocationChange} placeholder="Enter location (optional)" />
+                            </div>
+                        </div>
+                        
+                        <!-- Recurring Event Section -->
+                        <div class="form-group recurring-section">
+                            <div class="recurring-toggle">
+                                <label class="toggle-label">
+                                    <input type="checkbox" checked={isRecurring} onchange={handleRecurringToggle} />
+                                    <span class="toggle-switch"></span>
+                                    <span class="toggle-text">Recurring Event</span>
+                                </label>
+                            </div>
+                            
+                            <template if:true={isRecurring}>
+                                <div class="recurring-options">
+                                    <div class="form-group">
+                                        <label>Repeat</label>
+                                        <div class="recurring-type-buttons">
+                                            <template for:each={recurringTypes} for:item="type">
+                                                <button key={type.value}
+                                                        class={type.buttonClass}
+                                                        data-value={type.value}
+                                                        onclick={handleRecurringTypeChange}>
+                                                    {type.label}
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    
+                                    <template if:true={showWeekdaySelector}>
+                                        <div class="form-group">
+                                            <label>Repeat on</label>
+                                            <div class="weekday-selector">
+                                                <template for:each={weekdayOptions} for:item="day">
+                                                    <button key={day.value}
+                                                            class={day.buttonClass}
+                                                            data-value={day.value}
+                                                            onclick={handleWeekdayToggle}>
+                                                        {day.short}
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label>Repeat every</label>
+                                            <div class="interval-input">
+                                                <input type="number" 
+                                                       min="1" 
+                                                       max="99" 
+                                                       value={recurringInterval} 
+                                                       onchange={handleIntervalChange} />
+                                                <span class="interval-label">{intervalLabel}</span>
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>End Date</label>
+                                            <input type="date" 
+                                                   value={recurringEndDate} 
+                                                   onchange={handleRecurringEndDateChange}
+                                                   min={eventDate} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="eventDescription">Description</label>
+                            <textarea id="eventDescription" value={eventDescription} onchange={handleDescriptionChange} placeholder="Enter description (optional)" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button if:true={isEditMode} class="delete-btn" onclick={handleDeleteEvent}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3,6 5,6 21,6"></polyline>
+                                <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"></path>
+                            </svg>
+                            Delete
+                        </button>
+                        <div class="modal-actions">
+                            <button class="cancel-btn" onclick={handleCloseModal}>Cancel</button>
+                            <button class="save-btn" onclick={handleSaveEvent}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20,6 9,17 4,12"></polyline>
+                                </svg>
+                                Save Event
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Drag Ghost Element -->
+        <div class="drag-ghost" if:true={isDragging}>
+            <span class="drag-ghost-title">{draggedEventTitle}</span>
+        </div>
+
+        <!-- Toast Notification -->
+        <template if:true={showToast}>
+            <div class={toastClass}>
+                <span class="toast-message">{toastMessage}</span>
+                <button class="toast-close" onclick={handleCloseToast}>×</button>
+            </div>
+        </template>
+    </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,8 @@
+<aura:component
+    implements="force:lightningQuickActionWithoutHeader,force:hasRecordId,flexipage:availableForRecordHome"
+    access="global">
+
+    <c:generateFinalPdfPreviewDocumentsOnly
+        recordId="{!v.recordId}" />
+
+</aura:component>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>SPJIMR Student Profile Dashboard</masterLabel>
+    <description
+  >A dashboard for students to view their profile information</description>
+    <targets>
+        <target>lightningCommunity__Default</target>
+        <target>lightningCommunity__Page</target>
+        <target>lightning__AppPage</target>
+    </targets>
+    <targetConfigs>  
+      <targetConfig targets="lightningCommunity__Default">
+          <property name="siteLogo" type="ContentReference" filter="cms_image" label="Logo"/>
+          <property name="menuIcon" type="ContentReference" filter="cms_image" label="Menu Icon"/>
+          <property name="ticketIcon" type="ContentReference" filter="cms_image" label="Ticket Icon"/>
+          <property name="projectIcon" type="ContentReference" filter="cms_image" label="Project Icon"/>
+          <property name="mentorIcon" type="ContentReference" filter="cms_image" label="Mentor Icon"/>
+          <property name="financeIcon" type="ContentReference" filter="cms_image" label="Finance Icon"/>
+          <property name="programDetailsIcon" type="ContentReference" filter="cms_image" label="Program Icon"/>
+          <property name="studentDetailsIcon" type="ContentReference" filter="cms_image" label="Student Icon"/>
+          <property name="attendanceIcon" type="ContentReference" filter="cms_image" label="Attendance Icon"/>
+          <property name="examsIcon" type="ContentReference" filter="cms_image" label="Exams Icon"/>
+          <property name="academicsIcon" type="ContentReference" filter="cms_image" label="Academics Icon"/>
+          <property name="servicesIcon" type="ContentReference" filter="cms_image" label="Services Icon"/>
+          <property name="hostelIcon" type="ContentReference" filter="cms_image" label="Hostel Icon"/>
+          <property name="reportsIcon" type="ContentReference" filter="cms_image" label="Reports Icon"/>
+          <property name="logoutIcon" type="ContentReference" filter="cms_image" label="Logout Icon"/>
+      </targetConfig>
+  </targetConfigs>
+</LightningComponentBundle>

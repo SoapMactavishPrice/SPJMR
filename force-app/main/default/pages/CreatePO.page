@@ -1,0 +1,227 @@
+<apex:page controller="c_CreatePO">
+    <head>
+        <apex:slds />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+        <script type="text/javascript">
+        function stopEnterKey(evt) {
+            var evt = (evt) ? evt : ((event) ? event : null);
+            var node = (evt.target) ? evt.target : ((evt.srcElement) ? evt.srcElement : null);
+            if ((evt.keyCode == 13) && (node.type == "text")) {
+                Search();
+                return false;
+            }else if((evt.keyCode == 13) && (node.type == "checkbox")) {
+                event.preventDefault();
+            }
+        }
+        
+        $(document).on("keypress", "input", function(e){
+            if(e.which == 13){
+                event.preventDefault();
+            }
+        });
+
+        document.onkeypress = stopEnterKey;
+        
+        function selectAllCheckboxes1(obj,receivedInputID){
+            console.log('this is called=========');
+            
+            var inputCheckBox = document.getElementsByTagName("input");                  
+            for(var i=0; i<inputCheckBox.length; i++){          
+                if(inputCheckBox[i].id.indexOf(receivedInputID)!=-1){                                     
+                    inputCheckBox[i].checked = obj.checked;
+                    console.log('this is called');
+                }
+            }
+        }
+
+        setTimeout(function() { $('#pgmessagesid').fadeOut('fast'); }, 2000);
+
+        </script>
+    </head>
+
+    <article class="slds-card s1FixedTop forceHighlightsStencilDesktop">
+        <div id="pgmessagesid" style="width: fit-content;">
+            <apex:pagemessages />
+        </div>
+        
+        <div style="display: 'block'">
+
+            <apex:form id="frm_edit">
+
+                <apex:pageBlock id="Selected">
+                    
+                    <apex:commandButton value="Close" action="{!cancel}" style="Float:right;margin-top:10px;"
+                                        styleClass="slds-button slds-button_neutral" immediate="true"> </apex:commandButton>
+                    <apex:commandButton value="Create Purchase Order" action="{!saveRec}" style="Float:right;margin-right:5px;margin-top:10px;"
+                                        styleClass="slds-button slds-button_brand"> </apex:commandButton>
+                    <apex:commandButton value="GO TO PO" action="{!f_goto_lastpo}" style="Float:right;margin-right:5px;margin-top:10px;"
+                                        styleClass="slds-button slds-button_brand"> </apex:commandButton>
+                    
+                    <div style="Float:right;margin-right:250px;margin-top: 10px;">
+                        <span style="right: 15px;">Select Vendor : </span> 
+                        <apex:selectList multiselect="false" size="1" value="{!selected_vendor}" 
+                                         style="width:200px;margin-left:5px;margin-right:5px;" styleClass="slds-input">
+                            <apex:selectOptions value="{!v_vendor_list}"></apex:selectOptions>
+                        </apex:selectList>
+                        <apex:commandButton value="Show Products" action="{!f_Show_Products}" style="Float:right;margin-right:5px;left: 15px;"
+                                            styleClass="slds-button slds-button_brand"> </apex:commandButton>
+                    </div>
+                    
+                    <br/><br/><br/>
+                    
+                    
+                    
+                    <br/>
+                    
+                    <div>
+                        
+                        <apex:repeat value="{!wHide_Column}" var="hc">
+                            <table Style="width: 100%;border-collapse: collapse;" class="slds-table slds-table_bordered">
+                                <tr Style="padding:5px 2px;border:1px solid black;text-align:center;border-collapse: collapse;"
+                                    class="table_th slds-hint-parent">
+                                    <th Style="width:1%;" class="slds-truncate slds-text-title_caps"></th>
+                                    <th Style="width:15%;" class="slds-truncate slds-text-title_caps">Item Name</th>
+                                    <th Style="width: 55px;" class="slds-truncate slds-text-title_caps">RFQ Qty</th>
+                                    <th Style="width: 55px;" class="slds-truncate slds-text-title_caps">PO Qty</th>
+                                    <th Style="width: 55px;" class="slds-truncate slds-text-title_caps">Pending Qty</th>
+                                    <!--<th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_GST == true ,'','none') }">
+                                        CGST</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_GST == true ,'','none') }">
+                                        SGST</th>-->
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_GST == true ,'','none') }">
+                                        GST %</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_UNIT_PRICE == true ,'','none') }">
+                                        Unit Price</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_DELIVERY_COST == true ,'','none') }">
+                                        Delivery Cost</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_PACKING_COST == true ,'','none') }">
+                                        Packing Cost</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_EXPIRY_DATE == true ,'','none') }">
+                                        Expiry Date</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_DISCOUNT == true ,'','none') }">
+                                        Discount</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_TOTAL_COST == true ,'','none') }">
+                                        Total Cost</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_CREDIT_PERIOD == true ,'','none') }">
+                                        Credit Period</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_PAYMENT_TERMS == true ,'','none') }">
+                                        Payment Terms</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_DELIVERY_TERMS == true ,'','none') }">
+                                        Delivery Terms</th>
+                                    <th class="slds-truncate slds-text-title_caps" style= "display: {!if(hc.flag_VENDOR_SUPPLY_QTY == true ,'','none') }">
+                                        Vendor Supply Qty</th>
+                                </tr>
+                                
+                                <apex:repeat value="{!wviList}" var="b">
+                                    <tr Style="padding:5px 2px;border-collapse: collapse;" class="table_tr slds-hint-parent">
+                                        <td style="text-align:center !important;">
+                                            <apex:inputCheckbox value="{!b.isChecked}" id="chkid"></apex:inputCheckbox>
+                                        </td>
+                                        <td class="slds-truncate"><apex:outputfield value="{!b.vi.Item_Name__c}"></apex:outputfield></td>
+                                        <td class="slds-truncate"><apex:outputfield value="{!b.i.Quantity__c}"></apex:outputfield></td>
+                                        <td class="slds-truncate"><apex:outputText value="{!b.PO_Qty}"></apex:outputText></td>
+                                        <td class="slds-truncate">
+                                            <apex:inputText value="{!b.Pending_Qty}" styleClass="slds-input" required="{!b.isChecked == true}" id="txt_qty"> 
+                                            </apex:inputText>
+                                        </td> 
+                                        <!--<td class="slds-truncate" style= "display: {!if(hc.flag_GST == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.GST__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.CGST__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_GST == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.GST__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.SGST__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>-->
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_GST == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.GST__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.IGST__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_UNIT_PRICE == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Unit_Price_Chk__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Unit_Price__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_DELIVERY_COST == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Delivery_Cost__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Delivery_Cost__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_PACKING_COST == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Packing_Cost__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Packing_Cost__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_EXPIRY_DATE == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Expiry_Date__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Expiry_Date__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_DISCOUNT == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Discount_Chk__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Discount__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_TOTAL_COST == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Total_Cost__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Total_Cost__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_CREDIT_PERIOD == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Credit_Period__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Credit_Period__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_PAYMENT_TERMS == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Payment_Terms__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Payment_Terms__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_DELIVERY_TERMS == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Delivery_Terms__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Delivery_Terms__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                        <td class="slds-truncate" style= "display: {!if(hc.flag_VENDOR_SUPPLY_QTY == true ,'','none') }">
+                                            <div style= "display: {!if(b.i.Vendor_Supply_Qty__c == true ,'','none') }">
+                                                <apex:outputfield value="{!b.vi.Vendor_Supply_Qty__c}" styleClass="slds-input"> </apex:outputfield>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                </apex:repeat>
+                            </table>
+                        </apex:repeat>
+                        
+                    </div>
+                    
+                    
+                </apex:pageBlock>
+            </apex:form>
+        </div>
+
+    </article>
+
+    <style>
+        .table_th th {
+            background-color:#b12327 !important;
+            border:1px solid black !important;
+            /*text-align:center !important;*/
+            color:white !important;
+        }
+        .table_tr td {
+            border:1px solid black !important;
+            /*text-align:center !important;*/
+        }
+        .table_chkbox input {
+            width:20px !important;
+            height:20px !important;
+        }
+        .slds-truncate{
+            white-space: initial !important;
+        }
+        tr:nth-child(even){background-color: #f2f2f2}
+    </style>
+</apex:page>

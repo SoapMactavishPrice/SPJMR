@@ -1,0 +1,187 @@
+<template>
+    <lightning-card title="Programme – Verifier Allocation" icon-name="utility:appointments">
+        <div class="slds-p-around_medium">
+
+            <!-- Verification Type -->
+            <lightning-combobox
+                label="Verification Type"
+                value={verificationType}
+                options={verificationTypeOptions}
+                onchange={handleVerificationChange}>
+            </lightning-combobox>
+
+            <!-- MAIN: Assign area (left = apps, right = verifiers) -->
+            <div class="slds-m-top_medium">
+                <div class="slds-grid slds-gutters">
+                    <!-- Applications -->
+                    <div class="slds-col slds-size_1-of-2">
+                        <div class="slds-text-title_caps slds-m-bottom_x-small">Applications ({applicationsTotal})</div>
+                        <div class="table-wrapper">
+                            <table class="slds-table slds-table_bordered slds-table_fixed-layout">
+                                <thead>
+                                    <tr>
+                                        <th width="40">
+                                            <lightning-input type="checkbox" checked={allAppsSelected} onchange={toggleSelectAllApps}></lightning-input>
+                                        </th>
+                                        <th>Application</th>
+                                        <th>Applicant</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={applications} for:item="app">
+                                        <tr key={app.appId}>
+                                            <td>
+                                                <lightning-input type="checkbox" class="app-checkbox" data-id={app.appId} onchange={handleAppCheckbox}></lightning-input>
+                                            </td>
+                                            <td>{app.appName}</td>
+                                            <td>{app.applicantName}</td>
+                                        </tr>
+                                    </template>
+                                    <template if:true={isEmptyApps}>
+                                        <tr>
+                                            <td colspan="3" class="slds-text-align_center">No applications found.</td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="slds-m-top_small slds-align_absolute-center">
+                            <lightning-button label="Prev" onclick={handleAppsPrev}></lightning-button>
+                            <span class="slds-m-horizontal_small">Page {applicationsPageNumber} of {applicationsTotalPages}</span>
+                            <lightning-button label="Next" onclick={handleAppsNext}></lightning-button>
+
+                            <lightning-combobox class="slds-m-left_small" label="Page Size" value={applicationsPageSize} options={pageSizeOptions} onchange={handleAppsPageSize}></lightning-combobox>
+                        </div>
+                    </div>
+
+                    <!-- Verifiers -->
+                    <div class="slds-col slds-size_1-of-2">
+                        <div class="slds-text-title_caps slds-m-bottom_x-small">Verifiers ({verifiers.length})</div>
+                        <div class="table-wrapper">
+                            <table class="slds-table slds-table_bordered slds-table_fixed-layout">
+                                <thead>
+                                    <tr>
+                                        <th width="40">
+                                            <lightning-input type="checkbox" checked={allVerifiersSelected} onchange={toggleSelectAllVerifiers}></lightning-input>
+                                        </th>
+                                        <th>Verifier</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={verifiers} for:item="v">
+                                        <tr key={v.ptmId}>
+                                            <td>
+                                                <lightning-input type="checkbox" class="verifier-checkbox" data-id={v.ptmId} onchange={handleVerifierCheckbox}></lightning-input>
+                                            </td>
+                                            <td>{v.name}</td>
+                                        </tr>
+                                    </template>
+                                    <template if:true={isEmptyVerifiers}>
+                                        <tr>
+                                            <td colspan="2" class="slds-text-align_center">No verifiers found for this type.</td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slds-m-top_medium slds-align_absolute-center">
+                    <lightning-button label="Assign Automatically" variant="brand" onclick={handleAutoAssign}></lightning-button>
+                    <lightning-button label="Assign Manually" variant="neutral" onclick={handleManualAssign} class="slds-m-left_small"></lightning-button>
+                </div>
+            </div>
+
+            <!-- REASSIGN SECTION (Application OR Document) -->
+            <template if:true={showReassignSection}>
+                <div class="slds-m-top_large slds-box slds-theme_alert-info">
+                    <div class="slds-text-heading_small slds-m-bottom_small">
+                        Reassign {verificationTypeLabel} ({verificationType} Verification)
+                    </div>
+
+                    <div class="slds-grid slds-gutters">
+                        <!-- Current Verifier (left) -->
+                        <div class="slds-col slds-size_1-of-4">
+                            <div class="slds-text-title_caps slds-m-bottom_x-small">Current Verifier</div>
+                            <lightning-radio-group
+                                options={reassignVerifierOptions}
+                                value={selectedCurrentPtm}
+                                onchange={handleCurrentVerifierChange}
+                                type="radio"
+                                name="currentVerifier">
+                            </lightning-radio-group>
+                        </div>
+
+                        <!-- Assigned Items (center) -->
+                        <div class="slds-col slds-size_1-of-2">
+                            <div class="slds-text-title_caps slds-m-bottom_x-small">Assigned {verificationTypeLabelPlural} ({assignedTotal})</div>
+
+                            <div class="table-wrapper" style="max-height:340px; overflow:auto;">
+                                <table class="slds-table slds-table_bordered slds-table_fixed-layout">
+                                    <thead>
+                                        <tr>
+                                            <th width="40">
+                                                <lightning-input type="checkbox" checked={allAssignedSelected} onchange={toggleSelectAllAssigned}></lightning-input>
+                                            </th>
+                                            <th>Application</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={assignedApplications} for:item="app">
+                                            <tr key={app.avId}>
+                                                <td>
+                                                    <lightning-input type="checkbox" class="assigned-app-checkbox" data-id={app.avId} onchange={handleAssignedAppCheckbox}></lightning-input>
+                                                </td>
+                                                <td>{app.applicationName}</td>
+                                            </tr>
+                                        </template>
+                                        <template if:true={isEmptyAssigned}>
+                                            <tr>
+                                                <td colspan="2" class="slds-text-align_center">No assigned {verificationTypeLabelPluralLower} for selected verifier.</td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Reassign pagination controls -->
+                            <div class="slds-m-top_small slds-align_absolute-center">
+                                <lightning-button label="Prev" onclick={handleAssignedPrev}></lightning-button>
+                                <span class="slds-m-horizontal_small">Page {assignedPageNumber} of {assignedTotalPages}</span>
+                                <lightning-button label="Next" onclick={handleAssignedNext}></lightning-button>
+
+                                <lightning-combobox class="slds-m-left_small" label="Page Size" value={assignedPageSize} options={reassignPageSizeOptions} onchange={handleAssignedPageSize}></lightning-combobox>
+                            </div>
+                        </div>
+
+                        <!-- To Verifier (right) -->
+                        <div class="slds-col slds-size_1-of-4">
+                            <div class="slds-text-title_caps slds-m-bottom_x-small">To Verifier</div>
+                            <lightning-radio-group
+                                options={reassignVerifierOptions}
+                                value={selectedToPtm}
+                                onchange={handleToVerifierChange}
+                                type="radio"
+                                name="toVerifier">
+                            </lightning-radio-group>
+                        </div>
+                    </div>
+
+                    <div class="slds-m-top_medium">
+                        <lightning-button label="Reassign Selected" variant="brand" onclick={handleReassignSelected}></lightning-button>
+                        <lightning-button label="Reassign All for Current" variant="neutral" onclick={handleReassignAll} class="slds-m-left_small"></lightning-button>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Global spinner -->
+            <template if:true={isLoading}>
+                <div class="slds-m-top_medium slds-align_absolute-center">
+                    <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

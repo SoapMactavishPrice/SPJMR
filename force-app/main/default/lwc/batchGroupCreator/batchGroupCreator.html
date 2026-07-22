@@ -1,0 +1,48 @@
+<template>
+    <lightning-card title="Create Batch Group">
+
+        <div class="slds-p-around_medium">
+
+            <template if:true={optionsLoaded}>
+
+                <p class="slds-text-title_bold slds-m-bottom_small">
+                    Choose sequence number
+                </p>
+
+                <lightning-radio-group
+                    name="sequence"
+                    options={radioOptions}
+                    value={selectedValue}
+                    onchange={handleChange}>
+                </lightning-radio-group>
+
+                <hr class="slds-m-vertical_medium"/>
+
+                <p class="slds-text-title_bold slds-m-bottom_small">
+                    Choose Record Type
+                </p>
+
+                <lightning-radio-group
+                    name="recordType"
+                    options={recordTypeOptions}
+                    value={selectedRecordTypeId}
+                    onchange={handleRecordTypeChange}>
+                </lightning-radio-group>
+
+                <div class="slds-m-top_medium">
+                    <lightning-button
+                        variant="brand"
+                        label="Next"
+                        onclick={handleCreate}>
+                    </lightning-button>
+                </div>
+
+            </template>
+
+            <template if:false={optionsLoaded}>
+                <lightning-spinner size="small"></lightning-spinner>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

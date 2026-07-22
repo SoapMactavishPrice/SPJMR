@@ -1,0 +1,104 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 11-25-2025
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <lightning-card title="Document Verification">
+
+        <div class="slds-p-around_medium">
+
+            <!-- Simple loading state -->
+            <template if:true={loading}>
+                <lightning-spinner size="small"></lightning-spinner>
+            </template>
+
+            <!-- Table when docs are available -->
+            <template if:true={docs}>
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Document Name</th>
+                            <th scope="col">Review Status</th>
+                            <th scope="col">Files</th>
+                            <th scope="col">Preview</th>
+                            <th scope="col">Download</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template for:each={docs} for:item="d">
+                            <tr key={d.docId}>
+                                <td>{d.name}</td>
+                                <td>{d.documentName}</td>
+
+                                <!-- Status picklist -->
+                                <td>
+                                    <lightning-combobox
+                                        value={d.reviewStatus}
+                                        options={statusOptions}
+                                        data-id={d.docId}
+                                        onchange={handleStatusChange}>
+                                    </lightning-combobox>
+                                </td>
+
+                                <!-- File names -->
+                                <td>
+                                    <template if:true={d.files}>
+                                        <ul class="inline-list">
+                                            <template for:each={d.files} for:item="f">
+                                                <li key={f.versionId}>
+                                                    {f.title}
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </template>
+                                </td>
+
+                                <!-- Preview links -->
+                                <td>
+                                    <template if:true={d.files}>
+                                        <ul class="inline-list">
+                                            <template for:each={d.files} for:item="f">
+                                                <li key={f.versionId}>
+                                                    <a href={f.previewUrl} target="_blank">
+                                                        Preview
+                                                    </a>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </template>
+                                </td>
+
+                                <!-- Download links -->
+                                <td>
+                                    <template if:true={d.files}>
+                                        <ul class="inline-list">
+                                            <template for:each={d.files} for:item="f">
+                                                <li key={f.versionId}>
+                                                    <a href={f.downloadUrl}>
+                                                        Download
+                                                    </a>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </template>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+
+                </table>
+            </template>
+
+            <!-- No records message -->
+            <template if:false={docs}>
+                <p>No documents found.</p>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

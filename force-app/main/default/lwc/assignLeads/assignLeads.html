@@ -1,0 +1,42 @@
+<template>
+    <lightning-modal-header label="Assign Program"></lightning-modal-header>
+    <lightning-modal-body>
+        <template lwc:if={isLoading}>
+        <lightning-spinner
+        if:true={isLoading}
+        alternative-text="Loading"
+        size="medium"
+        ></lightning-spinner>
+        </template>
+        <template lwc:else>
+            <div class="slds-grid slds-gutters">
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-select 
+                    value={selectedProgram}
+                    label="Select Program"
+                    options={programs}
+                    onchange={handleProgramChange}
+                    >
+                    </lightning-select>
+                </div>
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-select 
+                    value={selectedUser}
+                    label="Assign to"
+                    options={internalUsers}
+                    onchange={handleUserChange}
+                    >
+        </lightning-select>
+        </div>
+        </div>
+    </template>
+    </lightning-modal-body>
+    
+    <lightning-modal-footer>
+        <lightning-button class="modal-button" disabled={isLoading} label="Assign" onclick={handleAssign}></lightning-button>
+        <lightning-button class="modal-button" disabled={isLoading} label="Cancel" onclick={closeModal}></lightning-button>
+
+        
+    </lightning-modal-footer>
+
+</template>

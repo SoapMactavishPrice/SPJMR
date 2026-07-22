@@ -1,0 +1,80 @@
+<template>
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="create-lead-title">
+        <div class="modal-container">
+            
+            <!-- Header -->
+            <header class="modal-header">
+                <h2 id="create-lead-title" class="modal-title">{modalTitle}</h2>
+            </header>
+
+            <!-- Body -->
+            <div class="modal-body">
+                <lightning-messages></lightning-messages>
+
+                <!-- Selection Screen -->
+                <template if:true={isSelectionScreen}>
+                    <div class="selection-container">
+                        <div class="record-type-label">Select a record type</div>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input 
+                                    type="radio" 
+                                    name="recordType" 
+                                    value="B2C" 
+                                    checked={isB2CSelected}
+                                    onchange={handleTypeChange}>
+                                <span class="radio-custom"></span>
+                                <span class="radio-label">B2C</span>
+                            </label>
+                            <label class="radio-option">
+                                <input 
+                                    type="radio" 
+                                    name="recordType" 
+                                    value="B2B"
+                                    checked={isB2BSelected}
+                                    onchange={handleTypeChange}>
+                                <span class="radio-custom"></span>
+                                <span class="radio-label">B2B</span>
+                            </label>
+                        </div>
+
+                    </div>
+                </template>
+
+                <!-- B2C Screen -->
+                <template if:true={isB2CScreen}>
+                    <c-create-b2-c-lead
+                        onsuccess={handleSuccess}
+                        oncancel={handleChildCancel}>
+                    </c-create-b2-c-lead>
+                </template>
+
+                <!-- B2B Screen -->
+                <template if:true={isB2BScreen}>
+                    <c-create-b2-b-lead
+                        onsuccess={handleSuccess}
+                        oncancel={handleChildCancel}>
+                    </c-create-b2-b-lead>
+                </template>
+            </div>
+
+            <!-- Footer -->
+            <template if:true={isSelectionScreen}>
+                <footer class="modal-footer">
+                    <lightning-button
+                        label="Cancel"
+                        onclick={handleCancel}
+                        class="cancel-btn">
+                    </lightning-button>
+                    <lightning-button
+                        label="Next"
+                        variant="brand"
+                        onclick={handleNext}
+                        class="next-btn">
+                    </lightning-button>
+                </footer>
+            </template>
+
+        </div>
+    </div>
+</template>

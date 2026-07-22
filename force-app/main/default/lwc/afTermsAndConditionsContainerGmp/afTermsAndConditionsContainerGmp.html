@@ -1,0 +1,18 @@
+<template>
+    <div lwc:if={isLoading}>
+        <lightning-spinner size="large" alternative-text="Loading"></lightning-spinner>
+    </div>
+    <div class="page">
+
+        <c-af-terms-and-conditions
+                    sections={sectionModel}
+                    context={tc}
+                    onsectionfieldchange={handleSectionFieldChange}
+                    ondocsfetched={handleDocsFetched}>
+        </c-af-terms-and-conditions>
+
+        <!-- <div class="actions">
+            <lightning-button label="Save" onclick={saveForm} variant="brand"></lightning-button>
+        </div> -->
+    </div>
+</template>

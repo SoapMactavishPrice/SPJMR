@@ -1,0 +1,52 @@
+<template>
+     <!-- recordId {recordId} <br />
+     childObject {childObject} <br />
+     parentFieldName {parentFieldName} <br />
+     startDatetimeField {startDatetimeField} <br />
+     endDatetimeField {endDatetimeField} <br />
+     channelName {channelName} <br /> -->
+
+     <c-calendar
+          ondatechange={handleDateChange}
+     ></c-calendar>
+
+     <!-- Modal for creating a new event on date click -->
+     <template if:true={isModalOpen}>
+          <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01" class="slds-modal slds-fade-in-open">
+               <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                         <h2 id="modal-heading-01" class="slds-text-heading_medium">Create Event</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                         <!-- Custom form (UI API doesn't support Event). We collect inputs and call Apex. -->
+                         <div class="slds-form slds-form_stacked">
+                              <!-- Subject -->
+                              <lightning-input type="text" label="Subject" value={formSubject} data-field="subject" required onchange={handleInputChange}></lightning-input>
+
+                              <!-- Start/End DateTime -->
+                              <lightning-input type="datetime" label="Start DateTime" value={prefillStart} data-field="start" required onchange={handleInputChange}></lightning-input>
+                              <lightning-input type="datetime" label="End DateTime" value={prefillEnd} data-field="end" required onchange={handleInputChange}></lightning-input>
+
+                              <!-- Assigned To (OwnerId) -->
+                              <lightning-input type="text" label="Assigned To (OwnerId)" value={formOwnerId} data-field="owner" onchange={handleInputChange} placeholder="Leave blank to assign to yourself"></lightning-input>
+
+                              <!-- Activity Currency (CurrencyIsoCode) -->
+                              <template if:true={showCurrency}>
+                                   <lightning-input type="text" label="Activity Currency (CurrencyIsoCode)" value={formCurrency} data-field="currency" onchange={handleInputChange} placeholder="e.g., USD, INR"></lightning-input>
+                              </template>
+
+                              <!-- Parent lookup (optional) -->
+                              <template if:true={parentFieldName}>
+                                   <lightning-input type="text" label="Related To (Parent Id)" value={recordId} disabled></lightning-input>
+                              </template>
+                         </div>
+                    </div>
+                    <footer class="slds-modal__footer">
+                         <lightning-button variant="neutral" label="Cancel" onclick={closeModal} class="slds-m-right_small"></lightning-button>
+                         <lightning-button variant="brand" label="Save" onclick={handleCustomSave}></lightning-button>
+                    </footer>
+               </div>
+          </section>
+          <div class="slds-backdrop slds-backdrop_open"></div>
+     </template>
+</template>

@@ -1,0 +1,6 @@
+<aura:component implements="lightning:actionOverride" description="Overrides the Standard New button on Learning Course to show Create Learning + Learning Course modal (LWC)">
+    <lightning:navigation aura:id="navService"/>
+    <c:createlearningCourse
+        onsuccess="{!c.handleSuccess}"
+        oncancel="{!c.handleCancel}" />
+</aura:component>

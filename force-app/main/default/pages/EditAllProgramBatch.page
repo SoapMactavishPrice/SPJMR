@@ -1,0 +1,62 @@
+<apex:page controller="EditAllProgramBatch" sidebar="false" showHeader="false">
+    
+    <html>
+        <apex:slds />
+        <style>
+            .dateFormat{
+            visibility:hidden;            
+            }
+        </style>
+        
+        <body class="slds-scope">
+            <br/>
+            <div class="slds-box" style="width: 98%;margin:auto">    
+                <apex:form >
+                    <apex:pagemessages />  
+                    
+                    <div class="slds-scope" style="display:{!IF( ProgCount > 0, 'block', 'none')};width=90%">
+                        
+                        <p class="slds-text-title_caps" style="text-align:center;font-size:20px">   GRADE and Admission INFORMATION</p>
+                        <div id="HtmlDiv" class="table-responsive">
+                            <table class="slds-table slds-table_bordered slds-scrollable--x slds-table_col-bordered slds-table_resizable-cols 
+                                          slds-border_right slds-border_left"  style="width:100%">  
+                                
+                                <tr  > 
+                                    <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_center ">Level Name</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_center ">Grade Name</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:10%" class="slds-text-align_center ">Grade Start Date</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:10%" class="slds-text-align_center ">Grade End Date</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:11%" class="slds-text-align_center ">Date of Joining</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:10%" class="slds-text-align_center ">Admission Status</th>  
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:10%" class="slds-text-align_center ">Level Status</th>
+                                </tr>
+                                
+                                <apex:repeat value="{!programlist}" var="opp">
+                                    <tr >
+                                        <td class="slds-text-align_center"><apex:outputField style="white-space: pre-wrap;" styleClass="slds-input" value="{!opp.Program_Name__r.Name}"/></td>
+                                        <td class="slds-text-align_center"><apex:outputField style="white-space: pre-wrap;" styleClass="slds-input" value="{!opp.Batch_Name__r.Name}" /></td>
+                                        <td class="slds-text-align_center"><apex:inputField style="white-space: pre-wrap;dateFormat;max-width:150px" value="{!opp.Session_Batch_Start_Date__c}"/></td>
+                                        <td class="slds-text-align_center"><apex:inputField style="white-space: pre-wrap;dateFormat;max-width:150px" value="{!opp.Session_Batch_End_Date__c}"/></td>
+                                        <td class="slds-text-align_center"><apex:inputField style="white-space: pre-wrap;dateFormat;max-width:150px" styleClass="slds-input" value="{!opp.Admission_Date__c}"/></td>
+                                        <td class="slds-text-align_center"><apex:outputField style="white-space: pre-wrap;" styleClass="slds-input" value="{!opp.Status__c}" /></td> 
+                                        <td class="slds-text-align_center"><apex:outputField style="white-space: pre-wrap;" styleClass="slds-input" value="{!opp.Program_Status__c}" /></td>
+                                    </tr>
+                                </apex:repeat>  
+                            </table>
+                        </div>
+                        <div align="center" draggable="false">
+                            <apex:commandButton value="Update" action="{!Save}" styleClass="slds-button slds-button_brand slds-button__icon_right slds-button--brand slds-m-top--medium"/>
+                            <apex:commandButton value="Cancel" action="{!Cancel}" styleClass="slds-button slds-button_destructive slds-button__icon_right slds-button--brand slds-m-top--medium"/>
+                        </div>
+                    </div>
+                    <apex:actionRegion >
+                        <div align="center" draggable="false"  style="display:{!IF( ProgCount == 0, 'block', 'none')};width=90%">
+                            <apex:commandButton value="Cancel" action="{!Cancel}" styleClass="slds-button slds-button_destructive slds-button__icon_right slds-button--brand slds-m-top--medium"/>
+                        </div>
+                    </apex:actionRegion> 
+                </apex:form>  
+                
+            </div>
+        </body>
+    </html>
+</apex:page>

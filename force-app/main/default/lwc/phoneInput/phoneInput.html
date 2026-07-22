@@ -1,0 +1,24 @@
+<template>
+    <div class="phone-wrapper">
+        <lightning-combobox
+            value={country}
+            title={titleVal}
+            options={resolvedOptions}
+            disabled={isDisabled}
+            variant="label-hidden"
+            onchange={handleCountryChange}>
+        </lightning-combobox>
+
+        <lightning-input
+            type="tel"
+            value={phone}
+            maxlength={maxLength}
+            disabled={isDisabled}
+            required={required}
+            variant="label-hidden"
+            onchange={handlePhoneChange}
+            onfocus={handleFocus}
+            onblur={handleBlur}>
+        </lightning-input>
+    </div>
+</template>

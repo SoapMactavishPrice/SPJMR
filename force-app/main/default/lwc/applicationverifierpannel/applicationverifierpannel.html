@@ -1,0 +1,114 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 01-20-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <lightning-card title="Application Verification Wizard">
+
+        <template if:true={loading}>
+            <lightning-spinner size="small"></lightning-spinner>
+        </template>
+
+        <template if:true={errorMessage}>
+            <div class="err">{errorMessage}</div>
+        </template>
+
+        <div class="layout">
+
+            <!-- LEFT PANEL -->
+            <div class="leftPanel">
+                <template for:each={computedSections} for:item="sec" for:index="i">
+                    <div
+                        key={sec.key}
+                        class={sec.css}
+                        data-index={i}
+                        onclick={handleSectionClick}>
+                        {sec.label}
+                    </div>
+                </template>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div class="rightPanel">
+                <template if:true={activeSection}>
+                    <h3 class="sectionTitle">{activeSection.label}</h3>
+
+                    <template for:each={activeSection.items} for:item="it">
+
+                        <!-- HEADER ONLY ROWS (Semester section headers / semester headers) -->
+                        <template if:true={it.isHeaderOnly}>
+                            <div key={it.key} class={it.rowClass}>
+                                <div class="headerOnlyText">{it.label}</div>
+                            </div>
+                        </template>
+
+                        <!-- NORMAL FIELD ROWS -->
+                        <template if:false={it.isHeaderOnly}>
+                            <div key={it.key} class={it.rowClass}>
+
+                                <lightning-input
+                                    type="checkbox"
+                                    data-key={it.key}
+                                    checked={it.selected}
+                                    disabled={it.disabled}
+                                    onchange={handleToggle}>
+                                </lightning-input>
+
+                                <div class="content">
+
+                                    <template if:true={it.isHeader}>
+                                        <div class="headerValue">{it.value}</div>
+                                    </template>
+
+                                    <template if:false={it.isHeader}>
+                                        <div class="fieldLabel">{it.fieldLabel}</div>
+                                        <div class="valueLine">{it.value}</div>
+                                    </template>
+
+                                    <template if:true={it.showRemark}>
+                                        <lightning-textarea
+                                            label="Remark"
+                                            data-key={it.key}
+                                            value={it.remark}
+                                            onchange={handleRemarkChange}>
+                                        </lightning-textarea>
+                                    </template>
+
+                                </div>
+                            </div>
+                        </template>
+
+                    </template>
+                </template>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <lightning-button
+                label="Previous"
+                onclick={handlePrevious}
+                disabled={isFirst}>
+            </lightning-button>
+
+            <lightning-button
+                label="Next"
+                class="slds-m-left_small"
+                onclick={handleNext}
+                disabled={isLast}>
+            </lightning-button>
+
+            <lightning-button
+                variant="brand"
+                class="slds-m-left_medium"
+                label="Create Change Requests"
+                onclick={handleSave}>
+            </lightning-button>
+        </div>
+
+    </lightning-card>
+</template>

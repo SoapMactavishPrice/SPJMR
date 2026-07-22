@@ -1,0 +1,25 @@
+<template>
+    <lightning-modal-header label="Send Notifications to Applicants"></lightning-modal-header>
+    <lightning-modal-body>
+        <div class="slds-p-around_medium">
+            <lightning-input type="text" label="Subject" 
+            onchange={handleChange} value={subject}
+            name="subject"></lightning-input>
+        </div>
+        <div class="slds-p-around_medium">
+            <lightning-textarea label="Message" value={message} 
+            onchange={handleChange} name="message"></lightning-textarea>
+            <lightning-radio-group name="medium"
+                          label="Medium"
+                          options={options}
+                          value={value}
+                          type="button"
+                          onchange={handleChange}>
+            </lightning-radio-group>
+        </div>
+
+    </lightning-modal-body>
+    <lightning-modal-footer>
+        <lightning-button label="Send Notification" onclick={handleSend}></lightning-button>
+    </lightning-modal-footer>
+</template>

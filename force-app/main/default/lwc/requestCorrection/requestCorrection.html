@@ -1,0 +1,74 @@
+<template>
+    <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+
+    <template if:false={isLoading}>
+        <template for:each={formSections} for:item="section">
+            <div key={section.id} class="section-block">
+                <h3>{section.label}</h3>
+
+                <!-- Repeatable Section -->
+                <template if:true={section.repeatable}>
+                    <template for:each={section.rows} for:item="row" for:index="rowIndex">
+                        <!-- <p class="row-title" key={row.Id}>Row {rowIndex}</p> -->
+                        <template for:each={row} for:item="fld">
+                            <div key={fld.id} class="field-block">
+                                <lightning-input
+                                    type="checkbox"
+                                    label={fld.label}
+                                    data-section={section.objectapiName}
+                                    data-field={fld.apiName}
+                                    data-row={rowIndex}
+                                    onchange={handleFieldSelect}>
+                                </lightning-input>
+                                <template if:true={fld.isSelected}>
+                                    <lightning-textarea
+                                        label="Remark"
+                                        data-section={section.objectapiName}
+                                        data-field={fld.apiName}
+                                        data-row={rowIndex}
+                                        onchange={handleRemarkChange}>
+                                    </lightning-textarea>
+                                </template>
+                            </div>
+                        </template>
+                    </template>
+                </template>
+
+                <!-- Non-Repeatable Section -->
+                <template if:false={section.repeatable}>
+                    <template for:each={section.fields} for:item="fld">
+                        <div key={fld.id} class="field-block">
+                            <lightning-input
+                                type="checkbox"
+                                label={fld.label}
+                                data-section={section.objectapiName}
+                                data-field={fld.apiName}
+                                data-fieldlabel={fld.label}
+                                data-sectionlabel={section.label}
+                                onchange={handleFieldSelect}>
+                            </lightning-input>
+                            <template if:true={fld.isSelected}>
+                                <lightning-textarea
+                                    label="Remark"
+                                    data-section={section.objectapiName}
+                                    data-field={fld.apiName}
+                                    onchange={handleRemarkChange}>
+                                </lightning-textarea>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </template>
+
+        <div class="slds-m-top_medium slds-text-align_center">
+            <lightning-button
+                label="Save Correction Requests"
+                variant="brand"
+                onclick={handleSave}>
+            </lightning-button>
+        </div>
+    </template>
+</template>

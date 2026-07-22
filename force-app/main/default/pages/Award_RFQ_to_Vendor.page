@@ -1,0 +1,486 @@
+<apex:page controller="c_Award_RFQ_to_Vendor">
+    <head>
+        <apex:slds />
+        
+        <script>
+        setTimeout(function() { $('#pgmessagesid').fadeOut('fast'); }, 2000);
+        </script>
+    </head>
+    
+    <body ng-app="myApp" ng-controller="ctrl_Award_RFQ_to_Vendor" >
+        
+        <article class="slds-card s1FixedTop forceHighlightsStencilDesktop">
+            <div id="pgmessagesid" style="width: fit-content;">
+                <apex:pagemessages />
+            </div>
+            
+            
+            <div style="display: 'block'">
+                
+                <apex:form id="frm_edit">
+                    <apex:actionFunction name="Call_load_again" action="{!f_load_vendor_item_map1}" onComplete="alert('After apex method') ;"/>
+                    <br/>
+                    <apex:pageBlock title="RFQ Details">
+                        <table>
+                            <tr>
+                                <th Style="width:20%;">RFQ Name</th>
+                                <th Style="width:20%;">Creation Date</th>
+                                <th Style="width:20%;">Award Date</th>
+                                <th Style="width:40%;"></th>
+                            </tr>
+                            <tr Style="height: 30px;">
+                                <td Style="width:20%;">{{v_RFQ.Name}}</td>
+                                <td Style="width:20%;">{{v_RFQ.CreatedDate | date }}</td>
+                                <td Style="width:20%;">{{v_RFQ.Award_Date__c | date }}</td>
+                                <td Style="width:40%;"></td>
+                            </tr>
+                        </table>
+                        
+                        <br/>
+                        
+                        <table Style="width: 100%;border-collapse: collapse;table-layout:fixed;" class="slds-table slds-table_bordered">
+                            <tr Style="padding:5px 2px;border:1px solid black;text-align:center;border-collapse: collapse;"
+                                class="table_th slds-hint-parent">
+                                <th Style="width:20%;" class="slds-truncate slds-text-title_caps"> Item Name</th>
+                                <th Style="width:10%;" class="slds-truncate slds-text-title_caps"></th>
+                                <th ng-repeat="x in v_vendor" class="slds-truncate slds-text-title_caps txt_center"
+                                    ng-style="{ 'width': 70/v_vendor.length + '%' }" style="padding-top: 5px;">
+                                    <input type="checkbox" name="vendor_checkbox" value="true" ng-click="selectAll($event,x)" ng-disabled="edit_data == false"/>
+                                    <!--<input type="button" value="✓ Select All" style="color: black;" ng-click="selectAll($event,x)"/>-->
+                                    <br/>
+                                    <div style="padding-top: 5px;">{{x.vendor_name}}</div>
+                                </th>
+                            </tr>
+                            
+                            <tr ng-repeat="x in v_main" Style="padding:5px 2px;border-collapse: collapse;" class="table_tr slds-hint-parent">
+                                <td class="slds-truncate" Style="width:20%;" ng-click="f_toggle(x)">
+                                    {{x.item_name}} 
+                                </td>
+                                <td class="slds-truncate" Style="width:10%;">
+                                    <table style="table-layout:fixed;">
+                                        <tr style="border-style: hidden;">
+                                            <th Style="width:100%;">Total Cost</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;">
+                                            <th Style="width:100%;">RFQ Quantity</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide">
+                                            <th Style="width:100%;">Unit Price</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Discount_Chk__c">
+                                            <th Style="width:100%;">Discount</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.GST__c">
+                                            <th Style="width:100%;">GST</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Delivery_Cost__c">
+                                            <th Style="width:100%;">Delivery Cost</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Packing_Cost__c">
+                                            <th Style="width:100%;">Packing Cost</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Credit_Period__c">
+                                            <th Style="width:100%;">Credit Period</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Payment_Terms__c">
+                                            <th Style="width:100%;">Payment Terms</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Delivery_Terms__c">
+                                            <th Style="width:100%;">Delivery Terms</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Expiry_Date__c">
+                                            <th Style="width:100%;">Expiry Date</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Vendor_Supply_Qty__c">
+                                            <th Style="width:100%;">Ven Supplier Qty </th>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <!--
+ng-checked="{{y.Is_Awarded__c}}" ng-model="{{y.Is_Awarded__c}}" id="item_radio_{{$parent.$index}}" 
+-->
+                                <!--<td ng-repeat="y in x.vendor_list" class="slds-truncate" ng-style="{ 'width': 70/v_vendor.length + '%' }">-->
+                                <td ng-repeat="y in x.vendor_list" class="slds-truncate" 
+                                    ng-style="y.details.Is_Awarded__c == true && {'background-color':'#9fff9f'} ">
+                                    <table style="table-layout:fixed;" class="txt_center" ng-show="y.flag">
+                                        <tr style="border-style: hidden;">
+                                            <th class="txt_center">
+                                                <div ng-style="edit_data == false && {'pointer-events':'none'} ">
+                                                    <input type="radio" name="item_radio_{{$parent.$index}}" ng-checked="{{y.details.Is_Awarded__c}}" 
+                                                           ng-model="x.selected_vendor" ng-value="y.vendor_id" ng-disabled="x.flag_po_created == true"
+                                                           ng-change="check_all_data(x, y.details)"
+                                                           />
+                                                    {{(y.details.Total_Cost__c > 0 ? 'Rs. ' : '')}} {{y.details.Total_Cost__c}}
+                                                </div>
+                                            </th>
+                                        </tr>
+                                        <tr style="border-style: hidden;">
+                                            <!-- <th class="txt_center">{{y.details.Vendor_Supply_Qty__c}} &nbsp;</th> -->
+                                            <th class="txt_center">{{x.details.Quantity__c}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide">
+                                            <th class="txt_center">{{(y.details.Unit_Price__c > 0 ? 'Rs. ' : '')}} {{y.details.Unit_Price__c}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Discount_Chk__c">
+                                            <th class="txt_center">{{y.details.Discount__c}} {{(y.details.Discount__c > 0 ? ' %' : '')}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.GST__c">
+                                            <th class="txt_center">{{y.details.IGST__c}} {{(y.details.IGST__c > 0 ? ' %' : '')}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Delivery_Cost__c">
+                                            <th class="txt_center">{{(y.details.Delivery_Cost__c > 0 ? 'Rs. ' : '')}} {{y.details.Delivery_Cost__c}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Packing_Cost__c">
+                                            <th class="txt_center">{{(y.details.Packing_Cost__c > 0 ? 'Rs. ' : '')}} {{y.details.Packing_Cost__c}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Credit_Period__c">
+                                            <th class="txt_center">{{y.details.Credit_Period__c}} {{(y.details.Credit_Period__c > 0 ? ' Days' : '')}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Payment_Terms__c">
+                                            <th style="word-wrap: break-word;">{{y.details.Payment_Terms__c}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Delivery_Terms__c">
+                                            <th style="word-wrap: break-word;">{{y.details.Delivery_Terms__c}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Expiry_Date__c">
+                                            <th class="txt_center">{{y.details.Expiry_Date__c}} &nbsp;</th>
+                                        </tr>
+                                        <tr style="border-style: hidden;" ng-show="x.flag_showhide && x.details.Vendor_Supply_Qty__c">
+                                            <th class="txt_center">{{y.details.Vendor_Supply_Qty__c}} &nbsp;</th>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <br/>
+                        
+                        <div>
+                            <button type="button" class="btn btn-primary text-center slds-button slds-button_brand" 
+                                    ng-click="save()">Save Award RFQ to Vendor</button>
+                            <button type="button" class="btn btn-primary text-center slds-button slds-button_brand" 
+                                    ng-click="edit_row()">Edit</button>
+                            <apex:commandButton value="Close" action="{!cancel}" styleClass="slds-button slds-button_neutral" 
+                                                immediate="true"> </apex:commandButton>
+                            
+                            <apex:commandButton value="Submit" action="{!f_Send_Notification}" style="Float:right;margin-right:5px;"
+                                                styleClass="slds-button slds-button_brand"> </apex:commandButton>
+                        </div>
+                        
+                    </apex:pageBlock>
+                    
+                    <!--<apex:pageBlock id="Selected">
+
+<apex:commandButton value="Cancel" action="{!cancel}" style="Float:right;margin-top:10px;"
+styleClass="slds-button slds-button_neutral" immediate="true"> </apex:commandButton>
+<apex:commandButton value="Save" action="{!saveRec}" style="Float:right;margin-right:5px;margin-top:10px;"
+styleClass="slds-button slds-button_brand"> </apex:commandButton>
+</apex:pageBlock>-->
+                    
+                </apex:form>
+            </div>
+            
+        </article>
+        
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"/>
+        <apex:includeScript value="{!URLFOR($Resource.angular_ui_tree, 'angular.js')}"/>
+            
+            <script type="text/javascript">
+                
+                function stopEnterKey(evt) {
+                var evt = (evt) ? evt : ((event) ? event : null);
+                var node = (evt.target) ? evt.target : ((evt.srcElement) ? evt.srcElement : null);
+                if((evt.keyCode == 13) && (node.type == "checkbox")) {
+                    event.preventDefault();
+                }
+            }
+            
+            document.onkeypress = stopEnterKey;
+        
+        var app = angular.module('myApp',[]);
+        
+        
+        
+        app.controller('ctrl_Award_RFQ_to_Vendor', function ($scope) {
+            
+            var v_vi_map_data  	= '{!send_data_vendor_item_map}';
+            var v_item_data  	= '{!send_data_item}';
+            var v_po_item_data 	= '{!send_data_po_item}';
+            
+            $scope.v_RFQ  		= '{!send_data_rfq}';
+            $scope.rfqId 		= '{!rid}';
+            
+            v_vi_map_data 	= JSON.parse(v_vi_map_data);
+            v_item_data 	= JSON.parse(v_item_data);
+            v_po_item_data 	= JSON.parse(v_po_item_data);
+            $scope.v_RFQ 	= JSON.parse($scope.v_RFQ);
+            
+            $scope.edit_data = false ;
+            if ($scope.v_RFQ.Award_Date__c == null) {
+                $scope.edit_data = true ;
+            }
+            
+            var v_item = [];
+            $scope.v_vendor = [];
+            v_vi_map_data.forEach(function (p_data) {
+                
+                var v_i = v_item.findIndex(e => e.item_id === p_data.Item_Name__c);
+                if (v_i == -1) {
+                    v_item.push({"item_id":p_data.Item_Name__c,"item_name":p_data.Item_Name__r.Name});
+                }
+                
+                var v_v = $scope.v_vendor.findIndex(e => e.vendor_id === p_data.Vendor_Name__c);
+                if (v_v == -1) {
+                    $scope.v_vendor.push({"vendor_id":p_data.Vendor_Name__c,"vendor_name":p_data.Vendor_Name__r.Name});
+                }
+            });
+            
+            //console.log(v_item);
+            //console.log($scope.v_vendor);
+            //console.log(v_vi_map_data);
+            //console.log(JSON.stringify(v_item_data));
+            //console.log(v_po_item_data);
+            //console.log(JSON.stringify($scope.v_RFQ));
+            
+            $scope.v_main = [];
+            v_item.forEach(function (p_data) {
+                
+                var v_data_v = [];
+                var v_selected_vendor = '';
+                //var v_selected_vendor_flag = false;
+                var v_po_created_flag = false;
+                var v_details_item = {};
+                
+                $scope.v_vendor.forEach(function (p_data_v) {
+                    
+                    var v_flag = false;
+                    var v_details = {};
+                    
+                    var v_i = v_vi_map_data.findIndex(e => e.Item_Name__c === p_data.item_id && e.Vendor_Name__c === p_data_v.vendor_id );
+                    if (v_i !== -1) {
+                        v_flag = true;
+                        v_details = v_vi_map_data[v_i];
+                        if (v_details.Is_Awarded__c) {
+                            v_selected_vendor = p_data_v.vendor_id;
+                            //v_selected_vendor_flag = true;
+                        }
+                    }
+                    v_data_v.push({
+                        "vendor_id":p_data_v.vendor_id,"vendor_name":p_data_v.vendor_name,
+                        "flag":v_flag,
+                        "details":v_details
+                    });
+                });
+                
+                
+                var v_i = v_item_data.findIndex(e => e.Item_Name__c === p_data.item_id);
+                if (v_i !== -1) {
+                    v_details_item = v_item_data[v_i];
+                }
+                
+                var v_poi = v_po_item_data.findIndex(e => e.Item_Name__c === p_data.item_id);
+                if (v_poi !== -1) {
+                    v_po_created_flag = true;
+                }
+                
+                var v_data = {
+                    "item_id":p_data.item_id,"item_name":p_data.item_name,
+                    "flag_showhide":false,
+                    "flag_po_created":v_po_created_flag,
+                    "selected_vendor":v_selected_vendor,
+                    //"selected_vendor_flag":v_selected_vendor_flag,
+                    "details":v_details_item,
+                    "vendor_list":v_data_v
+                };
+                $scope.v_main.push(v_data);
+            });
+            
+            //console.log(JSON.stringify($scope.v_main));
+            
+            $scope.f_toggle = function(p_data){
+                p_data.flag_showhide = !p_data.flag_showhide;
+            };
+            
+            $scope.selectAll = function($event, p_data) {
+                var r = confirm("This Action will override all your current selection,\nDo you want to continue ?");
+                if (r == true) {
+                    var v_checkbox_flag = $event.target.checked;
+                    
+                    if (v_checkbox_flag == true) {
+                        for ( var i = 0; i < $scope.v_main.length; i++) {
+                            var v_t_item = $scope.v_main[i];
+                            v_t_item.vendor_list.forEach(function (p_data_v) {
+                                if (p_data.vendor_id == p_data_v.vendor_id && p_data_v.flag && v_t_item.flag_po_created == false) {
+                                    //v_t_item.selected_vendor = p_data.vendor_id;
+                                    
+                                    let p_return = true;
+                                    
+                                    //if(p_x.details.GST__c == true)	{	p_return = false;   }
+                                    if(v_t_item.details.Unit_Price_Chk__c == true && ($scope.f_check_number(p_data_v.details['Unit_Price__c']) <  0 || p_data_v.details['Unit_Price__c'] === undefined ))     		{	p_return = false;   }
+                                    if(v_t_item.details.Delivery_Cost__c == true && ($scope.f_check_number(p_data_v.details['Delivery_Cost__c']) <  0 || p_data_v.details['Delivery_Cost__c'] === undefined ))      	{	p_return = false;   }
+                                    if(v_t_item.details.Packing_Cost__c == true && ($scope.f_check_number(p_data_v.details['Packing_Cost__c']) <  0 || p_data_v.details['Packing_Cost__c'] === undefined ))       		{	p_return = false;   }
+                                    if(v_t_item.details.Expiry_Date__c == true && ($scope.f_check_string(p_data_v.details['Expiry_Date__c']) == '' || p_data_v.details['Expiry_Date__c'] === undefined ))        	{	p_return = false;   }
+                                    if(v_t_item.details.Discount_Chk__c == true && ($scope.f_check_number(p_data_v.details['Discount__c']) <  0 || p_data_v.details['Discount__c'] === undefined ))				{	p_return = false;   }
+                                    if(v_t_item.details.Total_Cost__c == true && ($scope.f_check_number(p_data_v.details['Total_Cost__c']) <  0 || p_data_v.details['Total_Cost__c'] === undefined ))				{	p_return = false;   }
+                                    if(v_t_item.details.Credit_Period__c == true && ($scope.f_check_number(p_data_v.details['Credit_Period__c']) <  0 || p_data_v.details['Credit_Period__c'] === undefined ))			{	p_return = false;   }
+                                    if(v_t_item.details.Payment_Terms__c == true && ($scope.f_check_string(p_data_v.details['Payment_Terms__c']) == '' || p_data_v.details['Payment_Terms__c'] === undefined ))			{	p_return = false;   }
+                                    if(v_t_item.details.Delivery_Terms__c == true && ($scope.f_check_string(p_data_v.details['Delivery_Terms__c']) == '' || p_data_v.details['Delivery_Terms__c'] === undefined ))		{	p_return = false;   }
+                                    if(v_t_item.details.Vendor_Supply_Qty__c == true && ($scope.f_check_number(p_data_v.details['Vendor_Supply_Qty__c']) <  0 || p_data_v.details['Vendor_Supply_Qty__c'] === undefined ))	{	p_return = false;   }
+                                    
+                                    
+                                    if (p_return == false) 	{	v_t_item.selected_vendor = '';	} 
+                                    else 				{	v_t_item.selected_vendor = p_data.vendor_id;	}
+                                }
+                            });
+                        }
+                    }
+                    else  {
+                        for ( var i = 0; i < $scope.v_main.length; i++) {
+                            var v_t_item = $scope.v_main[i];
+                            v_t_item.vendor_list.forEach(function (p_data_v) {
+                                if (p_data.vendor_id == v_t_item.selected_vendor) {
+                                    v_t_item.selected_vendor = '';
+                                }
+                            });
+                        }
+                    }
+                }
+            };
+            
+            $scope.edit_row = function() {
+                $scope.edit_data = true ;
+            }
+            
+            $scope.check_all_data = function(p_x,p_y) {
+                //console.log(JSON.stringify(p_x)) ;
+                //console.log(JSON.stringify(p_y)) ;
+                
+                let p_return = true;
+                
+                //if(p_x.details.GST__c == true)	{	p_return = false;   }
+                if(p_x.details.Unit_Price_Chk__c == true && $scope.f_check_number(p_y.Unit_Price__c) < 0)     			{	p_return = false;   }
+                if(p_x.details.Delivery_Cost__c == true && $scope.f_check_number(p_y.Delivery_Cost__c) < 0)      		{	p_return = false;   }
+                if(p_x.details.Packing_Cost__c == true && $scope.f_check_number(p_y.Packing_Cost__c) < 0)       		{	p_return = false;   }
+                if(p_x.details.Expiry_Date__c == true && $scope.f_check_string(p_y.Expiry_Date__c) == '')        		{	p_return = false;   }
+                if(p_x.details.Discount_Chk__c == true && $scope.f_check_number(p_y.Discount__c) < 0)					{	p_return = false;   }
+                if(p_x.details.Total_Cost__c == true && $scope.f_check_number(p_y.Total_Cost__c) < 0)					{	p_return = false;   }
+                if(p_x.details.Credit_Period__c == true && $scope.f_check_number(p_y.Credit_Period__c) < 0)			{	p_return = false;   }
+                if(p_x.details.Payment_Terms__c == true && $scope.f_check_string(p_y.Payment_Terms__c) == '')			{	p_return = false;   }
+                if(p_x.details.Delivery_Terms__c == true && $scope.f_check_string(p_y.Delivery_Terms__c) == '')			{	p_return = false;   }
+                if(p_x.details.Vendor_Supply_Qty__c == true && $scope.f_check_number(p_y.Vendor_Supply_Qty__c) < 0)	{	p_return = false;   }
+                
+                if (p_return == false) {
+                    p_x.selected_vendor = '';
+                    alert("All adequate information are not provided");   
+                }
+                
+                return p_return;
+            }
+            
+            
+            
+            
+            $scope.save = function() {
+                
+                var v_data = [];
+                $scope.v_main.forEach(function (p_data) {
+                    p_data.vendor_list.forEach(function (p_data_v) {
+                        if (p_data_v.flag == true) {
+                            var v_flag_selected = false;
+                            if (p_data.selected_vendor == p_data_v.vendor_id) {
+                                v_flag_selected = true;
+                            }
+                            
+                            var t_data = {
+                                "Id": p_data_v.details.Id,
+                                "Item_Name__c": p_data_v.details.Item_Name__c,
+                                "Vendor_Name__c": p_data_v.details.Vendor_Name__c,
+                                "RFQ_Vendor__c": p_data_v.details.RFQ_Vendor__c,
+                                "Is_Awarded__c": v_flag_selected
+                            };
+                            
+                            v_data.push(t_data);
+                        }
+                    });
+                });
+                
+                console.log(JSON.stringify(v_data));
+                
+                //var v_data = angular.copy($scope.v_main);
+                
+                //var v_RFQ_data = {"Id" : $scope.v_RFQ.Id, "Award_Date__c" : $scope.v_RFQ.Award_Date__c};
+                var v_RFQ_data = {"Id" : $scope.v_RFQ.Id};
+                
+                Visualforce.remoting.Manager.invokeAction(
+                    '{!$RemoteAction.c_Award_RFQ_to_Vendor.f_Save}', v_data, v_RFQ_data,
+                    function(result, event) {
+                        /*$scope.safeApply(function() {
+                            toaster.pop({
+                                type: 'success',
+                                title: 'Products added to Vendor successfully'
+                            });
+                        });*/
+                        console.log('result :' + result);
+                        
+                        //Call_load_again();
+                        alert('Award RFQ save successfully');
+                    }, 
+                    {escape: true}
+                );
+            }
+            
+            
+            $scope.f_check_number = function (value) {
+                if (angular.isUndefined(value) || value === '' || value === null || value !== value) {
+                    return 0;
+                } else {
+                    return Number(value)
+                }
+            }
+            
+            $scope.f_check_string = function (value) {
+                if (angular.isUndefined(value) || value === '' || value === null || value !== value) {
+                    return "";
+                } else {
+                    return value;
+                }
+            }
+        });
+        
+        </script>
+    </body>
+    
+    <style>
+        .table_th th {
+        background-color:#b12327 !important;
+        border:1px solid black !important;
+        /*text-align:center !important;*/
+        color:white !important;
+        }
+        .table_tr td {
+        border:1px solid black !important;
+        /*text-align:center !important;*/
+        }
+        .table_chkbox input {
+        width:20px !important;
+        height:20px !important;
+        }
+        .slds-truncate{
+        white-space: initial !important;
+        }
+        /*tr:nth-child(even){background-color: #f2f2f2}*/
+        
+        .txt_center {
+        text-align:center !important;
+        }
+        
+        /*div.panel {
+        display: none;
+        }
+        
+        div.panel.show {
+        display: block !important;
+        }*/
+        
+    </style>
+</apex:page>

@@ -1,0 +1,646 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 05-04-2026
+  @last modified by  : 
+-->
+<template>
+    <div class="form-container">
+        <lightning-messages></lightning-messages>
+
+        <template if:true={errorMessage}>
+            <div class="error-banner">
+                {errorMessage}
+            </div>
+        </template>
+
+        <template if:true={isInitStep}>
+            <div class="form-content">
+                <div class="form-section">
+                    <div class="section-header">
+                        <h3 class="section-title">B2B Primary Details</h3>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <lightning-input
+                                label="Company Name"
+                                type="text"
+                                value={company}
+                                onchange={handleFieldChange}
+                                data-field="company"
+                                placeholder="Enter Company Name"
+                                required>
+                            </lightning-input>
+                        </div>
+                        <div class="form-field">
+                            <lightning-input
+                                label="Email"
+                                type="email"
+                                value={email}
+                                onchange={handleFieldChange}
+                                data-field="email"
+                                placeholder="Enter Email (optional if phone or mobile provided)">
+                            </lightning-input>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field phone-col">
+                            <label class="field-label">Mobile</label>
+                            <div class="phone-input-group">
+                                <div class="code-wrap">
+                                    <lightning-combobox
+                                        value={countryCode}
+                                        options={countryCodeOptions}
+                                        onchange={handleCountryCodeChange}
+                                        variant="label-hidden"
+                                        placeholder="Code">
+                                    </lightning-combobox>
+                                </div>
+                                <div class="number-wrap">
+                                    <lightning-input
+                                        type="tel"
+                                        value={mobilePhone}
+                                        maxlength={mobileMaxLength}
+                                        pattern="[0-9]*"
+                                        onchange={handleFieldChange}
+                                        data-field="mobilePhone"
+                                        placeholder="Number"
+                                        variant="label-hidden">
+                                    </lightning-input>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-field phone-col">
+                            <label class="field-label">Phone</label>
+                            <div class="phone-input-group">
+                                <div class="code-wrap">
+                                     <lightning-combobox
+                                        value={stdCode}
+                                        options={stdCodeOptions}
+                                        onchange={handleStdCodeChange}
+                                        variant="label-hidden"
+                                        placeholder="STD Code">
+                                    </lightning-combobox>
+                                </div>
+                                <div class="number-wrap">
+                                    <lightning-input
+                                        type="tel"
+                                        value={phone}
+                                        onchange={handleFieldChange}
+                                        data-field="phone"
+                                        pattern="[0-9]*"
+                                        placeholder="Phone"
+                                        variant="label-hidden">
+                                    </lightning-input>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-hint init-contact-hint">
+                        At least one of Email, Mobile, or Phone is required.
+                    </div>
+
+                    <template if:true={showCompanyMatchDropdown}>
+                        <div class="company-match-table-section">
+                            <template if:true={isCompanyMatchSearching}>
+                                <div class="search-loading company-match-loading">
+                                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                                    <span>Searching...</span>
+                                </div>
+                            </template>
+                            <template if:false={isCompanyMatchSearching}>
+                                <template if:true={hasCompanyMatchRows}>
+                                    <div class="company-match-table-title">Matching leads and accounts</div>
+                                    <table class="company-match-table programs-table">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Type</th>
+                                                <th scope="col">Name</th>
+                                                <th scope="col">Details</th>
+                                                <th scope="col" class="action-column">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={companyMatchTableRows} for:item="row">
+                                                <tr key={row.recordId} class={row.trClass}>
+                                                    <td>{row.typeLabel}</td>
+                                                    <td class="company-match-td-name">{row.name}</td>
+                                                    <td class="company-match-td-details">{row.subtitle}</td>
+                                                    <td class="action-column">
+                                                        <button
+                                                            type="button"
+                                                            class="slds-button slds-button_neutral"
+                                                            title="Use this record"
+                                                            data-merge-id={row.recordId}
+                                                            data-merge-type={row.recordType}
+                                                            data-merge-name={row.name}
+                                                            onclick={handleSelectCompanyMatch}>
+                                                            Select
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </template>
+                                <template if:false={hasCompanyMatchRows}>
+                                    <div class="no-results company-match-no-results">No matching leads or accounts</div>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
+                    <template if:true={selectedMergeRecord}>
+                        <div class="merge-selection-row">
+                            <span class="merge-selection-label">Use existing:</span>
+                            <span class="merge-selection-value">{mergeSelectionLabel}</span>
+                            <lightning-button
+                                variant="neutral"
+                                label="Clear"
+                                class="merge-clear-btn"
+                                onclick={handleClearMergeSelection}>
+                            </lightning-button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <template if:true={isDetailsStep}>
+        <div class="form-content">
+            <template if:true={showScenarioBanner}>
+                <div class="prefilled-indicator">
+                    <lightning-icon icon-name="utility:info" size="x-small"></lightning-icon>
+                    <span class="prefilled-text">{scenarioMessage}</span>
+                </div>
+            </template>
+
+           
+            <!-- Section: Contact Information -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3 class="section-title">Contact Information</h3>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <lightning-input
+                            label="First Name"
+                            type="text"
+                            value={firstName}
+                            onchange={handleFieldChange}
+                            data-field="firstName"
+                            placeholder="Enter First Name"
+                            required>
+                        </lightning-input>
+                    </div>
+                    <div class="form-field">
+                        <lightning-input
+                            label="Last Name"
+                            type="text"
+                            value={lastName}
+                            onchange={handleFieldChange}
+                            data-field="lastName"
+                            placeholder="Enter Last Name"
+                            required>
+                        </lightning-input>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-field">
+                        <lightning-input
+                            label="Email"
+                            type="email"
+                            value={email}
+                            onchange={handleFieldChange}
+                            data-field="email"
+                            placeholder="Enter Email"
+                            disabled={isEmailReadOnly}>
+                        </lightning-input>
+                    </div>
+                    <div class="form-field phone-col">
+                        <label class="field-label">Mobile</label>
+                        <div class="phone-input-group">
+                            <div class="code-wrap">
+                                <lightning-combobox
+                                    value={countryCode}
+                                    options={countryCodeOptions}
+                                    onchange={handleCountryCodeChange}
+                                    variant="label-hidden"
+                                    placeholder="Code"
+                                    disabled={isCountryCodeReadOnly}>
+                                </lightning-combobox>
+                            </div>
+                            <div class="number-wrap">
+                                <lightning-input
+                                    type="tel"
+                                    value={mobilePhone}
+                                    onchange={handleFieldChange}
+                                    data-field="mobilePhone"
+                                    placeholder="Number"
+                                    variant="label-hidden"
+                                    disabled={isMobileReadOnly}>
+                                </lightning-input>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-field phone-col full-width-phone">
+                        <label class="field-label">Phone (country code + number)</label>
+                        <div class="phone-input-group">
+                            <div class="code-wrap">
+                                <!-- <lightning-combobox
+                                    value={countryCode}
+                                    options={countryCodeOptions}
+                                    onchange={handleCountryCodeChange}
+                                    variant="label-hidden"
+                                    placeholder="Code"
+                                    disabled={isCountryCodeReadOnly}>
+                                </lightning-combobox> -->
+                                 <lightning-combobox
+                                        value={stdCode}
+                                        options={stdCodeOptions}
+                                        onchange={handleStdCodeChange}
+                                        variant="label-hidden"
+                                        placeholder="STD Code">
+                                    </lightning-combobox>
+                            </div>
+                            <div class="number-wrap">
+                                <lightning-input
+                                    type="tel"
+                                    value={phone}
+                                    onchange={handleFieldChange}
+                                    data-field="phone"
+                                    placeholder="Number"
+                                    variant="label-hidden"
+                                    disabled={isPhoneReadOnly}>
+                                </lightning-input>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-field">
+                        <lightning-input
+                            label="Designation"
+                            type="text"
+                            value={title}
+                            onchange={handleFieldChange}
+                            data-field="title"
+                            placeholder="Enter Designation"
+                            required>
+                        </lightning-input>
+                    </div>
+                    <div class="form-field">
+                        <lightning-input
+                            label="LinkedIn"
+                            type="url"
+                            value={linkedIn}
+                            onchange={handleFieldChange}
+                            data-field="linkedIn"
+                            placeholder="https://www.linkedin.com/in/...">
+                        </lightning-input>
+                    </div>
+                </div>
+
+<div class="form-row">
+                    
+
+    <div class="form-field dept-row">
+        <div class="dept-lookup">
+            <lightning-record-edit-form object-api-name="Lead">
+                <lightning-input-field
+                    class="deptLookupField"
+                    field-name={deptField}
+                    onchange={handleDepartmentChange}>
+                </lightning-input-field>
+            </lightning-record-edit-form>
+        </div>
+
+        <div class="dept-button">
+            <lightning-button
+                label="New Department"
+                variant="neutral"
+                onclick={handleNewDepartment}>
+            </lightning-button>
+        </div>
+    </div>
+
+    <div class="form-field">
+        <lightning-combobox
+            label="Lead Source"
+            value={leadSource}
+            options={leadSourceOptions}
+            onchange={handleFieldChange}
+            data-field="leadSource"
+            placeholder="Select Lead Source"
+            required>
+        </lightning-combobox>
+    </div>
+
+   </div>  
+        
+        <div class="form-row">
+            <template lwc:if={isLeadSourceEvent}>
+            <div class="form-field">
+                <lightning-input
+                    type="text"
+                    label="Event Remarks"
+                    value={leadRemark}
+                    onchange={handleFieldChange}
+                    data-field="leadRemark"
+                    placeholder="Event Remarks">
+              </lightning-input> 
+            </div>
+        </template>
+            <template if:true={showReportingTo}>
+                    <div class="form-field">
+                            <lightning-combobox
+                                label="Reporting To"
+                                value={reportsToId}
+                                options={reportingToOptions}
+                                onchange={handleReportsToChange}
+                                placeholder="Select contact"
+                                required>
+                            </lightning-combobox>
+                        </div>
+                        <div class="form-field"></div>
+              </template>
+        </div>
+              
+
+                
+            </div>
+
+            <!-- Section: Company Information -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3 class="section-title">Company Information</h3>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-field">
+                        <lightning-input
+                            label="Company Name"
+                            type="text"
+                            value={company}
+                            onchange={handleFieldChange}
+                            data-field="company"
+                            placeholder="Enter Company Name"
+                            required
+                            disabled>
+                        </lightning-input>
+                    </div>
+                    <div class="form-field">
+                        <lightning-input
+                            label="Website"
+                            type="url"
+                            value={website}
+                            onchange={handleFieldChange}
+                            data-field="website"
+                            placeholder="Enter Website URL">
+                        </lightning-input>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <lightning-input
+                            label="Company Phone"
+                            type="tel"
+                            value={companyPhone}
+                            onchange={handleFieldChange}
+                            data-field="companyPhone"
+                            pattern="[0-9]+"
+                            placeholder="Enter Company Phone"
+                            message-when-pattern-mismatch="Phone number can only contain digits. No letters, spaces, or special characters allowed."
+                            >
+                        </lightning-input>
+                    </div>
+                    <div class="form-field">
+                        <lightning-input
+                            label="Company Linked In"
+                            type="url"
+                            value={companyLinkedIn}
+                            onchange={handleFieldChange}
+                            data-field="companyLinkedIn"
+                            placeholder="Company LinkedIn">
+                        </lightning-input>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Address Information -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3 class="section-title">Address Information</h3>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-field full-width">
+                        <lightning-input
+                            label="Street Address"
+                            type="text"
+                            value={street}
+                            onchange={handleFieldChange}
+                            data-field="street"
+                            placeholder="Enter Street Address">
+                        </lightning-input>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-field">
+                        <lightning-combobox
+                            label="Country"
+                            value={selectedCountry}
+                            options={countryOptions}
+                            onchange={handleCountryChange}
+                            placeholder="Select Country"
+                            required={isAddressRequired}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="form-field">
+                        <lightning-combobox
+                            label="State"
+                            value={selectedState}
+                            options={stateOptions}
+                            onchange={handleStateChange}
+                            placeholder="Select State"
+                            disabled={isStateDisabled}
+                            required={isAddressRequired}>
+                        </lightning-combobox>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-field">
+                        <lightning-combobox
+                            label="City"
+                            value={selectedCity}
+                            options={cityOptions}
+                            onchange={handleCityChange}
+                            placeholder="Select City"
+                            disabled={isCityDisabled}
+                            required={isAddressRequired}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="form-field">
+                        <lightning-input
+                            label="Postal Code"
+                            type="text"
+                            value={postalCode}
+                            onchange={handleFieldChange}
+                            data-field="postalCode"
+                            placeholder="Enter Postal Code">
+                        </lightning-input>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Programs -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3 class="section-title">Programs <span class="required-indicator">*</span></h3>
+                </div>
+
+                <div class="program-search-container">
+                    <div class="search-input-wrapper">
+                        <lightning-input
+                            type="search"
+                            label="Search Programs"
+                            placeholder="Type to search programs..."
+                            value={programSearchTerm}
+                            onchange={handleProgramSearch}>
+                        </lightning-input>
+                    </div>
+                    
+                    <template if:true={showProgramSearchResults}>
+                        <div class="search-results-dropdown">
+                            <template if:true={isSearching}>
+                                <div class="search-loading">
+                                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                                    <span>Searching...</span>
+                                </div>
+                            </template>
+                            <template if:false={isSearching}>
+                                <template if:true={hasProgramSearchResults}>
+                                    <template for:each={programSearchResults} for:item="program">
+                                        <div key={program.value} class="search-result-item" onclick={handleAddProgram} data-id={program.value} data-name={program.label}>
+                                            <span class="program-name">{program.label}</span>
+                                            <template if:true={program.type}>
+                                                <span class="program-type">{program.type}</span>
+                                            </template>
+                                            <lightning-icon icon-name="utility:add" size="x-small" class="add-icon"></lightning-icon>
+                                        </div>
+                                    </template>
+                                </template>
+                                <template if:false={hasProgramSearchResults}>
+                                    <div class="no-results">No programs found</div>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="selected-programs-section">
+                    <template if:true={hasSelectedPrograms}>
+                        <table class="programs-table">
+                            <thead>
+                                <tr>
+                                    <th>Program Name</th>
+                                    <th class="action-column">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={selectedProgramsList} for:item="program">
+                                    <tr key={program.id}>
+                                        <td>{program.name}</td>
+                                        <td class="action-column">
+                                            <lightning-button-icon
+                                                icon-name="utility:delete"
+                                                variant="bare"
+                                                size="small"
+                                                alternative-text="Remove"
+                                                onclick={handleRemoveProgram}
+                                                data-id={program.id}>
+                                            </lightning-button-icon>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+                    <template if:false={hasSelectedPrograms}>
+                        <div class="no-programs-message">
+                            No programs selected. Use the search above to add programs.
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Section: Additional Information -->
+            <div class="form-section">
+                <div class="section-header">
+                    <h3 class="section-title">Additional Information</h3>
+                </div>
+
+                <template if:true={showMouContractQuestion}>
+                    <div class="form-row">
+                        <div class="form-field full-width">
+                            <lightning-input
+                                type="checkbox"
+                                label="Is MOU Contract required?"
+                                checked={isMouContractRequired}
+                                onchange={handleFieldChange}
+                                data-field="isMouContractRequired">
+                            </lightning-input>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="form-row">
+                    <div class="form-field full-width">
+                        <lightning-textarea
+                            label="Description"
+                            value={description}
+                            onchange={handleFieldChange}
+                            data-field="description"
+                            placeholder="Enter any additional information..."
+                            max-length="32000">
+                        </lightning-textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </template>
+
+        <div class="form-footer">
+            <lightning-button
+                label={backButtonLabel}
+                onclick={handleBack}
+                class="slds-m-right_small">
+            </lightning-button>
+
+            <template if:true={isInitStep}>
+                <lightning-button
+                    variant="brand"
+                    label="Next"
+                    onclick={handleInitialNext}
+                    disabled={isSaving}>
+                </lightning-button>
+            </template>
+            <template if:true={isDetailsStep}>
+                <lightning-button
+                    variant="brand"
+                    label="Save"
+                    onclick={handleSave}
+                    disabled={isSaving}>
+                </lightning-button>
+            </template>
+        </div>
+    </div>
+</template>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApexTestSuite xmlns="http://soap.sforce.com/2006/04/metadata">
+    <testClassName>AcademicControllerTest</testClassName>
+    <testClassName>AcademicFormControllerTest</testClassName>
+    <testClassName>DocumentUploaderControllerTest</testClassName>
+    <testClassName>GenericLookupControllerTest</testClassName>
+    <testClassName>UserTriggerHandlerTest</testClassName>
+    <testClassName>UserTriggerHelperTest</testClassName>
+</ApexTestSuite>

@@ -1,0 +1,45 @@
+<template>
+    <lightning-card title="Applicants - Offer Accepted" icon-name="standard:contact">
+        <div class="slds-m-around_medium">
+
+            <!-- Action Button -->
+            <div class="slds-text-align_right slds-m-bottom_small">
+                <lightning-button
+                    label="Convert to Student"
+                    variant="brand"
+                    onclick={handleConvert}
+                    disabled={disableConvert}>
+                </lightning-button>
+            </div>
+
+            <!-- Datatable -->
+            <lightning-datatable
+                key-field="Id"
+                data={pagedData}
+                columns={columns}
+               
+                onrowselection={handleRowSelection}
+                onrowaction={handleRowAction}>
+            </lightning-datatable>
+
+            <!-- Pagination -->
+            <div class="slds-align_absolute-center slds-m-top_small">
+                <lightning-button
+                    label="Previous"
+                    onclick={previousPage}
+                    disabled={isFirstPage}>
+                </lightning-button>
+
+                <span class="slds-badge slds-m-horizontal_small">
+                    Page {page} of {totalPages}
+                </span>
+
+                <lightning-button
+                    label="Next"
+                    onclick={nextPage}
+                    disabled={isLastPage}>
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>

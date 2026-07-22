@@ -1,0 +1,1006 @@
+<apex:page controller="Application_PDF" renderAs="pdf" showHeader="false" applyBodyTag="false" applyHtmlTag="false">
+<html>
+<!-- ===== HEADER SECTION ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px">
+<tr>
+<td style="width:25%; text-align:left; border:none; vertical-align:middle;    border: 1px solid;">
+<!-- Replace with your org’s logo -->
+  <apex:image alt="Sarex" url="{!$Resource.SPJMIR_logo}" height="50px" style="text-align:Center;" /><br/>
+</td>
+<td style="width:50%; text-align:center; font-weight:bold; font-size:16px; vertical-align:middle;    border: 1px solid;color:#B266FF;">
+            {!quo.Program__r.name}<br/>
+<span style="font-size:13px;">APPLICATION NO: {!quo.Application_Number__c}</span>
+</td>
+<td style="width:25%; text-align:right; vertical-align:middle;border: 1px solid;">
+  <apex:image alt="Sarex" url="{!$Resource.SPJMIR_logo}" height="50px" style="text-align:Center;" /><br/>
+</td>
+</tr>
+</table>
+ 
+<!-- ===== MAIN CONTENT TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+<tr>
+<td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left; border:1px solid #000; padding:6px 8px;">
+            Programme Details (Choose the programmes you wish to apply to for the 2025-27 intake):
+</td>
+</tr>
+ 
+    <tr>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">1st Programme Applying for</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.X1st_Programme_Applying_For__r.name}</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">2nd Programme Applying for</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.X2nd_Programme_Applying_For__r.name}</td>
+</tr>
+ 
+    <tr>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Please Select Your Preference 1</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"></td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Please Select Your Preference 2</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"></td>
+</tr>
+ 
+    <tr>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Specialization 1 For PGDM</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Specialization_1_for__r.name}</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Specialization 2 For PGDM</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Specialization_2_for__r.name}</td>
+</tr>
+ 
+    <tr>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Reasons I Have (Specialization 1)</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Reasons_I_have_Specialization_1__c}</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Mention Your Interest 1</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Mention_your_Interest_1__c}</td>
+</tr>
+ 
+    <tr>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Reasons I Have (Specialization 2)</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Reasons_I_have_Specialization_2__c}</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Mention Your Interest 2</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Mention_your_Interest_2__c}</td>
+
+</tr>
+</table>
+<!-- ===== PERSONAL INFORMATION TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px;margin-top:16px">
+    <!-- Section Header -->
+    <tr>
+        <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left; border:1px solid #000; padding:6px 8px;">
+            Personal Information:
+        </td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">First Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.First_Name__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Middle Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Middle_Name__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Last Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Last_Name__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Gender</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Gender__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Date of Birth (As Per 10th Marksheet)</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><apex:outputText value=" {!PDInfo.Date_of_Birth_As_Per_10th_Marksheet__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Age as on 22/11/2024</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">24 years, 9 months, 20 days</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Nationality</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Nationality__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Category</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Category__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Do You Have Aadhar Card?</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Do_you_have_Aadhaar_Card__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Aadhar Card Number</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.AadhaarCardNumber__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Do You Have a Passport?</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.HavePassport__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Passport Number</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.PassportNumber__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Indian Origin Card (IOC)</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Indian_Origin_Card_IOC__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Passport Issuing Country</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Passport_Issuing_Country__c}</td>
+    </tr>
+</table>
+
+<!-- ===== CONTACT DETAILS TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px;">
+    <tr>
+        <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left; border:1px solid #000; padding:6px 8px;">
+            Contact Details:
+        </td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Mobile Number</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Mobile_Number__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Parent's Mobile Number</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Parent_s_Mobile_Number__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Email</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Primary_E_mail__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Alternate Email Address</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Alternate_E_mail__c}</td>
+    </tr>
+</table>
+    <!-- ===== PAGE BREAK BEFORE ACADEMIC DETAILS ===== -->
+    <div style="page-break-before: always;"></div>
+<!-- ===== ADDRESS DETAILS TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px;  margin-top:16px;">
+    <!-- Header -->
+    <tr>
+        <td colspan="3" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left; border:1px solid #000; padding:6px 8px;">
+            Address Details:
+        </td>
+    </tr>
+
+    <!-- Row 1 -->
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">
+            Is your permanent address same as address for correspondence?
+        </td>
+        <td colspan="2" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoCorrespondence.Is_permanent_address_same_as_address_for__c}</td>
+    </tr>
+
+    <!-- Header Row for Correspondence / Permanent -->
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;"></td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;font-weight:bold;">Correspondence</td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;font-weight:bold;">Permanent</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Address</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoCorrespondence.Address__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoPermanent.Address__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">City Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoCorrespondence.City_Correspondence__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoPermanent.City_Correspondence__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">District Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoCorrespondence.District_Correspondence__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoPermanent.District_Correspondence__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">State Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoCorrespondence.State__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoPermanent.State__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Country Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoCorrespondence.Country__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoPermanent.Country__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Pincode</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoCorrespondence.Pincode__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AddinfoPermanent.Pincode__c}</td>
+    </tr>
+</table>
+
+<!-- ===== ACADEMIC DETAILS TABLE (CONTINUED) ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+    <!-- Header -->
+    <tr>
+        <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left; 
+            border:1px solid #000; padding:6px 8px;">
+            Academic Details:
+        </td>
+    </tr>
+
+    <!-- Row 1 -->
+    <tr>
+        <td colspan="4" style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">
+            After 10th Qualification
+            <span style="color:black; font-weight:normal;">12th</span>
+        </td>
+    </tr>
+
+    <!-- Header Row for 10th / 12th / Diploma -->
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;"></td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">{!AcaDetailX.Qualifications__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">{!AcaDetailXII.Qualifications__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">{!AcaDetailGrad.Qualifications__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Board / University</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailX.Board_University__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailXII.Board_University__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Board_University__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Institute Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailX.School_Institute__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailXII.School_Institute__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.School_Institute__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Examination ID</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailX.Examination_ID__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailXII.Examination_ID__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Examination_ID__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Diploma Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;">-</td>
+        <td style="border:1px solid #000; padding:6px 8px;">-</td>
+        <td style="border:1px solid #000; padding:6px 8px;">-</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Month and Year of Passing</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailX.MonthOfPassing__c}/{!AcaDetailX.YearOfPassing__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailXII.MonthOfPassing__c}/{!AcaDetailXII.YearOfPassing__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.MonthOfPassing__c}/{!AcaDetailGrad.YearOfPassing__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Marking Scheme</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailX.Marking_Scheme__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailXII.Marking_Scheme__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Marking_Scheme__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Maximum Marks/CGPA</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailX.Maximum_CGPA__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailXII.Maximum_CGPA__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Maximum_CGPA__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Obtained Marks/CGPA</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailX.Obtained_CGPA__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailXII.Obtained_CGPA__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Obtained_CGPA__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Conversion Factor</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><!--{!AcaDetailX.Conversion_Factor__c}--></td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><!--{!AcaDetailXII.Conversion_Factor__c}--></td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><!--{!AcaDetailGrad.Conversion_Factor__c}--></td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Percentage</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"></td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"></td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"></td>
+    </tr>
+</table>
+<!-- ===== PAGE BREAK BEFORE ACADEMIC DETAILS ===== -->
+<div style="page-break-before: always;"></div>    
+<!-- ===== GRADUATION DETAILS TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+    <!-- Header -->
+    <tr>
+        <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+            border:1px solid #000; padding:6px 8px;">
+            Graduation Details:
+        </td>
+    </tr>
+
+    <!-- Row 1 -->
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">University State</td>
+       <!-- <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.State__c}</td> -->
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">University</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Board_University__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Institute Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.School_Institute__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Mode Of Study</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Mode_of_Study__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Degree</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Degree__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Specialization</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Specilization__r.name}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Degree Type</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Degree_Type__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Pattern of Examination</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Pattern_of_Examination__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">UG Result Status</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.DegreeStatus__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Month and Year of Commencement</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Month_of_Commencement__c}/{!AcaDetailGrad.Year_of_Commencement__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Month and Year of Passing</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.MonthOfPassing__c}/{!AcaDetailGrad.YearOfPassing__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Marking Scheme</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Marking_Scheme__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Maximum Marks/CGPA</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Maximum_CGPA__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Obtained Marks/CGPA</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailGrad.Obtained_CGPA__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Conversion Factor</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><!--{!AcaDetailGrad.Conversion_Factor__c}--></td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Graduation Percentage</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"></td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">
+            Do you have an academic break / Any other special conditions?
+        </td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AAB.Do_You_Have_An_Academic_Break__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Academic Break / Special Condition</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AAB.Academic_Break__c}</td>
+    </tr>
+
+    <tr>
+        <td colspan="1" style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">
+            Reason for academic break / Any special conditions (applies for applicants still pursuing graduation)
+        </td>
+        <td colspan="3" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AAB.Reason_For_Academic_Break__c}</td>
+    </tr>
+</table>
+<!-- ✅ Force next table to new page -->
+<div style="page-break-before: always;"></div>
+
+<!-- ===== SEMESTER WISE DETAILS TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+    <!-- Header -->
+    <tr>
+        <td colspan="3" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+            border:1px solid #000; padding:6px 8px;">
+            Semester Wise Details:
+        </td>
+    </tr>
+
+    <!-- Sub Header -->
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;"></td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">Max SGPA / Max Marks</td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">Obtained SGPA / Obtained Marks</td>
+    </tr>
+
+    <!-- Semesters -->
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">1st Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW1.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW1.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">2nd Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW2.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW2.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">3rd Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW3.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW3.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">4th Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW4.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW4.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">5th Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW5.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW5.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">6th Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW6.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW6.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">7th Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW7.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW7.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">8th Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW8.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW8.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">9th Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW9.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW9.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">10th Semester</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW10.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSW10.Obtained_Marks_SGPA__c}</td></tr>
+</table>
+<!-- ===== YEAR WISE DETAILS TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+    <tr>
+        <td colspan="3" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left; 
+            border:1px solid #000; padding:6px 8px;">
+            Year Wise Details:
+        </td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;"></td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">Max SGPA / Max Marks</td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">Obtained SGPA / Obtained Marks</td>
+    </tr>
+
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">1st Year</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear1.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear1.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">2nd Year</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear2.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear2.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">3rd Year</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear3.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear3.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">4th Year</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear4.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear4.Obtained_Marks_SGPA__c}</td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">5th Year</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear5.Maximum_Marks_SGPA__c}</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!GraduationDSWYear5.Obtained_Marks_SGPA__c}</td></tr>
+</table>
+
+
+<!-- ===== POST GRADUATION DETAILS TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+    <tr>
+        <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left; 
+            border:1px solid #000; padding:6px 8px;">
+            Post Graduation Details:
+        </td>
+    </tr>
+
+    <tr>
+        <td colspan="1" style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Any Post Graduation?</td>
+        <td colspan="3" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">Yes</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">University State</td>
+       <!-- <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.State__c}</td> -->
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">University Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.Board_University__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Institute Name</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.School_Institute__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Degree</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.Degree__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Stream</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.Stream__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Mode Of Study</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.Mode_of_Study__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">PG Status</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.DegreeStatus__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Month and Year of Passing</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.MonthOfPassing__c}/{!AcaDetailPostGrad.YearOfPassing__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Marking Scheme</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.Marking_Scheme__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Maximum Marks/CGPA</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.Maximum_CGPA__c}</td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Obtained Marks/CGPA</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.Obtained_CGPA__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Conversion Factor</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><!--{!AcaDetailPostGrad.Conversion_Factor__c}--></td>
+    </tr>
+
+    <tr>
+        <td colspan="1" style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Master's Degree Percentage</td>
+        <td colspan="3" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AcaDetailPostGrad.Master_Degree_Percentage__c}</td>
+    </tr>
+</table>
+<!-- ===== PAGE BREAK BEFORE ACADEMIC DETAILS ===== -->
+<div style="page-break-before: always;"></div>
+
+<!-- ===== PROFESSIONAL QUALIFICATION TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+    <tr>
+        <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+            border:1px solid #000; padding:6px 8px;">
+            Professional Qualification:
+        </td>
+    </tr>
+
+    <tr>
+        <td colspan="1" style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Do you have Professional Qualification?</td>
+        <td colspan="3" style="border:1px solid #000; padding:6px 8px;color:#B266FF;"></td>
+    </tr>
+
+    <tr>
+        <td style="border:1px solid #000; padding:6px 8px;"></td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">1</td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">2</td>
+        <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">3</td>
+    </tr>
+
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Name of Qualification</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProfessQuali.Name_of_Qualification__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Professional Qualification</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProfessQuali.Name_of_Qualification__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Name of Institute</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProfessQuali.Name_of_Institute__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Qualification Status</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProfessQuali.Qualification_Status__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Level Achieved</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProfessQuali.Level_Achieved__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Rank Achieved</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProfessQuali.Rank_Achieved__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Year of Commencement</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProfessQuali.Year_of_Commencement_pq__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Year of Passing</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProfessQuali.Year_of_Passing_pq__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+    <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Important Certification / Programme (If Any)</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProfessQuali.Name_of_Qualification__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+</table>
+<!-- ===== WORK EXPERIENCE TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+  <tr>
+    <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+        border:1px solid #000; padding:6px 8px;">
+      Work Experience:
+    </td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Do You Have Any Work Experience?</td>
+    <td colspan="3" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExp.Do_You_Have_Any_Work_Experience__c}</td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Name Of Organisation</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExp.Name_of_Organisation__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Industry</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExp.Industry__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Function</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExp.Function__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Employment Type</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExp.Employment_Type__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Designation</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExp.Designation__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Gross Annual CTC</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExp.Gross_Annual_CTC__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Is This Your Current Job?</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"></td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Start Date</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><apex:outputText value=" {!WorkExp.Start_Date__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">End Date</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;" colspan="3"><apex:outputText value=" {!WorkExp.End_Date__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Describe Your Role Briefly</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;" colspan="3">{!WorkExp.Describe_Your_Role_Briefly__c}</td>
+  </tr>
+</table>
+
+
+<!-- ===== PREVIOUS WORK EXPERIENCE DETAILS ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+  <tr>
+    <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+        border:1px solid #000; padding:6px 8px;">
+      Previous Work Experience Details:
+    </td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Name Of Organisation</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExpPrevioues.Name_of_Organisation__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Industry</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExpPrevioues.Industry__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Function</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExpPrevioues.Function__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Designation</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExpPrevioues.Designation__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">From</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><apex:outputText value=" {!WorkExpPrevioues.WE_From_Date__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">To</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><apex:outputText value=" {!WorkExpPrevioues.WE_To_Date__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Total Experience (in Months)</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExpPrevioues.Total_Experience_In_Months__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Function</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExpPrevioues.Function__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Describe Your Role Briefly</td>
+    <td colspan="3" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExpPrevioues.Describe_Your_Role_Briefly__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Months Of Work Experience Beyond Accounted (if any)</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExpPrevioues.Months_of_work_experience_beyond_above__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Total Work Experience (in Months)</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!WorkExpPrevioues.Total_Experience_In_Months__c}</td>
+  </tr>
+</table>
+<!-- ===== PAGE BREAK BEFORE ACADEMIC DETAILS ===== -->
+<div style="page-break-before: always;"></div>
+
+<!-- ===== ACHIEVEMENTS TABLE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+  <tr>
+    <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+        border:1px solid #000; padding:6px 8px;">
+      Achievements:
+    </td>
+  </tr>
+  <tr>
+    <td colspan="4" style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">
+      Academic Achievements
+    </td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;"></td>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">1</td>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">2</td>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">3</td>
+  </tr>
+  <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Title of the Award</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AAchivement.Title_of_the_Award__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+  <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Institute Granting the Award</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AAchivement.Institute_Granting_the_Award__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+  <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Year</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AAchivement.Year__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+  <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Award / Position</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AAchivement.Award_Position__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+  <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Level</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AAchivement.Level__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+  <tr><td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Describe the Award (Max. 25 words)</td><td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!AAchivement.Describe_the_Award_Max_25_words__c}</td><td style="border:1px solid #000; padding:6px 8px;"></td><td style="border:1px solid #000; padding:6px 8px;"></td></tr>
+</table>
+
+
+<!-- ===== VERSATILITY ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px;">
+  <tr>
+    <td colspan="6" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+        border:1px solid #000; padding:6px 8px;">
+      Versatility:
+    </td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000; color:#B266FF; padding:6px 8px;"></td>
+    <td style="border:1px solid #000; text-align:center; font-weight:bold;color:#B266FF;">1</td>
+    <td style="border:1px solid #000; text-align:center; font-weight:bold;color:#B266FF;">2</td>
+    <td style="border:1px solid #000; text-align:center; font-weight:bold;color:#B266FF;">3</td>
+    <td style="border:1px solid #000; text-align:center; font-weight:bold;color:#B266FF;">4</td>
+    <td style="border:1px solid #000; text-align:center; font-weight:bold;color:#B266FF;">5</td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000;color:#B266FF; padding:6px 8px;font-weight:bold;">Name of the Activity</td>
+    <td style="border:1px solid #000;color:#B266FF;">{!Versatility.Name_of_the_Activity__c}</td>
+    <td style="border:1px solid #000;color:#B266FF;"></td>
+    <td style="border:1px solid #000;color:#B266FF;"></td>
+    <td style="border:1px solid #000;color:#B266FF;"></td>
+    <td style="border:1px solid #000;color:#B266FF;"></td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000;color:#B266FF; padding:6px 8px;font-weight:bold;">Interest</td>
+    <td style="border:1px solid #000;color:#B266FF;">{!Versatility.Interest__c}</td>
+    <td style="border:1px solid #000;color:#B266FF;"></td>
+    <td style="border:1px solid #000;color:#B266FF;"></td>
+    <td style="border:1px solid #000;color:#B266FF;"></td>
+    <td style="border:1px solid #000;color:#B266FF;"></td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000;color:#B266FF; padding:6px 8px;font-weight:bold;">Proficiency</td>
+    <td style="border:1px solid #000;color:#B266FF;">{!Versatility.Proficiency__c}</td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000;color:#B266FF; padding:6px 8px;font-weight:bold;">Award</td>
+    <td style="border:1px solid #000;color:#B266FF;">{!Versatility.Award__c}</td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000;color:#B266FF; padding:6px 8px;font-weight:bold;">Level</td>
+    <td style="border:1px solid #000;color:#B266FF;">{!Versatility.Level__c}</td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000;color:#B266FF; padding:6px 8px;font-weight:bold;">Description (Max. 25 words)</td>
+    <td style="border:1px solid #000;color:#B266FF;">{!Versatility.Describe_the_AwardMax_25_words__c}</td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+    <td style="border:1px solid #000;"></td>
+  </tr>
+
+  <!-- Overall Rating Row -->
+  <tr>
+    <td style="border:1px solid #000;color:#B266FF; padding:6px 8px;font-weight:bold;">Overall Versatility Rating</td>
+    <td colspan="5" style="border:1px solid #000;color:#B266FF;">{!Versatility.Overall_Versatility_Rating__c}</td>
+  </tr>
+</table>
+
+
+<!-- ===== RESPONSIBILITY SHOULDERED ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+  <tr>
+    <td colspan="3" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+        border:1px solid #000; padding:6px 8px;">
+      Responsibility Shouldered:
+    </td>
+  </tr>
+
+  <!-- Personal Responsibility -->
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF; font-weight:bold;">Personal</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Level</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ResponsibilityShoulderedPersonal.Level__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Describe Briefly</td>
+    <td colspan="2" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ResponsibilityShoulderedPersonal.Describe_Briefly_50_Words__c}</td>
+  </tr>
+
+  <!-- Professional Responsibility -->
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; font-weight:bold;">Professional</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Level</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ResponsibilityShoulderedProfesional.Level__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Describe Briefly</td>
+    <td colspan="2" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ResponsibilityShoulderedProfesional.Describe_Briefly_50_Words__c}</td>
+  </tr>
+</table>
+
+
+<!-- ===== INFORMATION SOURCE ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+  <tr>
+    <td colspan="3" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+        border:1px solid #000; padding:6px 8px;">
+      Information Source:
+    </td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">
+      How Did You Get To Know About SJIMBR?
+    </td>
+    <td colspan="2" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">
+      {!InformationSource.How_Did_you_get_to_know_about_SPJIMR__c}
+    </td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">
+      Are You Interested In Knowing About Other SJIMBR Programmes?
+    </td>
+    <td colspan="2" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!InformationSource.Interested_in_knowing_other_Programmes__r.name}</td>
+  </tr>
+</table>
+<!-- ===== PAGE BREAK BEFORE ACADEMIC DETAILS ===== -->
+<div style="page-break-before: always;"></div>    
+<!-- ===== COMPETITIVE EXAM DETAILS ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+  <tr>
+    <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left; border:1px solid #000; padding:6px 8px;">
+      Competitive Exam Details:
+    </td>
+  </tr>
+
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">Competitive Exam Details</td>
+    <td colspan="3" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.Exam_Name__c}; {!CompExamDetailGMAT.Exam_Name__c}; {!CompExamDetailGMATFocusEdition.Exam_Name__c}</td>
+  </tr>
+
+  <!-- CAT DETAILS -->
+  <tr>
+    <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; border:1px solid #000; padding:6px 8px;font-weight:bold;">CAT 2024 Exam Details</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">CAT Result Status</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.CAT_Result_Status__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Is your primary email ID same as CAT exam email ID</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.Is_your_primary_email_ID_same_as_CAT_exa__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">CAT Registration No.</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.CAT_Registration_Number__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">CAT Overall Percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.CAT_Overall_Percentile__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">CAT Overall Score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.CAT_Overall_Score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Verbal ability and reading comprehension percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.Verbal_ability_and_reading_comp_percenti__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Data interpretation and logical reasoning score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.Data_interpretation_and_logical_re_score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Data interpretation and logical reasoning percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.Data_interpretation_and_logical_re_perce__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Quantitative ability score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.Quantitative_ability_score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Quantitative ability percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.Quantitative_ability_percentile__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">CAT Score Card</td>
+    <td colspan="3" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailCAT.CAT_Score_Card__c}</td>
+  </tr>
+
+  <!-- GMAT DETAILS -->
+  <tr>
+    <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; border:1px solid #000; padding:6px 8px;">
+      GMAT Exam Details (Jan 01, 2022 to Dec 10, 2024)
+    </td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">GMAT Result Status</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMAT.GMAT_Result_Status__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Appointment No.</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMAT.Appointment_Number__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Test Date</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><apex:outputText value=" {!CompExamDetailGMAT.Test_Date__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">GMAT Score Issue Date</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><apex:outputText value=" {!CompExamDetailGMAT.GMAT_Score_Issue_Date__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">GMAT Overall Score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMAT.GMAT_Overall_Score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">GMAT Overall Percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMAT.GMAT_Overall_Percentile__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Quantitative Score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMAT.Quantitative_Score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Quantitative Percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMAT.Quantitative_Percentile__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Verbal Score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMAT.Verbal_Score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Verbal Percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMAT.Verbal_Percentile__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF;font-weight:bold;">GMAT Score Card</td>
+    <td colspan="3" style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMAT.GMAT_Score_Card__c}</td>
+  </tr>
+
+  <!-- GMAT FOCUS EDITION -->
+  <tr>
+    <td colspan="4" style="background-color:#f7941d; color:#fff; font-weight:bold; border:1px solid #000; padding:6px 8px;">
+      GMAT Focus Edition (from Nov 2023 to Dec 10, 2024)
+    </td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">GMAT Focus Edition Result Status</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.GMAT_FOCUS_ID__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Appointment No.</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.GMAT_FOCUS_ID_Appointment_Number__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">GMAT ID</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.GMAT_FOCUS_ID__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Score Issue Date</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><apex:outputText value=" {!CompExamDetailGMATFocusEdition.GMAT_Score_Issue_Date__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Test Date</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><apex:outputText value=" {!CompExamDetailGMATFocusEdition.GMAT_Focus_Edition_Test_Date__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Overall Percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.Overall_Percentile__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Overall Score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.Overall_Score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Quantitative Percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.QA_Percentile__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Quantitative Score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.QA_Score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Verbal Percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.VA_Percentile__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Verbal Score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.VA_Score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Data Percentile</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.DI_Percentile__c}</td>
+  </tr>
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Data Score</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.DI_Score__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">GMAT Focus Edition Score Card</td>
+    <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!CompExamDetailGMATFocusEdition.GMAT_Focus_Edition_Score_Card__c}</td>
+  </tr>
+</table>
+<!-- ===== PAGE BREAK BEFORE ACADEMIC DETAILS ===== -->
+<div style="page-break-before: always;"></div>    
+<!-- ===== DECLARATION SECTION ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px; margin-top:16px;">
+
+  <!-- Declaration Header -->
+  <tr>
+    <td colspan="3" style="background-color:#f7941d; color:#fff; font-weight:bold; text-align:left;
+        border:1px solid #000; padding:6px 8px;">
+      Declaration:
+    </td>
+  </tr>
+
+  <!-- Declaration Text -->
+  <tr>
+    <td colspan="3" style="border:1px solid #000; padding:6px 8px; text-align:justify;">
+      I declare that the information provided by me in the application form and the supporting documents is correct. 
+      If the furnished information is found misleading or incorrect, I will be responsible for any action taken that the 
+      institute may deem fit. I understand that the right to carry out the admission process for PGDM &amp; PGDM (BM) lies 
+      with SJIMR. I understand that SJIMR reserves the exclusive right to reject any application for non-fulfilment of 
+      eligibility documentation and/or for information provided by the applicant being misstated. In such cases, fees 
+      paid by the applicant will be forfeited at any stage of admission. I understand that a non-refundable fee of 
+      Rs.2000/- as application fee is payable by every applicant for registration for each of the programmes PGDM and 
+      PGDM (BM) when applied separately. I further confirm that a non-refundable fee of Rs 3000/- as a combined 
+      application fee is payable by every applicant when applying for both PGDM and PGDM (BM) together. Applicants 
+      can make an online payment through Credit/Debit Card (MasterCard/Visa). I undertake to abide by the disciplinary 
+      rules and regulations of the institute.
+    </td>
+  </tr>
+
+  <!-- Please Note Section -->
+  <tr>
+    <td colspan="3" style="background-color:#f2eefc; color:#000; font-weight:bold; text-align:left;
+        border:1px solid #000; padding:6px 8px;color:#B266FF;">
+      Please Note:
+    </td>
+  </tr>
+
+  <tr>
+    <td colspan="3" style="border:1px solid #000; padding:6px 8px;">
+      • All disputes in this regard are subject to the legal jurisdiction of Mumbai.<br />
+      • PGDM general information pertaining to PGDM and PGDM (BM) will be posted on our website.<br />
+      • Any communication or update related to the application will be uploaded on the applicant’s individual profile, 
+      also information will be posted on admissions platform, mail communication may also be done as a service.<br />
+      • The information that the applicant provides in the application form will be used by SJIMR for its Admission purposes.<br />
+      • The information collected for the admission process may also be used for research purposes as the institute deems fit.
+    </td>
+  </tr>
+
+  <!-- Applicant Details (Fixed Column Count) -->
+  <tr>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; width:33%;font-weight:bold;">Applicant Name</td>
+    <td style="border:1px solid #000; padding:6px 8px; width:34%;color:#B266FF;">{!quo.First_Name__c} {!quo.Last_Name__c}</td>
+    <td style="border:1px solid #000; padding:6px 8px; color:#B266FF; width:33%;font-weight:bold;">
+      Date&nbsp;&nbsp;<span style="color:#B266FF;"><apex:outputText value=" {!quo.createddate}"><apex:param value="dd/MM/yyyy" /></apex:outputText></span>
+    </td>
+  </tr>
+
+</table>
+
+    
+</html>
+ 
+</apex:page>

@@ -1,0 +1,17 @@
+<template>
+    <lightning-modal-header class="header" label = "Email"></lightning-modal-header>
+    <lightning-modal-body>
+        <div class="slds-grid slds-grid_vertical">
+            <div class="subject-row slds-col">
+                <p class="subject">Subject: {payload.Subject}</p>
+            </div>
+            <div class="slds-col slds-box">   
+                <p class="body">
+                <lightning-formatted-rich-text
+                    value ={payload.Body}>
+                </lightning-formatted-rich-text>
+            </p>
+            </div>
+        </div>
+</lightning-modal-body>
+</template>

@@ -1,0 +1,106 @@
+.custom-modal {
+    z-index: 999999;
+}
+
+.large-modal {
+    width: 95%;
+    max-width: 1300px;
+}
+
+/* HEADER */
+.header-center {
+    display: flex;
+    justify-content: center;
+    position: relative;
+}
+
+.close-btn {
+    position: absolute;
+    right: 12px;
+    top: 8px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+/* BODY LAYOUT */
+.body-area {
+    display: flex;
+    flex-direction: row;
+    height: 680px;
+}
+
+/* MAIN PREVIEW AREA */
+.document-wrapper {
+    flex: 1;
+    background: #f9f9f9;
+    overflow: auto;
+    padding: 10px;
+}
+
+/* IMAGE PREVIEW */
+.image-scroll {
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* scroll when zoomed */
+}
+
+.image-view {
+    display: block;
+    margin: 0 auto;
+    max-width: none; /* allow zoom > container width */
+    transition: transform 0.2s ease;
+}
+
+/* PDF PREVIEW */
+.pdf-scroll {
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* scroll when zoomed */
+}
+
+.pdf-canvas {
+    display: block;
+    margin: 0 auto;
+}
+
+.page-controls {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.page-indicator {
+    font-weight: 600;
+}
+
+/* RIGHT TOOLBAR */
+.action-panel {
+    width: 160px;
+    border-left: 1px solid #dddddd;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.footer-center {
+    display: flex;
+    justify-content: center;
+}
+.slds-card {
+    width: 100%;
+}
+
+.inline-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.inline-list li + li {
+    margin-top: 0.25rem;
+}

@@ -1,0 +1,1263 @@
+/* Attendance Schedule - Timetable */
+.schedule-container {
+    width: 100%;
+    max-width: 100%;
+    background: #fff;
+    border-radius: 4px;
+    height:550px;
+
+    /* 🔥 FIX: allow hover card to escape */
+    overflow-x: hidden;
+    overflow-y: visible;
+}
+
+.schedule-header-bar {
+    background-color: #531F75;
+    padding: 10px 20px;
+    margin-bottom: 0;
+}
+
+.schedule-header-text {
+    color: #fff;
+    font-weight: 600;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.schedule-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 20px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    padding-top:30px;
+}
+
+.view-tabs {
+    display: flex;
+    gap: 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.view-tab {
+    padding: 8px 16px;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+}
+
+.view-tab:hover {
+    background: #eee;
+}
+
+.view-tab.active {
+    background: #531F75;
+    color: #fff;
+}
+
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.session-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.session-filter-label {
+    font-size: 14px;
+    color: #333;
+}
+
+.session-select {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 140px;
+}
+
+.nav-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nav-arrow {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 0;
+}
+
+.nav-arrow:hover {
+    background: #e0e0e0;
+}
+
+.date-range-label {
+    font-size: 14px;
+    color: #333;
+    min-width: 180px;
+    text-align: center;
+}
+
+.schedule-loading,
+.no-sessions-msg,
+.no-sessions-banner {
+    padding: 12px 16px;
+    text-align: center;
+    color: #5c5c5c;
+    background: #f5f5f5;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+/* Week / Day grid */
+.calendar-grid {
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 16px;
+}
+
+.grid-header {
+    display: grid;
+    grid-template-columns: 80px repeat(var(--num-days, 7), 1fr);
+    gap: 0;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 600;
+    border-top: 1px solid #f0f0f0;
+    border-left: 1px solid #f0f0f0;
+}
+
+.time-col-header {
+    background: #f5f5f5;
+    padding: 10px;
+    border-right: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.day-header {
+    background: #f5f5f5;
+    padding: 10px;
+    text-align: center;
+    border-right: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.day-header.today {
+    background: #e1d5f0;
+}
+
+.day-name {
+    display: block;
+    color: #531F75;
+}
+
+.day-date {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    font-weight: 400;
+}
+
+.grid-body {
+    position: relative;
+    overflow: visible;
+    border-left: 1px solid #f0f0f0;
+}
+
+.grid-row {
+    display: grid;
+    grid-template-columns: 80px repeat(var(--num-days, 7), 1fr);
+    gap: 0;
+    min-height: 48px;
+    height: 48px;
+    background: transparent;
+    position: relative;
+    overflow: visible;
+}
+
+.grid-row .time-slot {
+    border: 1px solid #f0f0f0;
+    background: #fafafa;
+    padding: 0px 10px;
+    font-size: 12px;
+    color: #666;
+    border-right: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.cell-slot {
+    padding: 0;
+    min-height: 48px;
+    height: 48px;
+    position: relative;
+    overflow: visible;
+    min-width: 0;
+    border-right: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
+}
+/*SE-1170*  .calendar-grid-day is added to the container only when currentView === 'day'
+   (see calendarGridClass getter in JS). This makes day-view rows taller (64px instead
+   of 48px) so the 3-line session card fits cleanly. Week view is untouched and
+   keeps using the 48px defaults above*/
+.calendar-grid-day .grid-row {
+    min-height: 64px;
+    height: 64px;
+}
+
+.calendar-grid-day .cell-slot {
+    min-height: 64px;
+    height: 64px;
+}
+
+/*SE-1170*/
+
+.session-cell {
+    display: block;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    margin: 0;
+    color: #fff;
+    box-sizing: border-box;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.session-cell:hover {
+    opacity: 0.9;
+}
+
+/*SE-1170*   Hidden by default (WEEK view never showed time before — keep that behavior).
+   Shown only in DAY view via the more specific .calendar-grid-day rule below. */
+.cell-session-time {
+    display: none;
+}
+
+.calendar-grid-day .cell-session-time {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.9);
+    display: block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}/*SE-1170*/
+
+/* SE-737U START: Division Color hex is applied as inline background; legacy gradient session-<color> rules removed */
+/* SE-737U END */
+
+.cell-session-title {
+    font-weight: 600;
+    display: block;
+    color: #fff;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.cell-session-activity {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.85);
+    display: block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+/* Month view */
+.month-view {
+    padding: 16px;
+}
+
+.month-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #e0e0e0;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.month-day-name {
+    padding: 8px;
+    background: #f5f5f5;
+    color: #531F75;
+}
+
+.month-week-row {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 1px;
+    min-height: 80px;
+    background: #e0e0e0;
+}
+
+.month-cell {
+    background: #fff;
+    padding: 6px;
+    min-height: 76px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.month-cell.other-month {
+    background: #fafafa;
+    color: #999;
+}
+
+.month-cell.today {
+    background: #e1d5f0;
+}
+
+.month-date-num {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.month-events {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.month-event {
+    font-size: 11px;
+    padding: 2px 6px;
+    margin-bottom: 2px;
+    /* SE-737U START: background comes from inline Division Color hex; no default gradient */
+    background: transparent;
+    /* SE-737U END */
+    color: #fff;
+    border-radius: 2px;
+    cursor: pointer;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.month-event:hover {
+    opacity: 0.9;
+}
+
+/* SE-737U START: Division Color hex is applied as inline background; legacy gradient month-event.session-<color> rules removed */
+/* SE-737U END */
+
+/* Year view */
+.year-view {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.year-month-block {
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 16px;
+}
+
+.year-month-title {
+    font-size: 16px;
+    color: #531F75;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.year-session-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.year-session-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.year-session-item:hover {
+    opacity: 0.9;
+}
+
+/* SE-737U START: Division Color hex is applied as inline background; legacy gradient year-session-item.session-<color> rules removed */
+.year-session-item.session-blue,
+.year-session-item.session-green,
+.year-session-item.session-purple,
+.year-session-item.session-orange,
+.year-session-item.session-red,
+.year-session-item.session-pink { color: #fff; }
+/* SE-737U END */
+
+.year-session-date {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.85);
+    flex-shrink: 0;
+}
+
+.year-session-title {
+    font-weight: 600;
+    color: #fff;
+    min-width: 0;
+    flex: 1 1 0%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.year-session-time {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    flex-shrink: 0;
+}
+
+.year-no-sessions {
+    color: #999;
+    font-size: 13px;
+    margin: 0;
+}
+
+/* Session Details Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.modal-container {
+    background: #fff;
+    border-radius: 8px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #531F75;
+    color: #fff;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #fff;
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.modal-close:hover {
+    opacity: 0.8;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.detail-session-name {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.detail-list {
+    margin: 0 0 16px 0;
+}
+
+.detail-list dt {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+}
+
+.detail-list dd {
+    margin: 2px 0 0 0;
+    font-size: 14px;
+    color: #333;
+}
+
+.detail-url-link {
+    color: #0176d3;
+    text-decoration: none;
+    word-break: break-all;
+}
+.detail-url-link:hover {
+    text-decoration: underline;
+}
+
+.detail-icon {
+    margin-right: 4px;
+}
+
+/* Outlined location icon to match design reference (used in modal + hover). */
+.location-outline-icon {
+    position: relative;
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
+    vertical-align: middle;
+    border: 2px solid currentColor;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-sizing: border-box;
+}
+
+.location-outline-icon::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 4px;
+    height: 4px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    transform: rotate(45deg);
+    box-sizing: border-box;
+}
+
+.detail-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin: 16px 0 8px 0;
+}
+
+.detail-files {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.detail-file-link {
+    display: block;
+    padding: 6px 0;
+    color: #1976d2;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.detail-file-link:hover {
+    text-decoration: underline;
+}
+
+.detail-description {
+    margin: 8px 0 0 0;
+    font-size: 14px;
+    color: #555;
+    line-height: 1.5;
+}
+
+/* ===== Layout (navbar + sidebar) when showLayout is true ===== */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 50vh;
+    position: relative;
+}
+
+/* .dashboard-body {
+    display: flex;
+    flex: 1;
+} */
+
+.top-navbar {
+    background-color: #F58220;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    position: relative;
+}
+
+.navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
+    padding: 0 20px;
+    height: 100%;
+}
+
+.navbar-three-dots {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    height: 100%;
+}
+
+.three-dots-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.three-dots-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.logo-container {
+    display: flex;
+    background-color: #ffffff;
+    height: 60px;
+}
+
+.site-logo {
+    height: 100%;
+    object-fit: contain;
+}
+
+.menu-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.navbar-user {
+    display: flex;
+    align-items: center;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.user-profile:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.user-icon {
+    --sds-c-icon-color-foreground-default: #531F75;
+}
+
+.user-name {
+    color: #000000;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.dropdown-icon {
+    --sds-c-icon-color-foreground-default: #000000;
+}
+
+.sidebar {
+    width: 246px;
+    background-color: #531F75;
+    color: white;
+    padding: 0;
+    flex-shrink: 0;
+    min-height: calc(100vh - 70px);
+    transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+    overflow-y: auto;
+}
+
+.sidebar-open {
+    transform: translateX(0);
+    display: block;
+}
+
+.sidebar-closed {
+    transform: translateX(-100%);
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar-nav {
+    padding: 0;
+}
+
+.sidebar .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: white !important;
+    text-decoration: none;
+    transition: background-color 0.2s;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+}
+
+.sidebar .nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white !important;
+}
+
+.sidebar .nav-item.selected {
+    background-color: #F58220;
+    color: white !important;
+    border-left: 3px solid #fff;
+}
+
+.sidebar .nav-icon-image {
+    width: 16px;
+    height: 16px;
+    margin-right: 12px;
+    object-fit: contain;
+}
+
+.sidebar .nav-label {
+    font-size: 14px;
+    font-weight: 400;
+    color: white !important;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    margin-top: 10px;
+    background-color: #ffffff;
+    min-height: calc(100vh - 70px);
+    transition: margin-left 0.3s ease-in-out;
+}
+
+.main-content-full {
+    margin-left: 0;
+}
+
+.main-container {
+    margin-bottom: 0;
+}
+
+.header-container .header-details {
+    background-color: #e1d5f0;
+    border-radius: 4px;
+}
+
+.header-container .profile-avatar {
+    width: 80px;
+    height: 80px;
+    background-color: #7c7c7c;
+}
+
+.schedule-container-embedded .schedule-header-bar {
+    margin-top: 0;
+}
+
+.active-button {
+    border-radius: 0px;
+    --sds-c-button-brand-color-background: #f57c00;
+    --sds-c-button-brand-color-border: #f57c00;
+}
+
+.event-container, 
+.your-existing-event-class {
+    position: relative;
+    display: inline-block;
+}
+.session-card {
+    pointer-events: auto;
+}
+
+.session-cell {
+    pointer-events: auto;
+}
+
+/* Hover session details card (similar to screenshot, no close, no files) */
+.hover-session-card {
+    position: fixed;
+    z-index: 10000;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    max-width: 95vw;
+}
+
+.hover-session-card-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid #eeeeee;
+}
+
+.hover-session-card-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.hover-session-card-body {
+    padding: 12px 16px 14px 16px;
+}
+
+.hover-session-card-session-name {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.hover-session-card-instructor {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.hover-session-card-meta {
+    margin-bottom: 10px;
+}
+
+.hover-session-meta-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.hover-session-meta-icon {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.hover-session-meta-icon.location-outline-icon {
+    color: #111827;
+    margin-top: 2px;
+}
+
+/* Keep "Url :" and URL on the same line in hover card */
+.hover-session-url-row {
+    flex-wrap: nowrap;
+    align-items: baseline;
+}
+.hover-session-url-row .hover-session-meta-icon {
+    flex-shrink: 0;
+}
+.hover-session-url-value {
+    font-size: 13px;
+    color: #111827;
+    word-break: break-all;
+    min-width: 0;
+}
+
+.hover-session-url-link {
+    font-size: 13px;
+    color: #0176d3;
+    word-break: break-all;
+    min-width: 0;
+    text-decoration: none;
+}
+.hover-session-url-link:hover {
+    text-decoration: underline;
+}
+
+.hover-session-meta-text {
+    font-size: 13px;
+    color: #111827;
+}
+
+.hover-session-meta-text div + div {
+    margin-top: 2px;
+}
+
+.hover-session-remarks {
+    border-top: 1px solid #f3f4f6;
+    padding-top: 8px;
+    margin-top: 4px;
+}
+
+.hover-session-remarks-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.hover-session-remarks-text {
+    margin: 0;
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.4;
+}
+
+/* Dashboard Container */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    position: relative;
+}
+/* Logo Section */
+.logo-container {
+    display: flex;
+    background-color: #ffffff;
+    height: 60px;
+}
+
+.logo-graphic {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #F58220 0%, #FF9800 100%);
+    border-radius: 50% 50% 50% 0;
+    margin-right: 12px;
+    position: relative;
+}
+
+.logo-graphic::before {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #FF9800 0%, #F58220 100%);
+    border-radius: 50% 50% 0 50%;
+    top: 5px;
+    left: 5px;
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-subtitle {
+    font-size: 10px;
+    color: #531F75;
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+.logo-title {
+    font-size: 18px;
+    color: #531F75;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+
+/* User Profile Section */
+.navbar-user {
+    display: flex;
+    align-items: center;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.user-profile:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.user-icon {
+    --sds-c-icon-color-foreground-default: #531F75;
+    background-color: #531F75;
+    border-radius: 50%;
+}
+
+.user-name {
+    color: #000000;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+
+
+/* Header Section */
+.header-title {
+    color: #4a148c;
+    border-bottom: 3px solid #4a148c;
+    padding-bottom: 8px;
+    display: inline-block;
+}
+
+.studentDetailsCard{
+    background: #FFFFFF;
+    border: 1px solid #531F75;
+    box-shadow: 0px 4px 4px 0px #0000002E;
+}
+
+.article-card {
+    border-radius: 4px;
+    height: 550px;
+    overflow: hidden;
+}
+
+/* Student Details Header Bar */
+
+.student-details-wrapper {
+    position: relative;
+    margin-top: 32px;
+}
+
+/* Purple strip */
+.student-details-header-bar {
+    position: absolute;
+    top: -16px;              /* pulls it onto the card border */
+    left: 24px;              /* aligns with card padding */
+    background-color: #531F75;
+    padding: 6px 24px;
+    width: 320px;            /* fixed width looks intentional */
+    z-index: 2;
+}
+
+/* Text */
+
+.dxp-text-heading-xxsmall {
+    font-size: 16px;
+}
+
+.student-details-header-text {
+    color: #ffffff;
+    font-weight: 600;
+    margin: 0;
+    text-align: left;
+}
+
+
+/* Profile Placeholder */
+.profile-placeholder {
+    width: 100px;
+    height: 100px;
+    border: 2px solid #F58220;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-placeholder lightning-icon {
+    --sds-c-icon-color-foreground-default: #7c7c7c;
+}
+
+/* Student Details Section */
+.student-name-header {
+    color: #333;
+    font-weight: 600;
+    margin: 0;
+    font-size: 18px;
+}
+
+.student-id-text {
+    color: #666;
+    margin: 4px 0 0 0;
+}
+
+.student-program-text {
+    color: #666;
+    margin: 4px 0 0 0;
+}
+
+/* Status Badge */
+.status-badge-accepted {
+    --sds-c-badge-color-background: #c8e6c9;
+    --sds-c-badge-text-color: #008D42;
+    padding: 3px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+/* .active-button{
+    background: #F58220;
+    color: white;
+    width: 45%;
+} */
+
+.header-details {
+    background-color: #e1d5f0;
+    border-radius: 4px;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    background-color: #7c7c7c;
+}
+
+.stats-badge {
+    display: flex;
+    gap: 0;
+    margin-bottom: 4px;
+}
+
+.stat-item {
+    background-color: #1e88e5;
+    color: white;
+    padding: 4px 12px;
+    font-weight: bold;
+    font-size: 14px;
+    border-radius: 4px;
+}
+
+.stat-item:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.stat-item:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.student-id {
+    color: #666;
+}
+
+/* Active Button */
+.active-button {
+    width: 35%;
+    border-radius: 0px;
+    --sds-c-button-brand-color-background: #f57c00;
+    --sds-c-button-brand-color-border: #f57c00;
+}
+
+/* Details Container */
+.details-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.section-header {
+    background-color: #4a148c;
+    color: white;
+}
+
+.section-header h3 {
+    margin: 0;
+}
+
+/* Section Title */
+.section-title {
+    font-size: 20px;
+    /* font-weight: 700; */
+    font-style: Bold;
+    line-height: 100%;
+    letter-spacing: 0%;
+}
+
+/* Description List Styling */
+.slds-dl_horizontal {
+    display: block;
+}
+
+.slds-dl_horizontal::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.slds-dl_horizontal dt {
+    font-weight: normal;
+    color: #666;
+    margin-bottom: 12px;
+    padding-right: 12px;
+    float: left;
+    clear: left;
+    width: 45%;
+    text-align: left;
+}
+
+.slds-dl_horizontal dd {
+    margin-bottom: 12px;
+    margin-left: 0;
+    float: left;
+    width: 55%;
+    text-align: left;
+    padding-left: 0;
+}
+
+/* Address field - value on next line */
+.slds-dl_horizontal .address-label {
+    clear: both;
+    float: none;
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+.slds-dl_horizontal .address-value {
+    clear: both;
+    float: none;
+    width: 100%;
+    margin-left: 0;
+}
+
+/* Detail Value with Grey Background */
+.detail-value-grey {
+    background: #EAEAEA;
+    margin: 0;
+    display: inline-block;
+    min-width: 215px;
+}
+
+/* Text styling for all three sections */
+.dxp-text-heading-xsmall {
+    color: #000000 !important;
+}
+
+.student-details-wrapper {
+    position: relative;
+    margin-top: 32px;
+}

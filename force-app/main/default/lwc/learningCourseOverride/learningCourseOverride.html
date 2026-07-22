@@ -1,0 +1,37 @@
+<template>
+    <lightning-card title="New Course">
+
+        <lightning-record-edit-form
+            object-api-name="LearningCourse"
+            onsubmit={handleSubmit}
+            onsuccess={handleSuccess}
+            onerror={handleError}>
+
+            <lightning-messages></lightning-messages>
+
+            <div class="slds-p-around_medium">
+
+                <lightning-input-field field-name="Name"></lightning-input-field>
+
+                <lightning-input-field field-name="Course_Department__c"></lightning-input-field>
+
+                <lightning-input-field field-name="CourseNumber"></lightning-input-field>
+
+                <lightning-input-field field-name="Course_Given_Name__c"></lightning-input-field>
+
+                <lightning-input-field field-name="Description"></lightning-input-field>
+
+                <div class="slds-m-top_medium">
+                    <lightning-button
+                        type="submit"
+                        variant="brand"
+                        label="Save">
+                    </lightning-button>
+                </div>
+
+            </div>
+
+        </lightning-record-edit-form>
+
+    </lightning-card>
+</template>

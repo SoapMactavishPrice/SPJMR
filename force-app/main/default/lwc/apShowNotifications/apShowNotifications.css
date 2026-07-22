@@ -1,0 +1,32 @@
+.notif-list {
+    list-style: none;
+    padding: 0;
+}
+
+.notif-item {
+    background: #f3f3f3;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+.notif-title {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.notif-message {
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.notif-date {
+    font-size: 0.75rem;
+    color: #777;
+}
+
+.loading {
+    padding: 20px;
+    font-size: 1rem;
+}

@@ -1,0 +1,85 @@
+<template>
+    <lightning-card title="ADD MAJOR" icon-name="custom:custom14">
+        <template if:true={showSpinner}>
+            <lightning-spinner alternative-text="Loading" size="xx-large" variant="base"></lightning-spinner>
+        </template>
+        <lightning-layout multiple-rows>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small">
+                <div class="form-group">
+                    <lightning-input name="courseoffer" label="Current Major" value={ccName} disabled>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small">
+                <div class="form-group">
+                    <lightning-input name="semester" label="Current Semester" value={semName} disabled>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small" style="padding-top: 0px !important;">
+                <div class="form-group">
+                    <lightning-input name="semester" label="Section" value={sectionName} disabled>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small" style="padding-top: 0px !important;">
+                <div class="form-group">
+                    <lightning-input name="rollnumber" label="Roll Number" value={rollNumberName} disabled>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+            <!-- <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small">
+                <div class="form-group">
+                    <lightning-combobox name="majorgrade" label="Major" value={major} options={majorgradeOptions}
+                        onchange={handleMajorGradeChange} required>
+                    </lightning-combobox>
+                </div>
+            </lightning-layout-item> -->
+            <!-- <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small">
+                <div class="form-group">
+                    <lightning-combobox name="majorgrade" label="Sem" value={semValue} options={semesterOptions}
+                        onchange={handleMajorGradeChange} required>
+                    </lightning-combobox>
+                </div>
+            </lightning-layout-item> -->
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small" style="margin-top: 0px">
+                <div class="form-group">
+                    <lightning-input type="checkbox" label="Do you want to change the preference?" checked={isChecked}
+                        onchange={handleCheckboxChange}>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small" style="padding-top: 0px !important;"
+                if:true={isChangeMajor}></lightning-layout-item>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small" style="padding-top: 0px !important;" if:true={isChangeMajor}>
+                <div class="form-group">
+                    <lightning-combobox name="changemajorgrade" label="Preferred Major" value={gradId}
+                        options={changeCCoptions} required>
+                    </lightning-combobox>
+                </div>
+            </lightning-layout-item>
+            <!-- <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small" if:true={isChangeMajor}>
+                <div class="form-group">
+                    <lightning-combobox name="minorgrade" label="Select Minor" value={minor} options={minorOptions}
+                        onchange={handleMinorGradeChange} required>
+                    </lightning-combobox>
+                </div>
+            </lightning-layout-item> -->
+            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12" large-device-size="12"
+                padding="around-small" style="padding-top: 0px !important; text-align: center;">
+                <lightning-button variant="Brand" label="Save" onclick={handlerOnSave}></lightning-button>
+            </lightning-layout-item>
+        </lightning-layout>
+    </lightning-card>
+
+</template>

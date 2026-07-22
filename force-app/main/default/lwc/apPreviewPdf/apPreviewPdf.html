@@ -1,0 +1,43 @@
+<template>
+    
+       
+    
+        <template lwc:if={isDisabled}>
+             <lightning-spinner alternative-text="Generating PDF preview"></lightning-spinner>
+            <lightning-button label="Generating PDF..." disabled></lightning-button>
+        </template>    
+        <template lwc:else>
+            <lightning-button onclick={handlePreview} title="View Application" label="Generate PDF preview" disabled={isDisabled}></lightning-button>
+        </template>
+
+        <template lwc:if={showLoadingToast}>
+            <div role="status" aria-live="polite"
+                style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9001; width: min(24rem, calc(100vw - 2rem)); background: #ffffff; border: 1px solid #dddbda; border-left: 4px solid #0176d3; border-radius: 0.25rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16); padding: 0.75rem 1rem;">
+                <div style="font-size: 0.875rem; font-weight: 700; color: #080707;">
+                    Generating PDF preview
+                </div>
+                <div style="margin-top: 0.25rem; font-size: 0.8125rem; line-height: 1.4; color: #3e3e3c;">
+                    Generating application preview. This may take up to a minute if documents are large.
+                </div>
+            </div>
+        </template>
+
+        <template lwc:if={showFallbackPrompt}>
+            <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="preview-blocked-heading"
+                style="position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; background: rgba(24, 24, 24, 0.45);">
+                <div style="width: min(26rem, calc(100vw - 2rem)); background: #ffffff; border-radius: 0.75rem; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2); overflow: hidden;">
+                    <div style="padding: 1rem 1rem 0.5rem; font-size: 1rem; font-weight: 700;" id="preview-blocked-heading">
+                        Application form preview
+                    </div>
+                    <div style="padding: 0 1rem 1rem; font-size: 0.875rem; line-height: 1.5; color: #3e3e3c;">
+                        Your application form preview is ready. Click the button below to open it in a new tab.
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; padding: 0.75rem 1rem 1rem; border-top: 1px solid #e5e5e5;">
+                        <lightning-button label="Close" onclick={handleFallbackClose}></lightning-button>
+                        <lightning-button variant="brand" label="Open Application Form" onclick={handleManualOpen}></lightning-button>
+                    </div>
+                </div>
+            </section>
+        </template>
+   
+</template>

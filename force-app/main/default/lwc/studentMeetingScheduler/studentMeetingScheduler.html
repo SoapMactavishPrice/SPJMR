@@ -1,0 +1,120 @@
+<template>
+    <lightning-card title="Schedule a Meeting" icon-name="standard:event">
+        <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
+            <!-- Meeting details -->
+            <lightning-input
+                label="Title"
+                value={subject}
+                onchange={handleSubject}
+                required
+                placeholder="e.g. Group study for Finance"
+            ></lightning-input>
+
+            <div class="slds-grid slds-gutters slds-wrap slds-var-m-top_x-small">
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-input type="datetime" label="Start" value={startTime} onchange={handleStart} required></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-input type="datetime" label="End" value={endTime} onchange={handleEnd} required></lightning-input>
+                </div>
+            </div>
+
+            <div class="slds-grid slds-gutters slds-wrap slds-var-m-top_x-small">
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-input label="Location" value={location} onchange={handleLocation} placeholder="Room / campus"></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-input label="Meeting link" value={meetingLink} onchange={handleLink} placeholder="https://..."></lightning-input>
+                </div>
+            </div>
+
+            <lightning-textarea
+                class="slds-var-m-top_x-small"
+                label="Description (optional)"
+                value={description}
+                onchange={handleDescription}
+            ></lightning-textarea>
+
+            <!-- Attendee search -->
+            <div class="slds-var-m-top_small">
+                <lightning-input
+                    type="search"
+                    label="Invite people (faculty or students)"
+                    value={searchTerm}
+                    onchange={handleSearch}
+                    placeholder="Type at least 2 letters of a name"
+                ></lightning-input>
+
+                <template if:true={hasResults}>
+                    <ul class="slds-has-dividers_bottom-space slds-var-m-top_xx-small">
+                        <template for:each={searchResults} for:item="p">
+                            <li key={p.id} class="slds-item slds-grid slds-grid_align-spread slds-p-vertical_xx-small">
+                                <span>
+                                    <strong>{p.name}</strong>
+                                    <lightning-badge label={p.role} class="slds-var-m-left_x-small"></lightning-badge>
+                                </span>
+                                <lightning-button-icon
+                                    icon-name="utility:add"
+                                    alternative-text="Add"
+                                    data-id={p.id}
+                                    onclick={handleAdd}
+                                ></lightning-button-icon>
+                            </li>
+                        </template>
+                    </ul>
+                </template>
+            </div>
+
+            <!-- Selected attendees -->
+            <template if:true={hasSelected}>
+                <div class="slds-var-m-top_x-small">
+                    <span class="slds-text-title_caps">Invitees</span>
+                    <div class="slds-var-m-top_xx-small">
+                        <template for:each={selected} for:item="s">
+                            <lightning-pill key={s.id} label={s.name} class="slds-var-m-right_xx-small">
+                                <lightning-icon
+                                    icon-name="standard:user"
+                                    slot="media"
+                                    size="x-small"
+                                ></lightning-icon>
+                                <button
+                                    class="slds-button slds-button_icon slds-pill__remove"
+                                    data-id={s.id}
+                                    onclick={handleRemove}
+                                    title="Remove"
+                                >
+                                    <lightning-icon icon-name="utility:close" size="xx-small"></lightning-icon>
+                                </button>
+                            </lightning-pill>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <div class="slds-var-m-top_medium">
+                <lightning-button
+                    variant="brand"
+                    label="Schedule Meeting"
+                    onclick={handleSchedule}
+                    disabled={canSubmitDisabled}
+                ></lightning-button>
+                <template if:true={isSaving}>
+                    <lightning-spinner alternative-text="Saving" size="small"></lightning-spinner>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+
+    <!-- My meetings -->
+    <lightning-card title="My Meetings" icon-name="standard:today" class="slds-var-m-top_medium">
+        <div class="slds-var-p-horizontal_small slds-var-p-bottom_small">
+            <lightning-datatable
+                key-field="id"
+                data={myMeetings}
+                columns={columns}
+                hide-checkbox-column
+                onrowaction={handleRowAction}
+            ></lightning-datatable>
+        </div>
+    </lightning-card>
+</template>

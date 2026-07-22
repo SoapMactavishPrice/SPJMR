@@ -1,0 +1,17 @@
+/* Style for specialisation column cells */
+:host td[data-label="Specialisations"],
+:host th[data-label="Specialisations"] {
+    word-break: break-word;
+    white-space: normal;
+    max-width: 300px;
+    min-width: 200px;
+    width: 300px;
+}
+
+/* Ensure cell content wraps */
+:host td[data-label="Specialisations"] .slds-truncate {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}

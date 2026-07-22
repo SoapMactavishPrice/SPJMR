@@ -1,0 +1,363 @@
+<template>
+    <lightning-card title="Enroll Students in Term">
+        <div class="slds-p-around_medium">
+            <template lwc:if={isLoading}>
+                <div class="slds-text-align_center">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    <p class="slds-m-top_small">Loading students...</p>
+                </div>
+            </template>
+
+            <template lwc:else>
+                <!-- Message if no students available -->
+               <!-- Case 1: No students in batch -->
+<template lwc:if={isNoBatchStudents}>
+    <div class="slds-align_absolute-center slds-m-vertical_large">
+        <div class="slds-box slds-theme_info slds-text-align_center" style="padding: 2rem;">
+            <lightning-icon icon-name="utility:info" size="medium" class="slds-m-bottom_small"></lightning-icon>
+            <div class="slds-text-heading_medium slds-m-top_small">
+                No students are available at Batch to enroll
+            </div>
+        </div>
+    </div>
+</template>
+<!-- Case: Term End Date Passed -->
+<template lwc:elseif={isTermExpired}>
+    <div class="slds-align_absolute-center slds-m-vertical_large">
+        <div class="slds-box slds-theme_info slds-text-align_center" style="padding: 2rem;">
+
+            <lightning-icon
+                icon-name="utility:info"
+                size="medium"
+                class="slds-m-bottom_small">
+            </lightning-icon>
+
+            <div class="slds-text-heading_medium slds-m-top_small">
+                Students cannot be enrolled once the Term End Date has passed.
+            </div>
+
+        </div>
+    </div>
+</template>
+<!-- Case 2: Keep your existing UI EXACT SAME -->
+<template lwc:elseif={showNoStudentsMessage}>
+    <div class="slds-align_absolute-center slds-m-vertical_large">
+        <div class="slds-box slds-theme_info slds-text-align_center" style="padding: 2rem;">
+            <lightning-icon icon-name="utility:info" size="medium" class="slds-m-bottom_small"></lightning-icon>
+            <div class="slds-text-heading_medium slds-m-top_small">
+                All students already enrolled in Academic Term
+            </div>
+        </div>
+    </div>
+</template>
+
+                <template lwc:else>
+                    <!-- Message if Previous Term is blank (only show when Auto Create Fundamental Division is unchecked) -->
+                    <template lwc:if={isPreviousTermBlank}>
+                        <template lwc:if={showInfoBoxes}>
+                            <div class="slds-m-bottom_medium slds-box slds-theme_info">
+                                <div class="slds-text-body_regular slds-text-color_default">
+                                    <lightning-icon icon-name="utility:info" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                    Previous Term is blank so getting all the Program Enrollments from Batch
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+
+                    <!-- Message if Previous Term is NOT blank (only show when Auto Create Fundamental Division is unchecked) -->
+                    <template lwc:else>
+                        <template lwc:if={showInfoBoxes}>
+                            <div class="slds-m-bottom_medium slds-box slds-theme_warning">
+                                <div class="slds-text-body_regular slds-text-color_default">
+                                    <lightning-icon icon-name="utility:info" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                    As the Previous Term is NOT blank, these are the students from the Previous Term, Select the Student to create into the current term also
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+
+                    <template lwc:if={hasStudents}>
+                        <div class="slds-m-bottom_medium">
+                            <lightning-input
+                                type="search"
+                                label="Search Students"
+                                value={searchKey}
+                                onchange={handleSearchChange}
+                                placeholder="Search by name or roll number..."
+                                class="slds-m-bottom_small">
+                            </lightning-input>
+                        </div>
+
+                        <div class="slds-scrollable_x table-scroll-container">
+                            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                                <thead class="sticky-header">
+                                    <tr class="slds-line-height_reset">
+                                        <th scope="col" class="slds-text-align_center" style="width: 80px;">
+                                            <div class="slds-truncate" title="Select">Select</div>
+                                        </th>
+                                        <th scope="col" style="width: 50px;">
+                                            <div class="slds-truncate" title="#">#</div>
+                                        </th>
+                                        <th scope="col">
+                                            <div class="slds-truncate" title="Name">Name</div>
+                                        </th>
+                                        <th scope="col">
+                                            <div class="slds-truncate" title="Roll Number">Roll Number</div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template lwc:if={hasFilteredStudents}>
+                                        <template for:each={filteredStudents} for:item="student" for:index="index">
+                                            <tr key={student.uniqueKey} class="slds-hint-parent">
+                                                <td class="slds-text-align_center">
+                                                    <lightning-input
+                                                        type="checkbox"
+                                                        checked={student.selected}
+                                                        data-unique-key={student.uniqueKey}
+                                                        onchange={handleSelectChange}
+                                                        class="slds-m-vertical_x-small">
+                                                    </lightning-input>
+                                                </td>
+                                                <td>
+                                                    <div class="slds-truncate">{student.rowNumber}</div>
+                                                </td>
+                                                <td>
+                                                    <div class="slds-truncate" title={student.studentName}>{student.studentName}</div>
+                                                </td>
+                                                <td>
+                                                    <div class="slds-truncate" title={student.rollNumber}>{student.rollNumber}</div>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                    <template lwc:else>
+                                        <tr>
+                                            <td colspan="4" class="slds-text-align_center slds-p-vertical_large">
+                                                <p class="slds-text-heading_medium">No students found</p>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Radio buttons for division creation (shown when Auto Create is unchecked and Previous Term has value) -->
+                        <template lwc:if={showDivisionRadioButtons}>
+                            <div class="slds-m-top_large slds-box slds-theme_default">
+                                <fieldset class="slds-form-element">
+                                    <legend class="slds-form-element__legend slds-form-element__label">
+                                        Division Creation Option
+                                    </legend>
+                                    <div class="slds-form-element__control">
+                                        <lightning-radio-group
+                                            name="divisionCreationOption"
+                                            options={divisionOptions}
+                                            value={divisionCreationOption}
+                                            type="radio"
+                                            onchange={handleDivisionOptionChange}>
+                                        </lightning-radio-group>
+                                    </div>
+                                </fieldset>
+                            </div>
+                        </template>
+
+                        <!-- Fundamental Divisions Table (shown when Create new division is selected OR previous term is blank AND students AND Auto Create Fundamental Division is unchecked are selected) -->
+                        <template lwc:if={shouldShowFundamentalDivisions}>
+                            <div class="slds-m-top_large">
+                                <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_small">
+                                    <h3 class="slds-text-heading_small">{fundamentalDivisionsHeading}</h3>
+                                    <lightning-button
+                                        label="Add New Division"
+                                        variant="neutral"
+                                        icon-name="utility:add"
+                                        onclick={addNewDivision}>
+                                    </lightning-button>
+                                </div>
+
+                                <div class="slds-scrollable_x table-scroll-container">
+                                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped"
+                                           style="table-layout: fixed; width: 100%;">
+
+                                        <colgroup>
+                                            <col style="width: 18%;" /> <!-- Division Group -->
+                                            
+                                            <col style="width: 9%;" />  <!-- Is Active -->
+                                            <col style="width: 12%;" /> <!-- Capacity -->
+                                            <col style="width: 15%;" /> <!-- Division Code -->
+                                            <col style="width: 18%;" /> <!-- Division Color -->
+                                            <col style="width: 8%;" />  <!-- Action -->
+                                        </colgroup>
+
+                                        <thead class="sticky-header">
+                                            <tr class="slds-line-height_reset">
+                                                <th scope="col" style="vertical-align: middle; padding: 8px;">
+                                                    <div class="slds-truncate" title="Division Group">Division Group</div>
+                                                </th>
+                                               
+                                                <th scope="col" class="slds-text-align_center" style="vertical-align: middle; padding: 8px;">
+                                                    <div class="slds-truncate" title="Is Active">Is Active</div>
+                                                </th>
+                                                <th scope="col" class="slds-text-align_center" style="vertical-align: middle; padding: 8px;">
+                                                    <div class="slds-truncate" title="Capacity">Capacity</div>
+                                                </th>
+                                                <th scope="col" style="vertical-align: middle; padding: 8px;">
+                                                    <div class="slds-truncate" title="Division Code">Division Code</div>
+                                                </th>
+                                                <th scope="col" style="vertical-align: middle; padding: 8px;">
+                                                    <div class="slds-truncate" title="Division Color">Division Color</div>
+                                                </th>
+                                                <th scope="col" class="slds-text-align_center" style="vertical-align: middle; padding: 8px;">
+                                                    <div class="slds-truncate" title="Action">Action</div>
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            <template lwc:if={hasFundamentalDivisions}>
+                                                <template for:each={fundamentalDivisions} for:item="division" for:index="index">
+                                                    <tr key={division.uniqueKey} class="slds-hint-parent" style="vertical-align: middle;">
+
+                                                        <!-- Division Group -->
+                                                        <td style="vertical-align: middle; padding: 6px 8px;">
+<!-- Show Specialisation dropdown only for Specialisation related Division Groups -->
+    <lightning-combobox
+        value={division.divisionGroupId}
+        options={divisionGroupOptions}
+        data-division-id={division.divisionKey}
+        data-field-name="divisionGroupId"
+        onchange={handleDivisionFieldChange}
+        placeholder="Select Division Group"
+        variant="label-hidden"
+        label="Division Group">
+    </lightning-combobox>
+
+    <template if:true={division.showSpecialisation}>
+        <div class="slds-m-top_x-small">
+            <!-- Show Specialisation dropdown only for Specialisation related Division Groups -->
+            <lightning-combobox
+    value={division.specialisationId}
+    options={specialisationOptions}
+    data-division-id={division.divisionKey}
+    data-field-name="specialisationId"
+    onchange={handleDivisionFieldChange}
+    placeholder="Select Specialisation"
+    variant="label-hidden">
+</lightning-combobox>
+        </div>
+    </template>
+
+</td>
+
+                                                       
+
+                                                        <!-- Is Active -->
+                                                        <td class="slds-text-align_center" style="vertical-align: middle; padding: 6px 8px;">
+                                                            <lightning-input
+                                                                type="checkbox"
+                                                                checked={division.isActive}
+                                                                data-division-id={division.divisionKey}
+                                                                data-field-name="isActive"
+                                                                onchange={handleDivisionFieldChange}
+                                                                variant="label-hidden"
+                                                                label="Is Active">
+                                                            </lightning-input>
+                                                        </td>
+
+                                                        <!-- Capacity -->
+                                                        <td style="vertical-align: middle; padding: 6px 8px;">
+                                                            <lightning-input
+                                                                type="number"
+                                                                value={division.capacity}
+                                                                data-division-id={division.divisionKey}
+                                                                data-field-name="capacity"
+                                                                onchange={handleDivisionFieldChange}
+                                                                min="0"
+                                                                variant="label-hidden"
+                                                                label="Capacity">
+                                                            </lightning-input>
+                                                        </td>
+
+                                                        <!-- Division Code -->
+                                                        <td style="vertical-align: middle; padding: 6px 8px;">
+                                                            <lightning-input
+                                                                type="text"
+                                                                value={division.divisionCode}
+                                                                data-division-id={division.divisionKey}
+                                                                data-field-name="divisionCode"
+                                                                onchange={handleDivisionFieldChange}
+                                                                variant="label-hidden"
+                                                                label="Division Code">
+                                                            </lightning-input>
+                                                        </td>
+
+                                                        <!-- Division Color -->
+                                                        <td style="vertical-align: middle; padding: 6px 8px;">
+                                                            <lightning-combobox
+                                                                value={division.divisionColor}
+                                                                options={divisionColorOptions}
+                                                                data-division-id={division.divisionKey}
+                                                                data-field-name="divisionColor"
+                                                                onchange={handleDivisionFieldChange}
+                                                                placeholder="Select Division Color"
+                                                                variant="label-hidden"
+                                                                label="Division Color"
+                                                                required>
+                                                            </lightning-combobox>
+                                                        </td>
+
+                                                        <!-- Action -->
+                                                        <td class="slds-text-align_center" style="vertical-align: middle; padding: 6px 8px;">
+                                                            <template lwc:if={division.isNew}>
+                                                                <lightning-button-icon
+                                                                    icon-name="utility:delete"
+                                                                    alternative-text="Remove"
+                                                                    data-division-id={division.tempId}
+                                                                    onclick={removeDivision}
+                                                                    variant="border-filled"
+                                                                    size="small"
+                                                                    title="Remove Division">
+                                                                </lightning-button-icon>
+                                                            </template>
+                                                        </td>
+
+                                                    </tr>
+                                                </template>
+                                            </template>
+
+                                            <template lwc:if={hasNoFundamentalDivisions}>
+                                                <tr>
+                                                    <td colspan="6" class="slds-text-align_center slds-p-vertical_large">
+                                                        <p class="slds-text-heading_medium">No fundamental divisions found</p>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+                </template>
+            
+                <div class="slds-m-top_medium slds-grid slds-grid_align-end">
+                    
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        onclick={closeAction}
+                        class="slds-m-right_small">
+                    </lightning-button>
+                    <template lwc:if={hideSaveButton}>
+                        <lightning-button
+                            label="Save"
+                            variant="brand"
+                            onclick={saveSelected}
+                            disabled={isSaveDisabled}>
+                        </lightning-button>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

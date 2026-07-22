@@ -1,0 +1,115 @@
+<template>
+    <lightning-card title="Transfer Students">
+
+        <div class="slds-p-around_medium">
+
+            <!-- Target Division -->
+            <lightning-combobox
+                label="Target Division"
+                value={targetDivision}
+                options={divisionOptions}
+                onchange={handleDivisionChange}>
+            </lightning-combobox>
+
+            <br/>
+
+            <!-- Search -->
+            <lightning-input
+                type="search"
+                label="Search Student"
+                placeholder="Search by Name or Roll Number"
+                onchange={handleSearch}>
+            </lightning-input>
+
+            <br/>
+
+            <!-- Heading + Count -->
+            <div class="slds-grid slds-align_absolute-center slds-m-bottom_small">
+                <div class="slds-text-heading_small">
+                    Students in Current Division
+                </div>
+
+                <div class="slds-m-left_small">
+                    <lightning-badge label={filteredStudents.length}></lightning-badge>
+                </div>
+            </div>
+
+            <!-- Scrollable student list -->
+            <div style="max-height:320px; overflow:auto; border:1px solid #d8dde6; border-radius:4px;">
+
+                <!-- Header Row -->
+                <div class="slds-grid slds-text-title_caps slds-border_bottom slds-p-around_x-small slds-theme_shade">
+
+                    <!-- Select All Checkbox -->
+                    <div class="slds-col slds-size_1-of-12">
+                        <lightning-input
+                            type="checkbox"
+                            onchange={handleSelectAll}>
+                        </lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_3-of-12">Student Name</div>
+                    <div class="slds-col slds-size_2-of-12">Roll No</div>
+                    <div class="slds-col slds-size_3-of-12">Division</div>
+                    <div class="slds-col slds-size_3-of-12">Term Enrollment</div>
+
+                </div>
+
+                <!-- Student Rows -->
+                <template for:each={filteredStudents} for:item="stu">
+
+                    <div key={stu.Id} class="slds-grid slds-p-around_x-small slds-border_bottom">
+
+                        <div class="slds-col slds-size_1-of-12">
+                            <lightning-input
+                                type="checkbox"
+                                value={stu.Id}
+                                data-id="studentCheckbox"
+                                onchange={handleStudentSelect}>
+                            </lightning-input>
+                        </div>
+
+                        <div class="slds-col slds-size_3-of-12">
+                            {stu.Student_Name__c}
+                        </div>
+
+                        <div class="slds-col slds-size_2-of-12">
+                            {stu.Roll_Number__c}
+                        </div>
+
+                        <div class="slds-col slds-size_3-of-12">
+                            {stu.DivisionName}
+                        </div>
+
+                        <div class="slds-col slds-size_3-of-12">
+                            {stu.TermEnrollmentName}
+                        </div>
+
+                    </div>
+
+                </template>
+
+            </div>
+
+            <br/>
+
+            <div>
+                <b>Selected Students:</b> {selectedStudents.length}
+            </div>
+
+            <br/>
+
+            <div class="slds-text-align_right">
+
+                <lightning-button
+                    label="Transfer Students"
+                    variant="brand"
+                    onclick={transferStudents}>
+                </lightning-button>
+
+            </div>
+
+        </div>
+
+    </lightning-card>
+</template>

@@ -1,0 +1,51 @@
+<aura:component implements="force:lightningQuickActionWithoutHeader,force:hasRecordId" controller="sendRegistrationLinkTOParent_controller">
+
+    <aura:html tag="style">
+
+        .cuf-content {
+            padding: 0 0rem !important;
+        }
+        .slds-p-around--medium {
+            padding: 0rem !important;
+        }
+        .slds-modal__content {
+            overflow-y: hidden !important;
+            height: unset !important;
+            max-height: unset !important;
+        }        
+    </aura:html>
+
+
+    <aura:attribute name="recordId" type="Id" />
+    <aura:attribute name="Account_Parent_List" type="Account_Parent__c[]"  />
+    
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    
+    <div class="slds-col modal-header slds-modal__header">
+        <h2 class="title slds-text-heading--medium">Send Registration Link To Parent</h2>
+    </div>
+
+    <div class="slds-col modal-body scrollable slds-p-around--medium" style="height: 200px; max-height: 400px; overflow-y: auto !important">
+        <div>
+            <aura:iteration items="{!v.Account_Parent_List}" var="Account_Parent" indexVar="index">
+                <lightning:layout multipleRows="true" class="slds-box">
+                    <lightning:layoutItem size="12" smallDeviceSize="6" mediumDeviceSize="4" largeDeviceSize="3">
+                        <lightning:input style="cursor: pointer;" type="checkbox" variant="label-hidden" label="Basic option" checked="{!Account_Parent.checked}" name="{!Account_Parent.Email_Id__c}" onclick="{!c.onchnageCheckbox}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" smallDeviceSize="6" mediumDeviceSize="4" largeDeviceSize="3">
+                        <div class="custom-box">{!Account_Parent.Name}</div>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" smallDeviceSize="6" mediumDeviceSize="4" largeDeviceSize="3">
+                        <div class="custom-box">{!Account_Parent.Email_Id__c}</div>
+                    </lightning:layoutItem>
+                </lightning:layout>
+        
+            </aura:iteration>
+        </div>
+    </div>
+    <div class="slds-col modal-footer slds-modal__footer">        
+        <lightning:button variant="neutral" label="Cancel" onclick="{! c.cancelClick }" />      
+        <lightning:button variant="brand" label="Save" onclick="{! c.saveClick }" />
+    </div>
+
+</aura:component>

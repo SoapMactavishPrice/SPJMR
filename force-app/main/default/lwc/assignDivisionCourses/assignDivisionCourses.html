@@ -1,0 +1,116 @@
+<template>
+    <lightning-card title="Assign Courses to Division" icon-name="standard:course">
+        <div class="slds-p-around_medium">
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={isVisible}>
+
+                    <!-- Header -->
+                    <div class="slds-m-bottom_medium">
+                        <p class="slds-text-body_regular">
+                            Select courses to assign to this division.
+                        </p>
+
+                        <template if:true={hasSelectedCourses}>
+                            <p class="slds-text-body_small slds-text-color_success">
+                                {selectedCount} course(s) selected
+                            </p>
+                        </template>
+                    </div>
+
+                    <!-- Search -->
+                    <lightning-input
+                        type="search"
+                        label="Search Courses"
+                        value={searchKey}
+                        onchange={handleSearchChange}
+                        placeholder="Search by course name or number..."
+                        class="slds-m-bottom_small">
+                    </lightning-input>
+
+                    <!-- Table -->
+                    <template if:true={courses}>
+                        <div class="slds-scrollable_x">
+                            <table class="slds-table slds-table_bordered slds-table_striped">
+                                <thead>
+                                    <tr>
+                                        <th style="width:80px;">Select</th>
+                                        <th style="width:50px; text-align:center;">#</th>
+                                        <th>Course Name</th>
+                                        <th>Course Code</th>
+                                        <th>Course Type</th>
+
+                                        <!-- Show only for Specialisation -->
+                                        <template if:true={isSpecialisationDivision}>
+                                            <th>Specialisation</th>
+                                        </template>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    <template for:each={courses} for:item="course">
+                                        <tr key={course.rowId}>
+
+                                            <!-- Checkbox -->
+                                            <td class="slds-text-align_center">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    checked={course.selected}
+                                                    data-course-id={course.rowId}   
+                                                    onchange={handleCheckboxChange}>
+                                                </lightning-input>
+                                            </td>
+
+                                            <td style="text-align:center; width:50px;">{course.rowNumber}</td>
+                                            <td>{course.courseName}</td>
+
+                                            <td>{course.courseCode}</td>
+
+                                            <!-- Course Type -->
+                                            <td>
+                                                <div class="slds-truncate">{course.courseType}</div>
+                                            </td>
+
+                                            <!-- Specialisation -->
+                                            <template if:true={isSpecialisationDivision}>
+                                                <td>{course.specialisation}</td>
+                                            </template>
+
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </template>
+
+                    <!-- No Data -->
+                    <template if:false={courses}>
+                        <p>No courses available</p>
+                    </template>
+
+                    <!-- Buttons -->
+                    <div class="slds-m-top_medium slds-grid slds-grid_align-end">
+                        <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+
+                        <lightning-button
+                            label="Save"
+                            variant="brand"
+                            onclick={handleSave}
+                            disabled={isSaveDisabled}>
+                        </lightning-button>
+                    </div>
+
+                </template>
+
+                <template if:false={isVisible}>
+                    <p>{message}</p>
+                </template>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

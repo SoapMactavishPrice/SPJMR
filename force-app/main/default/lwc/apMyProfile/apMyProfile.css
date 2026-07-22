@@ -1,0 +1,13 @@
+.form-label {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #531F75;
+}
+
+/* This overrides standard Lightning Brand variant for a custom purple look */
+.save-button {
+    --slds-c-button-brand-color-background: #531F75 !important;
+    --slds-c-button-brand-color-border: #531F75 !important;
+    --slds-c-button-brand-color-background-hover: #531F75 !important;
+}

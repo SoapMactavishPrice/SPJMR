@@ -1,0 +1,36 @@
+<template>
+    <div class="container">
+
+        <template if:true={isLoading}>
+            <div class="loading">Fetching payment status...</div>
+        </template>
+
+        <template if:true={hasError}>
+            <div class="card error">
+                <h2>⚠️ Something went wrong</h2>
+                <p>Unable to fetch payment details.</p>
+            </div>
+        </template>
+
+        <template if:true={payment}>
+            <div class="card">
+
+                <h2 class="failed">❌ Payment Cancelled</h2>
+
+                <div class="details">
+                    <p><strong>Order ID:</strong> {orderId}</p>
+                    <p><strong>Amount:</strong> ₹{amount}</p>
+                </div>
+
+            </div>
+        </template>
+        <!-- 🔒 Unauthorized -->
+<template if:true={isUnauthorized}>
+    <div class="card error">
+        <h2>🚫 Access Denied</h2>
+        <p>You are not authorized to view this payment.</p>
+    </div>
+</template>
+
+    </div>
+</template>

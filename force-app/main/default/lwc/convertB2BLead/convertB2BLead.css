@@ -1,0 +1,41 @@
+.slds-section__title {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #3e3e3c;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e5e5;
+    margin-bottom: 0.75rem;
+}
+
+.slds-dl_horizontal__label {
+    font-weight: 600;
+    color: #3e3e3c;
+}
+
+.slds-dl_horizontal__detail {
+    color: #080707;
+}
+
+.slds-list_dotted li {
+    padding: 0.25rem 0;
+}
+
+.slds-notify_alert {
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+}
+
+.slds-alert_success {
+    background-color: #04844b;
+    color: #fff;
+}
+
+.slds-alert_warning {
+    background-color: #fe9339;
+    color: #080707;
+}
+
+.slds-alert_error {
+    background-color: #c23934;
+    color: #fff;
+}

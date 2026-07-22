@@ -1,0 +1,15 @@
+<template>
+    <div class="custom-vertical-nav">
+        <div class="nav-section">
+            <h2 class="nav-section-title">Navigation</h2>
+            <template for:each={menuItems} for:item="item">
+                <div key={item.name} class="nav-item" data-name={item.name} onclick={handleItemClick}>
+                    <div class="nav-item-content">
+                        <img src={item.iconUrl} alt={item.label} class="nav-icon" onerror={handleIconError}/>
+                        <span class="nav-label">{item.label}</span>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

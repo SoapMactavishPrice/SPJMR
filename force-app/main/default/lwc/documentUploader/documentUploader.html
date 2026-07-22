@@ -1,0 +1,64 @@
+<template>
+    <div class="doc-wrapper">
+
+        <div class={customUploadStyleLabelClass}>
+            <span>
+                {label}
+                <span lwc:if={isRequired} class="required-marker">
+                    <span class="slds-required">*</span>
+                </span>
+            </span>
+        </div>
+        <template if:true={useCustomUpload}>
+            <lightning-input
+                type="file"
+                accept={acceptString}
+                multiple={allowMultiple}
+                disabled={disableUpload}
+                onchange={handleCustomFileChange}
+                variant="label-hidden">
+            </lightning-input>
+        </template>
+
+        <template if:false={useCustomUpload}>
+            <lightning-file-upload
+                accept={accept}
+                record-id={docId}
+                onuploadfinished={handleUploadFinished}
+                multiple={allowMultiple}
+                disabled={disableUpload}
+                variant="label-hidden">
+            </lightning-file-upload>
+        </template>
+
+        <template if:true={isUploading}>
+            <div class="upload-status">Uploading...</div>
+        </template>
+
+
+
+        <template if:true={showLimitExceeded}>
+            <div class="limit-warning">
+                Max files limit reached ({maxFiles})
+            </div>
+        </template>
+        <p><i>Max files allowed:</i> {maxFiles} | <i>Max file size</i>: {maxFileSizeMb} MB</p>
+        <div style="max-width: 20rem;" class="slds-truncate"><span title={acceptTitle}><i>Accepted file types </i> {acceptTitle}</span></div>
+
+        <template if:true={files}>
+            <template for:each={files} for:item="f">
+                <div class="file-preview" key={f.versionId}>
+                    <a href={f.downloadUrl} target="_blank">{f.title}</a>
+                    <lightning-icon 
+                        icon-name="utility:close"
+                        data-document-id={f.documentId}
+                        onclick={handleRemove}
+                        size="x-small"
+                        class="remove-icon">
+                    </lightning-icon>
+                </div>
+            </template>
+        </template>
+
+    </div>
+</template>

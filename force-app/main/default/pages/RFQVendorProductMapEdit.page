@@ -1,0 +1,207 @@
+<apex:page controller="c_RFQVendorProductMapEdit">
+    <head>
+        <apex:slds />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+        <script type="text/javascript">
+        function stopEnterKey(evt) {
+            var evt = (evt) ? evt : ((event) ? event : null);
+            var node = (evt.target) ? evt.target : ((evt.srcElement) ? evt.srcElement : null);
+            if ((evt.keyCode == 13) && (node.type == "text")) {
+                Search();
+                return false;
+            }else if((evt.keyCode == 13) && (node.type == "checkbox")) {
+                event.preventDefault();
+            }
+            else if((evt.keyCode == 13) && (node.type == "radio")) {
+                event.preventDefault();
+            }
+        }
+
+        document.onkeypress = stopEnterKey;
+        
+        function selectAllCheckboxes1(obj,receivedInputID){
+            console.log('this is called=========');
+            
+            var inputCheckBox = document.getElementsByTagName("input");                  
+            for(var i=0; i<inputCheckBox.length; i++){          
+                if(inputCheckBox[i].id.indexOf(receivedInputID)!=-1){                                     
+                    inputCheckBox[i].checked = obj.checked;
+                    console.log('this is called');
+                }
+            }
+        }
+        
+        function f_sel_vendor(p_id){
+            console.log(p_id);
+
+            call_f_select_vendor(p_id);
+        }
+
+        setTimeout(function() { $('#pgmessagesid').fadeOut('fast'); }, 2000);
+        
+        </script>
+    </head>
+
+    <article class="slds-card s1FixedTop forceHighlightsStencilDesktop">
+        <div id="pgmessagesid" style="width: fit-content;">
+            <apex:pagemessages />
+        </div>
+        <!-- <div style="display: {!IF(oppty.Tax_Code__c!=null, 'block', 'none')}"> -->
+
+        <div style="display: 'inline-block'">
+            <apex:form id="frm_map_vendor_product">
+                
+                <apex:actionFunction name="call_f_select_vendor" action="{!f_select_vendor}" rerender="rndr_product_table">       
+                    <apex:param id="p_id" name="p_id" value="" />
+                </apex:actionFunction>  
+                
+                <apex:pageBlock id="pb_1">
+                    
+                    <div style="display: flex;flex-direction: row;">
+                        
+                        <div style="width: 30%;margin-top: 10px;">
+                            <div style="text-align: center;">
+                                RFQ Vendor List <br/><br/>
+                                <apex:actionFunction name="f_select_vendor"></apex:actionFunction>
+                            </div>
+                            <table Style="border-collapse: collapse;" id="plist" class="slds-table slds-table_bordered">
+                                <tr Style="padding:5px 2px;border-collapse: collapse;" class="table_th slds-hint-parent">
+                                    <th Style="width:50px;">
+                                        <!--<apex:inputCheckbox value="{!SelectAll}" id="chk" onchange="selectAll()"></apex:inputCheckbox>-->
+                                    </th>
+                                    <th class="slds-truncate slds-text-title_caps">Vendor Code</th>
+                                    <th class="slds-truncate slds-text-title_caps" Style="width:30%;">Vendor Name</th>
+                                </tr>
+                                <apex:repeat value="{!w_VendorList}" var="p">
+                                    <tr Style="padding:5px 2px;border-collapse: collapse;" class="table_tr slds-hint-parent">
+                                        <!--<td><apex:inputCheckbox value="{!p.isChecked}" id="chkid"></apex:inputCheckbox></td>-->
+                                         <!--<td>
+                                            <! --<input type="radio" onclick="f_select_vendor(this.value);" name="f_select" value="{!p.op.id}"/>-- >
+                                            
+                                            <! --<input type="radio" name="f_select"  value="{!p.op.id}" onselect="selectValue(this.value)"  />
+                                            
+                                            <apex:actionsupport event="onchange" action="{!f_select_vendor}">
+                                                <apex:param name="select"  value="{!p.op.id}"  assignTo="{!selected_vendor}"/>
+                                            </apex:actionsupport>-- >
+                                            
+                                            <apex:actionsupport action="{!f_select_vendor}" event="onclick" rerender="pb_1"> 
+                                                <input type="radio" />                    
+                                                <apex:param name="select" value="{!p.op.id}" assignTo="{!selected_vendor}" />
+                                            </apex:actionsupport>
+                                                                                       
+                                        </td>-->
+                                        <td style="text-align:center !important;"><input type="radio" name="Benf1" value="{!p.op.Vendor_Name__r.id}" 
+                                                   onchange="f_sel_vendor('{!p.op.Vendor_Name__r.id}');"/></td>
+                                        <td style="width:30%" class="slds-truncate">{!p.op.Vendor_Code__c}</td>
+                                        <td style="width:50%" class="slds-truncate" role="gridcell">{!p.op.Vendor_Name__r.Name}</td>
+                                    </tr>
+                                </apex:repeat>
+                            </table>
+                        </div>
+                        
+                        <div style="width: 5%;"> </div>
+                        
+                        <div style="width: 55%;">
+                            <div style="text-align: center;">
+                                <div style="display: flex;flex-direction: row;">
+                                    <div style="width: 60%;margin-top: 10px;"> Product List</div>
+                                    <div style="width: 40%;"> 
+                                        <apex:commandButton action="{!cancel}" value="Close" style="float:right;"
+                                                            styleClass="slds-button slds-button_neutral"></apex:commandButton>
+                                        
+                                        <apex:commandButton value="Save" action="{!f_AddMapProduct}" style="Float:right;margin-right:5px;"
+                                                            styleClass="slds-button slds-button_brand" rerender="rndr_product_table, messages"> </apex:commandButton>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <apex:outputpanel id="rndr_product_table">
+                                
+                                <table Style="border-collapse: collapse;margin-top:10px;" id="plist" class="slds-table slds-table_bordered">
+                                    <tr Style="padding:5px 2px;border-collapse: collapse;" class="table_th slds-hint-parent">
+                                        <th Style="width:50px;">
+                                            <!--<apex:inputCheckbox value="{!SelectAll}" id="chk" onchange="selectAll()"></apex:inputCheckbox>-->
+                                        </th>
+                                        <th class="slds-truncate slds-text-title_caps" style="width:30%;">Item No</th>
+                                        <th class="slds-truncate slds-text-title_caps" Style="width:60%;">Item Name</th>
+                                    </tr>
+                                    
+                                    <apex:repeat value="{!w_Product_VendorList}" var="pv">
+                                        <tr Style="padding:5px 2px;border-collapse: collapse;" class="table_tr slds-hint-parent">
+                                            <td style="text-align:center !important;"><apex:inputCheckbox value="{!pv.isChecked}" id="chkid"></apex:inputCheckbox></td>
+                                            <td style="width:30%" class="slds-truncate">{!pv.op.Item_Name__r.ProductCode}</td>
+                                            <td style="width:60%" class="slds-truncate" role="gridcell">{!pv.op.Item_Name__r.Name}</td>
+                                        </tr>
+                                    </apex:repeat>
+                                    <apex:repeat value="{!w_ProductList}" var="p">
+                                        <tr Style="padding:5px 2px;border-collapse: collapse;" class="table_tr slds-hint-parent">
+                                            <td style="text-align:center !important;"><apex:inputCheckbox value="{!p.isChecked}" id="chkid"></apex:inputCheckbox></td>
+                                            <td style="width:30%" class="slds-truncate">{!p.op.Item_Name__r.ProductCode}</td>
+                                            <td style="width:60%" class="slds-truncate" role="gridcell">{!p.op.Item_Name__r.Name}</td>
+                                        </tr>
+                                    </apex:repeat>
+                                </table>
+                            </apex:outputpanel>
+                            
+                            <!--<apex:pageBlockButtons location="Bottom">
+                                <apex:commandButton value="Next Page" action="{!nextPage}" style="Float:right;margin-top:10px;"
+                                                    disabled="{!isLast}" styleClass="slds-button slds-button_neutral"> </apex:commandButton>
+                                <apex:commandButton value="Previous" action="{!prePage}" style="Float:right;margin-top:10px;"
+                                                    disabled="{!isFirst}" styleClass="slds-button slds-button_neutral"> </apex:commandButton>
+                                <div Style="Float:right;margin-top:16px;margin-right:3px;">
+                                    Page &nbsp;
+                                    <apex:outPutText value="{!pageNo}"></apex:outPutText>
+                                    Out of &nbsp;
+                                    <apex:outPutText value="{!totalPages}"></apex:outPutText>
+                                </div>
+                                
+                                <apex:commandButton action="{!cancel}" value="Cancel" style="float:right;margin-right:35px;margin-top:10px;"
+                                        styleClass="slds-button slds-button_neutral"></apex:commandButton>
+                                
+                                <apex:commandButton value="Save" action="{!f_AddMapProduct}" style="Float:right;margin-right:5px;margin-top:10px;"
+                                                    styleClass="slds-button slds-button_brand"> </apex:commandButton>
+                                
+                            </apex:pageBlockButtons>-->
+                            
+                        </div>
+                        
+                        <div style="width: 10%;">
+                            <!--<br/><br/>
+                            <apex:commandButton action="{!cancel}" value="Cancel" style="float:right;margin-right:35px;margin-top:10px;"
+                                                styleClass="slds-button slds-button_neutral"></apex:commandButton>
+                            
+                            <apex:commandButton value="Save" action="{!f_AddMapProduct}" style="Float:right;margin-right:5px;margin-top:10px;"
+                                                styleClass="slds-button slds-button_brand" rerender="rndr_product_table"> </apex:commandButton>
+							-->
+                        </div>
+                        
+                    </div>
+
+                </apex:pageBlock>
+
+            </apex:form>
+
+        </div>
+
+    </article>
+
+    <style>
+        .table_th th {
+            background-color:#b12327 !important;
+            border:1px solid black !important;
+	        /*text-align:center !important;*/
+            color:white !important;
+        }
+        .table_tr td {
+            border:1px solid black !important;
+            /*text-align:center !important;*/
+        }
+        .table_chkbox input {
+            width:20px !important;
+            height:20px !important;
+        }
+        .slds-truncate{
+            white-space: initial !important;
+        }
+    </style>
+</apex:page>

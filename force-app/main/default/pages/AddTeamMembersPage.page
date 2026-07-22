@@ -1,0 +1,115 @@
+<apex:page controller="AddTeamMembersController" lightningStyleSheets="true">
+
+    <apex:form id="form">
+        <apex:pageMessages />
+
+        <!-- SELECTION SCREEN -->
+        <apex:outputPanel rendered="{!!showPreview}">
+            <div class="slds-card slds-p-around_large">
+
+                <h2 class="slds-text-heading_medium slds-m-bottom_medium">Add Team Members</h2>
+
+                <!-- Search + Selected Count Row -->
+                <div class="slds-grid slds-wrap slds-m-bottom_small">
+                    <div class="slds-col slds-size_4-of-6">
+                        <apex:inputText value="{!searchKey}" html-placeholder="Search by name or email"
+                            styleClass="slds-input slds-m-right_small"/>
+                        <apex:commandButton value="Search" action="{!searchUsers}"
+                            styleClass="slds-button slds-button_brand" rerender="form"/>
+                    </div>
+
+                    <div class="slds-col slds-size_2-of-6 slds-text-align_right">
+                        <b>Selected: {!selectedCount}</b>
+                    </div>
+                </div>
+
+                <!-- Available Users -->
+                <apex:pageBlock title="Available Salesforce Users">
+                    <apex:pageBlockTable value="{!usersToDisplay}" var="u">
+
+                        <apex:column headerValue="Select">
+                            <apex:inputCheckbox value="{!u.isSelected}" />
+                        </apex:column>
+
+                        <apex:column headerValue="Full Name" value="{!u.usr.Name}"/>
+                        <apex:column headerValue="Email" value="{!u.usr.Email}"/>
+
+                    </apex:pageBlockTable>
+                </apex:pageBlock>
+
+                <!-- Pagination Buttons (aligned left) -->
+                <div class="slds-grid slds-m-top_small">
+                    <div class="slds-col">
+                        <apex:commandButton action="{!prevPage}" value="Previous"
+                            disabled="{!IF(pageNumber=1,true,false)}"
+                            styleClass="slds-button slds-button_neutral"
+                            rerender="form"/>
+
+                        <apex:commandButton action="{!nextPage}" value="Next"
+                            disabled="{!IF(pageNumber=totalPages,true,false)}"
+                            styleClass="slds-button slds-button_neutral"
+                            rerender="form"/>
+
+                        <span class="slds-m-left_small">Page {!pageNumber} of {!totalPages}</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons aligned right -->
+                <div class="slds-grid slds-grid_align-end slds-m-top_large">
+
+                    <apex:commandButton value="Preview Selected" action="{!showPreviewPage}"
+                        styleClass="slds-button slds-button_brand"
+                        rerender="form"/>
+
+                    <apex:commandButton value="Cancel"
+                        action="{!URLFOR('/' + programTeamId)}"
+                        styleClass="slds-button slds-button_neutral slds-m-left_small"/>
+                </div>
+
+            </div>
+        </apex:outputPanel>
+
+
+
+        <!-- ✅ PREVIEW PAGE -->
+        <apex:outputPanel rendered="{!showPreview}">
+            <div class="slds-card slds-p-around_large">
+
+                <h2 class="slds-text-heading_medium slds-m-bottom_medium">
+                    Preview Selected Users ({!selectedCount})
+                </h2>
+
+                <apex:pageBlock title="Assign Roles to Members">
+                    <apex:pageBlockTable value="{!previewList}" var="p">
+
+                        <apex:column headerValue="Full Name" value="{!p.usr.Name}"/>
+                        <apex:column headerValue="Email" value="{!p.usr.Email}"/>
+
+                        <!-- Role Picklist -->
+                        <apex:column headerValue="Role">
+                            <apex:selectList value="{!p.role}" size="1" styleClass="slds-select">
+                                <apex:selectOptions value="{!roleOptions}"/>
+                            </apex:selectList>
+                        </apex:column>
+
+                    </apex:pageBlockTable>
+                </apex:pageBlock>
+
+                <!-- Buttons aligned right -->
+                <div class="slds-grid slds-grid_align-end slds-m-top_large">
+
+                    <apex:commandButton value="Back to Modify"
+                        action="{!backToSelection}" rerender="form"
+                        styleClass="slds-button slds-button_neutral"/>
+
+                    <apex:commandButton value="Confirm & Add"
+                        action="{!saveSelected}" rerender="form"
+                        styleClass="slds-button slds-button_brand slds-m-left_small"
+                        onclick="this.disabled=true; this.value='Processing...';"/>
+                </div>
+
+            </div>
+        </apex:outputPanel>
+
+    </apex:form>
+</apex:page>

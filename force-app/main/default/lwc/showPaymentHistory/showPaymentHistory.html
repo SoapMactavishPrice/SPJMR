@@ -1,0 +1,35 @@
+<template>
+    <div class="table-wrapper">
+    <table class="custom-table">
+        <thead>
+            <tr>
+                <th>SI No.</th>
+                <th>Payment Id/Transaction Id</th>
+                <th>Payment Type</th>
+                <th>Status</th>
+                <th>Amount</th>
+                <th>Receipt</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <template if:true={paymentData}>
+                <template for:each={paymentData} for:item="row">
+                    <tr key={row.Id}>
+                        <td>{row.number}</td>
+                        <td>{row.paymentId}</td>
+                        <td>{row.paymentType}</td>
+                        <td>{row.status}</td>
+                        <td>{row.amount}</td>
+                        <td>
+                            <template lwc:if={row.isPaid}>
+                                <a href={row.receipt}>Receipt</a>
+                            </template>
+                        </td>
+                    </tr>
+                </template>
+            </template>
+        </tbody>
+    </table>
+    </div>
+</template>

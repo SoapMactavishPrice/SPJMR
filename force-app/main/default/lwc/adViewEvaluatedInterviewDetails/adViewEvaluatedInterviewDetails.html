@@ -1,0 +1,62 @@
+<template>
+    <lightning-card title="Interview Evaluation Matrix">
+
+        <template if:true={loading}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </template>
+
+        <div class="slds-scrollable_x">
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+
+                <thead>
+                    <tr>
+                        <th>Application No</th>
+                        <th>Applicant Name</th>
+                        <th>Round</th>
+                        <th>Evaluated By</th>
+
+                        <template for:each={headers} for:item="h">
+                            <th key={h.key}>{h.label}</th>
+                        </template>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <template for:each={rows} for:item="row">
+                        <tr key={row.key}>
+                            <td>{row.applicationNumber}</td>
+                            <td>{row.applicantName}</td>
+                            <td>{row.roundName}</td>
+                            <td>{row.evaluatedBy}</td>
+
+                            <template for:each={row.cells} for:item="cell">
+                                <td key={cell.key}>{cell.value}</td>
+                            </template>
+                        </tr>
+                    </template>
+                </tbody>
+
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="slds-m-top_medium slds-align_absolute-center">
+            <lightning-button
+                label="Previous"
+                onclick={handlePrevious}
+                disabled={disablePrevious}>
+            </lightning-button>
+
+            <span class="slds-m-horizontal_small">
+                Page {pageNumber} of {totalPages}
+            </span>
+
+            <lightning-button
+                label="Next"
+                onclick={handleNext}
+                disabled={disableNext}>
+            </lightning-button>
+        </div>
+
+    </lightning-card>
+</template>

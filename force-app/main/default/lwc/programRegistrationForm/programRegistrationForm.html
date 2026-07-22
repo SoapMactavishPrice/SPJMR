@@ -1,0 +1,317 @@
+<template>
+    <div class="prf-root slds-p-around_medium">
+        <template if:true={loading}>
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </template>
+
+        <template if:false={loading}>
+            <template if:true={loadError}>
+                <div class="slds-text-color_error slds-m-bottom_small">{loadError}</div>
+            </template>
+
+            <template if:false={loadError}>
+                <template if:true={formModel}>
+                    <div class="prf-header slds-text-align_center slds-m-bottom_medium">
+                        <h1 class="prf-title">{pageTitle}</h1>
+                        <template if:true={pageSubtitle}>
+                            <p class="prf-subtitle">{pageSubtitle}</p>
+                        </template>
+                    </div>
+
+                    <form class="prf-form" onsubmit={handleRegister}>
+                       
+                        <template for:each={displayRowsWithoutConsent} for:item="row">
+                            <div key={row.rowKey} class="slds-grid slds-wrap slds-gutters_small prf-row">
+                                <template for:each={row.fields} for:item="field">
+                                    <template if:true={field.isVisible}>
+                                        <div key={field.fieldKey} class={field.columnClass}>
+                                            <div class="input-shell" data-fk={field.fieldKey}>
+                                                <template if:true={field.iconName}>
+                                                    <lightning-icon
+                                                        icon-name={field.iconName}
+                                                        size="x-small"
+                                                        class="prf-field-icon"
+                                                    ></lightning-icon>
+                                                </template>
+
+                                                <template lwc:if={field.isText}>
+                                                    <lightning-input
+                                                        variant="label-hidden"
+                                                        type="text"
+                                                        placeholder={field.placeholder}
+                                                        value={field.inputValue}
+                                                        required={field.required}
+                                                        data-field-key={field.fieldKey}
+                                                        onchange={handleTextChange}
+                                                    ></lightning-input>
+                                                </template>
+
+                                                <template lwc:elseif={field.isEmail}>
+                                                    <lightning-input
+                                                        variant="label-hidden"
+                                                        type="email"
+                                                        placeholder={field.placeholder}
+                                                        value={field.inputValue}
+                                                        required={field.required}
+                                                        data-field-key={field.fieldKey}
+                                                        onchange={handleTextChange}
+                                                    ></lightning-input>
+                                                </template>
+
+                                                <template lwc:elseif={field.isPassword}>
+                                                    <lightning-input
+                                                        variant="label-hidden"
+                                                        type="password"
+                                                        placeholder={field.placeholder}
+                                                        value={field.inputValue}
+                                                        required={field.required}
+                                                        data-field-key={field.fieldKey}
+                                                        onchange={handleTextChange}
+                                                    ></lightning-input>
+                                                </template>
+
+                                                <template lwc:elseif={field.isOtp}>
+                                                    <lightning-input
+                                                        variant="label-hidden"
+                                                        type="text"
+                                                        placeholder={field.placeholder}
+                                                        value={field.inputValue}
+                                                        required={field.required}
+                                                        data-field-key={field.fieldKey}
+                                                        onchange={handleTextChange}
+                                                    ></lightning-input>
+                                                </template>
+
+                                                <template lwc:elseif={field.isTel}>
+                                                    <c-phone-input
+                                                        value={field.inputValue}
+                                                        options={field.phoneCountryOptions}
+                                                        required={field.required}
+                                                        onphonechange={handlePhoneChange}
+                                                    ></c-phone-input>
+                                                </template>
+
+                                                <template lwc:elseif={field.isPicklist}>
+                                                    <lightning-combobox
+                                                        variant="label-hidden"
+                                                        placeholder={field.placeholder}
+                                                        value={field.inputValue}
+                                                        options={field.picklistOptions}
+                                                        required={field.required}
+                                                        data-field-key={field.fieldKey}
+                                                        onchange={handleTextChange}
+                                                    ></lightning-combobox>
+                                                </template>
+
+                                                <template lwc:elseif={field.isCheckbox}>
+                                                    <lightning-input
+                                                        type="checkbox"
+                                                        label={field.consentLabel}
+                                                        checked={field.checkboxChecked}
+                                                        required={field.required}
+                                                        data-field-key={field.fieldKey}
+                                                        onchange={handleTextChange}
+                                                    ></lightning-input>
+                                                </template>
+
+                                                <template lwc:elseif={field.isCaptcha}>
+                                                    <div class="prf-captcha-row">
+                                                        <div class="prf-captcha-box" aria-hidden="true">
+                                                            <span class="prf-captcha-text">{field.captchaDisplay}</span>
+                                                        </div>
+                                                        <lightning-button-icon
+                                                            icon-name="utility:refresh"
+                                                            alternative-text="Refresh captcha"
+                                                            title="Refresh captcha"
+                                                            onclick={handleCaptchaRefresh}
+                                                            data-field-key={field.fieldKey}
+                                                            variant="border-filled"
+                                                        ></lightning-button-icon>
+                                                        <lightning-input
+                                                            class="prf-captcha-input"
+                                                            variant="label-hidden"
+                                                            type="text"
+                                                            placeholder={field.placeholder}
+                                                            value={field.inputValue}
+                                                            required={field.required}
+                                                            data-field-key={field.fieldKey}
+                                                            onchange={handleTextChange}
+                                                        ></lightning-input>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+                            </div>
+                        </template>
+                         <template if:true={showProgramSelector}>
+                            <div class="prf-program-picker slds-m-bottom_medium">
+                                <p class="slds-text-body_small slds-m-bottom_x-small">{programPickerHelpText}</p>
+                                <div class="slds-form-element">
+                                    <div
+                                        class="slds-m-bottom_xx-small slds-grid slds-grid_vertical-align-center"
+                                    >
+                                        <label
+                                            class="slds-form-element__label slds-no-flex"
+                                            for="prf-program-multiselect-trigger"
+                                        >
+                                            {programPickerLabel}
+                                        </label>
+                                        <lightning-helptext
+                                            class="slds-m-left_xx-small"
+                                            content={programPickerFieldHelp}
+                                        ></lightning-helptext>
+                                    </div>
+                                    <div class="slds-form-element__control">
+                                        <!-- <template if:true={hasProgramPickerSelections}>
+                                            <div class="prf-selected-block slds-m-bottom_small">
+                                                <span
+                                                    class="slds-text-body_small slds-text-color_weak prf-selected-heading"
+                                                >
+                                                    Selected
+                                                </span>
+                                                <div class="prf-selected-chips-wrap">
+                                                    <template
+                                                        for:each={selectedProgramLabelRows}
+                                                        for:item="row"
+                                                    >
+                                                        <span
+                                                            key={row.value}
+                                                            class="prf-program-chip"
+                                                            title={row.label}
+                                                        >
+                                                            {row.label}
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template> -->
+
+                                        <template if:true={isSingleProgramSelection}>
+                                            <lightning-radio-group
+                                                variant="label-hidden"
+                                                options={programPickerOptions}
+                                                value={selectedProgramId}
+                                                onchange={handleProgramRadioChange}>
+                                            </lightning-radio-group>
+                                        </template>
+                                        <template if:true={isMultiProgramSelection}>
+                                        <div class="prf-multiselect-wrap">
+                                        <div
+                                            class="prf-multiselect-trigger slds-combobox_container"
+                                            onclick={handleProgramPickerTriggerClick}
+                                        >
+                                            <div
+                                                class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click"
+                                            >
+                                                <div
+                                                    class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                                    role="none"
+                                                >
+                                                    <input
+                                                        type="text"
+                                                        id="prf-program-multiselect-trigger"
+                                                        class="slds-input slds-combobox__input prf-multiselect-trigger-input"
+                                                        readonly
+                                                        value={programPickerSummaryText}
+                                                        placeholder={programPickerPlaceholder}
+                                                    />
+                                                    <span
+                                                        class="slds-icon_container slds-icon-utility-down slds-input__icon slds-input__icon_right"
+                                                    >
+                                                        <lightning-icon
+                                                            icon-name="utility:down"
+                                                            size="x-small"
+                                                            alternative-text=""
+                                                        ></lightning-icon>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <template if:true={programPickerOpen}>
+                                            <div
+                                                class="prf-multiselect-dropdown"
+                                                onclick={handleProgramMultiselectDropdownClick}
+                                            >
+                                                <template
+                                                    for:each={programPickerCheckboxRows}
+                                                    for:item="opt"
+                                                >
+                                                    <div key={opt.value} class="prf-multiselect-option">
+                                                        <lightning-input
+                                                            type="checkbox"
+                                                            label={opt.label}
+                                                            name={opt.value}
+                                                            checked={opt.checked}
+                                                            data-value={opt.value}
+                                                            onchange={handleProgramCheckboxChange}
+                                                        ></lightning-input>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template for:each={consentRows} for:item="row">
+                        <div key={row.rowKey} class="slds-grid slds-wrap slds-gutters_small prf-row">
+                            <template for:each={row.fields} for:item="field">
+                                <template if:true={field.isVisible}>
+                                    <div key={field.fieldKey} class={field.columnClass}>
+                                        <div class="input-shell" data-fk={field.fieldKey}>
+                                            <lightning-input
+                                                type="checkbox"
+                                                label={field.consentLabel}
+                                                checked={field.checkboxChecked}
+                                                required={field.required}
+                                                data-field-key={field.fieldKey}
+                                                onchange={handleTextChange}>
+                                            </lightning-input>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
+                        <template if:true={showRecaptcha}>
+                            <div class="prf-recaptcha-section slds-m-bottom_medium">
+                                <p class="prf-recaptcha-heading slds-text-align_center">
+                                    Security check
+                                </p>
+                                <p class="prf-recaptcha-hint slds-text-align_center slds-text-body_small slds-m-bottom_x-small">
+                                    Tick the I&apos;m not a robot box below to continue.
+                                </p>
+                                <div class="prf-recaptcha-wrap">
+                                    <div
+                                        class="prf-recaptcha-host"
+                                        data-recaptcha-host
+                                        lwc:dom="manual"
+                                    ></div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div class="slds-m-top_medium">
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                class="prf-submit-btn slds-button slds-button_stretch"
+                                style={primaryButtonStyle}
+                            >
+                                {submitLabel}
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="slds-text-align_center slds-m-top_medium">
+                        <a href="#" class="prf-login-link" onclick={handleLoginClick}>ALREADY REGISTERED? LOGIN</a>
+                    </div>
+                </template>
+            </template>
+        </template>
+    </div>
+</template>

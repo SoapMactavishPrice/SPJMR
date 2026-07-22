@@ -1,0 +1,109 @@
+/* Color Palette */
+/* Header background: A deep purple */
+:host {
+    --header-bg-color: #531F75; 
+    /* Light row background: A very light purple */
+    --row-bg-light: #F5EEF9; 
+    /* Header text color: White */
+    --header-text-color: #FFFFFF;
+}
+
+/* applicationEyeButton.css */
+.eye-icon {
+    width: 1.25rem; /* adjust size */
+    height: 1.25rem;
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+    color: #006dcc; /* use currentColor in SVG to control fill/stroke */
+}
+.eye-icon:focus {
+    outline: 2px solid rgba(0,110,204,0.25);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+
+
+
+
+/* 1. Header Styling (Deep Purple Background) */
+.applications-header {
+    background-color: var(--header-bg-color);
+}
+
+.applications-header th {
+    color: var(--header-text-color);
+    text-align: left;
+    padding: 10px 15px;
+    font-weight: bold;
+    border-right: 1px solid rgba(255, 255, 255, 0.1); /* Subtle white border between columns */
+}
+
+/* Remove border on the last header column to match the image */
+.applications-header th:last-child {
+    border-right: none;
+}
+
+
+/* 2. Table Structure and Borders */
+.applications-table {
+    width: 100%;
+    border-collapse: collapse; /* Essential for clean table lines */
+    border: 1px solid #9173AF; /* Light border around the whole table if needed */
+}
+
+/* 3. Row and Cell Styling (Alternating Backgrounds) */
+.applications-table tbody tr {
+    /* Default background for rows not covered by :nth-child(even) */
+    background-color: white; 
+}
+
+/* Apply light purple background to odd/alternating rows */
+.applications-table tbody tr:nth-child(even) {
+    background-color: var(--row-bg-light);
+}
+
+/* General cell padding and border to match the look */
+.applications-table td {
+    padding: 10px 15px;
+    border-bottom: 1px solid #9173AF; /* Light horizontal line between all rows */
+    color: #3e3e3e; /* Standard dark text color */
+    border-right: 1px solid #9173AF; /* Subtle white border between columns */
+}
+
+.applications-table td:last-child {
+    border-right: none;
+}
+
+/* 4. 'Apply Now' Button Styling */
+/* This overrides standard Lightning Brand variant for a custom purple look */
+.apply-now-button {
+    --slds-c-button-brand-color-background: var(--header-bg-color) !important;
+    --slds-c-button-brand-color-border: var(--header-bg-color) !important;
+    --slds-c-button-brand-color-background-hover: var(--header-bg-color) !important;   
+}
+
+.apply-now-button button:hover {
+    background-color: #f58220;
+}
+
+.table-label {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #531F75;
+}
+
+.action-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+
+.action-head,
+.action-data {
+    width: 240px;
+    min-width: 240px;
+}

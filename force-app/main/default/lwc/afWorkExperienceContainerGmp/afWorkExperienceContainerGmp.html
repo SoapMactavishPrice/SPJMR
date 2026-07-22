@@ -1,0 +1,16 @@
+<template>
+    <div lwc:if={isLoading}>
+        <lightning-spinner size="large" alternative-text="Loading"></lightning-spinner>
+    </div>
+    <div class="page">
+        <!-- Pass sections to child components -->
+        <c-af-work-experience
+                    sections={renderModel}
+                    context={work}
+                    onsectionfieldchange={handleSectionFieldChange}>
+                </c-af-work-experience>
+        <!-- <div class="actions">
+            <lightning-button label="Save" onclick={saveForm} variant="brand"></lightning-button>
+        </div> -->
+    </div>
+</template>

@@ -1,0 +1,117 @@
+<template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label" for="lookup-input">
+            <template if:true={required}>
+                <abbr class="slds-required" title="required">*</abbr>
+            </template>
+            {label}
+        </label>
+        <div class="slds-form-element__control">
+            <template if:true={isSaving}>
+                <div class="slds-text-align_center slds-p-around_small">
+                    <lightning-spinner alternative-text="Saving" size="small"></lightning-spinner>
+                    <p class="slds-text-body_small slds-m-top_x-small">Saving...</p>
+                </div>
+            </template>
+            
+            <template if:false={isSaving}>
+                <div class="slds-combobox_container">
+                    <div class={dropdownContainerClass}>
+                        <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                            <template if:false={hasSelection}>
+                                <input
+                                    type="text"
+                                    id="lookup-input"
+                                    class="slds-input slds-combobox__input"
+                                    placeholder={placeholder}
+                                    value={inputValue}
+                                    oninput={handleInputChange}
+                                    onfocus={handleInputFocus}
+                                    onblur={handleInputBlur}
+                                    disabled={inputDisabled}
+                                    autocomplete="off"
+                                    role="combobox"
+                                    aria-autocomplete="list"
+                                    aria-expanded={showDropdown}
+                                />
+                                <span class="slds-icon_container slds-icon-utility-search slds-input__icon slds-input__icon_right">
+                                    <lightning-icon icon-name="utility:search" size="x-small" alternative-text="Search"></lightning-icon>
+                                </span>
+                            </template>
+                            
+                            <template if:true={hasSelection}>
+                                <div class="slds-combobox__input slds-combobox__input-value">
+                                    <span class="slds-icon_container slds-icon-standard-program slds-combobox__input-entity-icon">
+                                        <lightning-icon icon-name="standard:program" size="x-small" alternative-text="Programme Course"></lightning-icon>
+                                    </span>
+                                    <div class="slds-truncate">
+                                        <span class="slds-m-right_x-small">{selectedRecord.title}</span>
+                                        <template if:true={selectedRecord.subtitle}>
+                                            <span class="slds-text-color_weak slds-text-body_small">{selectedRecord.subtitle}</span>
+                                        </template>
+                                    </div>
+                                </div>
+                                <button class="slds-button slds-button_icon slds-input__icon slds-input__icon_right" 
+                                        title="Clear" 
+                                        onclick={handleClear}
+                                        disabled={inputDisabled}>
+                                    <lightning-icon icon-name="utility:clear" size="x-small" alternative-text="Clear"></lightning-icon>
+                                    <span class="slds-assistive-text">Clear</span>
+                                </button>
+                            </template>
+                        </div>
+                        
+                        <div class={dropdownClass} role="listbox">
+                            <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                <template if:true={isLoading}>
+                                    <li role="presentation" class="slds-listbox__item">
+                                        <div class="slds-align_absolute-center slds-p-around_medium">
+                                            <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                                        </div>
+                                    </li>
+                                </template>
+                                
+                                <template if:false={isLoading}>
+                                    <template for:each={searchResults} for:item="result">
+                                        <li key={result.id} role="presentation" class="slds-listbox__item">
+                                            <div 
+                                                class="slds-media slds-listbox__option slds-listbox__option_entity slds-listbox__option_has-meta" 
+                                                role="option"
+                                                data-id={result.id}
+                                                onclick={handleResultClick}
+                                            >
+                                                <span class="slds-media__figure slds-listbox__option-icon">
+                                                    <span class="slds-icon_container slds-icon-standard-program">
+                                                        <lightning-icon icon-name="standard:program" size="small" alternative-text="Programme Course"></lightning-icon>
+                                                    </span>
+                                                </span>
+                                                <span class="slds-media__body">
+                                                    <span class="slds-listbox__option-text slds-listbox__option-text_entity">
+                                                        {result.title}
+                                                    </span>
+                                                    <template if:true={result.subtitle}>
+                                                        <span class="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                                                            {result.subtitle}
+                                                        </span>
+                                                    </template>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </template>
+                                    
+                                    <template if:true={noResults}>
+                                        <li role="presentation" class="slds-listbox__item">
+                                            <div class="slds-align_absolute-center slds-p-around_medium slds-text-color_weak">
+                                                No results found
+                                            </div>
+                                        </li>
+                                    </template>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

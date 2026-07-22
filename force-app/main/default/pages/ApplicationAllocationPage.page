@@ -1,0 +1,73 @@
+<apex:page controller="ApplicationAllocationController1"
+           sidebar="false" showHeader="false" docType="html-5.0">
+
+    <apex:form >
+
+        <apex:pageMessages />
+
+        <h2 style="font-size:22px; font-weight:bold; margin-bottom:15px;">
+            Application Allocation
+        </h2>
+
+        <!-- Select All -->
+        <script>
+            function toggleAll(master) {
+                var boxes = document.querySelectorAll('.rowCheck');
+                boxes.forEach(b => b.checked = master.checked);
+            }
+        </script>
+
+        <table class="slds-table slds-table_bordered" style="width:100%;">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" onclick="toggleAll(this)" /></th>
+                    <th>Application Name</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <apex:repeat value="{!wrapperList}" var="w">
+                    <tr>
+                        <td>
+                            <apex:inputCheckbox styleClass="rowCheck" value="{!w.isSelected}" />
+                        </td>
+                        <td>{!w.app.Name}</td>
+                        <td>{!w.app.First_Name__c}</td>
+                        <td>{!w.app.Last_Name__c}</td>
+                    </tr>
+                </apex:repeat>
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div style="margin-top:12px;">
+            Page {!pageNumber} of {!totalPages}
+            &nbsp;&nbsp;
+            <apex:commandLink value="Previous" action="{!prevPage}" rendered="{!pageNumber > 1}" />
+            &nbsp;&nbsp;
+            <apex:commandLink value="Next" action="{!nextPage}" rendered="{!pageNumber < totalPages}" />
+        </div>
+
+        <br/>
+
+        <!-- Verifier Select -->
+        <div style="font-weight:bold;">Assign Selected To</div>
+
+        <apex:selectList value="{!selectedVerifierId}" size="1" style="width:300px;">
+            <apex:selectOptions value="{!verifierOptions}" />
+        </apex:selectList>
+
+        <br/><br/>
+
+        <apex:commandButton value="Assign Selected"
+                           action="{!assignSelected}"
+                           styleClass="slds-button slds-button_success" />
+
+        <apex:commandButton value="Close"
+                            onclick="window.close(); return false;"
+                            style="margin-left:20px;" />
+
+    </apex:form>
+</apex:page>

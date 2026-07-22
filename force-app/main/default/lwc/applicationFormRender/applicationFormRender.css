@@ -1,0 +1,162 @@
+.lookup-dropdown {
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15); /* soft shadow */
+    border-radius: 0.25rem; /* optional rounded edges */
+    z-index: 10; /* keep it above other elements */
+    background: #fff; /* ensure white dropdown background */
+}
+
+.custom-stepper .slds-progress__marker {
+    border: 2px solid #7a3ef0; /* purple border */
+    background-color: white;
+    color: #7a3ef0;
+}
+
+.custom-stepper .slds-is-active .slds-progress__marker {
+    background-color: #7a3ef0; /* active step fill */
+    border-color: #7a3ef0;
+    color: white;
+}
+
+.custom-stepper .slds-is-completed .slds-progress__marker {
+    background-color: #28a745; /* green completed */
+    border-color: #28a745;
+    color: white;
+}
+
+.custom-stepper .slds-progress__label {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #16325c;
+    text-align: center;
+    max-width: 100px;
+    word-wrap: break-word;
+}
+
+.custom-vertical-stepper {
+    border-left: 3px solid #d8dde6;
+    padding-left: 1rem;
+    margin-top: 1rem;
+}
+
+.step-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+    padding-left: 1.5rem;
+    color: #16325c;
+    font-weight: 500;
+}
+
+.step-marker {
+    position: absolute;
+    left: -1.1rem;
+    top: 0.1rem;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #7a3ef0;
+    background: white;
+}
+
+.step-item.active .step-marker {
+    background: #7a3ef0;
+    border-color: #7a3ef0;
+}
+
+.step-item.completed .step-marker {
+    background: #28a745;
+    border-color: #28a745;
+}
+
+.step-label {
+    margin-left: 0.5rem;
+    display: inline-block;
+}
+
+.section-card {
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.35s ease-in-out;
+}
+
+.section-hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+    height: 0;
+    overflow: hidden;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.section-visible {
+    opacity: 1;
+    transform: translateY(0);
+    height: auto;
+}
+
+.main-section, .correction-section {
+    background: #ffffff;
+    border: 1px solid #d8dde6;
+    border-radius: 0.5rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #032d60;
+    margin-bottom: 0.8rem;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 0.3rem;
+}
+
+.field-block {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.field-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.field-value {
+    color: #555;
+    margin-left: 0.5rem;
+}
+
+/* Correction cards */
+.correction-card {
+    background-color: #fff7e6;
+    border-left: 5px solid #ffb75d;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0.4rem;
+}
+
+.correction-card .field-name {
+    color: #a35d00;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.correction-card .remark {
+    color: #5c3c00;
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+}
+
+.correction-card .status {
+    font-size: 0.8rem;
+    color: #6a6a6a;
+    font-style: italic;
+}
+
+.no-correction {
+    text-align: center;
+    color: #999;
+    font-size: 0.95rem;
+    margin-top: 1rem;
+}

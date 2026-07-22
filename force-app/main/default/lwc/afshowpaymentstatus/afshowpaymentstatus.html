@@ -1,0 +1,33 @@
+<template>
+    <div class="container">
+
+        <!-- 🔄 Loading -->
+        <template if:true={isLoading}>
+            <div class="loading">Loading payment details...</div>
+        </template>
+
+        <!-- ❌ Generic Error -->
+        <template if:true={hasError}>
+            <div class="card error">
+                <h2>⚠️ Something went wrong</h2>
+                <p>Unable to fetch payment details.</p>
+            </div>
+        </template>
+
+        <!-- ✅ ONLY if PAID -->
+        <template if:true={isValidPayment}>
+            <div class="card">
+
+                <h2 class="success">✅ Payment Successful</h2>
+
+                <div class="details">
+                    <p><strong>Order ID:</strong> {orderId}</p>
+                    <p><strong>Payment ID:</strong> {paymentId}</p>
+                    <p><strong>Amount:</strong> ₹{amount}</p>
+                </div>
+
+            </div>
+        </template>
+
+    </div>
+</template>

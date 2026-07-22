@@ -1,0 +1,57 @@
+<template>
+    <template for:each={formSections} for:item="section">
+    <div key={section.id} class="section-block">
+        <h3>{section.label}</h3>
+
+        <template if:true={section.repeatable}>
+            <template for:each={section.rows} for:item="row" for:index="rowIndex">
+                <p class="row-title" key={row}>Row {rowIndex}</p>
+                <template for:each={row} for:item="fld">
+                    <div key={fld.id} class="field-block">
+                        <lightning-input
+                            type="checkbox"
+                            label={fld.label}
+                            data-section={section.objectapiName}
+                            data-field={fld.apiName}
+                            data-row={rowIndex}
+                            onchange={handleFieldSelect}>
+                        </lightning-input>
+                        <template if:true={fld.isSelected}>
+                            <lightning-textarea
+                                label="Remark"
+                                data-section={section.objectapiName}
+                                data-field={fld.apiName}
+                                data-row={rowIndex}
+                                onchange={handleRemarkChange}>
+                            </lightning-textarea>
+                        </template>
+                    </div>
+                </template>
+            </template>
+        </template>
+
+        <template if:false={section.repeatable}>
+            <template for:each={section.fields} for:item="fld">
+                <div key={fld.id} class="field-block">
+                    <lightning-input
+                        type="checkbox"
+                        label={fld.label}
+                        data-section={section.objectapiName}
+                        data-field={fld.apiName}
+                        onchange={handleFieldSelect}>
+                    </lightning-input>
+                    <template if:true={fld.isSelected}>
+                        <lightning-textarea
+                            label="Remark"
+                            data-section={section.objectapiName}
+                            data-field={fld.apiName}
+                            onchange={handleRemarkChange}>
+                        </lightning-textarea>
+                    </template>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>
+
+</template>

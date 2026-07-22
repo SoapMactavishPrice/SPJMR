@@ -1,0 +1,51 @@
+/* 🔹 Center the whole card */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh; /* vertical centering */
+}
+
+/* 🔹 Card styling */
+.card {
+    width: 420px;
+    padding: 25px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+/* 🔹 Default text */
+.details p {
+    color: black;
+    margin: 8px 0;
+}
+
+/* 🔹 Status colors */
+.success {
+    color: #28a745; /* green */
+}
+
+.failed {
+    color: #dc3545; /* red */
+}
+
+.pending {
+    color: #f0ad4e; /* orange */
+}
+
+/* 🔹 Error */
+.error {
+    color: #dc3545;
+}
+
+/* 🔹 Loading */
+.loading {
+    font-size: 18px;
+    color: black;
+}
+.success, .failed, .pending {
+    font-size: 22px;
+    font-weight: 600;
+}

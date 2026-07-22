@@ -1,0 +1,68 @@
+<apex:page controller="PaymentReceiptController" renderAs="pdf" showHeader="false" sidebar="false">
+
+    <table style="border:2px solid black;border-collapse:collapse;width:100%;font-family:'Nunito Sans',Arial,sans-serif;font-size:13px;color:#222;padding:0;margin:0;">
+        
+        <h2 style="text-align:center">
+            Electronic Receipt
+        </h2>
+        <tr>
+            <td colspan="2" style="border:2px solid black;padding:8px;text-align:center; text-align:center">
+                <apex:image url="{!$Resource.SPJIMR_Logo}" width="110" height="52" alt="SPJIMR Logo"/>
+            </td>
+            
+        </tr>
+        
+         <tr>
+            <td colspan="2" style="border:2px solid black;padding:8px; text-align:center">Application Number: {!applicationNumber}</td>
+        </tr>
+
+        <!-- ✅ Row 2 -->
+        <tr>
+            <td colspan="2" style="border:2px solid black;padding:8px; text-align:center">To: {!payeename}</td>
+        </tr>
+
+      
+
+        <!-- ✅ Row 4 -->
+        <tr>
+            <td colspan="2" style="border:2px solid black;padding:8px; text-align:center">
+                {!paymentTypeMessage}. INR&nbsp; <apex:outputText value="{0,number,0.##}"><apex:param value="{!IF(ISBLANK(amount), 0, amount)}" /></apex:outputText> has been received for the <b>{!programName}</b>
+            </td>
+        </tr>
+
+        <!-- ✅ Row 5 -->
+        <tr>
+            <td style="border:2px solid black;padding:8px;width:40%;">Date of Receipt:</td>
+            <td style="border:2px solid black;padding:8px;width:60%;">{!dateVal}</td>
+        </tr>
+
+        <!-- ✅ Row 6 -->
+       
+
+        <!-- ✅ Row 7 -->
+        <tr>
+            <td style="border:2px solid black;padding:8px;width:40%;">Payment Type:</td>
+            <td style="border:2px solid black;padding:8px;width:60%;">Online</td>
+        </tr>
+
+        <!-- ✅ Row 8 -->
+        <tr>
+            <td style="border:2px solid black;padding:8px;width:40%;">{!typeOfId}:</td>
+            <td style="border:2px solid black;padding:8px;width:60%;">{!paymentId}</td>
+        </tr>
+
+        
+        <!-- ✅ Row 9 -->
+         <tr>
+            <td colspan="2" style="border:2px solid black;padding:8px;text-align:center;font-style:italic; text-align:center">
+                I accept that the paid fees is non-refundable
+            </td>
+        </tr>
+    </table>
+
+    <!-- ✅ Footer -->
+    <div style="text-align:center;margin-top:15px;font-size:12px;font-style:italic;font-family:'Nunito Sans',Arial,sans-serif;color:#222;">
+        This is a system-generated receipt and does not require a signature.
+    </div>
+
+</apex:page>

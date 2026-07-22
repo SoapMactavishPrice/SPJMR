@@ -1,0 +1,79 @@
+<template>
+
+    <!-- HEADER -->
+    <lightning-modal-header label="Book Interview Slots">
+    </lightning-modal-header>
+
+    <!-- BODY -->
+    <lightning-modal-body>
+
+        <lightning-combobox
+            label="Available Locations"
+            placeholder="Select Interview Location"
+            options={locationOptions}
+            value={selectedLocation}
+            onchange={handleLocationChange}>
+        </lightning-combobox>
+
+        <template lwc:if={selectedLocation}>
+
+            <template lwc:if={noSlots}>
+                <p class="slds-text-color_error slds-m-top_small">
+                    No slots available for the selected location.
+                </p>
+            </template>
+
+            <template lwc:else>
+                <lightning-combobox
+                    label="Available Slots"
+                    placeholder="Select Slot"
+                    options={slotOptions}
+                    value={selectedSlot}
+                    onchange={handleSlotChange}>
+                </lightning-combobox>
+
+                <template lwc:if={showCapacityWarning}>
+                    <p class="slds-text-color_error slds-m-top_x-small">
+                        This slot has reached its maximum capacity.
+                        Please select a different slot.
+                    </p>
+                </template>
+                <lightning-combobox
+    label="Interview Panel"
+    placeholder="Select Interview Panel"
+    options={panelOptions}
+    value={selectedPanel}
+    onchange={handlePanelChange}>
+</lightning-combobox>
+
+<lightning-combobox
+    label="Interview Round"
+    placeholder="Select Interview Round"
+    options={roundOptions}
+    value={selectedRound}
+    onchange={handleRoundChange}>
+</lightning-combobox>
+
+
+            </template>
+
+        </template>
+
+    </lightning-modal-body>
+
+    <!-- FOOTER -->
+    <lightning-modal-footer>
+        <lightning-button
+            label="Cancel"
+            onclick={close}>
+        </lightning-button>
+
+        <lightning-button
+            label="Create Booking"
+            variant="brand"
+            onclick={handleBookSlot}
+            disabled={isCreateBookingDisabled}>
+        </lightning-button>
+    </lightning-modal-footer>
+
+</template>

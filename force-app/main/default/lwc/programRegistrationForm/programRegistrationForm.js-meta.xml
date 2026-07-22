@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Program Registration Form</masterLabel>
+    <description>CMDT-driven registration: programId from URL or page property (comma- or pipe-separated for multiple programs). Brochure flow via isBrochure. Multiple URL programs show in the picker; each selected program creates a Lead Program on submit.</description>
+    <targets>
+        <target>lightningCommunity__Page</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__RecordPage,lightning__HomePage">
+            <property name="programIdOverride" type="String" label="Program Id" description="Matches Program_Id__c on custom metadata. Leave blank to use the programId URL parameter."/>
+            <property name="brochureModeOverride" type="String" label="Brochure mode override" description="true or false to force brochure vs standard fields. Leave blank to use isBrochure / c__isBrochure URL parameter."/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

@@ -1,0 +1,23 @@
+<template>
+    
+    <template lwc:if={showApplist}>        
+        <template if:true={data}> 
+            <c-all-applications-grid table-label={cmpLabel} table-data={data} onshowaplication={doShowApplication} onslotscheduled={slotScheduled}></c-all-applications-grid>
+            <c-applicant-dashboard-message-parent data={data}></c-applicant-dashboard-message-parent>
+            <!-- <c-applicant-dashboard-message-gmp prgm-data={data}></c-applicant-dashboard-message-gmp> -->
+
+            
+        </template>
+        <template if:true={error}>
+            <div class="slds-text-color_error slds-m-around_medium">
+                {error}
+            </div>
+        </template>
+    </template>
+    <template lwc:if={showApplication}>
+        <div class="slds-p-around_x-large">
+            <lightning-button variant="brand" label="Back to Application List" onclick={doShowAppList}></lightning-button>                
+        </div>
+
+    </template>
+</template>

@@ -1,0 +1,73 @@
+/* Increase modal width for ScreenAction */
+:host {
+    --slds-c-modal-sizing-width: 90vw;
+    --slds-c-modal-sizing-max-width: 1400px;
+    width: 100%;
+}
+
+/* Target the modal container directly - for ScreenAction modals */
+:host .slds-modal__container,
+.slds-modal__container {
+    width: 90vw !important;
+    max-width: 1400px !important;
+    min-width: 1200px !important;
+}
+
+/* Target parent modal if it exists */
+:host {
+    display: block;
+    width: 100%;
+}
+
+/* Ensure lightning-card takes full width */
+lightning-card {
+    width: 100%;
+}
+
+/* Ensure date inputs in table are fully visible */
+.slds-table lightning-input[type="date"] {
+    width: 100%;
+    min-width: 150px;
+}
+
+/* Make date columns wider to accommodate full date display */
+.slds-table th:nth-child(5),
+.slds-table th:nth-child(6),
+.slds-table td:nth-child(5),
+.slds-table td:nth-child(6) {
+    min-width: 180px;
+    width: 180px;
+}
+
+/* Ensure inputs in table take full width */
+.slds-table lightning-input,
+.slds-table lightning-combobox {
+    width: 100%;
+}
+
+/* Center align checkbox columns */
+.slds-table td.slds-text-align_center {
+    vertical-align: middle;
+}
+
+/* Table row hover effect */
+.slds-table tbody tr:hover {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+/* Disabled inputs opacity */
+lightning-input[disabled],
+lightning-combobox[disabled] {
+    opacity: var(--slds-g-opacity-disabled, 0.5);
+}
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #f3f2f2;
+}
+
+.table-scroll-container {
+    max-height: 400px;
+    overflow-y: auto;
+}

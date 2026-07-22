@@ -1,0 +1,40 @@
+<template>
+ <div class="header-details slds-m-top--small slds-p-around--medium">
+                                <div class="slds-grid slds-gutters slds-wrap">
+                                    <div class="slds-col slds-size_3-of-12">
+                                        <div class="slds-media">
+                                            <div class="slds-media__figure">
+                                                <span class="slds-avatar slds-avatar_circle profile-avatar">
+                                                <img
+                                                    alt="Profile"
+                                                    src={displayProfileImageUrl}
+                                                    title="User avatar"
+                                                    class="student-info-header__photo"
+                                                    onerror={handleBannerPhotoError}
+                                                />
+                                            </span>
+                                            </div>
+                                            <!-- <div class="slds-media__body">
+                                                <p style="font-size:22px;">{studentName}</p>
+                                                <p class="slds-m-top-x_small">{rollNumber}</p>
+                                            </div> -->
+                                            <div class="slds-media__body">
+                                                    <p class="dxp-text-heading-medium">{displayStudentName}</p>
+                                                    <p class="slds-m-top-x_small" style="margin-top:3px">{displayRollNumber}</p>
+                                                </div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-12 slds-text-align_center">
+                                        <p style="font-size:22px;">Programme</p>
+                                        <p class="slds-m-top-x_small">{displayProgramCode}</p>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-12 slds-text-align_center">
+                                        <p style="font-size:22px;">Current Term</p>
+                                        <p class="slds-m-top-x_small">{displayTerm}</p>
+                                    </div>
+                                    <!-- <div class="slds-col slds-size_3-of-12 slds-m-top--large slds-text-align_center">
+                                      <span class="active-status">Active</span>
+                                    </div> -->
+                                </div>
+                            </div>
+</template>

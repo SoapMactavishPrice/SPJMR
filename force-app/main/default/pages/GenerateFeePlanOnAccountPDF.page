@@ -1,0 +1,53 @@
+<apex:page controller="GenerateFeePlanOnAccount" sidebar="false" showHeader="false" renderAs="pdf">
+    <body class="pdf" style="font-family: Verdana, Geneva, sans-serif;">
+        
+        <div style="width:100%;border-collapse: collapse; border: 1px solid black;">
+            <table style=" width:100%; border:none; border-collapse: collapse; ">
+                <tr >
+                    <td><img style="width:700px;height:60px" alt="logo" src="{!$Resource.AksharLogoPdf}"/>
+                    </td>
+                </tr>
+            </table>
+            <table style=" width: 100%; border:none; border-collapse: collapse;"> 
+                <tr >
+                    <th  colspan="3" style="font-size:15px;text-align:center;border:0.5px solid black;border-bottom:0.5px solid black;border-left:0px solid black;border-right:0px solid black;border-collapse: collapse;">
+                        Fee Details
+                    </th>
+                </tr>
+                <tr >
+                    <td style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-bottom:0.5px solid black;border-left:0px solid black;border-collapse: collapse;width:50%;">
+                        <b> Student Name:</b> {!acc.Name}
+                    </td>
+                    <td style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-bottom:0.5px solid black;border-right:0px solid black;border-collapse: collapse;width:50%;">
+                        <b> School Name: </b>  {!acc.School_Lookup__r.Name}
+                    </td>
+                </tr>
+                
+            </table>
+            <apex:repeat value="{!sMap}" var="par">
+                <table style=" width: 100%; border:none; border-collapse: collapse; ">  
+                    <tr  style="height: 10px;"><td colspan="4"></td></tr>
+                    <tr >
+                        <td colspan='4' style="font-weight: 600;font-size: initial;text-align:center"><apex:outputText value="{!par}"></apex:outputText></td>
+                    </tr>
+                    <tr  style="height: 5px;"><td colspan="4"></td></tr>
+                    <tr  > 
+                        <th style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-collapse: collapse;width:20%;">Fee Plan Name</th>
+                        <th style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-collapse: collapse;width:20%;">Fee Plan Category</th>
+                        <th style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-collapse: collapse;width:16.66%;">Actual Fees</th>
+                        <th style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-collapse: collapse;width:16.66%;">Total Amount</th>                              
+                    </tr>
+                    
+                    <apex:repeat value="{!sMap[par]}" var="child"> 
+                        <tr >
+                            <td style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-collapse: collapse;width:20%;"><apex:outputText value="{!child.Fee_Plan_Name__r.Name}"></apex:outputText></td>
+                            <td style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-collapse: collapse;width:20%;"><apex:outputField value="{!child.Fee_Plan_Category_Master__r.Name}"></apex:outputField></td>
+                            <td style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-collapse: collapse;width:16.66%;"><apex:outputField value="{!child.Actual_Fees__c}"></apex:outputField></td>
+                            <td style="padding:5px 5px;font-size:12px;border:0.5px solid black;border-collapse: collapse;width:16.66%;"><apex:outputField value="{!child.Grand_Total__c}"></apex:outputField></td>
+                        </tr>   
+                    </apex:repeat>
+                </table>
+            </apex:repeat>
+        </div>
+    </body>
+</apex:page>

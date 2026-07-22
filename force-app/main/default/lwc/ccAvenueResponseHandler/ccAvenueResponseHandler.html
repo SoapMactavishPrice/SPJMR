@@ -1,0 +1,74 @@
+<template>
+
+    <div class="payment-container">
+
+        <!-- 🔄 Processing -->
+        <template if:true={isProcessing}>
+            <div class="card">
+                <lightning-spinner alternative-text="Processing Payment"></lightning-spinner>
+                <h2>Processing Your Payment...</h2>
+                <p>Please wait while we verify your transaction.</p>
+            </div>
+        </template>
+
+        <!-- ✅ Success -->
+        <template if:true={isPaid}>
+            <div class="card success">
+                <div class="icon">✔</div>
+                <h2>Payment Successful</h2>
+                <p>{message}</p>
+
+                <template if:true={transactionId}>
+                    <p class="subtext">
+                        Transaction ID: {transactionId}
+                    </p>
+                </template>
+
+                <!-- <div class="button-container">
+                    <lightning-button 
+                        label="Go to Dashboard"
+                        variant="brand"
+                        onclick={navigateHome}>
+                    </lightning-button>
+                </div> -->
+            </div>
+        </template>
+
+        <!-- ❌ Failed -->
+        <template if:true={isFailed}>
+            <div class="card failed">
+                <div class="icon">✖</div>
+                <h2>Payment Failed</h2>
+                <p>{message}</p>
+                <p>Please try again or contact support.</p>
+
+                <!-- <div class="button-container">
+                    <lightning-button 
+                        label="Retry Payment"
+                        variant="brand"
+                        onclick={retryPayment}>
+                    </lightning-button>
+                </div> -->
+            </div>
+        </template>
+
+        <!-- ⏳ Attempted / Aborted -->
+        <template if:true={isAttempted}>
+            <div class="card warning">
+                <div class="icon">⚠</div>
+                <h2>Payment Not Completed</h2>
+                <p>{message}</p>
+
+                <!-- <div class="button-container">
+                    <lightning-button 
+                        label="Retry Payment"
+                        variant="brand"
+                        onclick={retryPayment}>
+                    </lightning-button>
+                </div> -->
+            </div>
+        </template>
+
+    </div>
+
+</template>

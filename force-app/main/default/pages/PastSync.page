@@ -1,0 +1,59 @@
+<apex:page controller="PastSyncController" action="{!run}"
+           showHeader="false" sidebar="false" lightningStylesheets="true" title="Past Sync">
+    <apex:slds />
+    <div class="slds-scope">
+
+        <!-- Toast-style notification for the backfill result -->
+        <div class="slds-notify_container slds-is-relative slds-p-around_medium">
+
+            <!-- Success -->
+            <apex:outputPanel rendered="{!isSuccess}" layout="none">
+                <div class="slds-notify slds-notify_toast slds-theme_success" role="status">
+                    <span class="slds-assistive-text">Success</span>
+                    <span class="slds-icon_container slds-icon-utility-success slds-m-right_small slds-no-flex slds-align-top">
+                        <svg class="slds-icon slds-icon_small" aria-hidden="true" xmlns:xlink="http://www.w3.org/1999/xlink">
+                            <use xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#success')}"></use>
+                        </svg>
+                    </span>
+                    <div class="slds-notify__content">
+                        <h2 class="slds-text-heading_small">{!resultMessage}</h2>
+                    </div>
+                </div>
+            </apex:outputPanel>
+
+            <!-- Error -->
+            <apex:outputPanel rendered="{!NOT(isSuccess)}" layout="none">
+                <div class="slds-notify slds-notify_toast slds-theme_error" role="alert">
+                    <span class="slds-assistive-text">Error</span>
+                    <span class="slds-icon_container slds-icon-utility-error slds-m-right_small slds-no-flex slds-align-top">
+                        <svg class="slds-icon slds-icon_small" aria-hidden="true" xmlns:xlink="http://www.w3.org/1999/xlink">
+                            <use xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#error')}"></use>
+                        </svg>
+                    </span>
+                    <div class="slds-notify__content">
+                        <h2 class="slds-text-heading_small">{!resultMessage}</h2>
+                    </div>
+                </div>
+            </apex:outputPanel>
+
+        </div>
+
+        <div class="slds-text-align_center slds-text-body_small slds-text-color_weak slds-p-top_small">
+            Returning to Attendance Logs&hellip;&nbsp;
+            <apex:outputLink value="/lightning/o/Attendance_Log__c/list">click here if not redirected</apex:outputLink>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var listUrl = '/lightning/o/Attendance_Log__c/list';
+            window.setTimeout(function () {
+                if (typeof sforce !== 'undefined' && sforce && sforce.one) {
+                    sforce.one.navigateToURL(listUrl);
+                } else {
+                    window.top.location.href = listUrl;
+                }
+            }, 2500);
+        })();
+    </script>
+</apex:page>

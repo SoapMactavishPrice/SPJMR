@@ -1,0 +1,67 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 12-10-2025
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <lightning-card title="Lead Program Selection">
+        <div class="slds-m-around_medium">
+
+            <template for:each={rows} for:item="row">
+                <div key={row.id} class="slds-box slds-m-bottom_small">
+
+                    <!-- Program Picklist -->
+                    <lightning-combobox
+                        label="Program"
+                        placeholder="Select Program"
+                        options={programOptions}
+                        value={row.programId}
+                        data-id={row.id}
+                        onchange={handleProgramChange}>
+                    </lightning-combobox>
+
+                    <!-- Primary Checkbox -->
+                    <lightning-input
+                        type="checkbox"
+                        label="Primary Interested"
+                        checked={row.primary}
+                        data-id={row.id}
+                        class="slds-m-top_small"
+                        onchange={handlePrimaryChange}>
+                    </lightning-input>
+
+                    <!-- Add Row -->
+                    <lightning-button-icon
+                        icon-name="utility:add"
+                        alternative-text="Add Row"
+                        onclick={addRow}
+                        class="slds-m-top_small">
+                    </lightning-button-icon>
+
+                    <!-- Delete Row -->
+                    <template if:true={canRemoveRows}>
+                        <lightning-button-icon
+                            icon-name="utility:delete"
+                            alternative-text="Delete Row"
+                            data-id={row.id}
+                            onclick={removeRow}
+                            class="slds-m-top_small">
+                        </lightning-button-icon>
+                    </template>
+
+                </div>
+            </template>
+
+            <!-- Save Button -->
+            <lightning-button
+                label="Save"
+                variant="brand"
+                class="slds-m-top_small"
+                onclick={saveRecords}>
+            </lightning-button>
+
+        </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,278 @@
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+.main-content {
+    flex: 1;
+    padding: 20px;
+    margin-top: 10px;
+    background-color: #ffffff;
+    transition: margin-left 0.3s ease-in-out;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.main-content-full {
+    margin-left: 0;
+}
+
+.main-container {
+    margin-bottom: 0;
+    max-width: 100%;
+}
+
+/* Term selector – dt/dd + term-pill, no box */
+.term-selector-row {
+    margin-bottom: 0;
+}
+
+.term-selector-row .term-dl {
+    margin-bottom: 0;
+}
+
+.term-selector-row .term-dl::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.term-selector-row .term-dl__label {
+    font-weight: normal;
+    color: #666;
+    margin-bottom: 0;
+    padding-right: 16px;
+    float: left;
+    clear: left;
+    width: 80px;
+    text-align: left;
+}
+
+.term-selector-row .term-dl__detail {
+    margin-bottom: 0;
+    margin-left: 0;
+    float: left;
+    width: calc(100% - 96px);
+    text-align: left;
+    padding-left: 0;
+}
+
+.term-pill {
+    --slds-c-input-radius-border: 28px;
+    --slds-c-input-color-background: #531F75;
+    --slds-c-input-text-color: #ffffff;
+    --slds-c-input-color-border: transparent;
+    --slds-c-input-shadow: none;
+    --slds-c-input-spacing-horizontal-start: 1.25rem;
+    --slds-c-input-spacing-horizontal-end: 2.5rem;
+    font-weight: 500;
+}
+
+.term-pill:hover {
+    --slds-c-input-color-background: #531F75;
+}
+
+.term-pill:focus-within {
+    --slds-c-input-color-border: #ffffff;
+}
+
+.header-container .header-details {
+    background-color: #e1d5f0;
+    border-radius: 4px;
+}
+
+.header-container .profile-avatar {
+    width: 80px;
+    height: 80px;
+    background-color: #7c7c7c;
+}
+
+.student-details-wrapper {
+    position: relative;
+    margin-top: 32px;
+}
+
+/* Purple strip */
+.student-details-header-bar {
+    position: absolute;
+    top: -16px;              /* pulls it onto the card border */
+    left: 24px;              /* aligns with card padding */
+    background-color: #531F75;
+    padding: 6px 24px;
+    width: 200px;            /* fixed width looks intentional */
+    z-index: 2;
+}
+
+.dxp-text-heading-xxsmall {
+    font-size: 16px;
+}
+
+.student-details-header-text {
+    color: #ffffff;
+    font-weight: 600;
+    margin: 0;
+    text-align: left;
+}
+.profile-placeholder {
+    width: 100px;
+    height: 100px;
+    border: 2px solid #F58220;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.profile-placeholder lightning-icon {
+    --sds-c-icon-color-foreground-default: #7c7c7c;
+}
+
+/* Student Details Section */
+.student-name-header {
+    color: #333;
+    font-weight: 600;
+    margin: 0;
+    font-size: 18px;
+}
+
+.studentDetailsCard{
+    background: #FFFFFF;
+    border: 1px solid #531F75;
+    box-shadow: 0px 4px 4px 0px #0000002E;
+}
+
+.article-card {
+    border-radius: 4px;
+    height: 550px;
+    overflow: hidden;
+}
+
+.section-header-bar {
+    position: absolute;
+    top: -16px;
+    left: 24px;
+    background-color: #531F75;
+    padding: 6px 24px;
+    z-index: 3;
+    box-shadow: 0 1px 0 0 #531F75;
+}
+
+.section-header-text {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Fixed height for ~5 rows + header; more rows scroll. Same height for both tables. */
+.section-content {
+    background: #ffffff;
+    border: 1px solid #531F75;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.18);
+    border-radius: 4px;
+    padding-top: 36px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 20px;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 280px;
+    max-height: 380px;
+    overflow-x: auto;
+    overflow-y: auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+.section-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 32px;
+    /* margin-top: 10px; */
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Single full-width row (e.g. Division Courses below the two-column row) */
+.section-row--full-width {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* Same scroll pattern as Subjects/Division: header + ~4 visible data rows, then vertical scroll */
+.section-content.section-content-division-courses {
+    min-height: 260px;
+    max-height: 320px;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+/* Six columns: keep table readable inside scroll area */
+.subjects-table--division-courses thead th:nth-child(1),
+.subjects-table--division-courses tbody td:nth-child(1) {
+    width: 20%;
+}
+
+.subjects-table--division-courses thead th:nth-child(2),
+.subjects-table--division-courses tbody td:nth-child(2) {
+    width: 8%;
+}
+
+.subjects-table--division-courses thead th:nth-child(3),
+.subjects-table--division-courses tbody td:nth-child(3) {
+    width: 12%;
+}
+
+.subjects-table--division-courses thead th:nth-child(4),
+.subjects-table--division-courses tbody td:nth-child(4) {
+    width: 18%;
+}
+
+.subjects-table--division-courses thead th:nth-child(5),
+.subjects-table--division-courses tbody td:nth-child(5) {
+    width: 18%;
+}
+
+.subjects-table--division-courses thead th:nth-child(6),
+.subjects-table--division-courses tbody td:nth-child(6) {
+    width: 24%;
+}
+.section-wrapper {
+    position: relative;
+    margin-top: 32px;
+    min-width: 0;
+}
+
+.subjects-table {
+    width: 100%;
+    min-width: 280px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    flex-shrink: 0;
+}
+
+.subjects-table thead th {
+    background-color: #d3d3d3;
+    padding: 7px;
+    text-align: left;
+    font-weight: 600;
+    border-right: 1px solid #ffffff;
+    word-break: break-word;
+}
+
+.subjects-table thead th:last-child {
+    border-right: none;
+}
+
+.subjects-table tbody td {
+    padding: 7px;
+    border: 1px solid #cfcfcf;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.subjects-table tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}

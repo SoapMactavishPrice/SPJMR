@@ -1,0 +1,529 @@
+<template>
+    <lightning-card title="Path configuration hub" icon-name="custom:custom63">
+        <template if:true={loading}>
+            <div class="slds-p-around_large slds-align_absolute-center">
+                <lightning-spinner alternative-text="Loading path metadata" size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:false={loading}>
+            <template if:true={error}>
+                <div class="slds-p-around_medium slds-text-color_error">{errorMessage}</div>
+            </template>
+
+            <template if:true={showList}>
+            <div class="slds-p-horizontal_medium hub-help">
+                <p class="slds-text-body_small">
+                    View and edit <strong>Path_Wizard_Config__mdt</strong>, <strong>Path_Dependency_Value__mdt</strong>,
+                    <strong>Path_Main_Stage_Value__mdt</strong> (main status per program), and
+                    <strong>Path_Stage_Override__mdt</strong> in one place. Saves enqueue an asynchronous Metadata API deployment.
+                    Your profile needs <strong>Customize Application</strong> and
+                    <strong>Modify Metadata Through Metadata API Functions</strong>. After saving, open
+                    <em>Setup → Deployment Status</em> to confirm success, then refresh this page.
+                </p>
+            </div>
+            <div class="slds-p-horizontal_medium slds-p-bottom_small">
+                <lightning-combobox
+                    label="Focus path config (filters tables; prefills new dependency / override / main-stage rows)"
+                    value={pathConfigFocus}
+                    options={wizardOptions}
+                    onchange={handlePathConfigFocusChange}
+                ></lightning-combobox>
+            </div>
+            <lightning-tabset variant="scoped">
+                <lightning-tab label="Path wizard configs">
+                    <div class="slds-p-around_small">
+                        <lightning-button label="New wizard config" onclick={newWizard} class="slds-m-bottom_small"></lightning-button>
+                        <lightning-datatable
+                            key-field="developerName"
+                            data={wizardRows}
+                            columns={wizardColumns}
+                            hide-checkbox-column
+                            onrowaction={handleWizardRowAction}
+                        ></lightning-datatable>
+                    </div>
+                </lightning-tab>
+                <lightning-tab label="Dependency values">
+                    <div class="slds-p-around_small">
+                        <lightning-button label="New dependency row" onclick={newDependency} class="slds-m-bottom_small"></lightning-button>
+                        <lightning-datatable
+                            key-field="developerName"
+                            data={filteredDependencies}
+                            columns={dependencyColumns}
+                            hide-checkbox-column
+                            onrowaction={handleDependencyRowAction}
+                        ></lightning-datatable>
+                    </div>
+                </lightning-tab>
+                <lightning-tab label="Main stage values">
+                    <div class="slds-p-around_small">
+                        <lightning-button label="New main stage row" onclick={newMainStage} class="slds-m-bottom_small"></lightning-button>
+                        <lightning-datatable
+                            key-field="developerName"
+                            data={filteredMainStages}
+                            columns={mainStageColumns}
+                            hide-checkbox-column
+                            onrowaction={handleMainStageRowAction}
+                        ></lightning-datatable>
+                    </div>
+                </lightning-tab>
+                <lightning-tab label="Stage overrides">
+                    <div class="slds-p-around_small">
+                        <lightning-button label="New stage override" onclick={newOverride} class="slds-m-bottom_small"></lightning-button>
+                        <lightning-datatable
+                            key-field="developerName"
+                            data={filteredOverrides}
+                            columns={overrideColumns}
+                            hide-checkbox-column
+                            onrowaction={handleOverrideRowAction}
+                        ></lightning-datatable>
+                    </div>
+                </lightning-tab>
+            </lightning-tabset>
+            </template>
+
+            <template if:true={showWizardEditor}>
+            <div class="slds-p-around_medium">
+                <lightning-button label="Back to list" onclick={closeEditor} class="slds-m-bottom_medium"></lightning-button>
+                <h2 class="slds-text-heading_small slds-m-bottom_small">Path wizard configuration (CMDT)</h2>
+                <lightning-layout multiple-rows>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Developer name"
+                            value={draft.developerName}
+                            data-field="developerName"
+                            onchange={handleDraftText}
+                            required
+                            disabled={devNameLocked}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Master label (max 40)"
+                            value={draft.masterLabel}
+                            data-field="masterLabel"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Object API name"
+                            value={draft.objectApiName}
+                            data-field="objectApiName"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Record type developer name"
+                            value={draft.recordTypeDeveloperName}
+                            data-field="recordTypeDeveloperName"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Path field API name"
+                            value={draft.pathFieldApiName}
+                            data-field="pathFieldApiName"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Dependency field API name"
+                            value={draft.dependencyFieldApiName}
+                            data-field="dependencyFieldApiName"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Modal title"
+                            value={draft.modalTitle}
+                            data-field="modalTitle"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Path field label in modal"
+                            value={draft.pathFieldModalLabel}
+                            data-field="pathFieldModalLabel"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Dependency field label"
+                            value={draft.dependencyFieldLabel}
+                            data-field="dependencyFieldLabel"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Lead program object API name"
+                            value={draft.leadProgramObjectApiName}
+                            data-field="leadProgramObjectApiName"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Lead program parent lookup API"
+                            value={draft.leadProgramParentLookupApi}
+                            data-field="leadProgramParentLookupApi"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Program lookup API"
+                            value={draft.programLookupApi}
+                            data-field="programLookupApi"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Program relationship name"
+                            value={draft.programRelationshipName}
+                            data-field="programRelationshipName"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Program code field API"
+                            value={draft.programCodeFieldApi}
+                            data-field="programCodeFieldApi"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Show path field in modal"
+                            checked={draft.showPathFieldInModal}
+                            data-field="showPathFieldInModal"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Dependency multi-select"
+                            checked={draft.dependencyMultiSelect}
+                            data-field="dependencyMultiSelect"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Allow empty lead programs"
+                            checked={draft.allowEmptyLeadPrograms}
+                            data-field="allowEmptyLeadPrograms"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Dependency required"
+                            checked={draft.dependencyRequired}
+                            data-field="dependencyRequired"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Use client record type picklist (path)"
+                            checked={draft.useClientRecordTypePicklist}
+                            data-field="useClientRecordTypePicklist"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Program from root record (not junction)"
+                            checked={draft.programFromRootRecord}
+                            data-field="programFromRootRecord"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                </lightning-layout>
+                <div class="editor-actions">
+                    <lightning-button variant="brand" label="Save (deploy)" onclick={saveWizardDraft}></lightning-button>
+                    <lightning-button label="Cancel" onclick={closeEditor}></lightning-button>
+                </div>
+            </div>
+            </template>
+
+            <template if:true={showDependencyEditor}>
+            <div class="slds-p-around_medium">
+                <lightning-button label="Back to list" onclick={closeEditor} class="slds-m-bottom_medium"></lightning-button>
+                <h2 class="slds-text-heading_small slds-m-bottom_small">Dependency value (CMDT)</h2>
+                <lightning-layout multiple-rows>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Developer name"
+                            value={draft.developerName}
+                            data-field="developerName"
+                            onchange={handleDraftText}
+                            required
+                            disabled={devNameLocked}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Master label (max 40)"
+                            value={draft.masterLabel}
+                            data-field="masterLabel"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Path config developer name (wizard row)"
+                            value={draft.pathConfigDeveloperName}
+                            data-field="pathConfigDeveloperName"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Program code (blank = any)"
+                            value={draft.programCode}
+                            data-field="programCode"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Path stage value API (blank = all stages)"
+                            value={draft.pathStageValueApi}
+                            data-field="pathStageValueApi"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Value API (picklist value)"
+                            value={draft.valueApi}
+                            data-field="valueApi"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Display label"
+                            value={draft.label}
+                            data-field="label"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="number"
+                            label="Sort order"
+                            value={draft.sortOrder}
+                            data-field="sortOrder"
+                            onchange={handleDraftNumber}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Active"
+                            checked={draft.isActive}
+                            data-field="isActive"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                </lightning-layout>
+                <div class="editor-actions">
+                    <lightning-button variant="brand" label="Save (deploy)" onclick={saveDependencyDraft}></lightning-button>
+                    <lightning-button label="Cancel" onclick={closeEditor}></lightning-button>
+                </div>
+            </div>
+            </template>
+
+            <template if:true={showMainStageEditor}>
+            <div class="slds-p-around_medium">
+                <lightning-button label="Back to list" onclick={closeEditor} class="slds-m-bottom_medium"></lightning-button>
+                <h2 class="slds-text-heading_small slds-m-bottom_small">Main stage value (CMDT)</h2>
+                <p class="slds-text-body_small slds-m-bottom_small">
+                    When at least one row matches the lead&rsquo;s program codes, the path shows <strong>only</strong> these main
+                    stages (API values), in sort order. Leave this table empty to use the full Status picklist (minus stage
+                    overrides). Use the same API values as on Lead Status.
+                </p>
+                <lightning-layout multiple-rows>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Developer name"
+                            value={draft.developerName}
+                            data-field="developerName"
+                            onchange={handleDraftText}
+                            required
+                            disabled={devNameLocked}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Master label (max 40)"
+                            value={draft.masterLabel}
+                            data-field="masterLabel"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Path config developer name (wizard row)"
+                            value={draft.pathConfigDeveloperName}
+                            data-field="pathConfigDeveloperName"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Program code"
+                            value={draft.programCode}
+                            data-field="programCode"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Path stage value API (Lead Status API)"
+                            value={draft.pathStageValueApi}
+                            data-field="pathStageValueApi"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Display label (optional override)"
+                            value={draft.label}
+                            data-field="label"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="number"
+                            label="Sort order"
+                            value={draft.sortOrder}
+                            data-field="sortOrder"
+                            onchange={handleDraftNumber}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Active"
+                            checked={draft.isActive}
+                            data-field="isActive"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                </lightning-layout>
+                <div class="editor-actions">
+                    <lightning-button variant="brand" label="Save (deploy)" onclick={saveMainStageDraft}></lightning-button>
+                    <lightning-button label="Cancel" onclick={closeEditor}></lightning-button>
+                </div>
+            </div>
+            </template>
+
+            <template if:true={showOverrideEditor}>
+            <div class="slds-p-around_medium">
+                <lightning-button label="Back to list" onclick={closeEditor} class="slds-m-bottom_medium"></lightning-button>
+                <h2 class="slds-text-heading_small slds-m-bottom_small">Stage override (CMDT)</h2>
+                <lightning-layout multiple-rows>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Developer name"
+                            value={draft.developerName}
+                            data-field="developerName"
+                            onchange={handleDraftText}
+                            required
+                            disabled={devNameLocked}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Master label (max 40)"
+                            value={draft.masterLabel}
+                            data-field="masterLabel"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="12" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Path config developer name (wizard row)"
+                            value={draft.pathConfigDeveloperName}
+                            data-field="pathConfigDeveloperName"
+                            onchange={handleDraftText}
+                            required
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Program code (blank = any program)"
+                            value={draft.programCode}
+                            data-field="programCode"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            label="Path stage value API (blank = all stages)"
+                            value={draft.pathStageValueApi}
+                            data-field="pathStageValueApi"
+                            onchange={handleDraftText}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Show on path"
+                            checked={draft.showOnPath}
+                            data-field="showOnPath"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="horizontal-small" class="slds-p-bottom_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Open sub-status modal"
+                            checked={draft.openSubStatusModal}
+                            data-field="openSubStatusModal"
+                            onchange={handleDraftCheckbox}
+                        ></lightning-input>
+                    </lightning-layout-item>
+                </lightning-layout>
+                <div class="editor-actions">
+                    <lightning-button variant="brand" label="Save (deploy)" onclick={saveOverrideDraft}></lightning-button>
+                    <lightning-button label="Cancel" onclick={closeEditor}></lightning-button>
+                </div>
+            </div>
+            </template>
+        </template>
+    </lightning-card>
+</template>

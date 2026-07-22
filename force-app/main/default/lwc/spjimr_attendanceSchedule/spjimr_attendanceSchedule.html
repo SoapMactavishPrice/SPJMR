@@ -1,0 +1,512 @@
+<!--
+  Attendance & Schedule - Student timetable and session details.
+  When showLayout is true, renders with same navbar and left sidebar as Student Profile Dashboard.
+-->
+<template>
+    <template if:true={showLayout}>
+        <div class="dashboard-container">
+            <div class="dashboard-body">
+                <main class={mainContentClass}>
+                    <div class="main-container">
+                        <div class="header-container">
+                            <div>
+                                <h2 class="dxp-text-heading-large">Academic Scheduler</h2>
+                                <c-spjimr_student-info-header class="slds-m-top--small"></c-spjimr_student-info-header>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="student-details-wrapper">
+                        <div class="student-details-header-bar">
+                            <h2 class="student-details-header-text dxp-text-heading-xxsmall">Academic Scheduler</h2>
+                        </div>
+
+
+                        <!-- <div class="slds-m-top--large studentDetailsCard">
+                        <article class="slds-card article-card">
+                            <div class="slds-card__body slds-card__body_inner slds-m-top--x-large"> -->
+
+
+
+
+
+                        <div class="slds-m-top--large studentDetailsCard article-card">
+                            <div class="schedule-container schedule-container-embedded">
+                                <div class="schedule-toolbar">
+                                    <div class="view-tabs">
+                                        <button class={dayTabClass} onclick={handleDayView}>Day</button>
+                                        <button class={weekTabClass} onclick={handleWeekView}>Week</button>
+                                        <button class={monthTabClass} onclick={handleMonthView}>Month</button>
+                                        <button class={yearTabClass} onclick={handleYearView}>Year</button>
+                                    </div>
+                                    <div class="toolbar-right">
+                                        <div class="session-filter">
+                                            <label class="session-filter-label">Session</label>
+                                            <select class="session-select" onchange={handleSessionTypeChange}>
+                        <template for:each={sessionTypeOptionsWithSelected} for:item="opt">
+                            <option key={opt.value} value={opt.value} selected={opt.selected}>{opt.label}</option>
+                        </template>
+                    </select>
+                                        </div>
+                                        <div class="nav-buttons">
+                                            <button type="button" class="nav-arrow" onclick={handlePrev} title="Previous">‹</button>
+                                            <span class="date-range-label">{formattedDateRange}</span>
+                                            <button type="button" class="nav-arrow" onclick={handleNext} title="Next">›</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <template if:true={isLoading}>
+                                    <div class="schedule-loading">Loading schedule…</div>
+                                </template>
+
+                                <template if:false={isLoading}>
+                                    <div class="schedule-content">
+                                        <template if:true={showNoSessions}>
+                                            <div class="no-sessions-banner">No sessions scheduled for the selected
+                                                period.
+                                            </div>
+                                        </template>
+                                        <!-- Week / Day view: time grid -->
+                                        <template if:true={isWeekOrDayView}>
+                                            <div class={calendarGridClass} style={gridStyle}>
+                                                <div class="grid-header">
+                                                    <div class="time-col-header"></div>
+                                                    <template for:each={weekDays} for:item="day">
+                                                        <div key={day.key} class={day.headerClass}>
+                                                            <span class="day-name">{day.name}</span>
+                                                            <span class="day-date">{day.dateLabel}</span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <div class="grid-body">
+                                                    <template for:each={calendarRows} for:item="row">
+                                                        <div key={row.key} class="grid-row">
+                                                            <div class="time-slot">{row.label}</div>
+                                                            <template for:each={row.cells} for:item="cell">
+                                                                <div key={cell.dayKey} class="cell-slot">
+                                                                    <template for:each={cell.events} for:item="evt">
+                                                                        <!-- Event cell (hover + click) -->
+                                                                        <div key={evt.id} class={evt.eventClass}
+                                                                            data-id={evt.id} style={evt.eventStyle}
+                                                                            data-bg-color={evt.bgColorHex}
+                                                                            onclick={handleSessionClick}
+                                                                            onmouseenter={handleEventMouseEnter}
+                                                                            onmouseleave={handleEventMouseLeave}>
+                                                                            <span class="cell-session-title">{evt.courseName}</span>
+                                                                             <span class="cell-session-time">{evt.startTime} – {evt.endTime}</span>
+                                                                            <span class="cell-session-activity">{evt.instructorNames}</span>
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- Month view -->
+                                        <template if:true={isMonthView}>
+                                            <div class="month-view">
+                                                <div class="month-header">
+                                                    <template for:each={dayNamesShort} for:item="dn">
+                                                        <div key={dn} class="month-day-name">{dn}</div>
+                                                    </template>
+                                                </div>
+                                                <div class="month-weeks">
+                                                    <template for:each={monthWeeksData} for:item="week">
+                                                        <div key={week.key} class="month-week-row">
+                                                            <template for:each={week.days} for:item="md">
+                                                                <div key={md.key} class={md.cellClass}>
+                                                                    <div class="month-date-num">{md.dateNum}</div>
+                                                                    <div class="month-events">
+                                                                        <template for:each={md.events} for:item="ev">
+                                                                            <!-- SE-737U START: apply Division Color as inline background -->
+                                                                            <div key={ev.id} class={ev.eventClass}
+                                                                                data-id={ev.id}
+                                                                                style={ev.eventStyle}
+                                                                                data-bg-color={ev.bgColorHex}
+                                                                                onclick={handleSessionClick}
+                                                                                onmouseenter={handleEventMouseEnter}
+                                                                                onmouseleave={handleEventMouseLeave}>
+                                                                                {ev.courseName}
+                                                                            </div>
+                                                                            <!-- SE-737U END -->
+                                                                        </template>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- Year view: list by month -->
+                                        <template if:true={isYearView}>
+                                            <div class="year-view">
+                                                <template for:each={yearMonths} for:item="ym">
+                                                    <div key={ym.key} class="year-month-block">
+                                                        <h3 class="year-month-title">{ym.label}</h3>
+                                                        <ul class="year-session-list">
+                                                            <template for:each={ym.sessions} for:item="s">
+                                                                <!-- SE-737U START: apply Division Color as inline background -->
+                                                                <li key={s.id} class={s.eventClass} data-id={s.id}
+                                                                    style={s.eventStyle}
+                                                                    data-bg-color={s.bgColorHex}
+                                                                    onclick={handleSessionClick}
+                                                                    onmouseenter={handleEventMouseEnter}
+                                                                    onmouseleave={handleEventMouseLeave}>
+                                                                    <span class="year-session-date">{s.dateLabel}</span>
+                                                                    <span class="year-session-title">{s.courseName}</span>
+                                                                    <span class="year-session-time">{s.timeLabel}</span>
+                                                                </li>
+                                                                <!-- SE-737U END -->
+                                                            </template>
+                                                        </ul>
+                                                        <template if:true={ym.empty}>
+                                                            <p class="year-no-sessions">No sessions</p>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+
+                                <!-- Session Details Modal -->
+                                <template if:true={showDetailModal}>
+                                    <section class="modal-overlay" role="dialog" tabindex="-1" aria-modal="true"
+                                        aria-labelledby="session-detail-title">
+                                        <div class="modal-container" onclick={handleModalContainerClick}>
+                                            <div class="modal-header">
+                                                <h2 id="session-detail-title" class="modal-title">Session Details</h2>
+                                                <button type="button" class="modal-close" onclick={handleCloseDetailModal} aria-label="Close">×</button>
+                                            </div>
+                                            <template if:true={detailLoading}>
+                                                <div class="modal-body">Loading…</div>
+                                            </template>
+                                            <template if:false={detailLoading}>
+                                                <template if:true={sessionDetail}>
+                                                    <div class="modal-body">
+                                                        <h3 class="detail-session-name">{sessionDetail.title}</h3>
+                                                        <dl class="detail-list">
+                                                            <template if:true={sessionDetail.courseName}>
+                                                                <dt>Course</dt>
+                                                                <dd>{sessionDetail.courseName}</dd>
+                                                            </template>
+                                                            <template if:true={sessionDetail.instructorNames}>
+                                                                <dt>Faculty</dt>
+                                                                <dd>{sessionDetail.instructorNames}</dd>
+                                                            </template>
+                                                            <template if:true={sessionDetail.sessionDateFormatted}>
+                                                                <dt><span class="detail-icon">📅</span> Date</dt>
+                                                                <dd>{sessionDetail.sessionDateFormatted}</dd>
+                                                            </template>
+                                                            <template if:true={sessionDetail.startTime}>
+                                                                <dt><span class="detail-icon">🕐</span> Time</dt>
+                                                                <dd>{sessionDetail.startTime} – {sessionDetail.endTime}
+                                                                </dd>
+                                                            </template>
+                                                            <template if:true={sessionDetail.location}>
+                                                                <dt><span class="detail-icon location-outline-icon" aria-hidden="true"></span> Classroom</dt>
+                                                                <dd>{sessionDetail.location}</dd>
+                                                            </template>
+                                                            <template if:true={sessionDetail.url}>
+                                                                <dt>Url :</dt>
+                                                                <dd><a class="detail-url-link" target="_blank" rel="noopener noreferrer" href={sessionDetail.url}>{sessionDetail.url}</a></dd>
+                                                            </template>
+                                                        </dl>
+                                                        <template if:true={sessionDetail.description}>
+                                                            <h4 class="detail-section-title">Remarks / Description</h4>
+                                                            <p class="detail-description">{sessionDetail.description}
+                                                            </p>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                        </div>
+                                    </section>
+                                </template>
+                                <!-- <template if:true={showSessionHoverTooltip}>
+                                <div class="session-hover-tooltip" style={sessionHoverTooltipStyle} role="tooltip">
+                                    {sessionHoverTooltipLine}
+                                </div>
+                            </template> -->
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </template>
+    <template if:false={showLayout}>
+        <div class="schedule-container">
+            <!-- <div class="schedule-header-bar">
+                <h2 class="schedule-header-text">Timetable</h2>
+            </div> -->
+            <div class="schedule-toolbar">
+                <div class="view-tabs">
+                    <button class={dayTabClass} onclick={handleDayView}>Day</button>
+                    <button class={weekTabClass} onclick={handleWeekView}>Week</button>
+                    <button class={monthTabClass} onclick={handleMonthView}>Month</button>
+                    <button class={yearTabClass} onclick={handleYearView}>Year</button>
+                </div>
+                <div class="toolbar-right">
+                    <div class="session-filter">
+                        <label class="session-filter-label">Session</label>
+                        <select class="session-select" onchange={handleSessionTypeChange}>
+                        <template for:each={sessionTypeOptionsWithSelected} for:item="opt">
+                            <option key={opt.value} value={opt.value} selected={opt.selected}>{opt.label}</option>
+                        </template>
+                    </select>
+                    </div>
+                    <div class="nav-buttons">
+                        <button type="button" class="nav-arrow" onclick={handlePrev} title="Previous">‹</button>
+                        <span class="date-range-label">{formattedDateRange}</span>
+                        <button type="button" class="nav-arrow" onclick={handleNext} title="Next">›</button>
+                    </div>
+                </div>
+            </div>
+            <template if:true={isLoading}>
+                <div class="schedule-loading">Loading schedule…</div>
+            </template>
+            <template if:false={isLoading}>
+                <div class="schedule-content">
+                    <template if:true={showNoSessions}>
+                        <div class="no-sessions-banner">No sessions scheduled for the selected period.</div>
+                    </template>
+                    <template if:true={isWeekOrDayView}>
+                        <div class={calendarGridClass} style={gridStyle}>
+                            <div class="grid-header">
+                                <div class="time-col-header"></div>
+                                <template for:each={weekDays} for:item="day">
+                                    <div key={day.key} class={day.headerClass}>
+                                        <span class="day-name">{day.name}</span>
+                                        <span class="day-date">{day.dateLabel}</span>
+                                    </div>
+                                </template>
+                            </div>
+                            <!-- <div class="grid-body">
+                                <template for:each={calendarRows} for:item="row">
+                                    <div key={row.key} class="grid-row">
+                                        <div class="time-slot">{row.label}</div>
+                                        <template for:each={row.cells} for:item="cell">
+                                            <div key={cell.dayKey} class="cell-slot">
+                                                <template for:each={cell.events} for:item="evt">
+                                                    <div key={evt.id} class={evt.eventClass} data-id={evt.id}
+                                                        onclick={handleSessionClick} onmouseenter={showTooltip}
+                                                        onmouseleave={hideTooltip}>
+                                                        <span class="cell-session-title">{evt.courseName}</span>
+                                                        <span class="cell-session-activity">{evt.instructorNames}</span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div> -->
+                            <div class="grid-body">
+                                <template for:each={calendarRows} for:item="row">
+                                    <div key={row.key} class="grid-row">
+                                        <div class="time-slot">{row.label}</div>
+
+                                        <template for:each={row.cells} for:item="cell">
+                                            <div key={cell.dayKey} class="cell-slot">
+                                                <template for:each={cell.events} for:item="evt">
+                                                    <!-- Event cell (hover + click) -->
+                                                    <div key={evt.id} class={evt.eventClass} data-id={evt.id}
+                                                        style={evt.eventStyle} data-bg-color={evt.bgColorHex}
+                                                        onclick={handleSessionClick}
+                                                        onmouseenter={handleEventMouseEnter}
+                                                        onmouseleave={handleEventMouseLeave}>
+                                                        <span class="cell-session-title">{evt.courseName}</span>
+                                                        <span class="cell-session-time">{evt.startTime} – {evt.endTime}</span>
+                                                        <span class="cell-session-activity">{evt.instructorNames}</span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+
+
+                        </div>
+                    </template>
+                    <template if:true={isMonthView}>
+                        <div class="month-view">
+                            <div class="month-header">
+                                <template for:each={dayNamesShort} for:item="dn">
+                                    <div key={dn} class="month-day-name">{dn}</div>
+                                </template>
+                            </div>
+                            <div class="month-weeks">
+                                <template for:each={monthWeeksData} for:item="week">
+                                    <div key={week.key} class="month-week-row">
+                                        <template for:each={week.days} for:item="md">
+                                            <div key={md.key} class={md.cellClass}>
+                                                <div class="month-date-num">{md.dateNum}</div>
+                                                <div class="month-events">
+                                                                        <template for:each={md.events} for:item="ev">
+                                                                            <!-- SE-737U START: apply Division Color as inline background -->
+                                                                            <div key={ev.id} class={ev.eventClass} data-id={ev.id}
+                                                                                style={ev.eventStyle}
+                                                                                data-bg-color={ev.bgColorHex}
+                                                                                onclick={handleSessionClick}
+                                                                                onmouseenter={handleEventMouseEnter}
+                                                                                onmouseleave={handleEventMouseLeave}>
+                                                                            {ev.courseName}
+                                                                            </div>
+                                                                            <!-- SE-737U END -->
+                                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:true={isYearView}>
+                        <div class="year-view">
+                            <template for:each={yearMonths} for:item="ym">
+                                <div key={ym.key} class="year-month-block">
+                                    <h3 class="year-month-title">{ym.label}</h3>
+                                    <ul class="year-session-list">
+                                        <template for:each={ym.sessions} for:item="s">
+                                            <!-- SE-737U START: apply Division Color as inline background -->
+                                            <li key={s.id} class={s.eventClass} data-id={s.id}
+                                                style={s.eventStyle}
+                                                data-bg-color={s.bgColorHex}
+                                                onclick={handleSessionClick} onmouseenter={handleEventMouseEnter}
+                                                onmouseleave={handleEventMouseLeave}>
+                                                <span class="year-session-date">{s.dateLabel}</span>
+                                                <span class="year-session-title">{s.courseName}</span>
+                                                <span class="year-session-time">{s.timeLabel}</span>
+                                            </li>
+                                            <!-- SE-737U END -->
+                                        </template>
+                                    </ul>
+                                    <template if:true={ym.empty}>
+                                        <p class="year-no-sessions">No sessions</p>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <template if:true={showDetailModal}>
+                <section class="modal-overlay" role="dialog" tabindex="-1" aria-modal="true"
+                    aria-labelledby="session-detail-title-embed">
+                    <div class="modal-container" onclick={handleModalContainerClick}>
+                        <div class="modal-header">
+                            <h2 id="session-detail-title-embed" class="modal-title">Session Details</h2>
+                            <button type="button" class="modal-close" onclick={handleCloseDetailModal} aria-label="Close">×</button>
+                        </div>
+                        <template if:true={detailLoading}>
+                            <div class="modal-body">Loading…</div>
+                        </template>
+                        <template if:false={detailLoading}>
+                            <template if:true={sessionDetail}>
+                                <div class="modal-body">
+                                    <h3 class="detail-session-name">{sessionDetail.title}</h3>
+                                    <dl class="detail-list">
+                                        <template if:true={sessionDetail.courseName}>
+                                            <dt>Course</dt>
+                                            <dd>{sessionDetail.courseName}</dd>
+                                        </template>
+                                        <template if:true={sessionDetail.instructorNames}>
+                                            <dt>Faculty</dt>
+                                            <dd>{sessionDetail.instructorNames}</dd>
+                                        </template>
+                                        <template if:true={sessionDetail.sessionDateFormatted}>
+                                            <dt><span class="detail-icon">📅</span> Date</dt>
+                                            <dd>{sessionDetail.sessionDateFormatted}</dd>
+                                        </template>
+                                        <template if:true={sessionDetail.startTime}>
+                                            <dt><span class="detail-icon">🕐</span> Time</dt>
+                                            <dd>{sessionDetail.startTime} – {sessionDetail.endTime}</dd>
+                                        </template>
+                                        <template if:true={sessionDetail.location}>
+                                            <dt><span class="detail-icon">📍</span> Classroom</dt>
+                                            <dd>{sessionDetail.location}</dd>
+                                        </template>
+                                        <template if:true={sessionDetail.url}>
+                                            <dt>Url</dt>
+                                            <dd><a class="detail-url-link" target="_blank" rel="noopener noreferrer" href={sessionDetail.url}>{sessionDetail.url}</a></dd>
+                                        </template>
+                                    </dl>
+                                    <template if:true={sessionDetail.description}>
+                                        <h4 class="detail-section-title">Remarks / Description</h4>
+                                        <p class="detail-description">{sessionDetail.description}</p>
+                                    </template>
+
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                </section>
+            </template>
+        </div>
+    </template>
+
+    <!-- Global session hover details card (shown on hover for all views) -->
+    <template if:true={showHoverCard}>
+        <section class="hover-session-card" style={hoverCardStyle} role="dialog" aria-label="Session details"
+            onmouseenter={handleHoverCardMouseEnter}
+            onmouseleave={handleHoverCardMouseLeave}>
+            <header class="hover-session-card-header">
+                <h2 class="hover-session-card-title">Session Details</h2>
+            </header>
+
+            <div class="hover-session-card-body">
+                <h3 class="hover-session-card-session-name">{hoveredEventData.title}</h3>
+                <p class="hover-session-card-instructor">Course : {hoveredEventData.courseName}</p>
+                <p class="hover-session-card-instructor">Faculty : {hoveredEventData.instructorNames}</p>
+
+                <div class="hover-session-card-meta">
+                    <div class="hover-session-meta-row">
+                        <span class="hover-session-meta-icon">📅</span>
+                        <div class="hover-session-meta-text">
+                            <div>{hoveredEventData.sessionDateFormatted}</div>
+                        </div>
+                    </div>
+                     <div class="hover-session-meta-row">
+                        <span class="hover-session-meta-icon">🕒</span>
+                        <div class="hover-session-meta-text">
+                            <div>{hoveredEventData.startTime} – {hoveredEventData.endTime}</div>
+                        </div>
+                    </div>
+                    <template if:true={hoveredEventData.location}>
+                        <div class="hover-session-meta-row">
+                            <span class="hover-session-meta-icon location-outline-icon" aria-hidden="true"></span>
+                            <div class="hover-session-meta-text">
+                                <div>{hoveredEventData.location}</div>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:true={hoveredEventData.url}>
+                        <div class="hover-session-meta-row hover-session-url-row">
+                            <span class="hover-session-meta-icon">Url : </span>
+                            <template if:true={hoverCardUrlClickable}>
+                                <a class="hover-session-url-link" target="_blank" rel="noopener noreferrer" href={hoveredEventData.url}>{hoveredEventData.url}</a>
+                            </template>
+                            <template if:false={hoverCardUrlClickable}>
+                                <span class="hover-session-url-value">{hoveredEventData.url}</span>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <template if:true={hoveredEventData.description}>
+                    <div class="hover-session-remarks">
+                        <div class="hover-session-remarks-title">Remarks / Description</div>
+                        <p class="hover-session-remarks-text">{hoveredEventData.description}</p>
+                    </div>
+                </template>
+            </div>
+        </section>
+    </template>
+</template>

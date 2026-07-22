@@ -1,0 +1,106 @@
+<template>
+        <lightning-card title="Lead Contacts" icon-name="standard:contact">
+            <lightning-button label="New" slot="actions" onclick={handleLeadConCreate}></lightning-button>
+            <template lwc:if={showTable}>
+                
+           
+                <lightning-datatable
+                        key-field="leadConId"
+                        data={data}
+                        columns={columns}
+                        hide-checkbox-column
+                        row-number-offset={rowOffset}>
+                </lightning-datatable>
+            </template>
+            <template lwc:else>
+                        <lightning-card title="New Lead Contact">
+                            <div class="slds-p-around_medium">
+                                <lightning-record-edit-form
+                                    object-api-name="Lead_Contact__c"
+                                    onsuccess={handleSuccess}
+                                    onerror={handleError}
+                                    onsubmit={handleSubmit}>
+
+                                    <lightning-messages></lightning-messages>
+
+                                  <div class="slds-grid slds-wrap slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                    <lightning-input-field
+                                        field-name="Lead__c"
+                                        value={recordId}
+                                        >
+                                    </lightning-input-field>
+                                    </div>
+                                    
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="Name"></lightning-input-field>
+                                        </div>
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="Last_Name__c"></lightning-input-field>
+                                        </div>
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="Designation__c"></lightning-input-field>
+                                        </div>
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="Department__c"></lightning-input-field>
+                                        </div>
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="Email__c"></lightning-input-field>
+                                        </div>
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="Phone__c"></lightning-input-field>
+                                        </div>
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="MobilePhone__c"></lightning-input-field>
+                                        </div>
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input-field field-name="LinkedIn__c"></lightning-input-field>
+                                        </div>
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-combobox
+                                                name="leadSource"
+                                                label="Lead Source"
+                                                value={leadSource}
+                                                options={leadSourceOptions}
+                                                onchange={handleLeadSourceChange}>
+                                            </lightning-combobox>
+                                        </div>
+
+                                        <template if:true={showEventRemarks}>
+                                        <div class="slds-col slds-size_2-of-2">
+                                            <lightning-input-field field-name="Event_Remarks__c"></lightning-input-field>
+                                        </div>
+                                    </template>
+
+                                    </div>
+
+                                    <div class="slds-m-top_medium">
+                                        <lightning-button
+                                            type="submit"
+                                            variant="brand"
+                                            label="Save">
+                                        </lightning-button>
+
+                                        <lightning-button
+                                            class="slds-m-left_small"
+                                            label="Cancel"
+                                            onclick={handleCancel}>
+                                        </lightning-button>
+                                    </div>
+
+                                </lightning-record-edit-form>
+                            </div>
+                        </lightning-card>
+            </template>
+        </lightning-card>
+ 
+</template>

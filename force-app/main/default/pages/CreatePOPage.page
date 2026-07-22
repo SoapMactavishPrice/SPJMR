@@ -1,0 +1,11 @@
+<apex:page controller="CreatePO" standardStylesheets="false" action="{!Save}">
+
+    <script type="text/javascript">
+        //setTimeout(function() { $('#pgmessagesid').fadeOut('fast'); }, 2000);
+    </script>
+
+    <div id="pgmessagesid" style="width: fit-content;">
+        <apex:pagemessages />
+    </div>
+
+</apex:page>

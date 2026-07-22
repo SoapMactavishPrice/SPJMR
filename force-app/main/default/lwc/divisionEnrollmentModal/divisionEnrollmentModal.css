@@ -1,0 +1,11 @@
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #f3f2f2;
+}
+
+.table-scroll-container {
+    max-height: 400px;
+    overflow-y: auto;
+}

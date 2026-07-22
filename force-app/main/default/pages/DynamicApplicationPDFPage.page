@@ -1,0 +1,38 @@
+<apex:page standardController="Application__c"
+           extensions="ApplicationFormPDFController"
+           renderAs="pdf"
+           showHeader="false"
+           applyBodyTag="false">
+
+<html>
+<head>
+    <title>Application PDF - {!application.Name}</title>
+</head>
+
+<body style="font-family:Arial; font-size:12px;">
+    
+    <h1 style="font-size:20px; margin-bottom:20px;">
+        Application - {!application.Name}
+    </h1>
+
+    <apex:repeat value="{!sections}" var="sec">
+        <h2 style="margin-top:25px; font-size:18px; font-weight:bold;">
+            {!sec.sectionName}
+        </h2>
+
+        <table border="1" cellpadding="5" cellspacing="0" width="100%">
+            <apex:repeat value="{!sec.rows}" var="r">
+                <tr>
+                    <apex:repeat value="{!r.cells}" var="c">
+                        <th>{!c.label}</th>
+                        <td>{!c.value}</td>
+                    </apex:repeat>
+                </tr>
+            </apex:repeat>
+        </table>
+    </apex:repeat>
+
+</body>
+</html>
+
+</apex:page>

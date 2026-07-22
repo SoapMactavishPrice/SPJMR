@@ -1,0 +1,84 @@
+<template>
+    <template lwc:if={showSpinner}>
+        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+    </template>
+    <template lwc:elseif={isPresent}>
+        <template lwc:if={isLoaded}>
+            <div class="icon-row">
+                <template for:each={stepList} for:item="step">
+                    <div class="icon-wrapper" key={step.name} data-name={step.name} onclick={handleStepClick}>
+                        <button class="step-btn" data-name={step.name}>
+                        </button>
+                        <div lwc:dom="manual" class="icon-slot" data-name={step.name}></div>
+                        <div class="step-label">{step.label}</div>
+                    </div>
+                </template>
+            </div>
+            <div class="current-section">
+                <div class="progress-indicator">
+                    <div class="progress-wrapper">
+                        <lightning-progress-bar value={progress} size="medium">
+                        </lightning-progress-bar>
+                    </div>
+                </div>
+                <template lwc:if={isPayment}>
+                    <c-af-payments-container-g-m-p application-id={applicationId}></c-af-payments-container-g-m-p>
+                </template>
+                <template lwc:elseif={currentStepCtor}>
+                    <lwc:component
+                        lwc:is={currentStepCtor}
+                        lwc:ref="activeStepComponent"
+                        application-id={applicationId}>
+                    </lwc:component>
+                </template>
+            </div>
+            <div class="navigate-form">
+                <div class="left-actions">
+                    <lightning-button
+                        class="prev-btn"
+                        label="Previous"
+                        onclick={previousStage}
+                        disabled={isPreviousDisabled}>
+                    </lightning-button>
+
+                    <template lwc:if={currentStepCtor}>
+                        <lightning-button
+                            class="save-exit-btn"
+                            label="Save & Exit"
+                            onclick={saveAndExit}
+                            disabled={isNextDisabled}>
+                        </lightning-button>
+                    </template>
+                </div>
+
+                <lightning-button
+                    class="next-btn"
+                    label={strNextLabel}
+                    onclick={nextStage}
+                    disabled={isNextDisabled}>
+                </lightning-button>
+            </div>
+        </template>
+    </template>
+    <template lwc:else>
+        <template lwc:if={showError}>
+            <div class="not-allowed-container">
+                <div class="not-allowed-card">
+
+                    <lightning-icon icon-name="utility:error" alternative-text="Access Denied" size="large"
+                        class="error-icon">
+                    </lightning-icon>
+
+                    <h2 class="error-heading">
+                        {errorHeading}
+                    </h2>
+
+                    <p class="error-message">
+                        {errorMessage}
+                    </p>
+
+                </div>
+            </div>
+        </template>
+    </template>
+</template>

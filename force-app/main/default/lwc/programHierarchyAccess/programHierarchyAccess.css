@@ -1,0 +1,155 @@
+:host {
+    --share-accent: #5b2f92;
+    --share-accent-hover: #4a2677;
+    --share-radius-pill: 1.25rem;
+}
+
+.share-shell {
+    padding: 0.5rem 1rem 1rem;
+    font-family: var(--lwc-fontFamily, 'Salesforce Sans', Arial, sans-serif);
+}
+
+.share-shell__title {
+    margin: 0 0 1.25rem;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.share-shell__field {
+    margin-bottom: 1rem;
+}
+
+.share-shell__label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.share-shell__label_required::before {
+    content: '* ';
+    color: #ea001e;
+}
+
+.share-shell__summary {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.share-shell__edit-link {
+    margin-left: 0.25rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--share-accent);
+    font-size: 0.8125rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.share-shell__edit-link:hover {
+    color: var(--share-accent-hover);
+}
+
+.share-shell__body {
+    position: relative;
+    min-height: 4rem;
+    max-height: 14rem;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.share-shell__user-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.share-shell__user-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--lwc-colorBorder, #e5e5e5);
+}
+
+.share-shell__user-row:last-child {
+    border-bottom: none;
+}
+
+.share-shell__user-meta {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.share-shell__user-name {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextDefault, #181818);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.share-shell__user-name:hover {
+    text-decoration: underline;
+    color: var(--share-accent);
+}
+
+.share-shell__user-username {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.share-shell__empty {
+    margin: 0;
+    padding: 1rem 0;
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.share-shell__alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.25rem;
+    background: #fef3f2;
+    border: 1px solid #ea001e;
+    font-size: 0.8125rem;
+    color: #8e030f;
+}
+
+.share-shell__footer {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+}
+
+/* Pill-style footer buttons (native Share modal look) */
+.share-shell__footer lightning-button.share-shell__btn-cancel {
+    --slds-c-button-radius-border: var(--share-radius-pill);
+    --slds-c-button-neutral-color-border: var(--share-accent);
+    --slds-c-button-text-color: var(--share-accent);
+}
+
+.share-shell__footer lightning-button.share-shell__btn-save {
+    --slds-c-button-brand-color-background: var(--share-accent);
+    --slds-c-button-brand-color-background-hover: var(--share-accent-hover);
+    --slds-c-button-brand-color-border: var(--share-accent);
+    --slds-c-button-brand-color-border-hover: var(--share-accent-hover);
+    --slds-c-button-radius-border: var(--share-radius-pill);
+}

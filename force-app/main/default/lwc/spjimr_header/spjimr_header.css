@@ -1,0 +1,349 @@
+.top-navbar {
+    background-color: #F58220;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    position: relative;
+}
+
+.navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
+    padding: 0 20px;
+    height: 100%;
+}
+.logo-container {
+    display: flex;
+    background-color: #ffffff;
+    height: 60px;
+}
+.navbar-three-dots {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    height: 100%;
+}
+
+.three-dots-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.three-dots-button:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.three-dots-icon {
+    --sds-c-icon-color-foreground-default: #000000;
+}
+/* User Profile Section */
+.navbar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Profile upload window bell (before user icon) */
+.notification-bell-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.bell-button {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    transition: background-color 0.2s;
+}
+
+.bell-button:hover,
+.bell-button:focus-visible {
+    background-color: rgba(255, 255, 255, 0.2);
+    outline: none;
+}
+
+.bell-icon {
+    --sds-c-icon-color-foreground-default: #000000;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    background-color: #c23934;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px #f58220;
+    pointer-events: none;
+}
+
+@keyframes notification-badge-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.35);
+        opacity: 0.9;
+    }
+}
+
+.notification-badge--pulse {
+    animation: notification-badge-pulse 1.5s ease-in-out infinite;
+}
+
+.notification-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 260px;
+    max-width: 320px;
+    padding: 0.75rem 1rem;
+    background: #ffffff;
+    color: #181818;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    font-size: 13px;
+    line-height: 1.45;
+    z-index: 10001;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.notification-bell-wrap:hover .notification-popover,
+.notification-popover.notification-popover--open {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.notification-popover__text {
+    margin: 0;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.user-profile:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.user-icon {
+    --sds-c-icon-color-foreground-default: #531F75;
+    background-color: #531F75;
+    border-radius: 50%;
+}
+
+.header-profile-photo {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center center;
+    flex-shrink: 0;
+    border: 2px solid rgba(83, 31, 117, 0.35);
+    background-color: #e0e0e0;
+}
+
+.user-name {
+    color: #000000;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.dropdown-icon {
+    --sds-c-icon-color-foreground-default: #000000;
+}
+
+/* ── Portal Notifications Bell ─────────────────────────────────────────── */
+.notif-bell-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.notif-bell-btn {
+    position: relative;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    transition: background-color 0.2s;
+}
+
+.notif-bell-btn:hover,
+.notif-bell-btn:focus-visible {
+    background-color: rgba(255, 255, 255, 0.2);
+    outline: none;
+}
+
+.notif-bell-btn--active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.notif-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 16px;
+    height: 16px;
+    background-color: #c23934;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px #f58220;
+    pointer-events: none;
+    font-size: 9px;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+}
+
+.notif-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    background: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    z-index: 10001;
+    overflow: hidden;
+}
+
+.notif-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e8e8e8;
+}
+
+.notif-panel__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #181818;
+}
+
+.notif-panel__mark-all {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: #0070d2;
+    padding: 0;
+}
+
+.notif-panel__mark-all:hover {
+    text-decoration: underline;
+}
+
+.notif-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.notif-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f4f4f4;
+    transition: background-color 0.15s;
+}
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.notif-item:hover {
+    background-color: #f9f9f9;
+}
+
+.notif-item--unread {
+    border-left: 3px solid #f58220;
+    padding-left: 13px;
+    background-color: #fff9f4;
+}
+
+.notif-item--unread:hover {
+    background-color: #fef3e8;
+}
+
+.notif-item__title {
+    margin: 0 0 3px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #181818;
+    overflow-wrap: anywhere;
+    word-wrap: break-word;
+}
+
+.notif-item__body {
+    margin: 0 0 4px;
+    font-size: 12px;
+    color: #444444;
+    /* line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; */
+    line-height: 1.45;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-wrap: break-word;
+}
+
+.notif-item__time {
+    margin: 0;
+    font-size: 11px;
+    color: #888888;
+}
+
+.notif-panel__empty {
+    padding: 24px 16px;
+    text-align: center;
+    font-size: 13px;
+    color: #888888;
+    margin: 0;
+}
+/* ── End Portal Notifications Bell ──────────────────────────────────────── */

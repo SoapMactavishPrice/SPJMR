@@ -1,0 +1,362 @@
+<template>
+    <lightning-button label="Preview B2C Form" onclick={handleB2CPreview}></lightning-button>
+    <template lwc:if={showB2C}>
+        <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="b2b-lead-title">
+            <div class="modal-container">
+
+                <header class="modal-header">
+                    <h2 id="b2b-lead-title" class="modal-title">
+                        {modalTitle}
+                    </h2>
+                    <button type="button" class="modal-close" onclick={handleCancel} aria-label="Close">
+                        ×
+                    </button>
+                </header>
+
+                <div class="modal-body">
+                    <div class="scroll-container">
+                        <template if:true={errorMessage}>
+                            <div class="slds-m-bottom_medium slds-theme_error slds-p-around_small error-box">
+                                {errorMessage}
+                            </div>
+                        </template>
+
+                        <div class="form-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:contact" size="small"
+                                    class="slds-m-right_x-small"></lightning-icon>
+                                Lead Information
+                            </h3>
+
+                            <div class="slds-form slds-form_stacked section-body">
+
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input name="firstName" label="First Name" type="text"
+                                            value={firstName} onchange={handleInputChange}
+                                            placeholder="Enter First Name" required>
+                                        </lightning-input>
+                                    </div>
+
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input name="lastName" label="Last Name" type="text" value={lastName}
+                                            onchange={handleInputChange} placeholder="Enter Last Name" required>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input name="email" label="Email" type="email" value={email}
+                                            onchange={handleInputChange} placeholder="Enter Email" required>
+                                        </lightning-input>
+                                    </div>
+
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input name="mobile" label="Mobile Phone" type="tel" value={mobile}
+                                            onchange={handleInputChange} placeholder="Enter Mobile Number" required>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input name="age" label="Age" type="number" value={age} min="0"
+                                            max="99" onchange={handleInputChange} placeholder="Enter the Age" required>
+                                        </lightning-input>
+                                    </div>
+                                     <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input name="partnerCompany" label="SPJIMR Partner Company" 
+                                        type="text" value={partnerCompany} onchange={handleInputChange} placeholder="Enter SPJIMR Partner Company">
+                                        </lightning-input>
+                                    </div>
+
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+
+                                    <!-- Country -->
+                                    <div class="slds-col slds-size_1-of-3">
+                                        <lightning-combobox name="country" label="Country" options={countryOptions}
+                                            value={country} onchange={handleComboChange} required>
+                                        </lightning-combobox>
+                                    </div>
+
+                                    <!-- State -->
+                                    <div class="slds-col slds-size_1-of-3">
+                                        <template lwc:if={isCountrySelected}>
+                                            <lightning-combobox name="state" label="State" options={stateOptions}
+                                                value={state} onchange={handleComboChange} required>
+                                            </lightning-combobox>
+                                        </template>
+                                    </div>
+
+                                    <!-- City -->
+                                    <div class="slds-col slds-size_1-of-3">
+                                        <template lwc:if={isStateSelected}>
+                                            <lightning-combobox name="city" label="City" options={cityOptions}
+                                                value={city} onchange={handleComboChange} required>
+                                            </lightning-combobox>
+                                        </template>
+                                    </div>
+                                    
+                                </div>
+
+                                <div class="slds-grid slds-gutters slds-m-top_medium">
+
+    <div class="slds-col slds-size_1-of-2">
+        <lightning-input
+            type="text"
+            label="Source"
+            name="source"
+            value={source}
+            onchange={handleInputChange}
+            placeholder="Enter Source"
+            required>
+        </lightning-input>
+    </div>
+
+    <div class="slds-col slds-size_1-of-2">
+        <lightning-record-picker
+            label="Campaign"
+            placeholder="Search Campaign"
+            object-api-name="Campaign"
+            value={selectedCampaignId}
+            onchange={handleCampaignChange}>
+        </lightning-record-picker>
+    </div>
+
+</div>
+
+
+
+
+
+                                <div class="slds-grid slds-gutters slds-m-top_medium">
+
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox name="workingProfessional"
+                                            label="Are you a working Professional?" options={yesNoOptions}
+                                            value={isWorkingProfessional} onchange={handleComboChange} required>
+                                        </lightning-combobox>
+                                    </div>
+
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox name="graduationStatus"
+                                            label="Have You Completed Your Graduation?" options={yesNoOptions}
+                                            value={graduationStatus} onchange={handleComboChange} required>
+                                        </lightning-combobox>
+                                    </div>
+
+                                </div>
+
+                                <template lwc:if={showCompanySection}>
+                                    <div class="form-section slds-m-top_medium">
+                                        <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                            Company Information
+                                        </h3>
+
+                                        <div class="slds-grid slds-gutters">
+                                            <div class="slds-col slds-size_1-of-2">
+                                                <lightning-input name="organization" label="Organization" type="text"
+                                                    value={organization} onchange={handleInputChange}
+                                                    placeholder="Enter Current or last Organization">
+                                                </lightning-input>
+                                            </div>
+
+                                            <div class="slds-col slds-size_1-of-2">
+                                                <lightning-input name="designation" label="Current Designation"
+                                                    type="text" value={designation} onchange={handleInputChange}
+                                                    placeholder="Enter Current Designation">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+
+                                        <div class="slds-grid slds-gutters">
+                                            <div class="slds-col slds-size_1-of-3">
+                                                <lightning-input name="workExpYears" label="Total Years of Work Experience" type="number"
+                                                    value={workExpYears} onchange={handleInputChange} min="0" max="99"
+                                                    placeholder="Total Years of Work Experience">
+                                                </lightning-input>
+                                            </div>
+
+                                            
+                                        </div>
+                                    </div>
+                                </template>
+
+                            </div>
+                        </div>
+                        <template lwc:if={showGraduationCompleted}>
+                            <div class="form-section slds-m-top_medium">
+                                <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                    Graduation Details
+                                </h3>
+
+                                <div class="slds-form slds-form_stacked section-body">
+                                    <div class="slds-grid slds-gutters">
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input name="college" label="College" type="text" value={college}
+                                                onchange={handleInputChange} placeholder="Enter College Name">
+                                            </lightning-input>
+                                        </div>
+
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-input name="yearOfGraduation" label="Year of Graduation"
+                                                type="number" value={yearOfGraduation} onchange={handleInputChange}
+                                                min="1900" max="2100" placeholder="Enter Year of Graduation">
+                                            </lightning-input>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+
+                        <template lwc:if={showCurrentlyStudying}>
+                            <div class="form-section slds-m-top_medium">
+                                <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                    Education Details
+                                </h3>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input name="currentlyStudyingIn" label="Currently Studying In"
+                                            type="text" value={currentlyStudyingIn} onchange={handleInputChange}>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <div class="form-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                Programme Selection
+                            </h3>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <div class="program-selection-container slds-m-bottom_medium">
+                                    <div class="slds-grid slds-gutters slds-grid_vertical-align-end">
+                                        <div class="slds-col slds-size_2-of-3">
+                                            <lightning-record-picker label="Search Programme"
+                                                placeholder="Search for a Programme..." object-api-name="Program"
+                                                onchange={handleProgramRecordChange} display-info={programDisplayInfo}
+                                                matching-info={programMatchingInfo} value={selectedProgramId}>
+                                            </lightning-record-picker>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-3">
+                                            <lightning-button label="Add Programme" onclick={handleAddProgram}
+                                                variant="neutral" icon-name="utility:add" class="add-program-btn">
+                                            </lightning-button>
+                                        </div>
+                                    </div>
+
+                                    <template if:true={hasSelectedPrograms}>
+                                        <div class="selected-programs-list slds-m-top_small">
+                                            <label class="slds-form-element__label">Selected Programmes
+                                                ({selectedPrograms.length})</label>
+                                            <ul class="slds-has-dividers_bottom-space">
+                                                <template for:each={selectedPrograms} for:item="program">
+                                                    <li key={program.id} class="slds-item program-list-item">
+                                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                                            <div class="slds-col slds-grow">
+                                                                <span class="program-name">{program.name}</span>
+                                                            </div>
+                                                            <div class="slds-col slds-no-flex">
+                                                                <lightning-button-icon icon-name="utility:delete"
+                                                                    variant="bare" size="small"
+                                                                    alternative-text="Remove" data-id={program.id}
+                                                                    onclick={handleRemoveProgram}
+                                                                    class="remove-program-btn">
+                                                                </lightning-button-icon>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+
+
+                                </div>
+                            </div>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <div class="slds-grid slds-gutters slds-m-top_medium">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox name="entranceExamStatus"
+                                            label="Do you have Entrance Exam Score?" options={yesNoOptions} required
+                                            value={entranceExamStatus} onchange={handleComboChange}>
+                                        </lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input name="findAboutUs"
+                                            label="How did you find out about us?"  
+                                            value={findAboutUs} onchange={hanldeInputChange} required>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                        <template lwc:if={showEntranceSection}>
+                            <div class="form-section slds-m-top_medium">
+                                <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                    Entrance Exam Details
+                                </h3>
+
+                                <div class="slds-form slds-form_stacked section-body">
+
+                                    <template for:each={entranceExams} for:item="exam" for:index="index">
+                                        <div key={exam.id} class="slds-grid slds-gutters slds-m-bottom_small">
+
+                                            <div class="slds-col slds-size_1-of-2">
+                                                <lightning-input name="examName" label="Exam Name" value={exam.examName}
+                                                    data-index={index} onchange={handleExamChange}
+                                                    placeholder="e.g. CAT, GMAT">
+                                                </lightning-input>
+                                            </div>
+
+                                            <div class="slds-col slds-size_1-of-3">
+                                                <lightning-input name="score" label="Score" type="number"
+                                                    value={exam.score} data-index={index} onchange={handleExamChange}
+                                                    placeholder="Enter Score">
+                                                </lightning-input>
+                                            </div>
+
+                                            <div class="slds-col slds-size_1-of-6 slds-align_absolute-center">
+                                                <lightning-button-icon icon-name="utility:delete" variant="bare"
+                                                    alternative-text="Remove" data-index={index}
+                                                    onclick={handleRemoveExam}>
+                                                </lightning-button-icon>
+                                            </div>
+
+                                        </div>
+                                    </template>
+
+                                  
+                                    <lightning-button label="Add Another Exam" icon-name="utility:add" variant="neutral"
+                                        onclick={handleAddExam}>
+                                    </lightning-button>
+
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+
+
+            <footer class="modal-footer">
+            <lightning-button label="Cancel" onclick={handleCancel} variant="neutral" class="slds-m-right_small">
+            </lightning-button>
+
+            <lightning-button label="Create Lead" onclick={handleCreateLead} variant="brand">
+            </lightning-button>
+        </footer>
+            </div>
+        </div>
+        
+        
+    </template>
+</template>

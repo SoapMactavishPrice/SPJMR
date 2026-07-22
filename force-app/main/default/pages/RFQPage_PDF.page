@@ -1,0 +1,170 @@
+<apex:page renderAs="pdf" showHeader="false" sidebar="false" standardStylesheets="false" applyBodyTag="false" applyHtmlTag="false" controller="c_RFQSendMailPDFtoVendor">
+
+    <html>
+
+    <head>
+        <!--<apex:stylesheet value="{!$Resource.QuotePDF}" />
+		<div class="default" style="width:100%;border: 0.5px solid black;padding: 5px;">
+<apex:page controller="c_RFQSendMailPDFtoVendor" docType="html-5.0" showHeader="false" standardStylesheets="false" applyHtmlTag="false">
+		-->
+       
+       <style>
+
+           .table_pdf th {
+           border: 1px solid gray;
+           border-collapse: collapse;
+           font-weight: bold!important;
+           padding-left: 5px;
+           padding-right: 5px;
+           white-space: normal;
+           }
+           .table_pdf td {
+           border: 1px solid gray;
+           border-collapse: collapse;
+           padding-left: 5px;
+           padding-right: 5px;
+           white-space: normal;
+           }
+          
+        </style>
+    </head>
+        
+        <body class="pdf" style="font-family: Verdana, Geneva, sans-serif;">
+            
+            <div class="default" style="width:100%;">
+                <table width="100%">
+                    <tr>
+                        <td>
+                            <p style="vertical-align:middle;text-align:center;font-size: 20px;font-weight:bold">A.R. ELECTRO POWER PVT. LTD. </p>
+                            <p style="vertical-align:middle;text-align:center;font-size: 18px;font-weight:bold"><u>Request For Quote</u></p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <br/>
+                
+                <table width="100%" style="font-size: 13px">
+                    <tr>
+                        <td style="width:65%;vertical-align: text-top;">
+                            
+                            <table>
+                                <tr>
+                                    <td>
+                                        <b>Vendor Details : </b>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        {!o_selected_vendor.op.Vendor_Name__r.Name}<br/>
+                                        Ph : {!o_selected_vendor.op.Vendor_Name__r.PC_Mobile_number__c}	<br/>
+                                        Email : {!o_selected_vendor.op.Vendor_Name__r.Finance_Email__c}<br/> 
+                                        Website : {!o_selected_vendor.op.Vendor_Name__r.Vendor_Website__c}<br/>
+                                        GSTIN/UIN : {!o_selected_vendor.op.Vendor_Name__r.GST_Number__c}	<br/>
+                                        Address : {!o_selected_vendor.op.Vendor_Name__r.Address_1__c}<br/>
+                                        {!o_selected_vendor.op.Vendor_Name__r.Address_2__c}<br/>
+                                        {!o_selected_vendor.op.Vendor_Name__r.Address_3__c}<br/>
+                                        {!o_selected_vendor.op.Vendor_Name__r.Address_4__c}<br/>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                        <td style="width:35%;vertical-align: text-top;">
+                            
+                            <table>
+                                <tr>
+                                    <td style="width:30%;">
+                                        <b>Date : </b>
+                                    </td>
+                                    <td style="width:*%;">
+                                        <apex:outputText value="{0,date, dd/MM/yyyy}"> <apex:param value="{!o_rfq.RFQ_Date__c}" /> </apex:outputText>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <b>RFQ No : </b>
+                                    </td>
+                                    <td>
+                                        {!o_rfq.Name}
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                        </td>
+                    </tr>
+                </table>
+                
+                <br/><br/>
+                
+                <div style="font-weight:bold;">
+                    Dear Sir/Madam,
+                </div>
+                <br/>
+                <div>
+                    With reference to above mentioned reference number, please find the following details.
+                </div>
+                
+                <br/>
+                
+                <div>
+                    <apex:variable value="{!1}" var="srno"/>
+                    <apex:repeat value="{!wHide_Column}" var="hc">
+                        <table Style="width: 100%;border-collapse: collapse;table-layout: auto;font-size: 10px" class="">
+                            <tr Style="" class="table_pdf">
+                                <th Style="width:4%" class="">Sr. No.</th>
+                                <th Style="width:15%;" class="">Item Name</th>
+                                <th Style="" class="">RFQ Quantity</th>
+                                <th class="" style= "display: {!if(hc.flag_GST == true ,'','none') }">GST %</th>
+                                <th class="" style= "display: {!if(hc.flag_UNIT_PRICE == true ,'','none') }">Unit Price</th>
+                                <th class="" style= "display: {!if(hc.flag_DELIVERY_COST == true ,'','none') }">Delivery Cost</th>
+                                <th class="" style= "display: {!if(hc.flag_PACKING_COST == true ,'','none') }">Packing Cost</th>
+                                <th class="" style= "display: {!if(hc.flag_EXPIRY_DATE == true ,'','none') }">Expiry Date</th>
+                                <th class="" style= "display: {!if(hc.flag_DISCOUNT == true ,'','none') }">Discount</th>
+                                <th class="" style= "display: {!if(hc.flag_TOTAL_COST == true ,'','none') }">Total Cost</th>
+                                <th class="" style= "display: {!if(hc.flag_CREDIT_PERIOD == true ,'','none') }">Credit Period</th>
+                                <th class="" style= "display: {!if(hc.flag_PAYMENT_TERMS == true ,'','none') }">Payment Terms</th>
+                                <th class="" style= "display: {!if(hc.flag_DELIVERY_TERMS == true ,'','none') }">Delivery Terms</th>
+                                <th class="" style= "display: {!if(hc.flag_VENDOR_SUPPLY_QTY == true ,'','none') }">Vendor Supply Qty</th>
+                            </tr>
+                            
+                            <apex:repeat value="{!wviList}" var="b">
+                                <tr Style="" class="table_pdf">
+                                    <td> {!srno} </td>
+                                    <td class=""><apex:outputfield value="{!b.vi.Item_Name__r.Name}"></apex:outputfield></td>
+                                    <td class=""><apex:outputfield value="{!b.i.Quantity__c}"></apex:outputfield></td>
+                                    <td class="" style= "display: {!if(hc.flag_GST == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_UNIT_PRICE == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_DELIVERY_COST == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_PACKING_COST == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_EXPIRY_DATE == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_DISCOUNT == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_TOTAL_COST == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_CREDIT_PERIOD == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_PAYMENT_TERMS == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_DELIVERY_TERMS == true ,'','none') }"></td>
+                                    <td class="" style= "display: {!if(hc.flag_VENDOR_SUPPLY_QTY == true ,'','none') }"></td>
+                                </tr>
+                                <apex:variable value="{!srno+1}" var="srno"/>
+                            </apex:repeat>
+                            
+                        </table>
+                    </apex:repeat>
+                    
+                </div>
+                
+                <br/>
+                <div style="font-weight:bold">
+                    *RFQ last date for submission are 
+                    <apex:outputText value="{0,date, dd/MM/yyyy}"> <apex:param value="{!o_rfq.RFQ_Valid_Till__c}" /> </apex:outputText>
+                </div>
+                
+                <br/><br/>
+                
+            </div>
+            
+            <br/><br/>
+        </body>
+        
+    </html>
+
+</apex:page>

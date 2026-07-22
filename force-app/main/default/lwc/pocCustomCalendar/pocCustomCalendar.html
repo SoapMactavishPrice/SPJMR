@@ -1,0 +1,50 @@
+<template>
+    <div class="calendar-container">
+        <!-- Calendar Header -->
+        <div class="calendar-header">
+            <button class="nav-button" onclick={handlePrevMonth}>‹</button>
+            <h2 class="month-year">{monthYearDisplay}</h2>
+            <button class="nav-button" onclick={handleNextMonth}>›</button>
+        </div>
+        
+        <!-- Day Names -->
+        <div class="weekdays">
+            <template for:each={dayNames} for:item="day">
+                <div class="day-name" key={day}>{day}</div>
+            </template>
+        </div>
+        
+        <!-- Calendar Days -->
+        <div class="calendar-grid">
+            <template for:each={calendarDays} for:item="calDay">
+                <div 
+                    class="calendar-day" 
+                    key={calDay.day}
+                    data-day={calDay.day}
+                    onclick={handleDateSelect}
+                    if:true={calDay.day}
+                >
+                    <span class="day-number">{calDay.day}</span>
+                    <template if:true={calDay.hasEvent}>
+                        <div class="event-indicator">
+                            <lightning-icon 
+                                icon-name="utility:event" 
+                                size="xx-small" 
+                                alternative-text="Event"
+                                class="event-icon">
+                            </lightning-icon>
+                        </div>
+                    </template>
+                </div>
+                <div class="empty-day" key={calDay.day} if:false={calDay.day}></div>
+            </template>
+        </div>
+        
+        <!-- Selected Date Info -->
+        <template if:true={selectedDate}>
+            <div class="selected-date-info">
+                <p>Selected Date: {selectedDate}</p>
+            </div>
+        </template>
+    </div>
+</template>

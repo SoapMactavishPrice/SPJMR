@@ -1,0 +1,61 @@
+<apex:page controller="InsertPRItemsController" >
+    <apex:slds />
+    <apex:form >
+        <apex:pageMessages id="msgPanel"/>
+
+        <div class="slds-p-around_medium slds-box slds-m-bottom_medium">
+            <h2 class="slds-text-heading_medium slds-m-bottom_small">Add Items to Purchase Requisition</h2>
+
+            <div class="slds-grid slds-gutters slds-align_absolute-center slds-m-bottom_medium">
+                <div class="slds-col slds-size_1-of-3">
+                    <label for="itemGroupSelect" class="slds-form-element__label">Item Group</label>
+                    <apex:selectList id="itemGroupSelect" value="{!selectedItemGroupId}" size="1" styleClass="slds-select" onchange="this.form.submit()">
+                        <apex:selectOptions value="{!itemGroupOptions}" />
+                    </apex:selectList>
+                </div>
+            </div>
+
+            <apex:outputPanel id="itemsBlock">
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout slds-table_col-bordered slds-m-top_medium" role="grid" aria-describedby="table-caption">
+                    <thead>
+                        <tr class="slds-line-height_reset slds-text-title_caps">
+                            <th scope="col" style="width: 5%"></th>
+                            <th scope="col">Item Name</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Unit of Measure</th>
+                            <th scope="col">Expected Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <apex:repeat value="{!availableItems}" var="item">
+                            <tr>
+                                <td>
+                                    <apex:inputCheckbox value="{!item.isSelected}" />
+                                </td>
+                                <td>
+                                    <span class="slds-truncate" title="{!item.itemName}">{!item.itemName}</span>
+                                </td>
+                                <td>
+                                    <apex:inputText value="{!item.quantity}" styleClass="slds-input" html-type="number" />
+                                </td>
+                                <td>
+                                    <apex:selectList value="{!item.uomId}" size="1" styleClass="slds-select">
+                                        <apex:selectOptions value="{!uomOptions}" />
+                                    </apex:selectList>
+                                </td>
+                                <td>
+                                    <apex:inputText value="{!item.expectedPrice}" styleClass="slds-input" html-type="number"/>
+                                </td>
+                            </tr>
+                        </apex:repeat>
+                    </tbody>
+                </table>
+            </apex:outputPanel>
+
+            <div class="slds-m-top_medium slds-text-align_right">
+                <apex:commandButton value="Save Selected" action="{!saveSelectedItems}" styleClass="slds-button slds-button_brand" rerender="msgPanel,itemsBlock" />
+                <apex:commandButton value="Cancel" action="{!cancel}" styleClass="slds-button slds-button_neutral slds-m-left_small" immediate="true"/>
+            </div>
+        </div>
+    </apex:form>
+</apex:page>

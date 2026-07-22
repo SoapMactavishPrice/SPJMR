@@ -1,0 +1,26 @@
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false">
+    <html>
+        <head>
+            <script src="https://www.google.com/recaptcha/api.js" async="async" defer="defer"></script>
+            <script type="text/javascript">
+                var verifyCallback = function(response) {
+                    // Send the token back to the LWC
+                    parent.postMessage({
+                        type: 'captcha_success',
+                        response: response
+                    }, window.location.origin);
+                };
+
+                var onloadCallback = function() {
+                    grecaptcha.render('html_element', {
+                        'sitekey' : '6LdiIZcsAAAAAHDdXXyvahhFZEZ1CeySOw8XD-1P', // Replace with your Google Site Key
+                        'callback' : verifyCallback
+                    });
+                };
+            </script>
+        </head>
+        <body onload="onloadCallback();" style="background: transparent;">
+            <div id="html_element"></div>
+        </body>
+    </html>
+</apex:page>

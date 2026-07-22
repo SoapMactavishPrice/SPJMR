@@ -1,0 +1,102 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 03-20-2026
+  @last modified by  : 
+-->
+<template>
+    <div class="division-form-modal">
+        <div class="modal-backdrop" onclick={handleCancel}></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="slds-text-heading_medium">{formTitle}</h2>
+                <button type="button" class="modal-close slds-button slds-button_icon" onclick={handleCancel} aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="slds-grid slds-grid_vertical-align-end slds-m-bottom_small">
+                    <div class="slds-col slds-size_1-of-1 slds-text-align_right slds-p-right_medium">
+                        <span class="slds-text-body_small slds-text-color_error">
+                            * = Required Information
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Information section -->
+                <section class="slds-section slds-is-open form-section">
+                    <div class="slds-section__title">
+                        <span class="slds-truncate" title="Information">Information</span>
+                    </div>
+                    <div class="slds-section__content slds-p-around_medium">
+                        <div class="slds-grid slds-gutters slds-wrap">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top--medium">
+                                <c-lookup-with-options
+                                label="Term"
+                                placeholder="Search Terms..."
+                                value={termId}
+                                options={filteredTermOptions}
+                                new-record-label="New Term"
+                                new-record-object-api-name="AcademicTerm"
+                                show-new-record="true"
+                                required
+                                onchange={handleTermChange}>
+                            </c-lookup-with-options><!--1001-->
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top--medium">
+                                <lightning-input type="text" name="divisionName" label="Division Name" value={divisionName} onchange={handleFieldChange}></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top--medium">
+                              
+                                <c-lookup-with-options
+                                    label="Division Group"
+                                    placeholder="Search Division Groups..."
+                                    value={divisionGroupId}
+                                    options={divisionGroupOptions}
+                                    new-record-label="New Division Group"
+                                    new-record-object-api-name="Division_Group__c"
+                                    required
+                                    onchange={handleDivisionGroupChange}><!--1001-->
+                                </c-lookup-with-options>
+                                </div>
+                            
+                            <template if:true={showSpecialisationField}>
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top--medium">
+                                    <c-lookup-with-options
+                                        label="Specialisation"
+                                        placeholder="Search Batch Specialisations..."
+                                        value={specialisationId}
+                                        options={specialisationOptions}
+                                        new-record-label="New Batch Specialisation"
+                                        new-record-object-api-name="Specialisation__c"
+                                        show-new-record="true"
+                                        required={isSpecialisationOnly}
+                                        onchange={handleSpecialisationChange}>
+                                    </c-lookup-with-options><!--1001-->
+                                </div>
+                            </template>
+                         
+                            <!-- <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top--medium">
+                                <lightning-input type="text" name="divisionCode" label="Division Code" value={divisionCode} onchange={handleFieldChange}></lightning-input>
+                            </div> -->
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top--medium">
+                                <lightning-combobox name="divisionColor" label="Division Color" value={divisionColor} placeholder="--None--" options={divisionColorOptions} onchange={handleFieldChange} required></lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top--medium">
+                                <lightning-input type="number" name="capacity" label="Capacity" value={capacity} onchange={handleFieldChange}></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 division-form-is-active-wrap slds-m-top--medium">
+                                <lightning-input type="checkbox" name="isActive" label="Is Active" checked={isActive} onchange={handleCheckboxChange}></lightning-input>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+            <div class="modal-footer slds-p-around_medium">
+                <lightning-button label="Cancel" onclick={handleCancel} class="slds-m-right_x-small"></lightning-button>
+                <lightning-button label="Save &amp; New" onclick={handleSaveAndNew} disabled={isSaving} class="slds-m-right_x-small"></lightning-button>
+                <lightning-button variant="brand" label="Save" onclick={handleSave} disabled={isSaving}></lightning-button>
+            </div>
+        </div>
+    </div>
+</template>

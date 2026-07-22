@@ -1,0 +1,16 @@
+<aura:component implements="force:lightningQuickAction,force:hasRecordId,force:hasSObjectName">
+    <lightning:navigation aura:id="navService" />
+    <aura:html tag="style">
+        .slds-backdrop {
+        background: rgba(43, 40, 38, 0) !important;
+        display:none;
+        }
+        .slds-fade-in-open {
+        display:none !important;
+        }
+    </aura:html>
+    <aura:attribute name="pageReference" type="Object" />
+    <aura:handler name="init" action="{!c.navigateToLC}" value="{!this}" />
+    Record Id:::: {!v.recordId}
+    Record Id:::: {!v.sObjectName}
+</aura:component>

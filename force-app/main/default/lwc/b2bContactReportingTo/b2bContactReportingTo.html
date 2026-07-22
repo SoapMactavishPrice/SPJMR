@@ -1,0 +1,24 @@
+<template>
+    <lightning-card title="Select Reporting To Contact">
+        <div class="slds-p-around_medium">
+
+            <p>recordId: {localRecordId}</p>
+
+            <lightning-combobox
+                label="Reporting To"
+                value={selectedContactId}
+                options={contactOptions}
+                onchange={handleChange}>
+            </lightning-combobox>
+
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    label="Save"
+                    variant="brand"
+                    onclick={handleSave}>
+                </lightning-button>
+            </div>
+
+        </div>
+    </lightning-card>
+</template>

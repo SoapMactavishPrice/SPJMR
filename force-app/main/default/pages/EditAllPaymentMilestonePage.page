@@ -1,0 +1,69 @@
+<apex:page controller="EditAllPaymentMilestoneClass" sidebar="false" showHeader="false">
+    
+    <html>
+        <apex:slds />
+        <style>
+            table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            }
+            
+            th, td {
+            text-align: left;
+            padding: 8px;
+            }
+            
+            tr:nth-child(even){background-color: #f2f2f2}
+            
+            .dateFormat{
+            visibility:hidden;            
+            }
+        </style>
+        
+        <body class="slds-scope">
+            <apex:form >
+                <br/>
+                
+                <div class="slds-box" style="width: 95%;margin:auto">                      
+                     <apex:pagemessages /> 
+                    <p class="slds-text-title_caps" style="text-align:center;font-size:20px">Payment Milestone Information</p> 
+                    
+                    <br/> 
+                    <div id="HtmlDiv" class="table-responsive">
+                        <table class="slds-table slds-table_bordered slds-scrollable--x slds-table_col-bordered slds-table_resizable-cols"  style="width:100%">  
+                            <tr  > 
+                                <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_center ">Instalment Name</th>
+                                <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_center ">Instalment Fees</th>
+                                <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_center ">Exclude Benefit</th>
+                                <th style="background-color:#631856;color:white;white-space: auto;width:12%" class="slds-text-align_center ">Invoice Process Date</th>
+                                <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_center ">Credit Period</th>
+                                <th style="background-color:#631856;color:white;white-space: auto;width:10%" class="slds-text-align_center ">Invoice Due Date</th>
+                                <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_center ">Instalment Sequence</th>
+                                <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_center ">Instalment Remarks</th>                                
+                            </tr>                        
+                            <apex:repeat value="{!oppList}" var="opp">
+                                <tr >
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;" styleClass="slds-input" value="{!opp.Name}"/></td>
+                                    <td class="slds-text-align_center"><apex:outputField style="white-space:auto;" styleClass="slds-input" value="{!opp.Instalment_Fees__c}" /></td>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;"  value="{!opp.Exclude_Benefit__c}" /></td>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;dateFormat" styleClass="slds-input" value="{!opp.Instalment_Due_Date__c}"/></td>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;" styleClass="slds-input" value="{!opp.Credit_Period__c}" /></td>
+                                    <td class="slds-text-align_center"><apex:outputField style="white-space:auto;dateFormat" styleClass="slds-input" value="{!opp.Invoice_Due_Date__c}" /></td>
+                                    <td class="slds-text-align_center"><apex:inputField style="white-space:auto;" styleClass="slds-input" value="{!opp.Instalment_Sequence__c}" /></td>
+                                    <td class="slds-text-align_center"><apex:inputTextarea rows="1" style="white-space:auto;" styleClass="slds-input" value="{!opp.Instalment_Remarks__c}" /></td>
+                                </tr>
+                            </apex:repeat>  
+                        </table>
+                    </div>
+                    
+                    <div align="center" draggable="false">
+                        <apex:commandButton value="Save" action="{!Save}" styleClass="slds-button slds-button_brand slds-button__icon_right slds-button--brand slds-m-top--medium"/>
+                        <apex:commandButton value="Cancel" action="{!Cancel}" styleClass="slds-button slds-button_destructive slds-button__icon_right slds-button--brand slds-m-top--medium"/>
+                    </div>
+                </div>
+            </apex:form>  
+        </body>
+    </html>
+</apex:page>

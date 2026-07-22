@@ -1,0 +1,532 @@
+<template>
+    <!-- HEADER -->
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <h1 class="header-title">Lead Intake</h1>
+                <p class="header-sub">Submit a new lead — the system will automatically check for existing records</p>
+            </div>
+        </div>
+
+        <!-- FLOW PROGRESS BAR -->
+        <div class="flow-tracker">
+            <div class={step1Class}>
+                <div class="step-circle">
+                    <template lwc:if={step1Done}>
+                        <lightning-icon icon-name="utility:check" size="x-small" variant="inverse"></lightning-icon>
+                    </template>
+                    <template lwc:elseif={step1Active}>1</template>
+                    <template lwc:else>1</template>
+                </div>
+                <span class="step-label">Fill Details</span>
+            </div>
+            <div class="step-connector">
+                <div class={connector1Class}></div>
+            </div>
+            <div class={step2Class}>
+                <div class="step-circle">
+                    <template lwc:if={step2Done}>
+                        <lightning-icon icon-name="utility:check" size="x-small" variant="inverse"></lightning-icon>
+                    </template>
+                    <template lwc:elseif={step2Active}>2</template>
+                    <template lwc:else>2</template>
+                </div>
+                <span class="step-label">Duplicate Check</span>
+            </div>
+            <div class="step-connector">
+                <div class={connector2Class}></div>
+            </div>
+            <div class={step3Class}>
+                <div class="step-circle">
+                    <template lwc:if={step3Done}>
+                        <lightning-icon icon-name="utility:check" size="x-small" variant="inverse"></lightning-icon>
+                    </template>
+                    <template lwc:elseif={step3Active}>3</template>
+                    <template lwc:else>3</template>
+                </div>
+                <span class="step-label">Record Created</span>
+            </div>
+            <div class="step-connector">
+                <div class={connector3Class}></div>
+            </div>
+            <div class={step4Class}>
+                <div class="step-circle">
+                    <template lwc:if={step4Done}>
+                        <lightning-icon icon-name="utility:check" size="x-small" variant="inverse"></lightning-icon>
+                    </template>
+                    <template lwc:elseif={step4Active}>4</template>
+                    <template lwc:else>4</template>
+                </div>
+                <span class="step-label">Next Steps</span>
+            </div>
+        </div>
+
+        <!-- STEP 1: FORM -->
+        <template lwc:if={isFormStep}>
+            <!-- TABS -->
+            <div class="tab-bar">
+                <button class={b2bTabClass} onclick={switchToB2B} type="button">
+                    <lightning-icon icon-name="standard:account" size="x-small" class="tab-icon"></lightning-icon>
+                    B2B — Business Lead
+                </button>
+                <button class={b2cTabClass} onclick={switchToB2C} type="button">
+                    <lightning-icon icon-name="standard:person_account" size="x-small" class="tab-icon"></lightning-icon>
+                    B2C — Individual Lead
+                </button>
+            </div>
+
+            <!-- B2B FORM -->
+            <template lwc:if={isB2B}>
+                <div class="form-card">
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <lightning-icon icon-name="utility:user" size="x-small" class="section-icon"></lightning-icon>
+                            Contact Information
+                        </h3>
+                        <div class="form-grid">
+                            <lightning-combobox label="Salutation" value={formData.salutation}
+                                options={salutationOptions} onchange={handleFieldChange}
+                                data-field="salutation" class="field"></lightning-combobox>
+                            <lightning-input label="First Name" value={formData.firstName}
+                                onchange={handleFieldChange} data-field="firstName"
+                                required class="field"></lightning-input>
+                            <lightning-input label="Last Name" value={formData.lastName}
+                                onchange={handleFieldChange} data-field="lastName"
+                                required class="field" message-when-value-missing="Last Name is required"></lightning-input>
+                            <lightning-input label="Email" type="email" value={formData.email}
+                                onchange={handleFieldChange} data-field="email"
+                                required class="field"></lightning-input>
+                            <lightning-input label="Phone" type="tel" value={formData.phone}
+                                onchange={handleFieldChange} data-field="phone"
+                                required class="field"></lightning-input>
+                            <lightning-input label="Title / Designation" value={formData.title}
+                                onchange={handleFieldChange} data-field="title" class="field"></lightning-input>
+                            <lightning-input label="Department" value={formData.department}
+                                onchange={handleFieldChange} data-field="department" class="field"></lightning-input>
+                            <lightning-input label="LinkedIn Profile" type="url" value={formData.linkedin}
+                                onchange={handleFieldChange} data-field="linkedin" class="field"></lightning-input>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <lightning-icon icon-name="utility:company" size="x-small" class="section-icon"></lightning-icon>
+                            Company Information
+                        </h3>
+                        <div class="form-grid">
+                            <lightning-input label="Company Name" value={formData.company}
+                                onchange={handleFieldChange} data-field="company"
+                                required class="field" message-when-value-missing="Company is required for B2B"></lightning-input>
+                            <lightning-combobox label="Industry" value={formData.industry}
+                                options={industryOptions} onchange={handleFieldChange}
+                                data-field="industry" required class="field"></lightning-combobox>
+                            <lightning-input label="Website" type="url" value={formData.website}
+                                onchange={handleFieldChange} data-field="website" class="field"></lightning-input>
+                            <lightning-input label="No. of Employees" type="number" value={formData.numberOfEmployees}
+                                onchange={handleFieldChange} data-field="numberOfEmployees" class="field"></lightning-input>
+                            <lightning-input label="Annual Revenue" type="number" value={formData.annualRevenue}
+                                onchange={handleFieldChange} data-field="annualRevenue"
+                                formatter="currency" class="field"></lightning-input>
+                            <lightning-input label="Revenue Estimate" type="number" value={formData.revenueEstimate}
+                                onchange={handleFieldChange} data-field="revenueEstimate"
+                                formatter="currency" class="field"></lightning-input>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <lightning-icon icon-name="utility:interest" size="x-small" class="section-icon"></lightning-icon>
+                            Lead Details
+                        </h3>
+                        <div class="form-grid">
+                            <lightning-combobox label="Lead Source" value={formData.leadSource}
+                                options={leadSourceOptions} onchange={handleFieldChange}
+                                data-field="leadSource" required class="field"></lightning-combobox>
+                            <lightning-combobox label="Rating" value={formData.rating}
+                                options={ratingOptions} onchange={handleFieldChange}
+                                data-field="rating" class="field"></lightning-combobox>
+                            <lightning-combobox label="Program Interest" value={formData.programInterest}
+                                options={programOptions} onchange={handleFieldChange}
+                                data-field="programInterest" class="field"></lightning-combobox>
+                            <lightning-combobox label="Program Type" value={formData.programType}
+                                options={programTypeOptions} onchange={handleFieldChange}
+                                data-field="programType" class="field"></lightning-combobox>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <lightning-icon icon-name="utility:location" size="x-small" class="section-icon"></lightning-icon>
+                            Address
+                        </h3>
+                        <div class="form-grid">
+                            <lightning-textarea label="Street" value={formData.street}
+                                onchange={handleFieldChange} data-field="street" class="field full-width"></lightning-textarea>
+                            <lightning-input label="City" value={formData.city}
+                                onchange={handleFieldChange} data-field="city" class="field"></lightning-input>
+                            <lightning-input label="State / Province" value={formData.state}
+                                onchange={handleFieldChange} data-field="state" class="field"></lightning-input>
+                            <lightning-input label="Zip / Postal Code" value={formData.postalCode}
+                                onchange={handleFieldChange} data-field="postalCode" class="field"></lightning-input>
+                            <lightning-combobox label="Country" value={formData.country}
+                                options={countryOptions} onchange={handleFieldChange}
+                                data-field="country" class="field"></lightning-combobox>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <lightning-icon icon-name="utility:note" size="x-small" class="section-icon"></lightning-icon>
+                            Additional Information
+                        </h3>
+                        <div class="form-grid">
+                            <lightning-textarea label="Description / Notes" value={formData.description}
+                                onchange={handleFieldChange} data-field="description" class="field full-width"></lightning-textarea>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- B2C FORM -->
+            <template lwc:if={isB2C}>
+                <div class="form-card">
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <lightning-icon icon-name="utility:user" size="x-small" class="section-icon"></lightning-icon>
+                            Personal Information
+                        </h3>
+                        <div class="form-grid">
+                            <lightning-combobox label="Salutation" value={formData.salutation}
+                                options={salutationOptions} onchange={handleFieldChange}
+                                data-field="salutation" class="field"></lightning-combobox>
+                            <lightning-input label="First Name" value={formData.firstName}
+                                onchange={handleFieldChange} data-field="firstName"
+                                required class="field"></lightning-input>
+                            <lightning-input label="Last Name" value={formData.lastName}
+                                onchange={handleFieldChange} data-field="lastName"
+                                required class="field" message-when-value-missing="Last Name is required"></lightning-input>
+                            <lightning-input label="Email" type="email" value={formData.email}
+                                onchange={handleFieldChange} data-field="email"
+                                required class="field"></lightning-input>
+                            <lightning-input label="Phone" type="tel" value={formData.phone}
+                                onchange={handleFieldChange} data-field="phone"
+                                required class="field"></lightning-input>
+                            <lightning-input label="Date of Birth" type="date" value={formData.dateOfBirth}
+                                onchange={handleFieldChange} data-field="dateOfBirth" class="field"></lightning-input>
+                            <lightning-combobox label="Gender" value={formData.gender}
+                                options={genderOptions} onchange={handleFieldChange}
+                                data-field="gender" class="field"></lightning-combobox>
+                            <lightning-input label="PAN Number" value={formData.panNumber}
+                                onchange={handleFieldChange} data-field="panNumber" class="field"
+                                pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
+                                message-when-pattern-mismatch="Enter valid PAN (e.g., ABCDE1234F)"></lightning-input>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <lightning-icon icon-name="utility:interest" size="x-small" class="section-icon"></lightning-icon>
+                            Interest & Source
+                        </h3>
+                        <div class="form-grid">
+                            <lightning-combobox label="Lead Source" value={formData.leadSource}
+                                options={leadSourceOptions} onchange={handleFieldChange}
+                                data-field="leadSource" required class="field"></lightning-combobox>
+                            <lightning-combobox label="Program Interest" value={formData.programInterest}
+                                options={programOptions} onchange={handleFieldChange}
+                                data-field="programInterest" required class="field"></lightning-combobox>
+                            <lightning-combobox label="Program Type" value={formData.programType}
+                                options={programTypeOptions} onchange={handleFieldChange}
+                                data-field="programType" class="field"></lightning-combobox>
+                            <lightning-combobox label="Rating" value={formData.rating}
+                                options={ratingOptions} onchange={handleFieldChange}
+                                data-field="rating" class="field"></lightning-combobox>
+                            <lightning-input label="LinkedIn Profile" type="url" value={formData.linkedin}
+                                onchange={handleFieldChange} data-field="linkedin" class="field"></lightning-input>
+                            <lightning-input label="Revenue Estimate" type="number" value={formData.revenueEstimate}
+                                onchange={handleFieldChange} data-field="revenueEstimate"
+                                formatter="currency" class="field"></lightning-input>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <lightning-icon icon-name="utility:location" size="x-small" class="section-icon"></lightning-icon>
+                            Address
+                        </h3>
+                        <div class="form-grid">
+                            <lightning-textarea label="Street" value={formData.street}
+                                onchange={handleFieldChange} data-field="street" class="field full-width"></lightning-textarea>
+                            <lightning-input label="City" value={formData.city}
+                                onchange={handleFieldChange} data-field="city"
+                                required class="field"></lightning-input>
+                            <lightning-input label="State / Province" value={formData.state}
+                                onchange={handleFieldChange} data-field="state"
+                                required class="field"></lightning-input>
+                            <lightning-input label="Zip / Postal Code" value={formData.postalCode}
+                                onchange={handleFieldChange} data-field="postalCode" class="field"></lightning-input>
+                            <lightning-combobox label="Country" value={formData.country}
+                                options={countryOptions} onchange={handleFieldChange}
+                                data-field="country" required class="field"></lightning-combobox>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <lightning-icon icon-name="utility:note" size="x-small" class="section-icon"></lightning-icon>
+                            Additional Information
+                        </h3>
+                        <div class="form-grid">
+                            <lightning-textarea label="Description / Notes" value={formData.description}
+                                onchange={handleFieldChange} data-field="description" class="field full-width"></lightning-textarea>
+                            <div class="field">
+                                <lightning-input type="checkbox" label="Email Opt Out" checked={formData.emailOptOut}
+                                    onchange={handleCheckboxChange} data-field="emailOptOut"></lightning-input>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- SUBMIT BUTTON -->
+            <div class="form-actions">
+                <lightning-button variant="brand" label="Submit Lead" onclick={handleSubmit}
+                    icon-name="utility:upload" class="submit-btn" disabled={isSubmitting}></lightning-button>
+            </div>
+        </template>
+
+        <!-- STEP 2: PROCESSING / DUPLICATE CHECK -->
+        <template lwc:if={isProcessingStep}>
+            <div class="processing-card">
+                <div class="processing-animation">
+                    <lightning-spinner alternative-text="Processing" size="large"></lightning-spinner>
+                </div>
+                <h2 class="processing-title">Checking for Existing Records...</h2>
+                <div class="check-list">
+                    <div class={check1Class}>
+                        <lightning-icon icon-name={check1Icon} size="x-small" class="check-icon"></lightning-icon>
+                        <span>Validating form data</span>
+                    </div>
+                    <div class={check2Class}>
+                        <lightning-icon icon-name={check2Icon} size="x-small" class="check-icon"></lightning-icon>
+                        <template lwc:if={isB2B}>
+                            <span>Searching for matching Account (Company Name / Domain)</span>
+                        </template>
+                        <template lwc:else>
+                            <span>Searching for matching Person (Email / Phone)</span>
+                        </template>
+                    </div>
+                    <div class={check3Class}>
+                        <lightning-icon icon-name={check3Icon} size="x-small" class="check-icon"></lightning-icon>
+                        <span>Determining action — Create Lead or Opportunity</span>
+                    </div>
+                    <div class={check4Class}>
+                        <lightning-icon icon-name={check4Icon} size="x-small" class="check-icon"></lightning-icon>
+                        <span>Creating record in Salesforce</span>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- STEP 3 & 4: RESULT -->
+        <template lwc:if={isResultStep}>
+            <div class="result-container">
+                <!-- RESULT BANNER -->
+                <div class={resultBannerClass}>
+                    <div class="result-icon-wrap">
+                        <lightning-icon icon-name={resultIcon} size="large" variant="inverse"></lightning-icon>
+                    </div>
+                    <h2 class="result-title">{resultTitle}</h2>
+                    <p class="result-message">{result.message}</p>
+                </div>
+
+                <!-- WHAT WAS CREATED -->
+                <div class="result-cards">
+                    <h3 class="result-section-title">What Was Created</h3>
+                    <div class="created-objects">
+                        <template lwc:if={result.leadId}>
+                            <div class="obj-card lead-card" onclick={navigateToRecord} data-id={result.leadId}>
+                                <div class="obj-icon lead-icon">
+                                    <lightning-icon icon-name="standard:lead" size="small"></lightning-icon>
+                                </div>
+                                <div class="obj-info">
+                                    <span class="obj-type">Lead</span>
+                                    <span class="obj-name">{formData.firstName} {formData.lastName}</span>
+                                </div>
+                                <lightning-icon icon-name="utility:open" size="xx-small" class="obj-link"></lightning-icon>
+                            </div>
+                        </template>
+                        <template lwc:if={result.accountId}>
+                            <div class="obj-card account-card" onclick={navigateToRecord} data-id={result.accountId}>
+                                <div class="obj-icon account-icon">
+                                    <lightning-icon icon-name="standard:account" size="small"></lightning-icon>
+                                </div>
+                                <div class="obj-info">
+                                    <span class="obj-type">Account</span>
+                                    <span class="obj-name">{result.accountName}</span>
+                                </div>
+                                <lightning-icon icon-name="utility:open" size="xx-small" class="obj-link"></lightning-icon>
+                            </div>
+                        </template>
+                        <template lwc:if={result.contactId}>
+                            <div class="obj-card contact-card" onclick={navigateToRecord} data-id={result.contactId}>
+                                <div class="obj-icon contact-icon">
+                                    <lightning-icon icon-name="standard:contact" size="small"></lightning-icon>
+                                </div>
+                                <div class="obj-info">
+                                    <span class="obj-type">Contact</span>
+                                    <span class="obj-name">{formData.firstName} {formData.lastName}</span>
+                                </div>
+                                <lightning-icon icon-name="utility:open" size="xx-small" class="obj-link"></lightning-icon>
+                            </div>
+                        </template>
+                        <template lwc:if={result.opportunityId}>
+                            <div class="obj-card opp-card" onclick={navigateToRecord} data-id={result.opportunityId}>
+                                <div class="obj-icon opp-icon">
+                                    <lightning-icon icon-name="standard:opportunity" size="small"></lightning-icon>
+                                </div>
+                                <div class="obj-info">
+                                    <span class="obj-type">Opportunity</span>
+                                    <span class="obj-name">View Opportunity</span>
+                                </div>
+                                <lightning-icon icon-name="utility:open" size="xx-small" class="obj-link"></lightning-icon>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- FLOW PATH VISUALIZATION -->
+                <div class="result-cards">
+                    <h3 class="result-section-title">Flow Path Taken</h3>
+                    <div class="flow-path">
+                        <div class="path-step path-done">
+                            <div class="path-dot"></div>
+                            <div class="path-content">
+                                <strong>Inbound Request</strong>
+                                <span>{activeTabLabel} lead submitted via LWC form</span>
+                            </div>
+                        </div>
+                        <div class="path-step path-done">
+                            <div class="path-dot"></div>
+                            <div class="path-content">
+                                <strong>Duplicate Check</strong>
+                                <template lwc:if={isExistingMatch}>
+                                    <span class="path-highlight match">Match found — existing record identified</span>
+                                </template>
+                                <template lwc:else>
+                                    <span class="path-highlight no-match">No match — new record needed</span>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="path-step path-done">
+                            <div class="path-dot"></div>
+                            <div class="path-content">
+                                <template lwc:if={isExistingMatch}>
+                                    <strong>Skipped Lead → Direct Opportunity</strong>
+                                    <span>Opportunity created on existing Account</span>
+                                </template>
+                                <template lwc:else>
+                                    <strong>Lead Created</strong>
+                                    <span>New Lead record created for qualification</span>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="path-step path-current">
+                            <div class="path-dot"></div>
+                            <div class="path-content">
+                                <template lwc:if={isExistingMatch}>
+                                    <strong>Next: Work the Opportunity</strong>
+                                    <span>Move through Qualification → Needs Analysis → Proposal → Close</span>
+                                </template>
+                                <template lwc:else>
+                                    <strong>Next: Qualify the Lead</strong>
+                                    <span>SDR to contact, qualify (BANT), then convert to Opportunity</span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEXT STEPS -->
+                <div class="result-cards">
+                    <h3 class="result-section-title">Recommended Next Steps</h3>
+                    <template lwc:if={isExistingMatch}>
+                        <div class="next-steps-grid">
+                            <div class="next-step-card">
+                                <div class="ns-num">1</div>
+                                <div class="ns-content">
+                                    <strong>Review Opportunity</strong>
+                                    <span>Verify details, update Amount and Close Date</span>
+                                </div>
+                            </div>
+                            <div class="next-step-card">
+                                <div class="ns-num">2</div>
+                                <div class="ns-content">
+                                    <strong>Schedule Discovery Call</strong>
+                                    <span>Contact the person to discuss requirements</span>
+                                </div>
+                            </div>
+                            <div class="next-step-card">
+                                <div class="ns-num">3</div>
+                                <div class="ns-content">
+                                    <strong>Send Welcome Email</strong>
+                                    <span>Automated email triggered with rep details</span>
+                                </div>
+                            </div>
+                            <div class="next-step-card">
+                                <div class="ns-num">4</div>
+                                <div class="ns-content">
+                                    <strong>Move to Proposal Stage</strong>
+                                    <span>Generate quote and advance the opportunity</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <template lwc:else>
+                        <div class="next-steps-grid">
+                            <div class="next-step-card">
+                                <div class="ns-num">1</div>
+                                <div class="ns-content">
+                                    <strong>Auto-Assignment</strong>
+                                    <span>Lead assigned to SDR based on territory rules</span>
+                                </div>
+                            </div>
+                            <div class="next-step-card">
+                                <div class="ns-num">2</div>
+                                <div class="ns-content">
+                                    <strong>Welcome Communication</strong>
+                                    <span>Day 0: Auto email + Day 1: SDR phone call</span>
+                                </div>
+                            </div>
+                            <div class="next-step-card">
+                                <div class="ns-num">3</div>
+                                <div class="ns-content">
+                                    <strong>Qualify the Lead</strong>
+                                    <span>SDR qualifies using BANT criteria over 5-7 days</span>
+                                </div>
+                            </div>
+                            <div class="next-step-card">
+                                <div class="ns-num">4</div>
+                                <div class="ns-content">
+                                    <strong>Convert to Opportunity</strong>
+                                    <span>On qualification → creates Account + Contact + Opportunity</span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="result-actions">
+                    <lightning-button variant="brand" label="Submit Another Lead" onclick={handleReset}
+                        icon-name="utility:add"></lightning-button>
+                    <template lwc:if={result.leadId}>
+                        <lightning-button variant="brand-outline" label="Convert This Lead Now"
+                            onclick={handleConvertLead} icon-name="utility:switch"
+                            disabled={isConverting}></lightning-button>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

@@ -1,0 +1,26 @@
+.slds-combobox__input-value {
+    display: flex;
+    align-items: center;
+    padding: 0 0.75rem;
+    min-height: calc(1.875rem + (1px * 2));
+}
+
+.slds-combobox__input-entity-icon {
+    margin-right: 0.5rem;
+}
+
+.slds-listbox__option {
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+}
+
+.slds-listbox__option:hover {
+    background-color: #f3f3f3;
+}
+
+.slds-listbox__option-meta {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    color: #706e6b;
+}

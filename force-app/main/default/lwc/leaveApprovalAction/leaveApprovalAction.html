@@ -1,0 +1,150 @@
+<template>
+    <lightning-card>
+
+        <h2 slot="title" class="custom-title">
+            Leave Approval
+        </h2>
+
+        <div class="container">
+            <div class="shift-right">
+
+            <!-- ================= INCOMPLETE MESSAGE ================= -->
+            <template if:true={showIncompleteUI}>
+                <div class="section">
+                    <lightning-input 
+                        type="checkbox" 
+                        label="Incomplete" 
+                        checked 
+                        disabled>
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- ================= APPROVAL / REJECT UI ================= -->
+            <template if:false={showIncompleteUI}>
+
+                <!-- PROGRAMME OFFICE -->
+                <div class="section">
+                    <template if:true={showPOApproveUI}>
+                        <lightning-input type="checkbox" label="Approve & Forward" checked disabled></lightning-input>
+                    </template>
+
+                    <template if:true={showPORejectUI}>
+                        <lightning-input type="checkbox" label="Reject" checked disabled></lightning-input>
+                    </template>
+                </div>
+
+                <!-- MANAGER APPROVE -->
+                <template if:true={showManagerApproveUI}>
+                    <div class="section">
+
+                        <div class="checkbox-row">
+                            <lightning-input type="checkbox" label="Approved (Sanctioned Leave)" checked disabled></lightning-input>
+
+                            <lightning-input type="checkbox"
+                                label="Eligible for Makeup"
+                                checked={eligibleForMakeup}
+                                disabled={disableEligible}
+                                onchange={handleEligible}>
+                            </lightning-input>
+
+                            <lightning-input type="checkbox"
+                                label="Not Eligible for Makeup"
+                                checked={notEligibleForMakeup}
+                                disabled={disableNotEligible}
+                                onchange={handleNotEligible}>
+                            </lightning-input>
+
+                            <lightning-input type="checkbox"
+                                label="Route to Deputy Chairperson"
+                                checked={routeToDeputy}
+                                disabled={disableDeputy}
+                                onchange={handleDeputy}>
+                            </lightning-input>
+                        </div>
+
+                    </div>
+                </template>
+
+                <!-- DEPUTY APPROVE -->
+                <template if:true={showDeputyApproveUI}>
+                    <div class="section">
+
+                        <div class="checkbox-row">
+                            <lightning-input type="checkbox" label="Approved (Final Approval)" checked disabled></lightning-input>
+
+                            <lightning-input type="checkbox"
+                                label="Eligible for Makeup"
+                                checked={eligibleForMakeup}
+                                disabled={disableEligible}
+                                onchange={handleEligible}>
+                            </lightning-input>
+
+                            <lightning-input type="checkbox"
+                                label="Not Eligible for Makeup"
+                                checked={notEligibleForMakeup}
+                                disabled={disableNotEligible}
+                                onchange={handleNotEligible}>
+                            </lightning-input>
+                        </div>
+
+                    </div>
+                </template>
+
+                <!-- REJECT -->
+                <template if:true={showManagerRejectUI}>
+                    <div class="section">
+
+                        <div class="checkbox-row">
+                            <lightning-input type="checkbox" label="Not Approved (Not Sanctioned)" checked disabled></lightning-input>
+
+                            <lightning-input type="checkbox"
+                                label="Not Eligible for Makeup"
+                                checked={notEligibleForMakeup}
+                                disabled={disableNotEligible}
+                                onchange={handleNotEligible}>
+                            </lightning-input>
+                        </div>
+
+                    </div>
+                </template>
+
+            </template>
+
+            <!-- ================= REMARKS ================= -->
+            <div class="section remarks-wrapper">
+                <lightning-textarea 
+                    label="Remarks"
+                    value={remarks}
+                    onchange={handleRemarks}>
+                </lightning-textarea>
+            </div>
+
+            <!-- ================= BUTTON ================= -->
+            <div class="button-container">
+
+                <template if:false={showIncompleteUI}>
+                    <lightning-button 
+                        label="Process Application"
+                        variant="brand"
+                        onclick={handleProcess}
+                        disabled={isLoading}>
+                    </lightning-button>
+                </template>
+
+                <template if:true={showIncompleteUI}>
+                    <lightning-button 
+                        label="Mark Incomplete"
+                        variant="brand"
+                        onclick={handleIncompleteAction}
+                        disabled={isLoading}>
+                    </lightning-button>
+                </template>
+
+            </div>
+
+        </div>
+        </div>
+
+    </lightning-card>
+</template>

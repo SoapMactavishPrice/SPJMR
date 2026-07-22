@@ -1,0 +1,9 @@
+<aura:component implements="lightning:actionOverride,force:hasRecordId,lightning:isUrlAddressable" access="global" description="Overrides the New button on Division to show custom Division form (LWC). When opened from a Term related list, Term is auto-populated and Cancel returns to Term page.">
+    <aura:attribute name="parentContextRecordId" type="String" default="" description="Parent record ID decoded from inContextOfRef when New is clicked from related list."/>
+    <lightning:navigation aura:id="navService"/>
+    <aura:handler name="init" value="{!this}" action="{!c.onInit}"/>
+    <aura:handler name="change" value="{!v.pageReference}" action="{!c.onPageReferenceChange}"/>
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 5000;">
+        <c:divisionForm recordId="{!v.recordId}" parentContextRecordId="{!v.parentContextRecordId}" oncancel="{!c.handleCancel}" />
+    </div>
+</aura:component>

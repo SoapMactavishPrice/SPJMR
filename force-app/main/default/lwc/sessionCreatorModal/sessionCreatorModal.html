@@ -1,0 +1,316 @@
+<template>
+    <!-- Modal Overlay -->
+    <template if:true={isOpen}>
+        <div class="modal-overlay" onclick={handleClose}>
+            <div class="modal-container" onclick={stopPropagation}>
+                <!-- Modal Header -->
+                <div class="modal-header">
+                    <div class="modal-header-left">
+                        <div class="modal-icon">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                                <path d="M3 10H21" stroke="currentColor" stroke-width="2"/>
+                                <path d="M8 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M16 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <div class="modal-header-text">
+                            <h2 class="modal-title">Create Sessions</h2>
+                            <p class="modal-subtitle">Plan multiple sessions for a course and merge with existing programs</p>
+                        </div>
+                    </div>
+                    <button class="modal-close-btn" onclick={handleClose}>
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Context Info Bar - Shows Program, Batch, Term, Course -->
+                <div class="context-info-bar">
+                    <div class="context-item">
+                        <span class="context-label">PROGRAM</span>
+                        <span class="context-value">{contextInfo.programName}</span>
+                    </div>
+                    <div class="context-divider"></div>
+                    <div class="context-item">
+                        <span class="context-label">BATCH</span>
+                        <span class="context-value">{contextInfo.batchName}</span>
+                    </div>
+                    <div class="context-divider"></div>
+                    <div class="context-item">
+                        <span class="context-label">TERM</span>
+                        <span class="context-value">{contextInfo.termName}</span>
+                    </div>
+                    <div class="context-divider"></div>
+                    <div class="context-item">
+                        <span class="context-label">COURSE</span>
+                        <span class="context-value course-badge">{contextInfo.courseName}</span>
+                    </div>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    <!-- Sessions List Section -->
+                    <div class="sessions-section">
+                        <div class="sessions-header">
+                            <h3 class="section-title">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 8V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Sessions Timeline
+                            </h3>
+                            <button class="add-session-btn" onclick={handleAddSession}>
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                Add Session
+                            </button>
+                        </div>
+
+                        <!-- Sessions Cards Container -->
+                        <div class="sessions-cards-container">
+                            <template for:each={sessionsWithIndex} for:item="session">
+                                <div key={session.id} 
+                                     class={session.cardClass}
+                                     data-index={session.index}
+                                     onclick={handleSelectSession}>
+                                    
+                                    <!-- Session Card Header -->
+                                    <div class="session-card-header">
+                                        <div class="session-number">
+                                            <span class="session-badge">Session {session.displayNumber}</span>
+                                            <template if:true={session.isSelected}>
+                                                <span class="selected-indicator">
+                                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                </span>
+                                            </template>
+                                        </div>
+                                        <div class="session-actions">
+                                            <span class="programs-count" title="Programs selected">
+                                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                </svg>
+                                                {session.programCount}
+                                            </span>
+                                            <template if:true={session.canDelete}>
+                                                <button class="delete-btn" 
+                                                        data-index={session.index}
+                                                        onclick={handleDeleteSession}
+                                                        title="Delete session">
+                                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </svg>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- Session Card Body - Form Fields -->
+                                    <div class="session-card-body">
+                                        <!-- Row 1: Title -->
+                                        <div class="form-row">
+                                            <div class="form-field full-width">
+                                                <label class="field-label">Session Title</label>
+                                                <lightning-input
+                                                    type="text"
+                                                    value={session.title}
+                                                    placeholder="Enter session title"
+                                                    data-index={session.index}
+                                                    data-field="title"
+                                                    onchange={handleFieldChange}
+                                                    variant="label-hidden">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+
+                                        <!-- Row 2: Date, Start Time, End Time -->
+                                        <div class="form-row">
+                                            <div class="form-field">
+                                                <label class="field-label">Date</label>
+                                                <lightning-input
+                                                    type="date"
+                                                    value={session.date}
+                                                    data-index={session.index}
+                                                    data-field="date"
+                                                    onchange={handleFieldChange}
+                                                    variant="label-hidden">
+                                                </lightning-input>
+                                            </div>
+                                            <div class="form-field">
+                                                <label class="field-label">Start Time</label>
+                                                <lightning-input
+                                                    type="time"
+                                                    value={session.startTime}
+                                                    data-index={session.index}
+                                                    data-field="startTime"
+                                                    onchange={handleFieldChange}
+                                                    variant="label-hidden">
+                                                </lightning-input>
+                                            </div>
+                                            <div class="form-field">
+                                                <label class="field-label">End Time</label>
+                                                <lightning-input
+                                                    type="time"
+                                                    value={session.endTime}
+                                                    data-index={session.index}
+                                                    data-field="endTime"
+                                                    onchange={handleFieldChange}
+                                                    variant="label-hidden">
+                                                </lightning-input>
+                                            </div>
+                                        </div>
+
+                                        <!-- Row 3: Faculty Selection -->
+                                        <div class="form-row">
+                                            <div class="form-field full-width">
+                                                <label class="field-label">Faculty</label>
+                                                <div class="faculty-selector">
+                                                    <div class="faculty-pills-container">
+                                                        <template for:each={session.facultyPills} for:item="faculty">
+                                                            <span key={faculty.value} class="faculty-pill">
+                                                                {faculty.label}
+                                                                <button class="pill-remove" 
+                                                                        data-session-index={session.index}
+                                                                        data-faculty={faculty.value}
+                                                                        onclick={handleRemoveFaculty}>
+                                                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                                    </svg>
+                                                                </button>
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                    <lightning-combobox
+                                                        placeholder="Add faculty..."
+                                                        options={session.availableFacultyOptions}
+                                                        data-index={session.index}
+                                                        onchange={handleAddFaculty}
+                                                        variant="label-hidden">
+                                                    </lightning-combobox>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Program Selection Section -->
+                    <div class="programs-section">
+                        <div class="programs-header">
+                            <h3 class="section-title">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Programs to Merge
+                            </h3>
+                            <template if:true={hasSelectedSession}>
+                                <span class="selection-info">
+                                    Selecting for <strong>Session {selectedSessionDisplayNumber}</strong>
+                                </span>
+                            </template>
+                        </div>
+
+                        <template if:true={hasSelectedSession}>
+                            <!-- Programs Table -->
+                            <div class="programs-table-container">
+                                <table class="programs-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="checkbox-col">
+                                                <input type="checkbox" 
+                                                       checked={allProgramsSelected}
+                                                       onchange={handleSelectAllPrograms}
+                                                       class="select-checkbox"/>
+                                            </th>
+                                            <th>PROGRAM</th>
+                                            <th>BATCH</th>
+                                            <th>BATCH GROUP</th>
+                                            <th>DIVISION</th>
+                                            <th>TERM</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={availablePrograms} for:item="program">
+                                            <tr key={program.id} class={program.rowClass}>
+                                                <td class="checkbox-col">
+                                                    <input type="checkbox" 
+                                                           checked={program.isSelected}
+                                                           data-program-id={program.id}
+                                                           onchange={handleProgramToggle}
+                                                           class="select-checkbox"/>
+                                                </td>
+                                                <td class="program-name-cell">
+                                                    <span class="program-name">{program.programName}</span>
+                                                </td>
+                                                <td>{program.batchName}</td>
+                                                <td>{program.batchGroup}</td>
+                                                <td>
+                                                    <span class="division-badge">{program.division}</span>
+                                                </td>
+                                                <td>{program.term}</td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+
+                        <template if:false={hasSelectedSession}>
+                            <!-- Placeholder when no session selected -->
+                            <div class="programs-placeholder">
+                                <div class="placeholder-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                        <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                                    </svg>
+                                </div>
+                                <p class="placeholder-title">Select a Session</p>
+                                <p class="placeholder-text">Click on a session card to select programs where this course is already running and can be merged.</p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer">
+                    <div class="footer-summary">
+                        <span class="summary-item">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 8V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            {totalSessions} session(s)
+                        </span>
+                        <span class="summary-divider">|</span>
+                        <span class="summary-item">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            {totalProgramsMerged} program(s) to merge
+                        </span>
+                    </div>
+                    <div class="footer-actions">
+                        <button class="btn-cancel" onclick={handleClose}>Cancel</button>
+                        <button class="btn-save" onclick={handleSave}>
+                            Create Sessions
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+</template>

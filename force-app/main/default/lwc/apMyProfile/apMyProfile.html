@@ -1,0 +1,64 @@
+<template>
+    <template if:true={accountId}>
+        <div class="slds-p-around_medium">
+            <label class="slds-form-element__label slds-p-around_large form-label">{tableLabel}</label>
+            <lightning-record-edit-form
+                object-api-name="Account"
+                record-id={accountId}
+                record-type-id={applicantRecordTypeId}
+                onsuccess={handleSuccess}
+                class="slds-p-around_medium"
+                onload={handleLoad}
+            >
+                <lightning-messages></lightning-messages>
+
+                <!-- SLDS Grid Layout -->
+                <div class="slds-grid slds-wrap slds-gutters">
+
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-2">
+                        <lightning-input-field field-name="FirstName"></lightning-input-field>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-2">
+                        <lightning-input-field field-name="LastName"></lightning-input-field>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-2">
+                        <lightning-input-field field-name="PersonEmail" disabled></lightning-input-field>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-2">
+                        <lightning-input-field field-name="Phone"></lightning-input-field>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-2">
+                        <lightning-input-field field-name="Alternate_Mobile_Number__c"></lightning-input-field>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-2">
+                        <lightning-input-field field-name="State__c"></lightning-input-field>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-2">
+                        <lightning-input-field field-name="City__c"></lightning-input-field>
+                    </div>
+
+                </div>
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4 slds-large-size_1-of-8 slds-p-around_medium">
+                        <lightning-button type="submit" variant="brand" label="Save" class="save-button"></lightning-button>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4 slds-large-size_1-of-8 slds-p-around_medium">
+                        <lightning-button variant="brand" label="Cancel" onclick={handleReset}></lightning-button>                
+                    </div>
+                </div>
+            </lightning-record-edit-form>
+        </div>
+    </template>
+
+    <template if:false={areDetailsVisible}>
+        <div class="slds-p-around_medium slds-text-align_center">
+            <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+        </div>
+    </template>
+</template>

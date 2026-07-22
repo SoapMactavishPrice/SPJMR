@@ -1,0 +1,236 @@
+<template>
+    <div style="width: 420px; margin: 0 auto;">
+        <lightning-card title={courseName} icon-name="standard:contact" class="card slds-m-bottom_none"
+            variant="narrow">
+            <div class="slds-p-around_medium" style="background-color: #4B0076;">
+                <lightning-messages></lightning-messages>
+
+                <form class="slds-form" onsubmit={handleSubmit}>
+                    <lightning-layout multiple-rows>
+                        <template if:true={visibleFields.Name}>
+                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
+                                large-device-size="12">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label" for="fullName">
+                                        Full Name <abbr class="slds-required" title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-input type="text" label="Full Name" required value={formData.Name}
+                                            onchange={handleChange} name="Name" variant="label-hidden" id="fullName">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                        <template if:true={visibleFields.Email}>
+                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
+                                large-device-size="12">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label" for="email">
+                                        Email <abbr class="slds-required" title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-input type="email" label="Email Address" required
+                                            value={formData.Email} onchange={handleChange} name="Email" id="email"
+                                            variant="label-hidden">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                        <template if:true={visibleFields.Phone}>
+                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
+                                large-device-size="12">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label" for="phone">
+                                        Mobile Number <abbr class="slds-required" title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-input type="tel" label="Mobile Number" required
+                                            value={formData.Phone} onchange={handleChange} name="Phone"
+                                            pattern="[0-9]{10}"
+                                            message-when-pattern-mismatch="Please enter a 10-digit mobile number"
+                                            id="phone" variant="label-hidden" max-length="10">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                        <template if:true={visibleFields.State}>
+                            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6"
+                                large-device-size="6" class="slds-p-slds-p-right_x-small">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label" for="state">
+                                        State <abbr class="slds-required" title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-input type="text" label="State" required value={formData.State}
+                                            onchange={handleChange} name="State" id="state" variant="label-hidden">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                        <template if:true={visibleFields.City}>
+                            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6"
+                                large-device-size="6" class="slds-p-left_x-small">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label" for="city">
+                                        City <abbr class="slds-required" title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-input type="text" label="City" required value={formData.City}
+                                            onchange={handleChange} name="City" id="city" variant="label-hidden">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                        <template if:true={visibleFields.WorkExperience}>
+                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
+                                large-device-size="12">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label" for="workExperience">
+                                        Years of Work Experience <abbr class="slds-required" title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-combobox name="WorkExperience" label="Years of Work Experience"
+                                            required value={formData.WorkExperience} options={workExperienceOptions}
+                                            onchange={handleChange} id="workExperience" variant="label-hidden">
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                        <template if:true={visibleFields.HasCompletedGraduation}>
+                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
+                                large-device-size="12">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label"
+                                        for="hasCompletedGraduation">
+                                        Have you completed your graduation? <abbr class="slds-required"
+                                            title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-combobox name="HasCompletedGraduation"
+                                            label="Have you completed your graduation?" required
+                                            value={formData.HasCompletedGraduation} options={yesNoOptions}
+                                            onchange={handleChange} id="hasCompletedGraduation" variant="label-hidden">
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                        <template if:true={visibleFields.EntranceExamName}>
+                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
+                                large-device-size="12">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label" for="entranceExamName">
+                                        Entrance Exam Name <abbr class="slds-required" title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-combobox name="EntranceExamName" label="Entrance Exam Name"
+                                            value={formData.EntranceExamName} options={entranceExamOptions}
+                                            onchange={handleChange} required id="entranceExamName"
+                                            variant="label-hidden">
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                        <template lwc:if={boolean_DisplayOther}>
+                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
+                                large-device-size="12">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label" for="OthersExamName">
+                                        Other Exam Name <abbr class="slds-required" title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-input name="OthersExamName" label="Other Exam Name"
+                                            value={formData.OthersExamName} onchange={handleChange} required
+                                            id="OthersExamName" variant="label-hidden">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                        <template if:true={visibleFields.SPJIMRPartnerCompany}>
+                            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12"
+                                large-device-size="12">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label custom-visible-label"
+                                        for="SPJIMRPartnerCompany">
+                                        Are you working with SPJIMR partner company? <abbr class="slds-required"
+                                            title="required">*</abbr>
+                                    </label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-combobox name="SPJIMRPartnerCompany"
+                                            label="Are you working with SPJIMR partner company?" required
+                                            value={formData.SPJIMRPartnerCompany} options={yesNoOptions}
+                                            onchange={handleChange} id="SPJIMRPartnerCompany" variant="label-hidden">
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </template>
+
+                    </lightning-layout>
+
+                    <lightning-layout multiple-rows>
+                        <lightning-layout-item size="12" small-device-size="12" medium-device-size="4"
+                            large-device-size="3" class="slds-m-top_large">
+                            <div class="captcha-box slds-p-around_xx-small slds-text-heading_small">
+                                {captchaText}
+                            </div>
+                        </lightning-layout-item>
+                        <lightning-layout-item size="12" small-device-size="12" medium-device-size="8"
+                            large-device-size="9">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label custom-visible-label slds-p-horizontal_small"
+                                    for="captcha">
+                                    Enter Captcha<abbr class="slds-required" title="required">*</abbr>
+                                </label>
+                                <div class="slds-form-element__control slds-p-horizontal_small">
+                                    <lightning-input type="text" label="Enter Captcha" required value={formData.Captcha}
+                                        onchange={handleChange} name="Captcha" id="Captcha" variant="label-hidden">
+                                    </lightning-input>
+                                </div>
+                            </div>
+                        </lightning-layout-item>
+
+                        <lightning-layout-item size="12">
+                            <div class="slds-form-element">
+                                <div class="slds-form-element__control" style="display: flex;align-items: center;">
+                                    <lightning-input type="checkbox"
+                                        label="I agree to receive information from the Institute"
+                                        checked={formData.AgreedToTerms} onchange={handleChange} name="AgreedToTerms"
+                                        required id="agreedToTerms" variant="label-hidden">
+                                    </lightning-input>
+                                    <label class="slds-form-element__label custom-visible-label" for="agreedToTerms">
+                                        I agree to receive information from the Institute
+                                    </label>
+                                </div>
+                            </div>
+                        </lightning-layout-item>
+                    </lightning-layout>
+
+                    <div class="slds-m-top_medium slds-align_absolute-center">
+                        <!-- <lightning-button variant="brand" label="Submit Application" type="submit"
+                            class="submit_button">
+                        </lightning-button> -->
+                        <button type="submit" class="submit_button">Submit Application </button>
+                    </div>
+                </form>
+            </div>
+        </lightning-card>
+    </div>
+</template>

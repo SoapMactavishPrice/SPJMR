@@ -1,0 +1,352 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 01-07-2026
+  @last modified by  : 
+-->
+<template>
+    <div class="dashboard-container">
+        <!-- Dashboard Body -->
+        <div class="dashboard-body">
+            <!-- Main Content Area -->
+            <main class={mainContentClass}>
+                <div class="main-contianer">
+                    <div class="header-container">
+                        <div>
+                            <h2 class="dxp-text-heading-large">Student Profile Dashboard</h2>
+
+                            <div class="header-details slds-m-top--small slds-p-around--medium">
+                                <div class="slds-grid slds-gutters slds-wrap">
+                                    <div class="slds-col slds-size_3-of-12">
+                                        <div class="slds-media">
+                                            <div class="slds-media__figure">
+                                                <span class="slds-avatar slds-avatar_circle profile-avatar">
+                                                <img
+                                                    alt="Person name"
+                                                    src={profileDummyIcon}
+                                                    title="User avatar"
+                                                />
+                                            </span>
+                                            </div>
+                                            <!-- <div class="slds-media__body">
+                                                <p style="font-size:22px;">{studentName}</p>
+                                                <p class="slds-m-top-x_small">{rollNumber}</p>
+                                            </div> -->
+                                            <div class="slds-media__body">
+                                                    <p class="dxp-text-heading-medium">{studentName}</p>
+                                                    <p class="slds-m-top-x_small" style="margin-top:3px">{rollNumber}</p>
+                                                </div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-12 slds-text-align_center">
+                                        <p style="font-size:22px;">Program</p>
+                                        <p class="slds-m-top-x_small">{programCode}</p>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-12 slds-text-align_center">
+                                        <p style="font-size:22px;">Current Term</p>
+                                        <p class="slds-m-top-x_small">{term}</p>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-12 slds-m-top--large slds-text-align_center">
+                                        <button class="slds-button slds-button slds-button_brand active-button">Active</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <template if:true={isStudentDetailsSection}>
+                    <div class="student-details-header-bar">
+                        <h2 class="student-details-header-text dxp-text-heading-xxsmall">Student Details</h2>
+                    </div>
+
+                    <div class="slds-m-top--large studentDetailsCard">
+                        <article class="slds-card article-card">
+                            <!-- Student Details Header -->
+
+                            <div class="slds-card__body slds-card__body_inner slds-m-top--x-large">
+                                <div class="slds-grid slds-gutters">
+                                    <!-- Left: Profile Placeholder -->
+                                    <div class="slds-col slds-size_1-of-12">
+                                        <div class="profile-placeholder">
+                                            <span class="slds-avatar slds-avatar_circle profile-avatar">
+                                <img
+                                    alt="Person name"
+                                    src={profileDummyIcon}
+                                    title="User avatar"
+                                />
+                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Middle: User Details -->
+                                    <div class="slds-col slds-m-left--large slds-size_7-of-12">
+                                        <div class="slds-grid slds-gutters slds-size--2-of-4">
+                                            <div class="slds-col">
+                                                <h2 class="slds-text-heading_medium student-name-header">{studentName}
+                                                </h2>
+                                                <p class="slds-text-body_small slds-m-top--xx-small student-id-text">
+                                                    {rollNumber}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-m-top--xx-small student-program-text">
+                                                    {programName}</p>
+                                            </div>
+                                            <div class="slds-col">
+                                                <lightning-badge label="Status: Accepted" class="status-badge-accepted">
+                                                </lightning-badge>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Right: Action Button -->
+                                    <div class="slds-col slds-size_3-of-12 slds-text-align_right slds-m-left--xx-large">
+                                        <lightning-button label="Change of Specialization" variant="brand" disabled
+                                            class="specialization-button" onclick={handleChangeSpecialization}>
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Three Column Sections -->
+                            <div class="slds-card__body slds-card__body_inner slds-m-top--x-large">
+                                <div class="slds-grid slds-gutters">
+                                    <!-- Left Column: Personal Details -->
+                                    <div class="slds-col slds-size_1-of-3">
+                                        <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Personal
+                                            Details</h3>
+                                            <div  style="margin-left:5px">
+                                        <dl class="slds-dl_horizontal slds-m-top_small">
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body">Date of Birth</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate dxp-text-body">{dateOfBirth}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body ">Gender</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate  dxp-text-body">{studentGender}</p>
+                                            </dd>
+                                        </dl>
+                                            </div>
+
+                                        <h3 class="slds-section-title dxp-text-heading-xsmall section-title slds-m-top_medium">
+                                            Contact info</h3>
+                                            <div  style="margin-left:5px">
+                                        <dl class="slds-dl_horizontal slds-m-top_small">
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body">Phone</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate dxp-text-body">{mobileNumber}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body ">Email</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate  dxp-text-body">{studentEmail}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label address-label">
+                                                <p class="dxp-text-body">Address</p>
+                                            </dt>
+                                            <!-- <dd class="slds-dl_horizontal__detail address-value">
+                                                <p class="dxp-text-body">Plot no 20, johny street, Bengaluru, Karnataka
+                                                    - 600811</p>
+                                            </dd> -->
+                                            <dd class="slds-dl_horizontal__detail address-value">
+                                                <p class="dxp-text-body">{address}</p>
+                                            </dd>
+                                        </dl>
+                                       <div class="slds-m-top_medium">
+                                            <lightning-button label="Emergency contact" variant="brand"
+                                                class="emergency-button" onclick={handleEmergencyContact}>
+                                            </lightning-button>
+                                        </div>
+                                            </div>
+                                    </div>
+
+                                    <!-- Middle Column: Academic Background -->
+                                    <div class="slds-col slds-size_1-of-3">
+                                        <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Academic
+                                            Background
+                                        </h3>
+                                        <div style="margin-left:5px">
+                                        <dl class="slds-dl_horizontal slds-m-top_small">
+                                            <dt class="slds-dl_horizontal__label" style="width:45%">
+                                                <p class="dxp-text-body">Previous Qualification</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail" style="width:50%">
+                                                <p class="slds-truncate dxp-text-body">{prevQualification}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body ">Graduation Year</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate  dxp-text-body">{graduationYear}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body">Marks/CGPA</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate dxp-text-body">{marks}</p>
+                                            </dd>
+                                        </dl>
+                                        </div>
+                                        <!-- <div>
+                                            <p class="dxp-text-body certificate-label">
+                                                <span class="certificate-bold">Certificates</span> (Download link from
+                                                document
+                                                repository)
+                                            </p>
+                                            <button type="button" onclick={handleDownloadCertificate} class="link-button">
+                                        Download certificate</button>
+                                        </div> -->
+                                    </div>
+
+                                    <!-- Right Column: Fees Section -->
+                                    <!-- <div class="slds-col slds-size_1-of-3">
+                                        <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Fees
+                                            Section</h3>
+                                        <dl class="slds-dl_horizontal slds-m-top_small">
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body">Application Fee</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate dxp-text-body">₹1,000</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body ">Payment Status</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate  dxp-text-body">Pending</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body">Due Date</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate dxp-text-body">12/03/2025</p>
+                                            </dd>
+                                        </dl>
+                                        <div class="slds-m-top_medium">
+                                            <div class="slds-grid slds-grid_vertical slds-gutters">
+                                                <div class="slds-col slds-m-bottom--small">
+                                                    <lightning-button label="Upload Missing Documents" variant="brand"
+                                                        class="upload-button full-width-button"
+                                                        onclick={handleUploadDocuments}>
+                                                    </lightning-button>
+                                                </div>
+                                                <div class="slds-col">
+                                                    <lightning-button label="Pay Academic Fee" variant="brand"
+                                                        class="pay-button full-width-button"
+                                                        onclick={handlePayAcademicFee}>
+                                                    </lightning-button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div> -->
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+                </template>
+            </main>
+        </div>
+         <!-- Emergency Contact Modal -->
+        <template if:true={isEmergencyModalOpen}>
+            <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open emergency-modal">
+                <div class="slds-modal__container emergency-modal__container">
+                    <header class="slds-modal__header emergency-modal__header">
+                        <h2 class="slds-text-heading_medium emergency-modal__title">Emergency Contact Details</h2>
+                        <button class="emergency-modal__close" onclick={closeEmergencyModal} aria-label="Close">
+                            &times;
+                        </button>
+                    </header>
+
+                    <div class="slds-modal__content emergency-modal__content" id="emergency-modal-content">
+                        <!-- Parent Contact Details -->
+                        <div class="emergency-section">
+                            <div class="emergency-section__header">
+                                <h3 class="dxp-text-heading-xsmall emergency-section__title">Parent Contact Details</h3>
+                                <button class="slds-button slds-button_brand emergency-section__edit">
+                                    Edit Emergency contact
+                                </button>
+                            </div>
+
+                            <div class="emergency-card">
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Primary Contact Name*</div>
+                                    <div class="emergency-value">Anjali Sharma</div>
+                                </div>
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Relationship*</div>
+                                    <div class="emergency-value">Parent</div>
+                                </div>
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Mobile Number*</div>
+                                    <div class="emergency-value">+91 98765 43210</div>
+                                </div>
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Alternate Number</div>
+                                    <div class="emergency-value">+91 98989 11223</div>
+                                </div>
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Email ID</div>
+                                    <div class="emergency-value">anjali.sharma@gmail.com</div>
+                                </div>
+                                <div class="emergency-row emergency-row--address">
+                                    <div class="emergency-label">Address :</div>
+                                    <div class="emergency-value">
+                                        Plot no 20, johny street, Bengaluru, Karnataka - 600811
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Local Guardian Contact Details -->
+                        <div class="emergency-section">
+                            <div class="emergency-section__header">
+                                <h3 class="dxp-text-heading-xsmall emergency-section__title">Local Guardian Contact Details</h3>
+                                <button class="slds-button slds-button_brand emergency-section__edit">
+                                    Edit Emergency contact
+                                </button>
+                            </div>
+
+                            <div class="emergency-card">
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Primary Contact Name*</div>
+                                    <div class="emergency-value">Anjali Sharma</div>
+                                </div>
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Relationship*</div>
+                                    <div class="emergency-value">Local Gardient</div>
+                                </div>
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Mobile Number*</div>
+                                    <div class="emergency-value">+91 98765 43210</div>
+                                </div>
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Alternate Number</div>
+                                    <div class="emergency-value">+91 98989 11223</div>
+                                </div>
+                                <div class="emergency-row">
+                                    <div class="emergency-label">Email ID</div>
+                                    <div class="emergency-value">anjali.sharma@gmail.com</div>
+                                </div>
+                                <div class="emergency-row emergency-row--address">
+                                    <div class="emergency-label">Address :</div>
+                                    <div class="emergency-value">
+                                        Plot no 20, johny street, Bengaluru, Karnataka - 600811
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+    </div>
+
+</template>

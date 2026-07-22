@@ -1,0 +1,17 @@
+.page-container {
+    min-height: 100vh;
+    padding: 2rem;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f4f6ff 0%,
+            #eef4ff 50%,
+            #ffffff 100%
+        );
+}
+
+lightning-card {
+    max-width: 900px;
+    margin: 0 auto;
+}

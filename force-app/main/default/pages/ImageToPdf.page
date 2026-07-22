@@ -1,0 +1,4 @@
+<apex:page renderAs="pdf" showHeader="false" applyBodyTag="false">
+    <img src="data:image/png;base64,{!$CurrentPage.parameters.base64}"
+         style="width:100%;height:auto;" />
+</apex:page>

@@ -1,0 +1,54 @@
+<template>
+    <lightning-card title="Book Interviews" icon-name="standard:event">
+        
+        <!-- HEADER ACTIONS -->
+        <div class="slds-grid slds-wrap slds-align_absolute-center slds-m-around_medium">
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
+                <p class="slds-text-body_regular slds-text-color_weak">
+                    Select one or more applications to assign interview slots in bulk.
+                </p>
+            </div>
+
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right">
+                <lightning-button
+                    variant="brand"
+                    label="Assign Interview Slots"
+                    onclick={handleBookSlots}>
+                </lightning-button>
+            </div>
+        </div>
+
+        <!-- DATA TABLE -->
+        <div class="slds-m-horizontal_medium">
+            <lightning-datatable
+                key-field="Id"
+                data={pagedData}
+                columns={columns}
+                selected-rows={selectedRows}
+                onrowselection={handleRowSelection}>
+            </lightning-datatable>
+        </div>
+
+        <!-- PAGINATION -->
+        <div class="slds-align_absolute-center slds-m-vertical_medium slds-text-body_small">
+            <lightning-button
+                label="Previous"
+                variant="neutral"
+                onclick={previousPage}
+                disabled={isFirstPage}>
+            </lightning-button>
+
+            <span class="slds-m-horizontal_medium slds-text-title_caps">
+                Page {page} of {totalPages}
+            </span>
+
+            <lightning-button
+                label="Next"
+                variant="neutral"
+                onclick={nextPage}
+                disabled={isLastPage}>
+            </lightning-button>
+        </div>
+
+    </lightning-card>
+</template>

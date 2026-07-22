@@ -1,0 +1,70 @@
+<template>
+    <template if:false={showB2BForm}>
+        <template if:false={showB2CForm}>
+            <!-- First Screen: Record Type Selection -->
+            <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="new-lead-title">
+                <div class="modal-container">
+                    <!-- Header -->
+                    <header class="modal-header">
+                        <h2 id="new-lead-title" class="modal-title">
+                            New Lead
+                        </h2>
+                        <button type="button"
+                                class="modal-close"
+                                onclick={handleClose}
+                                aria-label="Close">
+                            ×
+                        </button>
+                    </header>
+
+                    <!-- Body -->
+                    <div class="modal-body">
+                        <div class="slds-form-element">
+                            <label class="slds-form-element__label">Select a record type</label>
+                            <div class="slds-form-element__control slds-m-top_small">
+                                <lightning-radio-group
+                                    name="recordType"
+                                    options={recordTypeOptions}
+                                    value={selectedRecordType}
+                                    type="radio"
+                                    onchange={handleRecordTypeChange}>
+                                </lightning-radio-group>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <footer class="modal-footer">
+                        <lightning-button
+                            label="Cancel"
+                            onclick={handleCancel}
+                            variant="neutral"
+                            class="slds-m-right_small">
+                        </lightning-button>
+                        <lightning-button
+                            label="Next"
+                            onclick={handleNext}
+                            variant="brand">
+                        </lightning-button>
+                    </footer>
+                </div>
+            </div>
+        </template>
+    </template>
+
+    <!-- B2C Form Component -->
+    <template if:true={showB2CForm}>
+        <c-b2c-lead-form
+            onclose={handleB2CFormClose}
+            onsuccess={handleB2CFormSuccess}>
+        </c-b2c-lead-form>
+    </template>
+
+    <!-- B2B Form Component -->
+    <template if:true={showB2BForm}>
+        <c-b2b-lead-form
+            onclose={handleB2BFormClose}
+            onsuccess={handleB2BFormSuccess}>
+        </c-b2b-lead-form>
+    </template>
+</template>

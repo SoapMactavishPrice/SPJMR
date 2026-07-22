@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Base Navigation Component</masterLabel>
+    <description>Base Navigation Component</description>
+    <targets>
+        <target>lightningCommunity__Page</target>
+        <target>lightningCommunity__Default</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightningCommunity__Default">
+            <property
+        name="menuName"
+        type="String"
+        datasource="apex://navigationLinkSetPicklist"
+        label="Navigation Menu Name"
+        description="The name of the Navigation Menu Linkset, which can be configured in Settings > Navigation"
+      />
+            <property
+        name="headerText"
+        type="String"
+        label="Header Text"
+        description="Optional header text to display above the navigation menu"
+      />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

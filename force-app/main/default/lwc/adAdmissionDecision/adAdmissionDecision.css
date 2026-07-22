@@ -1,0 +1,83 @@
+.decision-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    max-width: 420px;
+}
+
+.title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.go-to-offer {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b2e83; /* SPJIMR violet */
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.go-to-offer:hover {
+    text-decoration: underline;
+}
+
+
+/* Common row style */
+.decision-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 10px;
+}
+
+/* Text */
+.decision-text .title {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.decision-text .sub {
+    font-size: 13px;
+    color: #706e6b;
+    margin-top: 2px;
+}
+
+.decision-text .date {
+    font-size: 12px;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+/* Status colors */
+.accepted {
+    background: #eef8f1;
+    color: #2e844a;
+}
+
+.declined {
+    background: #fdecea;
+    color: #ba0517;
+}
+
+.pending {
+    background: #fff4e5;
+    color: #8a4b00;
+}
+
+.withdrawn {
+    background: #f3f2f2;
+    color: #5c5c5c;
+}
+
+.clickable-name:hover{
+    background: rgb(162, 162, 234);
+    cursor: pointer;
+}
+.create-offer-container {
+    margin-top: 12px;
+    text-align: right;
+}

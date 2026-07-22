@@ -1,0 +1,63 @@
+.container {
+    padding: 20px;
+    font-family: "Nunito Sans", sans-serif;
+}
+
+.title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #4A2E8C; /* SPJIMR purple */
+    margin-bottom: 20px;
+}
+
+.offer-card {
+    background: #fff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.label {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn-outline {
+    background: white;
+    border: 1.5px solid #999;
+}
+
+.btn-withdraw{
+    background: rgb(75, 0, 118);
+    color: white;
+    border: none;
+}
+
+.btn-accept {
+    background: #23AF46;   /* Green */
+    color: white;
+    border: none;
+}
+
+.btn-reject {
+    background: #DE3B3B;   /* Red */
+    color: white;
+    border: none;
+}

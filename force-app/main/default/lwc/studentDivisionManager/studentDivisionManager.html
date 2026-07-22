@@ -1,0 +1,62 @@
+<template>
+  <lightning-card title="Student Division Distribution">
+    <div class="slds-p-around_medium">
+      <lightning-button
+        label="Distribute Students"
+        variant="brand"
+        onclick={handleDistribute}
+      >
+      </lightning-button>
+
+      <lightning-button
+        label="Validate Distribution"
+        class="slds-m-left_small"
+        onclick={handleValidate}
+      >
+      </lightning-button>
+
+      <template if:true={message}>
+        <div class="slds-m-top_medium">
+          <template if:true={isValid}>
+            <lightning-alert
+              variant="success"
+              message={message}
+            ></lightning-alert>
+          </template>
+          <template if:false={isValid}>
+            <lightning-alert
+              variant="warning"
+              message={message}
+            ></lightning-alert>
+          </template>
+        </div>
+      </template>
+
+      <template if:true={warnings}>
+        <template if:true={warnings.length}>
+          <div class="slds-m-top_medium slds-box slds-theme_warning">
+            <h3 class="slds-text-heading_small slds-m-bottom_small">
+              Validation Warnings
+            </h3>
+            <ul class="slds-list_dotted">
+              <template for:each={warnings} for:item="warning">
+                <li key={warning}>{warning}</li>
+              </template>
+            </ul>
+          </div>
+        </template>
+      </template>
+
+      <template if:true={rows}>
+        <div class="slds-m-top_medium">
+          <lightning-datatable
+            key-field="divisionId"
+            data={rows}
+            columns={columns}
+          >
+          </lightning-datatable>
+        </div>
+      </template>
+    </div>
+  </lightning-card>
+</template>

@@ -1,0 +1,52 @@
+<apex:page controller="Shortage_Rejection_Advice_Class" sidebar="false">
+    <head>
+        <apex:slds />
+        <script>
+        function selectAllCheckboxes(obj,receivedInputID){
+                console.log('this is called=========');
+
+                var inputCheckBox = document.getElementsByTagName("input");                  
+                for(var i=0; i<inputCheckBox.length; i++){          
+                    if(inputCheckBox[i].id.indexOf(receivedInputID)!=-1){                                     
+                        inputCheckBox[i].checked = obj.checked;
+                        console.log('this is called');
+                    }
+                }
+            }
+       </script>
+   </head>
+    <apex:pageMessages ></apex:pageMessages>
+    <div style="display">
+    <apex:form id="pl" rendered="{!ShowList}">
+    <apex:pageBlock > 
+    <p style="text-align:center;font-weight:bold">Select Product</p>
+    <table class="slds-table slds-table_cell-buffer slds-table--bordered slds-table_col-bordered slds-border_right slds-border_left">
+    <thead>
+            <tr class="slds-text-title_caps">
+                <th scope="col" style="background-color : #b12327;color:white;">
+                    <apex:inputCheckbox onclick="selectAllCheckboxes(this,'chk2')"/>
+                </th>
+                <th scope="col" style="background-color : #b12327;color:white;">Item Name</th>
+                <th scope="col" style="background-color : #b12327;color:white;">Received Quantity</th>
+                <th scope="col" style="background-color : #b12327;color:white;">Rejected Quantity</th>
+            </tr> 
+    </thead>
+    <apex:repeat value="{!wList}" var="p">
+           <tr>
+               <td><apex:inputCheckbox value="{!P.isChecked}" id="chk2"></apex:inputCheckbox></td>
+               <td>{!P.pro.Item_Name__r.name}</td>
+               <td>{!P.pro.Received_Quantity__c}</td>
+               <td Style="text-align:center;">
+                   <apex:inputfield value="{!P.pro.Rejected_Quantity__c}" styleClass="slds-input" required="true"> </apex:inputfield>
+               </td>
+          </tr> 
+        </apex:repeat>
+    </table>
+        <apex:pageBlockButtons location="Bottom" style="float:right">
+        <apex:commandButton action="{!Save}" value="Save" styleClass="slds-button slds-button_brand"> </apex:commandButton>
+         <apex:commandButton action="{!Cancel}" value="Cancel" styleClass="slds-button slds-button_neutral" immediate="true"> </apex:commandButton>
+        </apex:pageBlockButtons>
+        </apex:pageBlock>
+    </apex:form>
+    </div>
+</apex:page>

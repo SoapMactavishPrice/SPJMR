@@ -1,0 +1,64 @@
+<template>
+    <lightning-card title="Preference Picker" icon-name="utility:settings">
+        <div class="section">
+            <!-- Level Selection -->
+            <div class="input-section">
+                <lightning-combobox
+                    label="Select Level"
+                    value={selectedLevel}
+                    options={levelOptions}
+                    onchange={handleLevelChange}>
+                </lightning-combobox>
+
+                <!-- Grade Selection -->
+                <lightning-combobox
+                    label="Select Grade"
+                    value={selectedGrade}
+                    options={gradeOptions}
+                    onchange={handleGradeChange}>
+                </lightning-combobox>
+            </div>
+        </div>
+
+        <!-- Subjects Table -->
+        <template if:true={subjects}>
+            <div class="subject-section">
+                <table class="subject-table">
+                    <thead>
+                        <tr>
+                            <th>Select</th>
+                            <th>Category</th>
+                            <th>Subject Name</th>
+                            <th>Credits</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={subjects} for:item="subjectCategory">
+                            <template for:each={subjectCategory.subjects} for:item="subject" for:index="index">
+                                <tr key={subject.name} class={subject.rowClass}>
+                                    <td>
+                                        <input
+                                            type="checkbox"
+                                            data-category={subjectCategory.category}
+                                            data-credits={subject.credits}
+                                            data-name={subject.name}
+                                            onchange={handleCheckboxChange} />
+                                    </td>
+                                    <td>{subjectCategory.category}</td>
+                                    <td>{subject.name}</td>
+                                    <td>{subject.credits}</td>
+                                </tr>
+                            </template>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Major and Minor Preferences -->
+            <div class="preferences">
+                <p><strong>Major Preference:</strong> {majorPreference}</p>
+                <p><strong>Minor Preference:</strong> {minorPreference}</p>
+            </div>
+        </template>
+    </lightning-card>
+</template>

@@ -1,0 +1,14 @@
+.section { margin-bottom: 16px; }
+.section-title { font-size: 16px; font-weight:600; margin-bottom:8px; }
+.row { margin-bottom: 8px; display: contents; }
+.col { background: transparent; }
+.col-header { font-weight:600; margin-bottom:6px; }
+.field-cell { margin-bottom:6px; }
+.sectionHeader {
+    background-color: #f58220;
+    padding: 10px;
+    margin-bottom: 1rem;
+    color: whitesmoke;
+    font-size: 1em;
+    font-weight: bold;
+}

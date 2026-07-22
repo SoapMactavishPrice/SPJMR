@@ -1,0 +1,34 @@
+<aura:component
+    implements="forceCommunity:themeLayout,forceCommunity:layout,forceCommunity:availableForAllPageTypes"
+    access="global">
+
+    <!-- Define the layout regions -->
+    <aura:attribute name="main" type="Aura.Component[]" description="Main content area (list/dashboard)" />
+    <aura:attribute name="recordDetail" type="Aura.Component[]" description="Record detail area (record pages)" />
+
+
+
+    <!-- Sidebar toggle -->
+    <aura:attribute name="isSidebarOpen" type="Boolean" default="true" />
+
+    <!-- Page Layout -->
+    <div class="layoutContainer">
+        <!-- HEADER -->
+        <div class="headerContainer">
+            <c:apCltHeader onhamburgertoggle="{!c.handleHamburgerToggle}" />
+        </div>
+
+        <!-- BODY -->
+        <div class="bodyContainer">
+            <div class="{!'sidebarContainer ' + (v.isSidebarOpen ? 'open' : 'closed')}">
+                <c:apCltSidebar isSidebarOpen="{!v.isSidebarOpen}" />
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="{!'contentContainer slds-p-around_medium ' + (v.isSidebarOpen ? 'withSidebar' : 'fullWidth')}">
+                {!v.main}
+                {!v.recordDetail}
+            </div>
+        </div>
+    </div>
+</aura:component>

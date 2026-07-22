@@ -1,0 +1,61 @@
+<apex:page controller="CcavenueVfController"
+           showHeader="false"
+           sidebar="false"
+           docType="html-5.0">
+
+    <apex:includeScript value="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"/>
+
+    <form id="customerData">
+        <button type="button" id="checkout">Checkout</button>
+    </form>
+
+    <div id="paymentDiv"></div>
+
+    <iframe id="paymentFrame"
+            width="482"
+            height="500"
+            scrolling="no"
+            frameborder="0">
+    </iframe>
+
+    <script>
+        $(document).ready(function () {
+
+            $('#checkout').on('click', function (e) {
+                e.preventDefault();
+
+                $('#paymentDiv').empty();
+
+                Visualforce.remoting.Manager.invokeAction(
+                    '{!$RemoteAction.CcavenueVfController.generateEncRequest}',
+                    $('#customerData').serialize(),
+                    function (result, event) {
+
+                        if (event.status && !result.error) {
+
+                            var url =
+                                'https://secure.ccavenue.com/transaction/transaction.do' +
+                                '?command=initiateTransaction' +
+                                '&merchant_id=' + result.merchantId +
+                                '&encRequest=' + result.encRequest +
+                                '&access_code=' + result.accessCode;
+
+                            $('#paymentFrame').attr('src', url);
+
+                        } else {
+                            alert(result.error || 'Payment initialization failed');
+                        }
+                    }
+                );
+            });
+
+            // iframe resize support
+            window.addEventListener('message', function (e) {
+                if (e.data && e.data.newHeight) {
+                    $('#paymentFrame').css('height', e.data.newHeight + 'px');
+                }
+            }, false);
+        });
+    </script>
+
+</apex:page>

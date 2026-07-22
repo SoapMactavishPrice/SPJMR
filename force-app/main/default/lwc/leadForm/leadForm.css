@@ -1,0 +1,48 @@
+:host {
+    --sds-c-card__body-margin-bottom: 0;
+    --sds-c-card-body-margin-bottom: 0;
+    --slds-c-card-body-margin-bottom: 0;
+    --slds-c-card__body-margin-bottom: 0;
+}
+
+.slds-card__body {
+    margin-bottom: 0 !important;
+}
+
+.captcha-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid #d8dde6;
+    background-color: #f4f6f9;
+    min-height: 40px;
+}
+
+.submit_button {
+    background-color: #FFA500;
+    border: 1px solid #FFA500;
+    padding: 12px 24px;
+    text-align: center;
+    font-weight: bold;
+    color: #fff;
+}
+
+.custom-visible-label {
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.custom-input .slds-input {
+    color: #000;
+}
+
+.custom-input .slds-input::placeholder {
+    color: #bbb;
+}
+
+.card .slds-card__body {
+    margin-bottom: 0 !important;
+}

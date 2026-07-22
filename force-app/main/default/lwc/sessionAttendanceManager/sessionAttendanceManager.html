@@ -1,0 +1,187 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 04-16-2026
+  @last modified by  : 
+-->
+<template>
+    <lightning-card title="Attendance Manager">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <div class="filter-panel slds-m-bottom_medium">
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                        <lightning-combobox label="Programme" value={selectedProgram} options={filterProgramOptions} onchange={handleProgramChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                        <lightning-combobox label="Batch" value={selectedBatch} options={filterBatchOptions} onchange={handleBatchChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                        <lightning-combobox label="Batch Group" value={selectedBatchGroup} options={filterBatchGroupOptions} onchange={handleBatchGroupChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                        <lightning-combobox label="Term" value={selectedTerm} options={filterTermOptions} onchange={handleTermChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                        <lightning-combobox label="Division" value={selectedDivision} options={filterDivisionOptions} onchange={handleDivisionChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                        <lightning-input type="date" label="Session Date" value={selectedSessionDate} onchange={handleSessionDateChange}></lightning-input>
+                    </div>
+                    <!-- Session (wide) + Course on one row; Faculty on next row -->
+                    <div class="slds-col session-filter-combobox-col">
+                        <lightning-combobox label="Session" value={selectedSession} options={filterSessionOptions} onchange={handleSessionChange}></lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-12">
+                        <div class="filter-readonly-field slds-form-element" role="status">
+                            <label class="slds-form-element__label" for="attn-readonly-course">Course</label>
+                            <div class="slds-form-element__control">
+                                <div id="attn-readonly-course" class="filter-readonly-value">{sessionCourseReadonlyDisplay}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-12">
+                        <div class="filter-readonly-field slds-form-element" role="status">
+                            <label class="slds-form-element__label" for="attn-readonly-course-activity">Course Activity</label>
+                            <div class="slds-form-element__control">
+                                <div id="attn-readonly-course-activity" class="filter-readonly-value">{sessionCourseActivityReadonlyDisplay}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                        <div class="filter-readonly-field slds-form-element" role="status">
+                            <label class="slds-form-element__label" for="attn-readonly-faculty">Faculty</label>
+                            <div class="slds-form-element__control">
+                                <div id="attn-readonly-faculty" class="filter-readonly-value">{sessionFacultyReadonlyDisplay}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <template if:true={errorMessage}>
+                <div class="slds-text-color_error slds-m-bottom_small">{errorMessage}</div>
+            </template>
+
+            <template if:true={hasRows}>
+                <div class="attendance-stats-bar slds-m-bottom_small">
+                    <div class="attendance-stats-pills">
+                        <div class="stat-pill stat-pill-total" data-status="All" onclick={handleAttendanceFilter}>
+                            <span class="stat-label">Total No. of students</span>
+                            <span class="stat-value">{totalStudents}</span>
+                        </div>
+                        <div class="stat-pill stat-pill-present" data-status="Present" onclick={handleAttendanceFilter}>
+                            <span class="stat-label">Present</span>
+                            <span class="stat-value">{totalPresent}</span>
+                        </div>
+                        <div class="stat-pill stat-pill-absent" data-status="Absent" onclick={handleAttendanceFilter}>
+                            <span class="stat-label">Absent</span>
+                            <span class="stat-value">{totalAbsent}</span>
+                        </div>
+                        <div class="stat-pill stat-pill-late" data-status="Late" onclick={handleAttendanceFilter}>
+                            <span class="stat-label">Late</span>
+                            <span class="stat-value">{totalLate}</span>
+                        </div>
+                        <div class="stat-pill stat-pill-leave" data-status="Sanctioned Leave" onclick={handleAttendanceFilter}>
+                            <span class="stat-label">Leave</span>
+                            <span class="stat-value">{totalLeaveSanctioned}</span>
+                        </div>
+                    </div>
+                    <template if:false={isFutureSessionReadOnly}>
+                        <div class="attendance-stats-actions">
+                            <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
+                        </div>
+                    </template>
+                </div>
+                <template if:true={isFutureSessionReadOnly}>
+                    <div class="slds-text-color_weak slds-m-bottom_x-small">Attendance is read-only for future sessions.</div>
+                </template>
+                <div class="attendance-sheet-header">
+                    <span class="sheet-title">Attendance Sheet</span>
+                    <div class="sheet-search">
+                        <lightning-input
+                            type="search"
+                            value={attendanceSearchText}
+                            onchange={handleAttendanceSearchChange}
+                            placeholder="Search by roll number or student name"
+                            variant="label-hidden"
+                            label="Search students">
+                        </lightning-input>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <template if:true={hasNoSearchMatches}>
+                        <div class="search-no-match slds-p-around_small">No students match your search.</div>
+                    </template>
+                    <table class="attendance-table slds-table slds-table_cell-buffer slds-table_bordered">
+                        <thead>
+                            <tr>
+                                <th>Roll Number</th>
+                                <th>Student Registration Number</th>
+                                <th>Student Name</th>
+                                <th>Term Code</th>
+                                <th>Leave Type</th>
+                                <th>Attendance</th>
+                                <th>Remark</th>
+                                <th>Response</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={tableRows} for:item="row">
+                                <tr key={row.key}>
+                                    <td>{row.rollNumber}</td>
+                                    <td>{row.registrationNumber}</td>
+                                    <td>{row.studentName}</td>
+                                    <td>{row.termCode}</td>
+                                    <td class="leave-type-cell">
+                                        <template if:true={row.attendanceIsSanctionedLeave}>
+                                            {row.leaveType}
+                                        </template>
+                                    </td>
+                                    <td>
+                                        <lightning-combobox
+                                            data-id={row.id}
+                                            value={row.attendance}
+                                            options={attendanceOptions}
+                                            placeholder="Select"
+                                            onchange={handleAttendanceChange}
+                                            disabled={isFutureSessionReadOnly}
+                                            variant="label-hidden"
+                                            dropdown-alignment="auto">
+                                        </lightning-combobox>
+                                    </td>
+                                    <td>
+                                        <lightning-input
+                                            data-id={row.id}
+                                            value={row.remark}
+                                            onchange={handleRemarkChange}
+                                            disabled={isFutureSessionReadOnly}
+                                            variant="label-hidden"
+                                            placeholder="Enter remark">
+                                        </lightning-input>
+                                    </td>
+                                    <td>{row.inviteResponse}</td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+
+            <template if:false={hasRows}>
+                <template if:false={isLoading}>
+                    <template if:true={selectedSession}>
+                        <div class="empty-state slds-m-bottom_small">No session enrollments match the selected filters for this session.</div>
+                    </template>
+                    <template if:false={selectedSession}>
+                        <div class="empty-state">Select filters and a session to view enrollment attendance.</div>
+                    </template>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

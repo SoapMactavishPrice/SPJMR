@@ -1,0 +1,72 @@
+<template>
+    <div class="dashboard-container">
+        <div class="dashboard-body">
+            <main class={mainContentClass}>
+                <div class="main-container">
+                    <div class="header-container">
+                        <div>
+                            <h2 class="dxp-text-heading-large">Student Term Detail</h2>
+                            <c-spjimr_student-info-header class="slds-m-top--small"></c-spjimr_student-info-header>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="term-selector-row slds-m-top_medium slds-m-bottom_medium">
+                    <dl class="term-dl slds-m-top_small">
+                        <dt class="term-dl__label">
+                            <p class="slds-truncate dxp-text-body" style="margin-top:2px;font-size:20px">Term</p>
+                        </dt>
+                        <dd class="term-dl__detail slds-m-top_none" style="width:180px">
+                            <lightning-combobox
+                                name="term"
+                                label="Term"
+                                variant="label-hidden"
+                                options={termOptions}
+                                value={selectedTermValue}
+                                onchange={handleTermChange}
+                                class="dxp-text-body term-pill">
+                            </lightning-combobox>
+                        </dd>
+                    </dl>
+                </div>
+
+
+                <div class="section-row section-row--full-width">
+                    <div class="section-wrapper">
+                        <div class="section-header-bar">
+                            <h2 class="section-header-text">Division Courses</h2>
+                        </div>
+                        <div class="section-content section-content-division-courses">
+                            <table class="subjects-table subjects-table--division-courses">
+                                <thead>
+                                    <tr>
+                                        <th>Course Name</th>
+                                        <th>Credits</th>
+                                    <!--<th>Course Type</th> -->
+                                        <th>Specialisation</th>
+                                        <th>Division Name</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={combinedDivisionCourseRows} for:item="row">
+                                        <tr key={row.id}>
+                                            <td>{row.courseName}</td>
+                                            <td>{row.credits}</td>
+                                        <!--<td>{row.courseType}</td>  -->
+                                            <td>{row.specialisation}</td>
+                                            <td>{row.divisionName}</td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
+            
+
+            </main>
+        </div>
+    </div>
+</template>

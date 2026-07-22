@@ -1,0 +1,31 @@
+<apex:page >
+    
+    <style>
+        body.sfdcBody {
+             /* background: #631856 url(/_slds/images/themes/lightning_lite/lightning_lite_logo_3x.png) repeat-x !important; */
+              background: #631856  !important;
+              
+            }
+    
+    </style>
+
+    <apex:includeLightning />
+    <div id="lwcDemo" />
+    <script>
+
+    var accountId = "{!$CurrentPage.parameters.id}";
+   
+    $Lightning.use("c:uploadDocumentApp", function() {
+        $Lightning.createComponent("c:lwcUploadDocument", {
+            //pass parameter values to lwc js controller
+            recordId : accountId // optional parameter, I already declared value in lwc js controller.
+           
+        },
+        "lwcDemo",
+            function(component) {
+            
+            }
+       );
+    });
+    </script>
+</apex:page>

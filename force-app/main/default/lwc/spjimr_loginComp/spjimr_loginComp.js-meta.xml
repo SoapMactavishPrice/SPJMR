@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>SPJIMR Login Component</masterLabel>
+    <description>Student user login component with promotional content</description>
+    <targets>
+        <target>lightningCommunity__Default</target>
+        <target>lightningCommunity__Page</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>  
+        <targetConfig targets="lightningCommunity__Default">
+            <property name="studentLoginBgImg" type="ContentReference" filter="cms_image" label="Select Student Login Background Image"/>
+            <property name="emailSVG" type="ContentReference" filter="cms_image" label="Select Email SVG Image"/>
+            <property name="passwordSVG" type="ContentReference" filter="cms_image" label="Select Password SVG Image"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

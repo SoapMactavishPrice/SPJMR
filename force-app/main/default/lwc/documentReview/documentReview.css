@@ -1,0 +1,23 @@
+.remarks-textarea {
+    width: 280px;            /* wider */
+    min-height: 40px;        /* minimum height */
+    padding: 8px;
+    resize: none;            /* user cannot drag */
+    font-size: 14px;
+    border-radius: 6px;
+    line-height: 18px;
+    border: 1px solid #ccc;
+    transition: height 0.15s ease;
+}
+
+/* Slight highlight when typing */
+.remarks-textarea:focus {
+    border-color: #6c63ff;
+    box-shadow: 0 0 3px #6c63ff;
+}
+
+
+.slds-card__header-title lightning-formatted-text {
+    color: purple !important;
+    font-weight: 600;
+}

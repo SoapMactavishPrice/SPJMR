@@ -1,0 +1,26 @@
+<template>
+    <div lwc:if={isLoading}>
+        <lightning-spinner size="large" alternative-text="Loading"></lightning-spinner>
+    </div>
+    <div class="page">
+        <div class="note-box">
+            <strong>Note:</strong> Minimum 55% required throughout in academics but if you have below 55% in any one (10th/12th/diploma/graduation) and have any exceptional achievements then please mail your profile at gmp.admissions@spjimr.org
+        </div>
+
+        <!-- Pass sections to child components -->
+        <c-af-academic-details sections={academicSections} context={contextBlock} onsectionfieldchange={handleSectionFieldChange}></c-af-academic-details>
+
+        <c-af-graduation-details sections={graduationSections} context={contextBlock} onsectionfieldchange={handleSectionFieldChange} oncustomlookupset={handleLookupSet}>></c-af-graduation-details>
+
+        <!-- Post Graduation (rendered when AnyPostGraduation__c = Yes in container logic) -->
+        <c-af-post-graduation-details sections={postGraduationSections} context={contextBlock} onsectionfieldchange={handleSectionFieldChange} oncustomlookupset={handleLookupSet}>></c-af-post-graduation-details>
+
+        <c-af-professional-qualification sections={professionalQualification} context={contextBlock} onsectionfieldchange={handleSectionFieldChange}></c-af-professional-qualification>
+
+        <c-af-academic-details-footer sections={academicDetailsFooterSections} context={contextBlock} onsectionfieldchange={handleSectionFieldChange}></c-af-academic-details-footer>
+        
+        <!-- <div class="actions">
+            <lightning-button label="Save" onclick={saveForm} variant="brand"></lightning-button>
+        </div> -->
+    </div>
+</template>

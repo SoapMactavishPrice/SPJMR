@@ -1,0 +1,31 @@
+<template>
+    <lightning-card title="Submitted Documents">
+
+        <template if:true={docs.length}>
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                <thead>
+                    <tr>
+                        <th><strong>Document No</strong></th>
+                        <th><strong>Status</strong></th>
+                        <th><strong>Remarks</strong></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <template for:each={docs} for:item="d">
+                        <tr key={d.name}>
+                            <td>{d.name}</td>
+                            <td>{d.status}</td>
+                            <td>{d.remarks}</td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </template>
+
+        <template if:false={docs.length}>
+            <p class="slds-p-around_medium">No documents submitted.</p>
+        </template>
+
+    </lightning-card>
+</template>

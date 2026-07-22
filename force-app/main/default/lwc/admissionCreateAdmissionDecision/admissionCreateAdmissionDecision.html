@@ -1,0 +1,132 @@
+<template>
+    <template lwc:if={isDecisionPresent}>
+        <div class="decision-card">
+
+            <!-- ===================== -->
+            <!-- RESULT: NOT ELIGIBLE -->
+            <!-- ===================== -->
+            <template lwc:if={isNotEligible}>
+                <div class="decision-row declined">
+                    <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                    <div class="decision-text">
+                        <div class="title">
+                            <span class="clickable-name" onclick={handleDecisionClick}>
+                                Not Eligible
+                            </span>
+                        </div>
+                        <div class="sub">
+                            Student is not eligible for admission
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- ================= -->
+            <!-- RESULT: WAITLIST -->
+            <!-- ================= -->
+            <template lwc:elseif={isWaitlisted}>
+                <div class="decision-row pending">
+                    <lightning-icon icon-name="utility:priority" size="small"></lightning-icon>
+                    <div class="decision-text">
+                        <div class="title">
+                            <span class="clickable-name" onclick={handleDecisionClick}>
+                                Waitlisted
+                            </span>
+                        </div>
+                        <div class="sub">
+                            Student has been waitlisted
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- ================= -->
+            <!-- RESULT: ELIGIBLE -->
+            <!-- ================= -->
+            <template lwc:else>
+
+                <!-- WITHDRAWN -->
+                <template lwc:if={isWithdrawn}>
+                    <div class="decision-row withdrawn">
+                        <lightning-icon icon-name="utility:block_visitor" size="small"></lightning-icon>
+                        <div class="decision-text">
+                            <div class="title">
+                                <span class="clickable-name" onclick={handleDecisionClick}>
+                                    Offer Withdrawn
+                                </span>
+                            </div>
+                            <div class="sub">
+                                Student withdrew the Offer
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- ACCEPTED -->
+                <template lwc:elseif={isAccepted}>
+                    <div class="decision-row accepted">
+                        <lightning-icon icon-name="utility:success" size="small"></lightning-icon>
+                        <div class="decision-text">
+                            <div class="title">
+                                <span class="clickable-name" onclick={handleDecisionClick}>
+                                    Offer Accepted
+                                </span>
+                            </div>
+                            <div class="sub">
+                                Eligible for admission
+                            </div>
+                            <div class="date">
+                                Accepted on: {offerAcceptedDate}
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- DECLINED -->
+                <template lwc:elseif={isDeclined}>
+                    <div class="decision-row declined">
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                        <div class="decision-text">
+                            <div class="title">
+                                <span class="clickable-name" onclick={handleDecisionClick}>
+                                    Offer Declined
+                                </span>
+                            </div>
+                            <div class="sub">
+                                Eligible but offer was declined
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- PENDING -->
+                <template lwc:else>
+                    <div class="decision-row pending">
+                        <lightning-icon icon-name="utility:clock" size="small"></lightning-icon>
+                        <div class="decision-text">
+                            <div class="title">
+                                <span class="clickable-name" onclick={handleDecisionClick}>
+                                    Offer Pending
+                                </span>
+                            </div>
+                            <div class="sub">
+                                Eligible for admission — decision pending
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+            </template>
+        </div>
+    </template>
+    <template lwc:else>
+       <div class="create-offer-container">
+    <lightning-button
+        label="Create Offer"
+        variant="brand"
+        icon-name="utility:add"
+        onclick={handleCreateOffer}>
+    </lightning-button>
+       </div>
+    </template>
+</template>

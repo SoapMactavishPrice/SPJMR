@@ -1,0 +1,78 @@
+<template>
+    <lightning-card title="Specialization Approval Center" icon-name="standard:approval">
+        <div class="slds-p-horizontal_medium slds-p-bottom_small">
+            <div class="header-bar">
+                <div>
+                    <span class="selected-count">
+                        {selectedCount} Selected
+                    </span>
+                </div>
+                <div>
+                    <lightning-button-icon
+                        icon-name="utility:refresh"
+                        onclick={loadData}
+                        alternative-text="Refresh">
+                    </lightning-button-icon>
+                    <lightning-button
+                        variant="success"
+                        label="Approve Selected"
+                        onclick={handleApprove}
+                        class="slds-m-left_small">
+                    </lightning-button>
+                    <lightning-button
+                        variant="destructive"
+                        label="Reject Selected"
+                        onclick={openRejectModal}
+                        class="slds-m-left_small">
+                    </lightning-button>
+                </div>
+            </div>
+        </div>
+        <template if:true={isLoading}>
+            <lightning-spinner
+                size="medium">
+            </lightning-spinner>
+        </template>
+        <lightning-datatable
+            key-field="workItemId"
+            data={records}
+            columns={columns}
+            onrowselection={handleRowSelection}>
+        </lightning-datatable>
+
+    </lightning-card>
+    <!-- Reject Modal -->
+    <template if:true={showRejectModal}>
+        <section role="dialog" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">
+                        Reject Requests
+                    </h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <lightning-textarea
+                        label="Comments"
+                        value={rejectComments}
+                        onchange={handleCommentChange}>
+                    </lightning-textarea>
+
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        label="Cancel"
+                        onclick={closeRejectModal}>
+                    </lightning-button>
+                    <lightning-button
+                        variant="destructive"
+                        label="Reject"
+                        onclick={handleReject}
+                        class="slds-m-left_small">
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

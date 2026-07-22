@@ -1,0 +1,30 @@
+<template>
+    <lightning-card title="CSV Upload - Applicant State Management Update in Bulk">
+        <div class="slds-p-around_medium">
+
+            
+            <lightning-input
+                type="file"
+                label="Upload CSV File"
+                accept=".csv"
+                onchange={handleFileUpload}
+                disabled={isLoading}>
+            </lightning-input>
+            <p>{warningMessage}</p>
+            <!-- FILE NAME -->
+            <template if:true={fileName}>
+                <p class="slds-m-top_small">
+                    <strong>Selected File:</strong> {fileName}
+                </p>
+            </template>
+
+            <!-- SPINNER -->
+            <template if:true={isLoading}>
+                <div class="slds-m-top_medium">
+                    <lightning-spinner alternative-text="Processing CSV..."></lightning-spinner>
+                </div>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

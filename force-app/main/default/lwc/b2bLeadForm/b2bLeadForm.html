@@ -1,0 +1,1293 @@
+<template>
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="b2b-lead-title">
+        <div class="modal-container">
+            <!-- Header -->
+            <header class="modal-header">
+                <h2 id="b2b-lead-title" class="modal-title">
+                    {modalTitle}
+                </h2>
+                <button type="button"
+                        class="modal-close"
+                        onclick={handleCancel}
+                        aria-label="Close">
+                    ×
+                </button>
+            </header>
+
+            <!-- Body -->
+            <div class="modal-body">
+                <lightning-messages></lightning-messages>
+
+                <template if:true={errorMessage}>
+                    <div class="slds-m-bottom_medium slds-theme_error slds-p-around_small error-box">
+                        {errorMessage}
+                    </div>
+                </template>
+
+                <!-- Step 1: Company Check -->
+                <template if:true={isCompanyCheckStep}>
+                    <div class="step-content">
+                        <p class="slds-text-body_regular slds-m-bottom_medium step-description">
+                            Enter the Company Name and Email to check if an Account or Contact already exists.
+                        </p>
+                        
+                        <div class="slds-form slds-form_stacked">
+                            <lightning-input
+                                class="slds-m-bottom_medium"
+                                label="Company Name"
+                                type="text"
+                                value={company}
+                                onchange={handleCompanyChange}
+                                placeholder="Enter Company Name"
+                                required>
+                            </lightning-input>
+
+                            <lightning-input
+                                class="slds-m-bottom_medium"
+                                label="Email"
+                                type="email"
+                                value={email}
+                                onchange={handleEmailChange}
+                                placeholder="Enter Contact Email"
+                                required>
+                            </lightning-input>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Step 2a: Lead Form (No Account exists) -->
+                <template if:true={isLeadFormStep}>
+                    <div class="step-content">
+                        <template if:true={scenarioMessage}>
+                            <div class={scenarioClass}>
+                                <lightning-icon icon-name="utility:info" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                {scenarioMessage}
+                            </div>
+                        </template>
+
+                        <!-- Section 1: Contact Information -->
+                        <div class="form-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:contact" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Contact Information
+                            </h3>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="First Name"
+                                            type="text"
+                                            value={firstName}
+                                            onchange={handleFirstNameChange}
+                                            placeholder="Enter First Name">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Last Name"
+                                            type="text"
+                                            value={lastName}
+                                            onchange={handleLastNameChange}
+                                            placeholder="Enter Last Name"
+                                            required>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Email"
+                                            type="email"
+                                            value={email}
+                                            disabled
+                                            readonly>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Title"
+                                            type="text"
+                                            value={title}
+                                            onchange={handleTitleChange}
+                                            placeholder="Enter Job Title">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Department"
+                                            type="text"
+                                            value={department}
+                                            onchange={handleDepartmentChange}
+                                            placeholder="Enter Department"
+                                            required>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Phone"
+                                            type="tel"
+                                            value={phone}
+                                            onchange={handlePhoneChange}
+                                            placeholder="Enter Phone">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Mobile Phone"
+                                            type="tel"
+                                            value={mobilePhone}
+                                            onchange={handleMobilePhoneChange}
+                                            placeholder="Enter Mobile Phone">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="LinkedIn"
+                                            type="url"
+                                            value={linkedIn}
+                                            onchange={handleLinkedInChange}
+                                            placeholder="https://linkedin.com/in/username">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Country"
+                                            value={contactCountry}
+                                            options={countryOptions}
+                                            onchange={handleContactCountryChange}
+                                            placeholder="Select Country">
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="State"
+                                            value={contactState}
+                                            options={stateOptions}
+                                            onchange={handleContactStateChange}
+                                            placeholder="Select State"
+                                            disabled={isStateDisabled}>
+                                        </lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="City"
+                                            value={contactCity}
+                                            options={cityOptions}
+                                            onchange={handleContactCityChange}
+                                            placeholder="Select City"
+                                            disabled={isCityDisabled}>
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Company Information -->
+                        <div class="form-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:account" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Company Information
+                            </h3>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Company"
+                                            type="text"
+                                            value={company}
+                                            disabled
+                                            readonly>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Industry"
+                                            value={industry}
+                                            options={industryOptions}
+                                            onchange={handleIndustryChange}
+                                            placeholder="Select Industry">
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Website"
+                                            type="url"
+                                            value={website}
+                                            onchange={handleWebsiteChange}
+                                            placeholder="https://www.example.com">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Number of Employees"
+                                            type="number"
+                                            value={numberOfEmployees}
+                                            onchange={handleNumberOfEmployeesChange}
+                                            placeholder="Enter Number of Employees">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Annual Revenue"
+                                            type="number"
+                                            value={annualRevenue}
+                                            onchange={handleAnnualRevenueChange}
+                                            formatter="currency"
+                                            step="0.01"
+                                            placeholder="Enter Annual Revenue">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Street"
+                                            type="text"
+                                            value={street}
+                                            onchange={handleStreetChange}
+                                            placeholder="Enter Street Address">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="City"
+                                            type="text"
+                                            value={city}
+                                            onchange={handleCityChange}
+                                            placeholder="Enter City">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="State/Province"
+                                            type="text"
+                                            value={state}
+                                            onchange={handleStateChange}
+                                            placeholder="Enter State/Province">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Postal Code"
+                                            type="text"
+                                            value={postalCode}
+                                            onchange={handlePostalCodeChange}
+                                            placeholder="Enter Postal Code">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Country"
+                                            type="text"
+                                            value={country}
+                                            onchange={handleCountryChange}
+                                            placeholder="Enter Country">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Lead Source"
+                                            value={leadSource}
+                                            options={leadSourceOptions}
+                                            onchange={handleLeadSourceChange}
+                                            placeholder="Select Lead Source">
+                                        </lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium slds-m-top_large"
+                                            type="checkbox"
+                                            label="Is MOU Contract Required"
+                                            checked={isMouContractRequired}
+                                            onchange={handleMouContractChange}>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <lightning-textarea
+                                    class="slds-m-bottom_medium"
+                                    label="Description"
+                                    value={description}
+                                    onchange={handleDescriptionChange}
+                                    placeholder="Enter Description">
+                                </lightning-textarea>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Opportunity Information -->
+                        <div class="form-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:opportunity" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Opportunity Information
+                            </h3>
+                            <p class="slds-text-body_small slds-m-bottom_small section-description">
+                                These details will be used when converting the Lead. One Opportunity will be created for each Program selected.
+                            </p>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <!-- Program Selection -->
+                                <div class="program-selection-container slds-m-bottom_medium">
+                                    <div class="slds-grid slds-gutters slds-grid_vertical-align-end">
+                                        <div class="slds-col slds-size_2-of-3">
+                                            <lightning-record-picker
+                                                label="Search Program"
+                                                placeholder="Search for a Program..."
+                                                object-api-name="Program"
+                                                onchange={handleProgramRecordChange}
+                                                display-info={programDisplayInfo}
+                                                matching-info={programMatchingInfo}
+                                                value={selectedProgramId}>
+                                            </lightning-record-picker>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-3">
+                                            <lightning-button
+                                                label="Add Program"
+                                                onclick={handleAddProgram}
+                                                variant="neutral"
+                                                icon-name="utility:add"
+                                                class="add-program-btn">
+                                            </lightning-button>
+                                        </div>
+                                    </div>
+                                    
+                                    <template if:true={hasSelectedPrograms}>
+                                        <div class="selected-programs-list slds-m-top_small">
+                                            <label class="slds-form-element__label">Selected Programs ({selectedPrograms.length})</label>
+                                            <ul class="slds-has-dividers_bottom-space">
+                                                <template for:each={selectedPrograms} for:item="program">
+                                                    <li key={program.id} class="slds-item program-list-item">
+                                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                                            <div class="slds-col slds-grow">
+                                                                <span class="program-name">{program.name}</span>
+                                                            </div>
+                                                            <div class="slds-col slds-no-flex">
+                                                                <lightning-button-icon
+                                                                    icon-name="utility:delete"
+                                                                    variant="bare"
+                                                                    size="small"
+                                                                    alternative-text="Remove"
+                                                                    data-id={program.id}
+                                                                    onclick={handleRemoveProgram}
+                                                                    class="remove-program-btn">
+                                                                </lightning-button-icon>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Opportunity Name Prefix"
+                                            type="text"
+                                            value={opportunityName}
+                                            onchange={handleOpportunityNameChange}
+                                            placeholder="Enter Opportunity Name Prefix">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Amount"
+                                            type="number"
+                                            value={opportunityAmount}
+                                            onchange={handleOpportunityAmountChange}
+                                            formatter="currency"
+                                            step="0.01"
+                                            placeholder="Enter Amount">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Close Date"
+                                            type="date"
+                                            value={closeDate}
+                                            onchange={handleCloseDateChange}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Stage"
+                                            value={stage}
+                                            options={stageOptions}
+                                            onchange={handleStageChange}>
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Minimum Number of Students"
+                                            type="number"
+                                            value={minNumberOfStudents}
+                                            onchange={handleMinStudentsChange}
+                                            min="0"
+                                            placeholder="Enter Minimum Students">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Maximum Number of Students"
+                                            type="number"
+                                            value={maxNumberOfStudents}
+                                            onchange={handleMaxStudentsChange}
+                                            min="0"
+                                            placeholder="Enter Maximum Students">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Step 2b: Contact & Opportunity Form (Account exists, Contact doesn't) -->
+                <template if:true={isContactOpportunityStep}>
+                    <div class="step-content">
+                        <template if:true={scenarioMessage}>
+                            <div class={scenarioClass}>
+                                <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                {scenarioMessage}
+                            </div>
+                        </template>
+
+                        <!-- Section 1: Contact Information -->
+                        <div class="form-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:contact" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Contact Information
+                            </h3>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="First Name"
+                                            type="text"
+                                            value={firstName}
+                                            onchange={handleFirstNameChange}
+                                            placeholder="Enter First Name">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Last Name"
+                                            type="text"
+                                            value={lastName}
+                                            onchange={handleLastNameChange}
+                                            placeholder="Enter Last Name"
+                                            required>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Email"
+                                            type="email"
+                                            value={email}
+                                            disabled
+                                            readonly>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Phone"
+                                            type="tel"
+                                            value={phone}
+                                            onchange={handlePhoneChange}
+                                            placeholder="Enter Phone">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Title"
+                                            type="text"
+                                            value={title}
+                                            onchange={handleTitleChange}
+                                            placeholder="Enter Job Title">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="LinkedIn"
+                                            type="url"
+                                            value={linkedIn}
+                                            onchange={handleLinkedInChange}
+                                            placeholder="https://linkedin.com/in/username">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Department"
+                                            type="text"
+                                            value={department}
+                                            onchange={handleDepartmentChange}
+                                            placeholder="Enter Department"
+                                            required>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Country"
+                                            value={contactCountry}
+                                            options={countryOptions}
+                                            onchange={handleContactCountryChange}
+                                            placeholder="Select Country">
+                                        </lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="State"
+                                            value={contactState}
+                                            options={stateOptions}
+                                            onchange={handleContactStateChange}
+                                            placeholder="Select State"
+                                            disabled={isStateDisabled}>
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="City"
+                                            value={contactCity}
+                                            options={cityOptions}
+                                            onchange={handleContactCityChange}
+                                            placeholder="Select City"
+                                            disabled={isCityDisabled}>
+                                        </lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Reporting To"
+                                            value={reportsToId}
+                                            options={reportsToOptions}
+                                            onchange={handleReportsToChange}
+                                            placeholder="Select Reporting To">
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Company Information (Read Only) -->
+                        <div class="form-section readonly-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:account" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Company Information
+                                <span class="readonly-badge">Existing Account</span>
+                            </h3>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Company Name</label>
+                                            <div class="readonly-value">{checkResult.accountName}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Industry</label>
+                                            <div class="readonly-value">{checkResult.accountIndustry}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Website</label>
+                                            <div class="readonly-value">{checkResult.accountWebsite}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Phone</label>
+                                            <div class="readonly-value">{checkResult.accountPhone}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Number of Employees</label>
+                                            <div class="readonly-value">{checkResult.accountNumberOfEmployees}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Annual Revenue</label>
+                                            <div class="readonly-value">{formattedAccountRevenue}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">City</label>
+                                            <div class="readonly-value">{checkResult.accountBillingCity}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Country</label>
+                                            <div class="readonly-value">{checkResult.accountBillingCountry}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters slds-m-top_medium">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Lead Source"
+                                            value={leadSource}
+                                            options={leadSourceOptions}
+                                            onchange={handleLeadSourceChange}
+                                            placeholder="Select Lead Source">
+                                        </lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium slds-m-top_large"
+                                            type="checkbox"
+                                            label="Is MOU Contract Required"
+                                            checked={isMouContractRequired}
+                                            onchange={handleMouContractChange}>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Opportunity Information -->
+                        <div class="form-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:opportunity" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Opportunity Information
+                            </h3>
+                            <p class="slds-text-body_small slds-m-bottom_small section-description">
+                                One Opportunity will be created for each Program selected.
+                            </p>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <!-- Program Selection -->
+                                <div class="program-selection-container slds-m-bottom_medium">
+                                    <div class="slds-grid slds-gutters slds-grid_vertical-align-end">
+                                        <div class="slds-col slds-size_2-of-3">
+                                            <lightning-record-picker
+                                                label="Search Program"
+                                                placeholder="Search for a Program..."
+                                                object-api-name="Program"
+                                                onchange={handleProgramRecordChange}
+                                                display-info={programDisplayInfo}
+                                                matching-info={programMatchingInfo}
+                                                value={selectedProgramId}>
+                                            </lightning-record-picker>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-3">
+                                            <lightning-button
+                                                label="Add Program"
+                                                onclick={handleAddProgram}
+                                                variant="neutral"
+                                                icon-name="utility:add"
+                                                class="add-program-btn">
+                                            </lightning-button>
+                                        </div>
+                                    </div>
+                                    
+                                    <template if:true={hasSelectedPrograms}>
+                                        <div class="selected-programs-list slds-m-top_small">
+                                            <label class="slds-form-element__label">Selected Programs ({selectedPrograms.length})</label>
+                                            <ul class="slds-has-dividers_bottom-space">
+                                                <template for:each={selectedPrograms} for:item="program">
+                                                    <li key={program.id} class="slds-item program-list-item">
+                                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                                            <div class="slds-col slds-grow">
+                                                                <span class="program-name">{program.name}</span>
+                                                            </div>
+                                                            <div class="slds-col slds-no-flex">
+                                                                <lightning-button-icon
+                                                                    icon-name="utility:delete"
+                                                                    variant="bare"
+                                                                    size="small"
+                                                                    alternative-text="Remove"
+                                                                    data-id={program.id}
+                                                                    onclick={handleRemoveProgram}
+                                                                    class="remove-program-btn">
+                                                                </lightning-button-icon>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Opportunity Name Prefix"
+                                            type="text"
+                                            value={opportunityName}
+                                            onchange={handleOpportunityNameChange}
+                                            placeholder="Enter Opportunity Name Prefix">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Amount"
+                                            type="number"
+                                            value={opportunityAmount}
+                                            onchange={handleOpportunityAmountChange}
+                                            formatter="currency"
+                                            step="0.01"
+                                            placeholder="Enter Amount">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Close Date"
+                                            type="date"
+                                            value={closeDate}
+                                            onchange={handleCloseDateChange}
+                                            required>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Stage"
+                                            value={stage}
+                                            options={stageOptions}
+                                            onchange={handleStageChange}
+                                            required>
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Minimum Number of Students"
+                                            type="number"
+                                            value={minNumberOfStudents}
+                                            onchange={handleMinStudentsChange}
+                                            min="0"
+                                            placeholder="Enter Minimum Students">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Maximum Number of Students"
+                                            type="number"
+                                            value={maxNumberOfStudents}
+                                            onchange={handleMaxStudentsChange}
+                                            min="0"
+                                            placeholder="Enter Maximum Students">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Step 2c: Opportunity Only Form (Account & Contact exist) -->
+                <template if:true={isOpportunityOnlyStep}>
+                    <div class="step-content">
+                        <template if:true={scenarioMessage}>
+                            <div class={scenarioClass}>
+                                <lightning-icon icon-name="utility:success" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                {scenarioMessage}
+                            </div>
+                        </template>
+
+                        <!-- Section 1: Contact Information (Read Only) -->
+                        <div class="form-section readonly-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:contact" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Contact Information
+                                <span class="readonly-badge">Existing Contact</span>
+                            </h3>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">First Name</label>
+                                            <div class="readonly-value">{checkResult.contactFirstName}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Last Name</label>
+                                            <div class="readonly-value">{checkResult.contactLastName}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Email</label>
+                                            <div class="readonly-value">{checkResult.contactEmail}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Title</label>
+                                            <div class="readonly-value">{checkResult.contactTitle}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Department"
+                                            type="text"
+                                            value={department}
+                                            onchange={handleDepartmentChange}
+                                            placeholder="Enter Department"
+                                            required>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Phone</label>
+                                            <div class="readonly-value">{checkResult.contactPhone}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Mobile Phone</label>
+                                            <div class="readonly-value">{checkResult.contactMobilePhone}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <template if:true={showReportsToField}>
+                                    <div class="slds-grid slds-gutters">
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <lightning-combobox
+                                                class="slds-m-bottom_medium"
+                                                label="Reporting To"
+                                                value={reportsToId}
+                                                options={reportsToOptions}
+                                                onchange={handleReportsToChange}
+                                                placeholder="Select Reporting To">
+                                            </lightning-combobox>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Company Information (Read Only) -->
+                        <div class="form-section readonly-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:account" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Company Information
+                                <span class="readonly-badge">Existing Account</span>
+                            </h3>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Company Name</label>
+                                            <div class="readonly-value">{checkResult.accountName}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Industry</label>
+                                            <div class="readonly-value">{checkResult.accountIndustry}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Website</label>
+                                            <div class="readonly-value">{checkResult.accountWebsite}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Phone</label>
+                                            <div class="readonly-value">{checkResult.accountPhone}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Number of Employees</label>
+                                            <div class="readonly-value">{checkResult.accountNumberOfEmployees}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Annual Revenue</label>
+                                            <div class="readonly-value">{formattedAccountRevenue}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">City</label>
+                                            <div class="readonly-value">{checkResult.accountBillingCity}</div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <div class="readonly-field">
+                                            <label class="readonly-label">Country</label>
+                                            <div class="readonly-value">{checkResult.accountBillingCountry}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slds-grid slds-gutters slds-m-top_medium">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Lead Source"
+                                            value={leadSource}
+                                            options={leadSourceOptions}
+                                            onchange={handleLeadSourceChange}
+                                            placeholder="Select Lead Source">
+                                        </lightning-combobox>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium slds-m-top_large"
+                                            type="checkbox"
+                                            label="Is MOU Contract Required"
+                                            checked={isMouContractRequired}
+                                            onchange={handleMouContractChange}>
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Opportunity Information -->
+                        <div class="form-section">
+                            <h3 class="slds-text-heading_small slds-m-bottom_small section-header">
+                                <lightning-icon icon-name="standard:opportunity" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                Opportunity Information
+                            </h3>
+                            <p class="slds-text-body_small slds-m-bottom_small section-description">
+                                One Opportunity will be created for each Program selected.
+                            </p>
+                            <div class="slds-form slds-form_stacked section-body">
+                                <!-- Program Selection -->
+                                <div class="program-selection-container slds-m-bottom_medium">
+                                    <div class="slds-grid slds-gutters slds-grid_vertical-align-end">
+                                        <div class="slds-col slds-size_2-of-3">
+                                            <lightning-record-picker
+                                                label="Search Program"
+                                                placeholder="Search for a Program..."
+                                                object-api-name="Program"
+                                                onchange={handleProgramRecordChange}
+                                                display-info={programDisplayInfo}
+                                                matching-info={programMatchingInfo}
+                                                value={selectedProgramId}>
+                                            </lightning-record-picker>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-3">
+                                            <lightning-button
+                                                label="Add Program"
+                                                onclick={handleAddProgram}
+                                                variant="neutral"
+                                                icon-name="utility:add"
+                                                class="add-program-btn">
+                                            </lightning-button>
+                                        </div>
+                                    </div>
+                                    
+                                    <template if:true={hasSelectedPrograms}>
+                                        <div class="selected-programs-list slds-m-top_small">
+                                            <label class="slds-form-element__label">Selected Programs ({selectedPrograms.length})</label>
+                                            <ul class="slds-has-dividers_bottom-space">
+                                                <template for:each={selectedPrograms} for:item="program">
+                                                    <li key={program.id} class="slds-item program-list-item">
+                                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                                            <div class="slds-col slds-grow">
+                                                                <span class="program-name">{program.name}</span>
+                                                            </div>
+                                                            <div class="slds-col slds-no-flex">
+                                                                <lightning-button-icon
+                                                                    icon-name="utility:delete"
+                                                                    variant="bare"
+                                                                    size="small"
+                                                                    alternative-text="Remove"
+                                                                    data-id={program.id}
+                                                                    onclick={handleRemoveProgram}
+                                                                    class="remove-program-btn">
+                                                                </lightning-button-icon>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <lightning-input
+                                    class="slds-m-bottom_medium"
+                                    label="Opportunity Name Prefix"
+                                    type="text"
+                                    value={opportunityName}
+                                    onchange={handleOpportunityNameChange}
+                                    placeholder="Enter Opportunity Name Prefix">
+                                </lightning-input>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Amount"
+                                            type="number"
+                                            value={opportunityAmount}
+                                            onchange={handleOpportunityAmountChange}
+                                            formatter="currency"
+                                            step="0.01"
+                                            placeholder="Enter Amount">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-combobox
+                                            class="slds-m-bottom_medium"
+                                            label="Stage"
+                                            value={stage}
+                                            options={stageOptions}
+                                            onchange={handleStageChange}
+                                            required>
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+
+                                <lightning-input
+                                    class="slds-m-bottom_medium"
+                                    label="Close Date"
+                                    type="date"
+                                    value={closeDate}
+                                    onchange={handleCloseDateChange}
+                                    required>
+                                </lightning-input>
+
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Minimum Number of Students"
+                                            type="number"
+                                            value={minNumberOfStudents}
+                                            onchange={handleMinStudentsChange}
+                                            min="0"
+                                            placeholder="Enter Minimum Students">
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <lightning-input
+                                            class="slds-m-bottom_medium"
+                                            label="Maximum Number of Students"
+                                            type="number"
+                                            value={maxNumberOfStudents}
+                                            onchange={handleMaxStudentsChange}
+                                            min="0"
+                                            placeholder="Enter Maximum Students">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Success Step -->
+                <template if:true={isSuccessStep}>
+                    <div class="step-content success-content">
+                        <div class="slds-text-align_center slds-p-around_large">
+                            <lightning-icon icon-name="utility:success" size="large" variant="success" class="slds-m-bottom_medium"></lightning-icon>
+                            <h3 class="slds-text-heading_medium slds-m-bottom_medium">Lead Created Successfully!</h3>
+                            <p class="slds-text-body_regular slds-m-bottom_large">
+                                Your lead has been created. You can now convert it to create Account, Contact, and Opportunity.
+                            </p>
+                            
+                            <div class="slds-button-group">
+                                <lightning-button
+                                    label="View Lead"
+                                    onclick={handleViewLead}
+                                    variant="neutral"
+                                    class="slds-m-right_small">
+                                </lightning-button>
+                                <lightning-button
+                                    label="Convert Lead Now"
+                                    onclick={handleConvertLead}
+                                    variant="brand"
+                                    disabled={isSaving}>
+                                </lightning-button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Footer -->
+            <footer class="modal-footer">
+                <template if:false={isSuccessStep}>
+                    <lightning-button
+                        label="Cancel"
+                        onclick={handleCancel}
+                        variant="neutral"
+                        class="slds-m-right_small">
+                    </lightning-button>
+
+                    <template if:false={isCompanyCheckStep}>
+                        <lightning-button
+                            label="Back"
+                            onclick={handleBack}
+                            variant="neutral"
+                            class="slds-m-right_small">
+                        </lightning-button>
+                    </template>
+
+                    <template if:true={isCompanyCheckStep}>
+                        <lightning-button
+                            variant="brand"
+                            label="Check & Continue"
+                            onclick={handleCheckCompany}
+                            disabled={isChecking}>
+                        </lightning-button>
+                    </template>
+
+                    <template if:true={isLeadFormStep}>
+                        <lightning-button
+                            variant="brand"
+                            label="Create Lead"
+                            onclick={handleCreateLead}
+                            disabled={isSaving}>
+                        </lightning-button>
+                    </template>
+
+                    <template if:true={isContactOpportunityStep}>
+                        <lightning-button
+                            variant="brand"
+                            label="Create Contact & Opportunity"
+                            onclick={handleCreateContactAndOpportunity}
+                            disabled={isSaving}>
+                        </lightning-button>
+                    </template>
+
+                    <template if:true={isOpportunityOnlyStep}>
+                        <lightning-button
+                            variant="brand"
+                            label="Create Opportunity"
+                            onclick={handleCreateOpportunityOnly}
+                            disabled={isSaving}>
+                        </lightning-button>
+                    </template>
+                </template>
+
+                <template if:true={isSuccessStep}>
+                    <lightning-button
+                        label="Close"
+                        onclick={handleCancel}
+                        variant="neutral">
+                    </lightning-button>
+                </template>
+            </footer>
+        </div>
+    </div>
+</template>

@@ -1,0 +1,26 @@
+/* 
+ * SLDS handles most modal styling automatically.
+ * Only custom CSS for cases where SLDS doesn't provide the needed styling.
+ */
+
+/* Table row hover effect - SLDS provides slds-hint-parent but custom hover color needed */
+.slds-table tbody tr:hover {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+/* Center align checkbox columns - using SLDS utility class in HTML, but ensuring vertical alignment */
+.slds-table td.slds-text-align_center {
+    vertical-align: middle;
+}
+
+/* Disabled inputs opacity - SLDS handles disabled state but opacity may need adjustment */
+lightning-input[disabled],
+lightning-combobox[disabled] {
+    opacity: var(--slds-g-opacity-disabled, 0.5);
+}
+
+/* Ensure inputs in table take full width - custom CSS needed as SLDS doesn't provide this */
+.slds-table lightning-input,
+.slds-table lightning-combobox {
+    width: 100%;
+}

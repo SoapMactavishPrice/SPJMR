@@ -1,0 +1,104 @@
+<apex:page sidebar="false" controller="UpdateGRNLine">
+    <head>
+        <apex:slds />
+        <script>
+        function selectAllCheckboxes(obj,receivedInputID){
+            console.log('this is called=========');
+            
+            var inputCheckBox = document.getElementsByTagName("input");                  
+            for(var i=0; i<inputCheckBox.length; i++){          
+                if(inputCheckBox[i].id.indexOf(receivedInputID)!=-1){                                     
+                    inputCheckBox[i].checked = obj.checked;
+                    console.log('this is called');
+                }
+            }
+        }
+        </script>
+    </head>
+    <apex:pageMessages ></apex:pageMessages>
+    <div class="slds-scope" style="display:{!IF( RemQty > 0, 'block', 'none')};width=90%">
+        <apex:form id="pl" rendered="{!ShowList}">
+            
+            <apex:pageBlock > 
+                <p style="text-align:center;font-weight:bold">Select Product</p>
+                <table class="slds-table slds-table_cell-buffer slds-table--bordered slds-table_col-bordered slds-border_right slds-border_left">
+                    <thead>
+                        <tr class="slds-text-title_caps">
+                            <th scope="col" style="background-color : #b12327;color:white;">
+                                <apex:inputCheckbox onclick="selectAllCheckboxes(this,'chk2')"/>
+                            </th>
+                            <th scope="col" style="background-color : #b12327;color:white;">Product Name</th>
+                            <th scope="col" style="background-color : #b12327;color:white;">Product Code</th>
+                            <th scope="col" style="background-color : #b12327;color:white;">Challan Quantity</th>
+                            <!-- <th>Remaining Quantity</th>-->
+                            
+                        </tr> 
+                    </thead>
+                    <apex:repeat value="{!wList}" var="p">
+                        <tr>
+                            <td><apex:inputCheckbox value="{!P.isChecked}" id="chk2"></apex:inputCheckbox></td>
+                            <td>{!P.pro.Item_Name__r.name}</td>
+                            <td>{!P.pro.Item_Name__r.Item_No__c}</td>
+                            <td>{!P.pro.Quantity__c}</td>
+                            <!--<td>{!P.pro.Remaining_Quantity__c}</td>-->
+                            
+                        </tr> 
+                    </apex:repeat>
+                </table>
+                
+                
+                <apex:pageBlockButtons location="Bottom" >
+                    
+                    <div style="float:right">
+                        <apex:commandButton action="{!AddProduct}" value="Add" styleClass="slds-button slds-button_brand"> </apex:commandButton>
+                        <apex:commandButton action="{!Cancel}" value="Cancel" styleClass="slds-button slds-button_neutral" immediate="true"> </apex:commandButton>
+                    </div>
+                </apex:pageBlockButtons>
+            </apex:pageBlock> 
+        </apex:form>
+        
+        <apex:form rendered="{!Showback}">
+            <div style="text-align: center;margin-top: 12px;">
+                <apex:commandButton action="{!Back}" value="Back" styleClass="slds-button slds-button_brand"> </apex:commandButton>
+            </div>
+        </apex:form>        
+        <apex:form id="fl" rendered="{!ShowPage}">
+            <apex:pageBlock >
+                <table class="slds-table slds-table_cell-buffer slds-table--bordered slds-table_col-bordered slds-border_right slds-border_left">
+                    <thead>
+                        <tr class="slds-text-title_caps">
+                            <th scope="col" style="width:10%;background-color :#b12327;color:white;">Sr.No</th>
+                            <th scope="col" style="width:30%;background-color :#b12327;color:white;">Product Name</th>
+                            <!--  <th scope="col" style="width:30;background-color :#b12327;color:white;">PO Quantity</th>-->
+                            <th scope="col" style="width:30%;background-color :#b12327;color:white;">Challan Quantity</th>
+                            <th scope="col" style="width:30%;background-color :#b12327;color:white;">Accepted Quantity</th>
+                            <th scope="col" style="width:30%;background-color :#b12327;color:white;">Rejected Quantity</th>
+                            
+                        </tr>  
+                    </thead>
+                    <apex:variable value="{!1}" var="srno"/>
+                    <apex:repeat value="{!packList}" var="p">
+                        <tr>
+                            <td>{!srno}</td>
+                            <td><apex:outputfield value="{!P.Item_Name__c}" styleClass="slds-input" ></apex:outputfield></td>
+                            <!-- <td><apex:OutputText value="{!P.Backend_Remaining_Qty__c}"  style="width: 92%;margin-top: 10Px;"></apex:OutputText></td>
+<td><apex:inputField value="{!P.Quantity__c}" styleClass="slds-input" style="width: 92%;margin-top: 10Px;"> </apex:inputField></td>-->
+                            <td><apex:outputfield value="{!P.ASN_Quantity__c}" styleClass="slds-input" ></apex:outputfield></td>
+                            <td Style="text-align:center;">
+                                <apex:inputfield value="{!P.Received_Quantity__c}" styleClass="slds-input" required="true"> </apex:inputfield>
+                            </td>
+                            <td Style="text-align:center;">
+                                <apex:inputfield value="{!P.Rejected_Quantity__c}" styleClass="slds-input"> </apex:inputfield>
+                            </td>
+                        </tr> 
+                        <apex:variable value="{!srno+1}" var="srno"/>
+                    </apex:repeat>
+                </table>
+                <apex:pageBlockButtons location="Bottom" style="float:right">
+                    <apex:commandButton action="{!Save}" value="Save" styleClass="slds-button slds-button_brand"> </apex:commandButton>
+                    <apex:commandButton action="{!Cancel}" value="Cancel" styleClass="slds-button slds-button_neutral" immediate="true"> </apex:commandButton>
+                </apex:pageBlockButtons>
+            </apex:pageBlock>
+        </apex:form>
+    </div>
+</apex:page>

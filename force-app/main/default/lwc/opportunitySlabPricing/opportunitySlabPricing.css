@@ -1,0 +1,44 @@
+:host {
+    --slds-c-modal-sizing-width: 100rem;
+}
+
+/* Fallback for orgs/themes where modal sizing token is not honored */
+:host .slds-modal__container {
+    width: 85vw;
+    max-width: 100rem;
+}
+
+.slab-section {
+    max-width: 48rem;
+}
+
+.slab-table {
+    font-size: 0.8125rem;
+}
+
+.slab-table th,
+.slab-table td {
+    vertical-align: middle;
+}
+
+.slab-col-select {
+    width: 2.75rem;
+    text-align: center;
+}
+
+.slab-col-students {
+    min-width: 5.5rem;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.slab-col-list {
+    min-width: 6.5rem;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.slab-col-sale {
+    min-width: 9.5rem;
+    white-space: nowrap;
+}

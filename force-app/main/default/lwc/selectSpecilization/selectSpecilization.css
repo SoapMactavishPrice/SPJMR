@@ -1,0 +1,24 @@
+.subject-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.subject-table th,
+.subject-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+.subject-table th {
+    background-color: #f4f4f4;
+}
+
+.highlight-major {
+    background-color: #d4edda; /* Light green for Major */
+}
+
+.highlight-minor {
+    background-color: #f8d7da; /* Light red for Minor */
+}

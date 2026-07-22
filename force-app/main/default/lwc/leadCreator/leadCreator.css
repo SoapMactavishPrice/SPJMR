@@ -1,0 +1,20 @@
+:host {
+    --slds-c-radio-color-border-focus: #531F75;
+    --slds-c-radio-color-border-checked: #531F75;
+    --slds-c-radio-color-background-checked: #531F75;
+    --slds-c-radio-mark-color-foreground: #ffffff;
+    --slds-c-button-brand-color-background: #531F75;
+    --slds-c-button-brand-color-background-hover: #43185c;
+    --slds-c-button-neutral-color-border: #531F75;
+    --slds-c-button-neutral-color-text: #531F75;
+}
+
+lightning-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+lightning-card {
+    --slds-c-card-color-background: #ffffff;
+}

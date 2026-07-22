@@ -1,0 +1,95 @@
+.err{
+    color: #c23934;
+    padding: 10px 12px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 16px;
+}
+
+.leftPanel {
+    border-right: 1px solid #ddd;
+    padding-right: 8px;
+}
+
+.sectionItem {
+    padding: 10px;
+    margin-bottom: 6px;
+    background: #f4f6f9;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.sectionItem.active {
+    background: #e8f1ff;
+    font-weight: 600;
+}
+
+.rightPanel {
+    padding: 10px;
+}
+
+.sectionTitle {
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.content {
+    flex: 1;
+}
+
+.fieldLabel {
+    font-weight: 600;
+}
+
+.valueLine {
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: #444;
+}
+
+.headerValue {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.headerOnlyRow {
+    padding: 10px 0 6px 0;
+}
+
+.headerOnlyText {
+    font-weight: 700;
+    color: #333;
+}
+
+.indent1 {
+    margin-left: 12px;
+}
+
+.indent2 {
+    margin-left: 28px;
+}
+
+.alreadyRequested {
+    background: #fff8e1; /* soft highlight */
+    border-radius: 6px;
+    padding-left: 6px;
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px;
+    gap: 8px;
+}

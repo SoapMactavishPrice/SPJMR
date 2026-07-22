@@ -1,0 +1,44 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 11-25-2025
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template> 
+    <lightning-card title="Document Verification"> 
+        <template if:true={docs}> 
+            <table class="slds-table slds-table_bordered slds-table_cell-buffer"> 
+                <thead> 
+                    <tr> 
+                        <th>Name</th> 
+                        <th>Document Name</th> 
+                        <th>Review Status</th> 
+                        <th>Attachments</th> 
+                    </tr> 
+                </thead> 
+                <tbody> 
+                    <template for:each={docs} for:item="d"> 
+                        <tr key={d.docId}> 
+                            <td>{d.name}</td> 
+                            <td>{d.documentName}</td> 
+                            <td> 
+                                <lightning-combobox value={d.reviewStatus} options={statusOptions} data-id={d.docId} onchange={handleStatusChange}> 
+
+                                 </lightning-combobox> 
+                            </td> 
+                            <td> 
+                                <lightning-button label={d.previewLabel} variant="brand" data-id={d.docId} onclick={openPreview}> 
+
+                                </lightning-button> 
+                            </td> 
+                        </tr> 
+                    </template> 
+                </tbody> 
+            </table> 
+        </template> 
+    </lightning-card> 
+    <template if:true={showModal}> 
+        <c-attachment-preview-modal attachments={currentAttachments} onclose={closeModal}> </c-attachment-preview-modal> 
+    </template> 
+</template>

@@ -1,0 +1,95 @@
+<template>
+    <lightning-card title="Enroll Student to Batch" icon-name="standard:course">
+        <div class="slds-p-around_medium">
+            <div class="slds-p-around_medium">
+                <template if:true={hasStudentsToEnroll}>
+                    <div class="slds-m-bottom_medium">
+                        <lightning-input
+                            type="search"
+                            label="Search Students"
+                            value={searchKey}
+                            onchange={handleSearchChange}
+                            placeholder="Search by student name ..."
+                            class="slds-m-bottom_small">
+                        </lightning-input>
+                        <template if:true={batchIntake}>
+                           <div class="slds-text-body_small slds-m-top_small">
+
+                           <strong>Batch Intake:</strong> {batchIntake} |
+                           <strong>Batch Filled:</strong> {currentMemberCount} |
+                           <strong>Batch Remaining:</strong> {availableSlots}
+                            <br/>
+                           <strong>Programme Intake:</strong> {programmeIntake} |
+                           <strong>Programme Filled:</strong> {currentProgrammeCount} |
+                           <strong>Programme Remaining:</strong> {programmeRemaining}
+                           </div>
+                        </template>
+                    </div>
+                    <template if:true={students}>
+                        <div class="slds-scrollable_x table-scroll-container">
+                            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                                <thead class="sticky-header">
+                                    <tr class="slds-line-height_reset">
+                                        <!-- Select Column -->
+                                        <th scope="col" class="slds-text-align_center" style="width: 80px;">
+                                            <div class="slds-truncate" title="Select">Select</div>
+                                        </th>
+                                        <!-- Row Number -->
+                                        <th scope="col" style="width: 50px;">
+                                            <div class="slds-truncate" title="#">#</div>
+                                        </th>
+                                        <!-- Student Name -->
+                                        <th scope="col">
+                                            <div class="slds-truncate" title="Student Name">Student Name</div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={students} for:item="student" for:index="index">
+                                        <tr key={student.rowId} class="slds-hint-parent">
+                                            <!-- Select Checkbox -->
+                                            <td class="slds-text-align_center">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    checked={student.selected}
+                                                    data-student-id={student.rowId}
+                                                    onchange={handleCheckboxChange}
+                                                    class="slds-m-vertical_x-small">
+                                                </lightning-input>
+                                            </td>
+                                            <!-- Row Number -->
+                                            <td>
+                                                <div class="slds-truncate">{student.rowNumber}</div>
+                                            </td>
+                                            <!-- Student Name -->
+                                            <td>
+                                                <div class="slds-truncate" title={student.studentName}>{student.studentName}</div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="slds-m-top_medium slds-text-align_right">
+                            <lightning-button variant="brand" label="Save" onclick={handleSave}></lightning-button>
+                            <lightning-button variant="neutral" label="Cancel" onclick={handleCancel} class="slds-m-left_small"></lightning-button>
+                        </div>
+                    </template>
+                </template>
+
+                <template if:false={hasStudentsToEnroll}>
+                    <div class="slds-p-around_medium">
+                        <div class="slds-text-align_center">
+                            <p class="slds-text-heading_medium slds-m-bottom_small">No Students to Enroll</p>
+                            <p class="slds-text-body_regular">All eligible students are already enrolled in this batch.</p>
+                        </div>
+                        <div class="slds-m-top_medium slds-text-align_right">
+                            <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+                        </div>
+                    </div>
+                </template>
+
+            </div>
+        </div>
+    </lightning-card>
+</template>

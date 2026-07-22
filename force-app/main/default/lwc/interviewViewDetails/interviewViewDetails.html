@@ -1,0 +1,71 @@
+<template>
+    <!-- INTERVIEW DETAILS HEADER -->
+<div class="slds-card slds-m-around_medium">
+    <div class="slds-card__header slds-grid slds-grid_align-spread">
+        <h2 style="
+        font-family: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+        color: #4b2e83;
+        font-weight: 700;
+        font-size: 24px;
+        margin: 0 0 12px 0;
+    ">
+        Interview Details
+    </h2>
+    </div>
+
+    <div class="slds-card__body slds-p-around_medium">
+        <lightning-record-view-form 
+            record-id={recordId}               
+            object-api-name="ApplicationSlotBooking__c">
+
+            <!-- ROW 1 -->
+            <div class="slds-grid slds-wrap slds-gutters">
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="Applicant_Name__c"></lightning-output-field>
+                </div>
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="Program_Name__c"></lightning-output-field>
+                </div>
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="Application__c"></lightning-output-field>
+                </div>
+                
+            </div>
+
+            <!-- ROW 2 -->
+            <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="Slot_Date__c"></lightning-output-field>
+                </div>
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="Slot_Start_Time__c"></lightning-output-field>
+                </div>
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="Slot_End_Time__c"></lightning-output-field>
+                </div>
+            </div>
+
+            <!-- ROW 3 -->
+            <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="Mode__c"></lightning-output-field>
+                </div>
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="Panel_Master__c"></lightning-output-field>
+                </div>
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="RoundMaster__c"></lightning-output-field>
+                </div>
+            </div>
+
+            <!-- ROW 4: Slot Code (Auto Number Name) -->
+            <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-output-field field-name="Name"></lightning-output-field>
+                </div>
+            </div>
+        </lightning-record-view-form>
+    </div>
+</div>
+
+</template>

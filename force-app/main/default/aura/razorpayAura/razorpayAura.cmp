@@ -1,0 +1,3 @@
+<aura:component implements="force:appHostable,flexipage:availableForAllPageTypes,forceCommunity:availableForAllPageTypes" access="global" >
+	<iframe src= "https://platform-energy-10--devorg--c.sandbox.vf.force.com/apex/RazorpayCheckout?amount=500"></iframe>
+</aura:component>

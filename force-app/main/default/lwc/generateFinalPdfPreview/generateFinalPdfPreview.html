@@ -1,0 +1,18 @@
+<template>
+    <div style="min-height:150px" class="slds-align_absolute-center slds-text-align_center">
+
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Generating PDF..." size="medium"></lightning-spinner>
+            <div style="margin-top:12px;font-weight:bold;">
+                Generating PDF, please wait...
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+            <div style="font-weight:bold;">
+                Starting PDF generation...
+            </div>
+        </template>
+
+    </div>
+</template>

@@ -1,0 +1,99 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 7000;
+}
+
+.modal-container {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    min-width: 600px;
+    width: 700px;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    color: #3e3e3c;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #706e6b;
+    padding: 0.25rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.modal-close:hover {
+    color: #080707;
+    background-color: #f3f2f2;
+}
+
+.modal-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #e5e5e5;
+}
+
+.slds-form-element__label {
+    color: #3e3e3c;
+    font-size: 0.875rem;
+    font-weight: 400;
+}
+
+/* Custom styling for radio buttons to match purple theme */
+:host {
+    --slds-c-radio-color-border-focus: #531F75;
+    --slds-c-radio-color-border-checked: #531F75;
+    --slds-c-radio-color-background-checked: #531F75;
+    --slds-c-radio-mark-color-foreground: #ffffff;
+    --slds-c-button-brand-color-background: #531F75;
+    --slds-c-button-brand-color-background-hover: #43185c;
+    --slds-c-button-neutral-color-border: #531F75;
+    --slds-c-button-neutral-color-text: #531F75;
+}
+
+/* Ensure radio buttons have proper spacing */
+lightning-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}

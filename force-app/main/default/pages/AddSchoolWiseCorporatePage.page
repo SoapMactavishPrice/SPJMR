@@ -1,0 +1,118 @@
+<apex:page Controller="AddSchoolWiseCorporateClass" readOnly="false" sidebar="false" showHeader="false" >
+    
+    <apex:slds />
+    <head>
+        <apex:includescript value="//code.jquery.com/jquery-3.3.1.js" / >
+            <apex:includescript value="//cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js" />
+            <apex:stylesheet value="//cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css" />
+            
+            <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+            <script>
+                
+                
+                $(document).ready(function() {
+                $('#example').DataTable( {
+                    "scrollY":        "480px",
+                    "scrollCollapse": true,
+                    "ordering": false,
+                    "paging":  true
+                });
+            });
+            
+            var app = angular.module('myApp', []);
+            app.controller('myCtrl', function($scope) {
+                $scope.wrlist1 = JSON.parse('{!JSENCODE(wrlist1)}');
+
+                // console.log(as);
+                $scope.id = '{!$currentpage.parameters.id}';
+                console.log($scope.wrlist1);
+                console.log($scope.id);
+                
+                $scope.my = function(param){
+                    if(param == 'cancel'){
+                        window.parent.location = "/" + $scope.id;
+                    }else{
+                        console.log($scope.wrlist1);
+                        Visualforce.remoting.Manager.invokeAction(
+                            '{!$RemoteAction.AddSchoolWiseCorporateClass.save}',
+                            JSON.stringify($scope.wrlist1),
+                            $scope.id,
+                            function(result, event){
+                                // console.log(result);
+                                // console.log(event);
+                                // window.open('apex/'+$scope.id);
+                                window.parent.location = "/" + $scope.id;
+                            });
+                    }
+                }
+            });
+            </script>
+            
+        </head>
+        <body ng-app="myApp" ng-controller="myCtrl" > <br/>
+            <div class="slds-box" style="width: 98%;margin:auto">                      
+                
+                <p style="text-align:center;font-size:20px">ADD CORPORATE</p>
+                <table id="example" class="slds-table slds-table_cell-buffer slds-table--bordered slds-table_col-bordered slds-border_right slds-border_left"
+                       style="width:100%;">
+                    <thead>
+                        <tr  style="text-align:center">
+                            
+                            <th scope="col" style="background-color:#631856;color:white;width:5%;text-align:left">
+                                Select
+                            </th>
+                            <th scope="col" style="background-color:#631856;color:white;width:20%;text-align:left">
+                                Corporate Name                                   
+                            </th>
+                            <th scope="col" style="background-color:#631856;color:white;width:20%;text-align:left">
+                                 Agreement Start Date                               
+                            </th>
+                            <th scope="col" style="background-color:#631856;color:white;width:20%;text-align:left">
+                                 Agreement End Date                           
+                            </th>
+                            <th scope="col" style="background-color:#631856;color:white;width:10%;text-align:left">
+                                Corporate Fee Breakup                         
+                            </th>
+                            <th scope="col" style="background-color:#631856;color:white;width:10%;text-align:left">
+                                Paid by Corporate                          
+                            </th>
+                            <th scope="col" style="background-color:#631856;color:white;width:10%;text-align:left">
+                               Corporate Status	                         
+                            </th>
+                        </tr>
+                    </thead>
+                    
+                    <tbody>
+                        <tr  ng-repeat="wr in wrlist1">
+                            <td role="gridcell">
+                                <input type="checkbox" ng-model="wr.chk"/>
+                            </td>
+                            <td role="gridcell">
+                                <div class="slds-truncate">{{wr.tra.Name}}</div>
+                            </td>
+                            <td role="gridcell">
+                                <div class="slds-truncate">{{wr.tra.Corporate_Agreement_Start_Date__c}}</div>
+                            </td>   
+                            <td role="gridcell">
+                                <div class="slds-truncate">{{wr.tra.Corporate_Agreement_End_Date__c}}</div>
+                            </td> 
+                            <td role="gridcell">
+                                <div class="slds-truncate">{{wr.tra.Corporate_Fee_Breakup__c}}</div>
+                            </td> 
+                            <td role="gridcell">
+                                <div class="slds-truncate">{{wr.tra.Paid_by_Corporate__c}}</div>
+                            </td>  
+                            <td role="gridcell">
+                                <div class="slds-truncate">{{wr.tra.Corporate_Status__c}}</div>
+                            </td> 
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="slds-scope" align="center">
+                    <button  class="slds-button slds-button_brand" ng-click="my()">Add Corporate</button>
+                    <button class="slds-button slds-button_destructive" ng-click="my('cancel')">Cancel</button>
+                </div>
+            </div>
+        </body>
+    </apex:page>

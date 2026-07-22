@@ -1,0 +1,157 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 05-04-2026
+  @last modified by  : 
+-->
+<template>
+    <lightning-card title="Apply slab discount to line items" icon-name="standard:opportunity">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:false={hasRows}>
+                    <p class="slds-text-body_regular">No products on this opportunity.</p>
+                </template>
+
+                <template if:true={hasRows}>
+                    <lightning-accordion
+                        allow-multiple-sections-open
+                        active-section-name={activeAccordionSectionNames}
+                        onsectiontoggle={handleAccordionSectionToggle}
+                    >
+                        <template for:each={rows} for:item="lineRow">
+                            <lightning-accordion-section
+                                key={lineRow.lineItemId}
+                                name={lineRow.lineItemId}
+                                label={lineRow.accordionLabel}
+                            >
+                                <div class="slab-section">
+                                    <template if:false={lineRow.hasSlabs}>
+                                        <p class="slds-text-body_small slds-text-color_error">
+                                            No slab records found for this programme. Product Programme Code must
+                                            match Program Master Programme Code on the slab.
+                                        </p>
+                                    </template>
+
+                                    <template if:true={lineRow.hasSlabs}>
+                                        <table
+                                            class="slab-table slds-table slds-table_cell-buffer slds-table_bordered slds-no-row-hover"
+                                        >
+                                            <thead>
+                                                <tr>
+                                                    <th class="slab-col-select" scope="col"></th>
+                                                    <th class="slab-col-students" scope="col">Min Students</th>
+                                                    <th class="slab-col-students" scope="col">Max Students</th>
+                                                    <th scope="col">Slab</th>
+                                                    <th scope="col">Discount %</th>
+                                                    <th class="slab-col-list" scope="col">List price</th>
+                                                    <th class="slab-col-sale" scope="col">Sale price / person</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template for:each={lineRow.slabRows} for:item="slab">
+                                                    <tr key={slab.slabRowKey}>
+                                                        <td class="slab-col-select">
+                                                            <lightning-input
+                                                                type="radio"
+                                                                variant="label-hidden"
+                                                                label="Select slab"
+                                                                name={lineRow.radioGroupName}
+                                                                value={slab.slabId}
+                                                                data-line-id={lineRow.lineItemId}
+                                                                data-slab-id={slab.slabId}
+                                                                checked={slab.isSelected}
+                                                                onchange={handleSlabChange}
+                                                            ></lightning-input>
+                                                        </td>
+                                                        <td class="slab-col-students">
+                                                            <template if:true={slab.hasMinStudents}>
+                                                                <lightning-formatted-number
+                                                                    value={slab.minStudentsValue}
+                                                                    maximum-fraction-digits="0"
+                                                                ></lightning-formatted-number>
+                                                            </template>
+                                                            <template if:false={slab.hasMinStudents}>—</template>
+                                                        </td>
+                                                        <td class="slab-col-students">
+                                                            <template if:true={slab.hasMaxStudents}>
+                                                                <lightning-formatted-number
+                                                                    value={slab.maxStudentsValue}
+                                                                    maximum-fraction-digits="0"
+                                                                ></lightning-formatted-number>
+                                                            </template>
+                                                            <template if:false={slab.hasMaxStudents}>—</template>
+                                                        </td>
+                                                        <td>{slab.slabName}</td>
+                                                        <td>{slab.discountLabel}</td>
+                                                        <td class="slab-col-list">
+                                                            <lightning-input
+                                                                type="number"
+                                                                step="0.01"
+                                                                min="0"
+                                                                variant="label-hidden"
+                                                                label="List price for this slab row"
+                                                                data-line-id={lineRow.lineItemId}
+                                                                data-slab-id={slab.slabId}
+                                                                value={slab.listPrice}
+                                                                onchange={handleListPriceChange}
+                                                                disabled={isSaving}
+                                                            ></lightning-input>
+                                                        </td>
+                                                        <td class="slab-col-sale">
+                                                            <lightning-formatted-number
+                                                                value={slab.salePricePerPerson}
+                                                                format-style="currency"
+                                                                currency-code={currencyCode}
+                                                                minimum-fraction-digits="2"
+                                                            ></lightning-formatted-number>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+
+                                    </template>
+                                </div>
+                            </lightning-accordion-section>
+                        </template>
+                    </lightning-accordion>
+
+                    <div
+                        class="slds-m-top_medium slds-grid slds-grid_align-spread slds-grid_vertical-align-center"
+                    >
+                        <div class="slds-text-heading_small">
+                            Opportunity total:
+                            <lightning-formatted-number
+                                value={grandTotal}
+                                format-style="currency"
+                                currency-code={currencyCode}
+                                minimum-fraction-digits="2"
+                                class="slds-m-left_x-small"
+                            ></lightning-formatted-number>
+                        </div>
+                        <div>
+                            <lightning-button
+                                variant="neutral"
+                                label="Cancel"
+                                onclick={handleClose}
+                                disabled={isSaving}
+                                class="slds-m-right_x-small"
+                            ></lightning-button>
+                            <lightning-button
+                                variant="brand"
+                                label="Apply slab & save"
+                                onclick={handleApply}
+                                disabled={isSaving}
+                            ></lightning-button>
+                        </div>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

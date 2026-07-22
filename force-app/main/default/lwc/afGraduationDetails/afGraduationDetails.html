@@ -1,0 +1,24 @@
+<template>
+    <div class="sectionHeader">
+        <p class="slds-align_absolute-center">Graduation Details</p>
+    </div>
+    <template for:each={sections} for:item="section">
+        <div key={section.key} class="section">
+            <h3 class="section-title">{section.title}</h3>
+            <template for:each={section.rows} for:item="row">
+                <div key={row.key} class="row" style={row.style}>
+                    <template for:each={row.columns} for:item="col">
+                        <div key={col.key} class="col" style={col.widthStyle}>
+                            <template if:true={col.header}><div class="col-header">{col.header}</div></template>
+                            <template for:each={col.fields} for:item="f">
+                                <div key={f.key} class="field-cell">
+                                    <c-af-field-renderer section-name={section.key} field={f.meta} value={f.value} context={context} onfieldchange={handleFieldChange}></c-af-field-renderer>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </template>
+</template>

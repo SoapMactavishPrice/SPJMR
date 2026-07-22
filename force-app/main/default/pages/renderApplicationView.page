@@ -1,0 +1,16 @@
+<apex:page > 
+<!-- Begin Default Content REMOVE THIS -->
+<h1 id="id1">Congratulations</h1>
+This is your new Page
+<!-- End Default Content REMOVE THIS -->
+ <script>
+    var lexOrigin = 'https://platform-energy-10--devorg.sandbox.lightning.force.com'
+    window.addEventListener("message",function(event){
+        if(event.origin!==lexOrigin){
+            return;
+        }
+        document.getElementById("id1").innerHTML ='Suni '+event.data;
+    },false)
+    
+ </script>
+</apex:page>

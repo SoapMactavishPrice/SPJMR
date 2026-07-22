@@ -1,0 +1,14 @@
+<template>
+    <div lwc:if={isLoading}>
+        <lightning-spinner size="large" alternative-text="Loading"></lightning-spinner>
+    </div>
+    <div class="page">
+
+        <c-af-program-details sections={examSections} context={contextBlock} onsectionfieldchange={handleSectionFieldChange} oncustomlookupset={handleLookupSet}></c-af-program-details>
+
+
+        <!-- <div class="actions">
+            <lightning-button label="Save" onclick={saveForm} variant="brand"></lightning-button>
+        </div> -->
+    </div>
+</template>

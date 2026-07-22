@@ -1,0 +1,162 @@
+<template>
+    <lightning-card title="Assign Courses to Batch" icon-name="standard:course">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+                <div class="slds-m-bottom_medium">
+                    <p class="slds-text-body_regular">
+                        Select courses and mark them as multi-term or single-term. Click Save to create or update Program Course records.
+                    </p>
+                    <template if:true={hasSelectedCourses}>
+                        <p class="slds-text-body_small slds-m-top_small slds-text-color_success">
+                            {selectedCount} course(s) selected
+                        </p>
+                    </template>
+                </div>
+
+                <div class="slds-m-bottom_medium">
+                    <lightning-input
+                        type="search"
+                        label="Search Courses"
+                        value={searchKey}
+                        onchange={handleSearchChange}
+                        placeholder="Search by course name or code..."
+                        class="slds-m-bottom_small">
+                    </lightning-input>
+                </div>
+
+                <template if:true={courses}>
+                    <div class="slds-scrollable_x table-scroll-container">
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                            <thead class="sticky-header">
+                                <tr class="slds-line-height_reset">
+                                    <th scope="col" class="slds-text-align_center" style="width: 80px;">
+                                        <div class="slds-truncate" title="Select">Select</div>
+                                    </th>
+                                    <th scope="col" style="width: 50px;">
+                                        <div class="slds-truncate" title="#">#</div>
+                                    </th>
+                                    <th scope="col">
+                                        <div class="slds-truncate" title="Course Name">Course Name</div>
+                                    </th>
+                                    <th scope="col">
+                                        <div class="slds-truncate" title="Course Number">Course Code</div>
+                                    </th>
+                                    <th scope="col" class="slds-text-align_center" style="width: 120px;">
+                                        <div class="slds-truncate" title="Multi Term">Multi Term</div>
+                                    </th>
+                                    <th scope="col" class="slds-text-align_center" style="width: 150px;">
+                                        <div class="slds-truncate" title="Is Host Programme">Is Host Programme Course</div>
+                                    </th>
+                                    <th scope="col" style="width: 150px;">
+                                        <div class="slds-truncate" title="Course Type">Course Type</div>
+                                    </th>
+                                    <th scope="col" style="width: 200px;">
+                                        <div class="slds-truncate" title="Specialisation">Specialisation</div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={courses} for:item="course" for:index="index">
+                                    <tr key={course.rowId} class="slds-hint-parent">
+                                        <td class="slds-text-align_center">
+                                            <lightning-input
+                                                type="checkbox"
+                                                checked={course.selected}
+                                                disabled={course.isLocked}
+                                                data-course-id={course.rowId}
+                                                onchange={handleCheckboxChange}
+                                                class="slds-m-vertical_x-small">
+                                            </lightning-input>
+                                        </td>
+                                        <td>
+                                            <div class="slds-truncate">{course.rowNumber}</div>
+                                        </td>
+                                        <td>
+                                            <div class="slds-truncate" title={course.courseName}>{course.courseName}</div>
+                                        </td>
+                                        <td>
+                                            <div class="slds-truncate" title={course.courseNumber}>{course.courseNumber}</div>
+                                        </td>
+                                        <td class="slds-text-align_center">
+                                            <lightning-input
+                                                type="checkbox"
+                                                checked={course.isMultiTerm}
+                                                disabled={course.isDisabled}
+                                                data-course-id={course.rowId}
+                                                onchange={handleMultiTermChange}
+                                                class="slds-m-vertical_x-small">
+                                            </lightning-input>
+                                        </td>
+                                        <td class="slds-text-align_center">
+                                            <lightning-input
+                                                type="checkbox"
+                                                checked={course.isHostCourse}
+                                                disabled={course.isDisabled}
+                                                data-course-id={course.rowId}
+                                                onchange={handleIsHostChange}
+                                                class="slds-m-vertical_x-small">
+                                            </lightning-input>
+                                        </td>
+                                        <td>
+                                            <lightning-combobox
+                                                value={course.courseType}
+                                                options={courseTypeOptions}
+                                                disabled={course.courseTypeDisabled}
+                                                data-course-id={course.rowId}
+                                                onchange={handleCourseTypeChange}
+                                                placeholder="Select Type"
+                                                class="slds-m-vertical_x-small">
+                                            </lightning-combobox>
+                                        </td>
+                                        <td>
+                                            <template if:true={course.showSpecialisationDropdown}>
+                                                <lightning-combobox
+                                                    value={course.specialisationId}
+                                                    options={specialisationOptionsList}
+                                                    disabled={course.isDisabled}
+                                                    data-course-id={course.rowId}
+                                                    onchange={handleSpecialisationChange}
+                                                    placeholder="Select Specialisation"
+                                                    required
+                                                    class="slds-m-vertical_x-small">
+                                                </lightning-combobox>
+                                            </template>
+                                            <template if:false={course.showSpecialisationDropdown}>
+                                                <div class="slds-truncate slds-m-vertical_x-small" style="color: #706e6b;">—</div>
+                                            </template>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
+
+                <template if:false={courses}>
+                    <div class="slds-text-align_center slds-p-vertical_large">
+                        <p class="slds-text-heading_medium">No courses available</p>
+                    </div>
+                </template>
+
+                <div class="slds-m-top_medium slds-grid slds-grid_align-end">
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        onclick={handleCancel}
+                        class="slds-m-right_small">
+                    </lightning-button>
+                    <lightning-button
+                        label="Save"
+                        variant="brand"
+                        onclick={handleSave}
+                        disabled={isSaveDisabled}>
+                    </lightning-button>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

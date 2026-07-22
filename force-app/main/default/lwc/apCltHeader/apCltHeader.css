@@ -1,0 +1,58 @@
+/* Header */
+.header {
+    height: 60px;
+    background-color: #f58220; /* Orange */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    color: white;
+    width: 100%;
+    box-shadow: 0px 0px 10px #000000;
+    position: fixed;
+    z-index: 1000;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    font-weight: bold;
+    background: #fff;
+    padding: 0px 29px;
+}
+
+.app-logo {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.menu-toggle {
+    font-size: 22px;
+    cursor: pointer;
+    margin-left: 10px;
+    background: none;
+    border: none;
+    color: white;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+.profile-icon {
+    width: 35px;
+    height: 35px;
+    background-color: #5a2d82;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    font-size: 18px;
+}

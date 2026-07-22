@@ -1,0 +1,80 @@
+<template>
+    <div class="container">
+
+       <template lwc:if={isLoaded}> 
+        <div class="header">
+           
+            <h1 class="title">Review Your Payment Details</h1>
+
+            
+        </div>
+
+        <div class="content">
+
+            <!-- LEFT SIDE -->
+            <div class="left-section">
+
+                <!-- Personal Details -->
+                <div class="card">
+                    <h2 class="section-title">Personal Details</h2>
+
+                    <div class="row">
+                        <span class="label">Name :</span>
+                        <span class="value">{name}</span>
+                    </div>
+
+                    <div class="row">
+                        <span class="label">Email Id :</span>
+                        <span class="value">{email}</span>
+                    </div>
+
+                    <div class="row">
+                        <span class="label">Phone Number :</span>
+                        <span class="value">{phone}</span>
+                    </div>
+                </div>
+
+                <!-- Order Details -->
+                <div class="card">
+                    <h2 class="section-title">Order Details</h2>
+
+                    <div class="row space-between">
+                        <span>Application Fee (1)</span>
+                        <span>₹ {applicationFee}</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RIGHT SIDE -->
+            <div class="right-section">
+
+                <div class="card">
+                    <h2 class="section-title">Payment Details</h2>
+
+                    <div class="row space-between">
+                        <span>Sub Total (1)</span>
+                        <span>₹ {subtotal}</span>
+                    </div>
+
+                    <div class="row space-between total-row">
+                        <span>Total</span>
+                        <span>₹ {total}</span>
+                    </div>
+                    <template lwc:if={isPaymentDone}>
+                        <lightning-button label="Pay Now" variant="brand" disabled></lightning-button>
+                    </template>
+                    <template lwc:else>
+                        <c-razorpay-payment-button program-code={pgmCode} onapplicationsuccess={updateApplication}></c-razorpay-payment-button>
+                    </template>
+                    
+                </div>
+            </div>
+
+        </div>
+        </template>
+        <template lwc:else>
+            <lightning-spinner size="medium"></lightning-spinner>
+        </template>
+    </div>
+</template>

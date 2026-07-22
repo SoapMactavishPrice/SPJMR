@@ -1,0 +1,87 @@
+<apex:page sidebar="false" controller="ShortClosePO">
+    <head>
+        <apex:slds />
+    </head>
+    <apex:pageMessages ></apex:pageMessages>
+    <div class="slds-scope" style="display:{!IF( RemQty > 0 && shortclose!=null, 'block', 'none')};width=90%">
+        
+        
+        <apex:form id="pl" rendered="{!ShowList}">
+           
+            <apex:pageBlock > 
+                <p style="text-align:center;font-weight:bold">Select Product</p>
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr class="slds-text-title_caps">
+                            <th style="background-color: #b12327;color:white">Select</th>
+                            <th style="background-color: #b12327;color:white">Product Name</th>
+                            <th style="background-color: #b12327;color:white">Product Code</th>
+                            <th style="background-color: #b12327;color:white">Total Quantity</th>
+                            <th style="background-color: #b12327;color:white">Remaining Quantity</th>
+                            
+                        </tr> 
+                    </thead>
+                    <apex:repeat value="{!wList}" var="p">
+                        <tr>
+                            <td><apex:inputCheckbox value="{!P.isChecked}" id="chk"></apex:inputCheckbox></td>
+                            <td>{!P.pro.Item_Name__r.name}</td>
+                            <td>{!P.pro.Item_Name__r.Item_No__c}</td>
+                            <td>{!P.pro.Quantity__c}</td>
+                            <td>{!P.pro.Remaining_Quantity__c}</td>
+                            
+                        </tr> 
+                    </apex:repeat>
+                </table>
+                
+                
+                <apex:pageBlockButtons location="Bottom" >
+                    
+                    <div style="float:right">
+                        <apex:commandButton action="{!AddProduct}" value="Add" styleClass="slds-button slds-button_brand"> </apex:commandButton>
+                        <apex:commandButton action="{!Cancel}" value="Cancel" styleClass="slds-button slds-button_neutral" immediate="true"> </apex:commandButton>
+                    </div>
+                </apex:pageBlockButtons>
+            </apex:pageBlock> 
+        </apex:form>
+        
+        <apex:form rendered="{!Showback}">
+            <div style="text-align: center;margin-top: 12px;">
+                <apex:commandButton action="{!Back}" value="Back" styleClass="slds-button slds-button_brand"> </apex:commandButton>
+            </div>
+        </apex:form>
+        
+        <apex:form id="fl" rendered="{!ShowPage}">
+            <apex:pageBlock >
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr class="slds-text-title_caps" >
+                            <th style="background-color: #b12327;color:white">Sr.No</th>
+                            <th style="background-color: #b12327;color:white">Product Name</th>
+                            <th style="background-color: #b12327;color:white">Remaining Quantity</th>
+                            <th style="background-color: #b12327;color:white">Total Quantity</th>
+                            <!--<th>Discount</th>-->
+                            
+                        </tr>  
+                    </thead>
+                    <apex:variable value="{!1}" var="srno"/>
+                    <apex:repeat value="{!packList}" var="p">
+                        <tr>
+                            <td>{!srno}</td>
+                            <td><apex:outputfield value="{!P.Item_Name__c}" styleClass="slds-input" ></apex:outputfield></td>
+                            <td><apex:OutputText value="{!P.Backend_Remaining_Qty__c}"  style="width: 92%;margin-top: 10Px;"></apex:OutputText></td>
+                            <td><apex:inputField value="{!P.Short_Close_Qty__c}" styleClass="slds-input" style="width: 92%;margin-top: 10Px;"> </apex:inputField></td>
+                            <!-- <td><apex:OutputField value="{!P.Unit_Price__c}"  style="width: 92%;margin-top: 10Px;"></apex:OutputField></td>
+                            <td><apex:OutputField value="{!P.Discount__c}" style="width: 92%;margin-top: 10Px;"></apex:OutputField></td>-->
+                        </tr> 
+                        <apex:variable value="{!srno+1}" var="srno"/>
+                    </apex:repeat>
+                </table>
+                <apex:pageBlockButtons location="Bottom" style="float:right">
+                    <apex:commandButton action="{!Save}" value="Save" styleClass="slds-button slds-button_brand"> </apex:commandButton>
+                    <apex:commandButton action="{!Cancel}" value="Cancel" styleClass="slds-button slds-button_neutral" immediate="true"> </apex:commandButton>
+                </apex:pageBlockButtons>
+            </apex:pageBlock>
+        </apex:form>
+        
+    </div>
+</apex:page>

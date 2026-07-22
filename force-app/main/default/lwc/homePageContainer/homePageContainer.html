@@ -1,0 +1,142 @@
+<template>
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">
+        <!-- SPJIMR -->
+        <img src={logoUrl} alt="App Logo" class="app-logo" />
+      </div>
+      <button class="menu-toggle" onclick={toggleMenu}>☰</button>
+    </div>
+    <div class="header-right">
+      <div class="profile-icon">👤</div>
+      <span>{userName} ▼</span>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar" class={sidebarClass}>
+    <!-- <a href="#" class="active">
+        <lightning-icon icon-name="standard:home" size="small" class="slds-m-right_small"></lightning-icon>
+        Dashboard
+    </a> -->
+    <template for:each={menuItems} for:item="item">
+        <!-- <a key={item.name}
+           data-name={item.name}
+           class={item.class}
+           onclick={handleMenuClick}> -->
+           <button
+    key={item.name}
+    type="button"
+    data-name={item.name}
+    class={item.class}
+    onclick={handleMenuClick}>
+            <lightning-icon icon-name={item.icon}
+                            size="small"
+                            class="slds-m-right_small icon-white">
+            </lightning-icon>
+            {item.label}
+        <!-- </a> -->
+           </button>
+    </template>
+    <!-- 
+    <a href="javascript:void(0)" data-name="dashboard" onclick={handleMenuClick} class="active">
+        <lightning-icon icon-name="utility:home" size="small" alternative-text="Dashboard"
+            class="slds-m-right_small" style="fill:white; color:white;"></lightning-icon>
+        Dashboard
+    </a>
+    <a href="javascript:void(0)" data-name="applications" onclick={handleMenuClick}>
+        <lightning-icon icon-name="standard:document" size="small" class="slds-m-right_small"></lightning-icon>
+        All Applications Form
+    </a>
+
+    <a href="javascript:void(0)" data-name="profile" onclick={handleMenuClick}>
+        <lightning-icon icon-name="standard:user" size="small" class="slds-m-right_small"></lightning-icon>
+        My Profile
+    </a>
+
+    <a href="javascript:void(0)" data-name="queries" onclick={handleMenuClick}>
+        <lightning-icon icon-name="standard:question_feed" size="small" class="slds-m-right_small"></lightning-icon>
+        My Queries
+    </a>
+
+    <a href="javascript:void(0)" data-name="communication" onclick={handleMenuClick}>
+        <lightning-icon icon-name="standard:email" size="small" class="slds-m-right_small"></lightning-icon>
+        My Communication
+    </a>
+
+    <a href="javascript:void(0)" data-name="payments" onclick={handleMenuClick}>
+        <lightning-icon icon-name="standard:forecasts" size="small" class="slds-m-right_small"></lightning-icon>
+        My Payments
+    </a>
+
+    <a href="javascript:void(0)" data-name="faq" onclick={handleMenuClick}>
+        <lightning-icon icon-name="standard:info" size="small" class="slds-m-right_small"></lightning-icon>
+        FAQ
+    </a>
+
+    <a href="#">
+        <lightning-icon icon-name="utility:logout" size="small" class="slds-m-right_small"></lightning-icon>
+        Logout
+    </a> -->
+  </div>
+
+  <!-- Content -->
+  <div id="content" class={contentClass}>
+
+    <!-- <template lwc:component={currentComponent}></template> -->
+
+    <template if:true={isDashboard}>
+        <!-- <h1>Dashboard</h1>
+        <p>Welcome to your dashboard!</p> -->
+        <c-ap-account-programs></c-ap-account-programs>
+    </template>
+
+    <template if:true={isApplications}>
+        <!-- <h1>All Applications</h1>
+        <p>Here are all your submitted forms.</p> -->
+        <c-ap-account-programs></c-ap-account-programs>
+    </template>
+
+    <template if:true={isProfile}>
+        <!-- <h1>My Profile</h1>
+        <p>Profile details go here.</p> -->
+        <c-ap-my-profile-container></c-ap-my-profile-container>
+    </template>
+
+    <template if:true={isQueries}>
+        <!-- <h1>My Queries</h1>
+        <p>Track and manage your queries.</p> -->
+        <c-ap-my-queries-container></c-ap-my-queries-container>
+    </template>
+
+    <template if:true={isCommunication}>
+        <!-- <h1>My Communication</h1>
+        <p>Messages and notifications appear here.</p> -->
+        <c-ap-my-communication-container></c-ap-my-communication-container>
+    </template>
+
+    <template if:true={isPayments}>
+        <!-- <h1>My Payments</h1>
+        <p>View and manage payments here.</p> -->
+        <c-ap-my-payments-container></c-ap-my-payments-container>
+    </template>
+
+    <template if:true={isFaq}>
+        <!-- <h1>FAQ</h1>
+        <p>Frequently asked questions will be listed.</p> -->
+        <c-ap-faq-container></c-ap-faq-container>
+    </template>
+ 
+  </div>
+
+  <!-- <script>
+    function toggleMenu() {
+      const sidebar = document.getElementById("sidebar");
+      const content = document.getElementById("content");
+      sidebar.classList.toggle("collapsed");
+      content.classList.toggle("expanded");
+    }
+  </script> -->
+
+</template>

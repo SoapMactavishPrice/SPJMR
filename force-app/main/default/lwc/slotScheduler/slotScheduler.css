@@ -1,0 +1,91 @@
+.timeline-container {
+    display: flex;
+    overflow-x: auto;
+    position: relative;
+}
+
+/* Left 24-hour scale */
+.time-scale {
+    position: relative;
+    width: 56px;
+    flex: 0 0 56px; /* fixed width column */
+    border-right: 1px solid #ddd;
+    background: #fff;
+    margin-top: 32px;
+}
+
+.time-scale-row {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 40px; /* one row per hour */
+    border-bottom: 1px dashed #eee;
+    display: flex;
+    align-items: flex-start;
+}
+
+.time-scale-label {
+    font-size: 11px;
+    color: #555;
+    padding: 2px 6px;
+    line-height: 16px;
+}
+
+/* Day columns */
+.day-column {
+    position: relative;
+    width: 220px;
+    border-right: 1px solid #ddd;
+    background-color: #f9f9f9;
+}
+
+.day-header {
+    font-weight: bold;
+    text-align: center;
+    padding: 6px;
+    background: #eef;
+    border-bottom: 1px solid #ccc;
+}
+
+.day-slots {
+    position: relative;
+    height: 960px; /* 40px per hour * 24 = 660px */
+}
+
+/* Slots */
+.slot {
+    position: absolute;
+    /* left and width are now provided inline from JS lane layout */
+    border-radius: 6px;
+    padding: 3px 6px;
+    color: white;
+    font-size: 11px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.slot.available {
+    background-color: #0070d2;
+}
+
+.slot.full {
+    background-color: #999;
+    pointer-events: none;
+}
+
+.slot.invalid {
+    background-color: #d9534f;
+}
+
+/* Misc */
+.no-slots {
+    text-align: center;
+    margin: 1rem;
+    color: #666;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 1rem;
+    padding: 0 1rem 1rem 1rem;
+}

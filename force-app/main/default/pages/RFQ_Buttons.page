@@ -1,0 +1,25 @@
+<apex:page controller="c_RFQ_Buttons">
+    <apex:slds />
+    <style>  
+        
+        .slds-button{
+        --sds-c-button-text-color:rgba(99, 24, 86, 1);
+        }
+    </style>
+    <apex:form > 
+        <apex:commandButton value="Add Product" action="{!f_AddProduct}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        <apex:commandButton value="Edit Products" action="{!f_EditProduct}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        <apex:commandButton value="Add & Edit Vendor" action="{!f_AddEditRFQVendor}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        <apex:commandButton value="Vendor Product Map Add" action="{!f_VendorProductMap}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        <apex:commandButton value="Vendor Product Map Edit" action="{!f_VendorProductMapEdit}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        <apex:commandButton value="Generate File" action="{!f_SendMailtoVendor}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        <br/><br/>
+        <apex:commandButton value="Send Mail to Vendor" action="{!f_SendPDF}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        <apex:commandButton value="RFX Response Editor" action="{!f_RFXResponseEditor}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        <apex:commandButton value="Award RFQ to Vendor" action="{!f_AwardRFQtoVendor}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        <!-- <apex:commandButton value="RFQ Approver" action="{!f_RFQApprover}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton> -->
+        <apex:commandButton value="Create PO" action="{!f_CreatePO}" styleClass="slds-button slds-button__icon_right slds-button--neutral"></apex:commandButton>
+        
+    </apex:form>
+    
+</apex:page>

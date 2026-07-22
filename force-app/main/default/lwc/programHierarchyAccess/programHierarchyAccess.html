@@ -1,0 +1,117 @@
+<template>
+    <div class="share-shell">
+        <h1 class="share-shell__title">Share</h1>
+
+        <template if:true={saveError}>
+            <div class="share-shell__alert" role="alert">
+                <lightning-icon icon-name="utility:error" size="x-small" variant="error"></lightning-icon>
+                <span>{saveError}</span>
+            </div>
+        </template>
+
+        <template if:true={loadError}>
+            <div class="share-shell__alert" role="alert">
+                <lightning-icon icon-name="utility:error" size="x-small" variant="error"></lightning-icon>
+                <span>{loadError}</span>
+            </div>
+        </template>
+
+        <template if:false={loadError}>
+            <div class="share-shell__field">
+                <label class="share-shell__label">Search</label>
+                <lightning-record-picker
+                    label="Search User"
+                    placeholder="Search User..."
+                    object-api-name="User"
+                    filter={userSearchFilter}
+                    display-info={userDisplayInfo}
+                    matching-info={userMatchingInfo}
+                    variant="label-hidden"
+                    onchange={handleUserSearch}
+                    disabled={isSaving}
+                ></lightning-record-picker>
+            </div>
+
+            <div class="share-shell__field">
+                <label class="share-shell__label share-shell__label_required">Program access level</label>
+                <lightning-combobox
+                    value={accessLevel}
+                    options={accessLevelOptions}
+                    variant="label-hidden"
+                    disabled
+                ></lightning-combobox>
+            </div>
+
+            <p class="share-shell__summary">
+                <span>{sharedSummaryText}</span>
+                <template if:true={hasUsers}>
+                    <button type="button" class="share-shell__edit-link" onclick={handleToggleManage}>
+                        {manageLinkLabel}
+                    </button>
+                </template>
+            </p>
+
+            <div class="share-shell__body">
+                <template if:true={isLoading}>
+                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                </template>
+
+                <template if:true={showManageList}>
+                    <ul class="share-shell__user-list">
+                        <template for:each={users} for:item="user">
+                            <li key={user.userId} class="share-shell__user-row">
+                                <lightning-avatar
+                                    src={user.photoUrl}
+                                    fallback-icon-name="standard:user"
+                                    variant="circle"
+                                    size="small"
+                                ></lightning-avatar>
+                                <div class="share-shell__user-meta">
+                                    <a href={user.userUrl} target="_blank" class="share-shell__user-name"
+                                        >{user.displayName}</a
+                                    >
+                                    <span class="share-shell__user-username">{user.username}</span>
+                                </div>
+                                <lightning-input
+                                    type="toggle"
+                                    label="Access"
+                                    variant="label-hidden"
+                                    message-toggle-active="On"
+                                    message-toggle-inactive="Off"
+                                    checked={user.draftAccess}
+                                    data-id={user.userId}
+                                    onchange={handleAccessToggle}
+                                    disabled={isSaving}
+                                ></lightning-input>
+                            </li>
+                        </template>
+                    </ul>
+                </template>
+
+                <template if:true={showEmpty}>
+                    <p class="share-shell__empty">Search for a user above to grant program access.</p>
+                </template>
+
+                <template if:true={isSaving}>
+                    <lightning-spinner alternative-text="Saving" size="small"></lightning-spinner>
+                </template>
+            </div>
+        </template>
+
+        <footer class="share-shell__footer">
+            <lightning-button
+                label="Cancel"
+                onclick={handleCancel}
+                disabled={isSaving}
+                class="share-shell__btn-cancel"
+            ></lightning-button>
+            <lightning-button
+                variant="brand"
+                label="Save"
+                onclick={handleSave}
+                disabled={saveDisabled}
+                class="share-shell__btn-save"
+            ></lightning-button>
+        </footer>
+    </div>
+</template>

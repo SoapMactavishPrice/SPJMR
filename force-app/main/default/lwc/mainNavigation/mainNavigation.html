@@ -1,0 +1,43 @@
+<template>
+  <div class="nav-item-container">
+    <button
+      type="button"
+      onclick={handleClick}
+      class="step-link"
+      data-item-id={item.id}
+      data-active={isActive}
+      aria-pressed={isActive}
+    >
+      <span class="step">
+                <lightning-icon
+            icon-name={menuIcon}
+            size="x-small"
+            class="menu-icon">
+        </lightning-icon>
+        <span class="step-content">
+          <span class="step-label">{item.publicLabel}</span>
+        </span>
+
+        <template if:true={hasChildren}>
+          <lightning-icon
+            icon-name={expandIcon}
+            size="x-small"
+            class="expand-icon">
+          </lightning-icon>
+        </template>
+      </span>
+    </button>
+
+    <template if:true={hasChildren}>
+      <ul class="nested-menu" data-expanded={isExpanded} role="menu" aria-hidden={ariaHidden}>
+        <template for:each={processedChildren} for:item="child">
+          <li key={child.id} role="none">
+            <c-base-navigation item={child} is-expanded={child.isExpanded} onitemselected={handleChildItemSelected}
+              ontoggleexpand={handleChildToggleExpand} onensureparentexpanded={handleChildEnsureParentExpanded}>
+            </c-base-navigation>
+          </li>
+        </template>
+      </ul>
+    </template>
+  </div>
+</template>

@@ -1,0 +1,29 @@
+<template>
+    <div class="container">
+        <header class="header">
+            <h1>Calendar Tab Demo</h1>
+            <p>This demonstrates using the custom calendar in a tab environment</p>
+        </header>
+        
+        <div class="content">
+            <div class="calendar-section">
+                <div class="calendar-controls">
+                    <button class="slds-button slds-button_brand" onclick={goToToday}>
+                        Go to Today
+                    </button>
+                </div>
+                
+                <c-poc-custom-calendar ondatechange={handleDateChange}></c-poc-custom-calendar>
+                
+                <div class="selected-date-info">
+                    <template if:true={selectedDate}>
+                        <p><strong>Selected Date:</strong> {selectedDate}</p>
+                    </template>
+                    <template if:false={selectedDate}>
+                        <p>No date selected yet</p>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

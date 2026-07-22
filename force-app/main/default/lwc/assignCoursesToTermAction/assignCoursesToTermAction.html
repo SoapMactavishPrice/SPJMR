@@ -1,0 +1,193 @@
+<!-- 
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 12-23-2025
+  @last modified by  : 
+-->
+<template>
+        <lightning-card title="Assign Courses to Term">
+            <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+              <template if:false={hasCourses}>
+                <div class="slds-text-align_center slds-p-vertical_large">
+                    <p class="slds-text-heading_medium">No courses available</p>
+                        <p class="slds-m-top_small">All courses are already assigned to this term, or none are active/available.</p>
+                </div>
+            </template>
+
+            <template if:true={hasCourses}>
+                    <!-- Course Selection -->
+                        <div class="slds-m-bottom_medium">
+                            <p class="slds-text-body_regular">
+                                Select courses and provide Start Date and End Date. 
+                                <template if:true={hasMultiTermCourses}>
+                                    For multi-term courses, select an Evaluation Term. Click Save to create Course Offering records.
+                                </template>
+                                <template if:false={hasMultiTermCourses}>
+                                    Click Save to create Course Offering records.
+                                </template>
+                            </p>
+                            <template if:true={hasSelectedCourses}>
+                                <p class="slds-text-body_small slds-m-top_small slds-text-color_success">
+                                    {selectedCount} course(s) selected
+                                </p>
+                            </template>
+                        </div>
+
+                    <div class="slds-m-bottom_medium">
+                        <lightning-input
+                            type="search"
+                            label="Search Courses"
+                            value={searchKey}
+                            onchange={handleSearchChange}
+                            placeholder="Search by course name, code, or specialisation..."
+                            class="slds-m-bottom_small">
+                        </lightning-input>
+                      </div>
+        
+                      <div class="slds-scrollable_x table-scroll-container">
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                            <thead class="sticky-header">
+                                <tr class="slds-line-height_reset">
+                                    <th scope="col" class="slds-text-align_center" style="width: 80px;">
+                                        <div class="slds-truncate" title="Select">Select</div>
+                                    </th>
+                                    <th scope="col" style="width: 50px;">
+                                        <div class="slds-truncate" title="#">#</div>
+                                    </th>
+                                    <th scope="col">
+                                        <div class="slds-truncate" title="Course Name">Course Name</div>
+                                    </th>
+                                    <th scope="col">
+                                        <div class="slds-truncate" title="Course Code">Course Code</div>
+                                    </th>
+                                    <th scope="col" style="min-width: 120px; width: 120px;">
+                                        <div class="slds-truncate" title="Course Type">Course Type</div>
+                                    </th>
+                                    <th scope="col" style="min-width: 160px; width: 160px;">
+                                        <div class="slds-truncate" title="Specialisation Name">Specialisation Name</div>
+                                    </th>
+                                    <th scope="col" style="min-width: 180px; width: 180px;">
+                                        <div class="slds-truncate" title="Start Date">Start Date</div>
+                                    </th>
+                                    <th scope="col" style="min-width: 180px; width: 180px;">
+                                        <div class="slds-truncate" title="End Date">End Date</div>
+                                    </th>
+                                    <th scope="col" style="min-width: 200px; width: 200px;">
+                                        <div class="slds-truncate">
+                                            <abbr class="slds-required" title="required">*</abbr>
+                                            Evaluation Term
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template if:true={filteredCourses}>
+                                    <template for:each={filteredCourses} for:item="course" for:index="index">
+                                        <tr key={course.courseId} class="slds-hint-parent">
+                                            <td class="slds-text-align_center">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    checked={course.selected}
+                                                    data-course-id={course.courseId}
+                                                    onchange={handleSelectChange}
+                                                    class="slds-m-vertical_x-small">
+                                                </lightning-input>
+                                            </td>
+                                            <td>
+                                                <div class="slds-truncate">{course.rowNumber}</div>
+                                            </td>
+                                            <td>
+                                                <div class="slds-truncate" title={course.courseName}>{course.courseName}</div>
+                                            </td>
+                                            <td>
+                                                <div class="slds-truncate" title={course.courseCode}>{course.courseCode}</div>
+                                            </td>
+                                            <td>
+                                                <div class="slds-truncate" title={course.courseType}>{course.courseType}</div>
+                                            </td>
+                                            <td>
+                                                <template if:true={course.specialisation}>
+                                                    <div class="slds-truncate" title={course.specialisation}>{course.specialisation}</div>
+                                                </template>
+                                                <template if:false={course.specialisation}>
+                                                    <div class="slds-truncate slds-text-color_weak">—</div>
+                                                </template>
+                                            </td>
+                                            <td>
+                                                <lightning-input
+                                                    type="date"
+                                                    value={course.startDate}
+                                                    data-course-id={course.courseId}
+                                                    onchange={handleStartDateChange}
+                                                    disabled={course.isDisabled}
+                                                    class="slds-m-vertical_x-small">
+                                                </lightning-input>
+                                            </td>
+                                            <td>
+                                                <lightning-input
+                                                    type="date"
+                                                    value={course.endDate}
+                                                    data-course-id={course.courseId}
+                                                    onchange={handleEndDateChange}
+                                                    disabled={course.isDisabled}
+                                                    class="slds-m-vertical_x-small">
+                                                </lightning-input>
+                                            </td>
+                                            <td>
+                                                <template if:true={course.isMultiTerm}>
+                                                    <lightning-combobox
+                                                        value={course.evaluationTermId}
+                                                        options={evaluationTerms}
+                                                        data-course-id={course.courseId}
+                                                        onchange={handleEvaluationTermChange}
+                                                        placeholder="Select Evaluation Term"
+                                                        disabled={course.isEvalTermDisabled}
+                                                       data-required={course.isEvalTermRequired}
+                                                        class="slds-m-vertical_x-small">
+                                                    </lightning-combobox>
+                                                </template>
+                                                <template if:false={course.isMultiTerm}>
+                                                    <div class="slds-truncate slds-text-color_weak">—</div>
+                                                </template>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </template>
+                                <template if:false={filteredCourses}>
+                                    <tr>
+                                        <td colspan="9" class="slds-text-align_center slds-p-vertical_large">
+                                            <p class="slds-text-heading_medium">No courses found</p>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+        
+                <div class="slds-m-top_medium slds-grid slds-grid_align-end">
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        onclick={closeAction}
+                        class="slds-m-right_small">
+                    </lightning-button>
+                    <template if:true={showSaveButton}>
+                        <lightning-button
+                            label="Save"
+                            variant="brand"
+                            onclick={saveAll}
+                            disabled={isSaveDisabled}>
+                        </lightning-button>
+                    </template>
+                </div>
+              </template>
+            </template>
+            </div>
+        </lightning-card>
+</template>

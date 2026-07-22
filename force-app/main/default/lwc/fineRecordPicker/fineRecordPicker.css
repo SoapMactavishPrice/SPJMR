@@ -1,0 +1,134 @@
+/* =========================================================
+   Root
+   ========================================================= */
+.lookup {
+    position: relative;
+    width: 100%;
+}
+
+/* =========================================================
+   Input + Pill overlay
+   ========================================================= */
+.input-wrapper {
+    position: relative;
+}
+
+/* Pill overlay INSIDE input */
+.pill-overlay {
+    position: absolute;
+    inset: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #eef1f6;
+    border-radius: 4px;
+    padding: 0 8px;
+    pointer-events: auto;
+    z-index: 2;
+}
+
+/* Hide input text visually when pill exists */
+.input-wrapper lightning-input {
+    visibility: visible;
+}
+
+.input-wrapper lightning-input::part(input) {
+    color: transparent;
+    caret-color: transparent;
+}
+
+/* Pill label */
+.pill-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #080707;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Remove button */
+.pill-remove {
+    background: none;
+    border: none;
+    font-size: 0.875rem;
+    cursor: pointer;
+    color: #706e6b;
+}
+
+.pill-remove:hover {
+    color: #080707;
+}
+
+.pill-remove:disabled {
+    cursor: not-allowed;
+    color: #c9c9c9;
+}
+
+/* =========================================================
+   Dropdown
+   ========================================================= */
+.dropdown {
+    position: absolute;
+    width: 100%;
+    max-height: 240px;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #d8dde6;
+    border-radius: 0.25rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    z-index: 9000;
+    margin-top: 0.25rem;
+}
+
+/* =========================================================
+   Rows
+   ========================================================= */
+.row {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+.row:hover {
+    background-color: #f3f2f2;
+}
+
+.row.active {
+    background-color: #eef4ff;
+}
+
+/* =========================================================
+   Text
+   ========================================================= */
+.title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #080707;
+}
+
+.sub {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin-top: 0.125rem;
+}
+
+/* =========================================================
+   Loading / Hint
+   ========================================================= */
+.hint {
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #999;
+}
+
+.hint.subtle {
+    font-size: 12px;
+    color: #6b7280;        /* neutral gray */
+    text-align: center;
+    padding: 8px;
+    background: #f9fafb;
+    border-top: 1px dashed #e5e7eb;
+}

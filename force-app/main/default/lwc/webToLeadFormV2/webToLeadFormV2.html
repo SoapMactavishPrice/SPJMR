@@ -1,0 +1,219 @@
+<template>
+
+    <div class="page-bg">
+
+        <div class="container">
+
+            <div class="heading">Enquire Now</div>
+
+            <!-- Name -->
+            <div class="input-box">
+                <lightning-input 
+                    name="FirstName"
+                    label="Full Name"
+                    placeholder="Enter Name *">
+                </lightning-input>
+            </div>
+
+            <!-- Email -->
+            <div class="input-box">
+                <lightning-input 
+                    name="Email"
+                    label="Email Address"
+                    type="email"
+                    placeholder="Enter Email Address *">
+                </lightning-input>
+            </div>
+
+            <!-- Phone -->
+            <div class="row-phone">
+
+                <lightning-combobox
+                    name="CountryCode"
+                    label="Country Code"
+                    options={countryCodes}>
+                </lightning-combobox>
+
+                <lightning-input
+                    name="Phone"
+                    label="Mobile Number"
+                    placeholder="Enter Mobile Number *">
+                </lightning-input>
+
+            </div>
+
+            <!-- State + City -->
+            <div class="row-two">
+
+                <div class="input-box">
+                    <lightning-input name="State" label="State"></lightning-input>
+                </div>
+
+                <div class="input-box">
+                    <lightning-input name="City" label="City"></lightning-input>
+                </div>
+
+            </div>
+
+            <!-- Country -->
+            <template if:true={showCountry}>
+                <div class="input-box">
+                    <lightning-input name="Country" label="Country"></lightning-input>
+                </div>
+            </template>
+
+            <!-- Graduation -->
+            <template if:true={showGraduation}>
+                <div class="input-box">
+                    <lightning-combobox
+                        name="Graduation__c"
+                        label="Graduation Status"
+                        options={graduationOptions}>
+                    </lightning-combobox>
+                </div>
+            </template>
+
+            <!-- Work Experience -->
+            <template if:true={showWorkExperience}>
+                <div class="input-box">
+                    <lightning-combobox
+                        name="Work_Experience__c"
+                        label="Work Experience"
+                        options={workOptions}>
+                    </lightning-combobox>
+                </div>
+            </template>
+
+            <!-- Entrance Exam -->
+            <template if:true={showEntranceExam}>
+                <div class="input-box">
+                    <lightning-combobox
+                        name="Entrance_Exam__c"
+                        label="Entrance Exam"
+                        options={yesNoOptions}>
+                    </lightning-combobox>
+                </div>
+            </template>
+
+            <!-- Exam Name -->
+            <template if:true={showEntranceExamName}>
+                <div class="input-box">
+                    <lightning-combobox
+                        name="Entrance_Exam_Name__c"
+                        label="Exam Name"
+                        options={examOptions}>
+                    </lightning-combobox>
+                </div>
+            </template>
+
+            <!-- Exam Score -->
+            <template if:true={showEntranceExamScores}>
+                <div class="input-box">
+                    <lightning-input 
+                        name="Entrance_Exam_Scores__c"
+                        label="Exam Score">
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Current Employer -->
+            <template if:true={showCurrentEmployer}>
+                <div class="input-box">
+                    <lightning-input 
+                        name="Current_Employer__c"
+                        label="Current Employer">
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Partner Company -->
+            <template if:true={showPartnerCompany}>
+                <div class="input-box">
+                    <lightning-input 
+                        name="SPJIMRPartnerCompany__c"
+                        label="Partner Company">
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Course -->
+            <template if:true={showCourse}>
+                <div class="input-box">
+                    <lightning-input 
+                        name="Course__c"
+                        label="Course">
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Organization -->
+            <template if:true={showCurrentOrganization}>
+                <div class="input-box">
+                    <lightning-input 
+                        name="Current_Organization__c"
+                        label="Current Organization">
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Designation -->
+            <template if:true={showCurrentDesignation}>
+                <div class="input-box">
+                    <lightning-input 
+                        name="Current_Designation__c"
+                        label="Current Designation">
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Interested Programme -->
+            <template if:true={showInterestedProgramme}>
+                <div class="input-box">
+                    <lightning-input 
+                        name="Interested_Programme__c"
+                        label="Interested Programme">
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Source -->
+            <template if:true={showSource}>
+                <div class="input-box">
+                    <lightning-input 
+                        name="Source__c"
+                        label="Source">
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Query -->
+            <template if:true={showQuery}>
+                <div class="input-box">
+                    <lightning-textarea 
+                        name="Query__c"
+                        label="Query">
+                    </lightning-textarea>
+                </div>
+            </template>
+
+            <!-- Consent -->
+            <div class="consent">
+                <lightning-input 
+                    type="checkbox" 
+                    name="Consent__c"
+                    label="I agree to receive information regarding my registration by signing up. *">
+                </lightning-input>
+            </div>
+
+            <!-- Button -->
+            <div class="button-container">
+                <button class="btn-register" onclick={handleClick}>
+                    Register
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+</template>

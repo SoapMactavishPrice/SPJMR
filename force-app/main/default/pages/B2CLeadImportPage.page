@@ -1,0 +1,9 @@
+<apex:page controller="LeadImportPageController" action="{!startBatch}" showHeader="true" sidebar="false">
+    <apex:pageMessages />
+
+    <apex:form >
+        <apex:pageBlock title="Lead Import">
+            <apex:outputText value="{!message}" style="font-size:16px; font-weight:bold;" />
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>

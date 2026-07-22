@@ -1,0 +1,122 @@
+<template>
+    <lightning-quick-action-panel header="Lead Import Wizard">
+
+        <div class="slds-p-around_medium">
+            <div class="slds-grid slds-gutters">
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-file-upload 
+                        label="Upload File (.csv)"
+                        accept=".csv"
+                        onuploadfinished={handleFileUpload}>
+                    </lightning-file-upload>
+                </div>
+                <div class="slds-col slds-size_4-of-12">
+                    <lightning-record-picker 
+                        label="Select Campaign"
+                        placeholder="Search Campaigns..."
+                        object-api-name="Campaign"
+                        value={campaignId}
+                        onchange={handleCampaignChange}>
+                    </lightning-record-picker>
+                </div>
+                <div class="slds-col slds-size_4-of-12">
+                    <template lwc:if={campaignFound}>
+                         <div class="slds-box slds-theme_default slds-m-top_small">
+        <p class="slds-text-title_bold slds-m-bottom_small">
+            Campaign Details
+        </p>
+
+        <lightning-record-view-form 
+            record-id={campaignId} 
+            object-api-name="Campaign">
+
+            <div class="slds-grid slds-wrap slds-gutters">
+
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-output-field field-name="Name"></lightning-output-field>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-output-field field-name="Type"></lightning-output-field>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-output-field field-name="Source__c"></lightning-output-field>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-output-field field-name="IsActive"></lightning-output-field>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-output-field field-name="StartDate"></lightning-output-field>
+                </div>
+
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-output-field field-name="EndDate"></lightning-output-field>
+                </div>
+
+            </div>
+
+        </lightning-record-view-form>
+    </div>
+                    </template>
+                </div>
+            </div>
+            
+
+            <div class="slds-m-top_medium slds-box slds-theme_default">
+    <p class="slds-text-title_bold">Instructions</p>
+    <ul class="slds-list_dotted slds-m-top_x-small">
+        <li>Download the template and fill in your data</li>
+        <li>Ensure <b>Phone</b>, <b>Email </b>and <b>Country</b> are valid</li>
+        <li>Programme code must match existing records</li>
+        <li>Upload the file and click <b>Validate</b></li>
+    </ul>
+</div>
+            <template if:true={fileName}>
+                <p class="slds-m-top_small">
+                    <b>Selected:</b> {fileName}
+                </p>
+            </template>
+
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Processing"></lightning-spinner>
+            </template>
+
+            <template if:true={hasErrors}>
+                <div class="slds-text-color_error slds-m-top_medium">
+                    <b>Errors:</b>
+                    <ul>
+                        <template for:each={errors} for:item="err">
+                            <li key={err}>{err.message}</li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+
+            <template if:true={success}>
+                <div class="slds-text-color_success slds-m-top_medium">
+                    ✅ File validated successfully
+                </div>
+            </template>
+
+        </div>
+
+        <div slot="footer">
+            <lightning-button 
+    label="Download Template"
+    onclick={downloadTemplate}
+    class="slds-m-bottom_small">
+</lightning-button>
+            <lightning-button 
+                label="Validate"
+                variant="brand"
+                onclick={handleValidate}
+                disabled={isValidateDisabled}>
+            </lightning-button>
+
+        </div>
+
+    </lightning-quick-action-panel>
+</template>

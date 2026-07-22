@@ -1,0 +1,47 @@
+<template>
+    <lightning-progress-indicator type="base" current-step={currentStep}>
+        <lightning-progress-step label="Specialization"  value="1" onclick={handleStepClick}></lightning-progress-step>
+        <lightning-progress-step label="Personal Details" value="2" onclick={handleStepClick}></lightning-progress-step>
+        <lightning-progress-step label="Academic Details" value="3" onclick={handleStepClick}></lightning-progress-step>
+        <lightning-progress-step label="Work Experience" value="4" onclick={handleStepClick}></lightning-progress-step>
+        <lightning-progress-step label="Achievements" value="5" onclick={handleStepClick}></lightning-progress-step>
+        <lightning-progress-step label="Competitive Exam Details" value="6" onclick={handleStepClick}></lightning-progress-step>
+        <lightning-progress-step label="Family Details" value="7" onclick={handleStepClick}></lightning-progress-step>
+        <lightning-progress-step label="Personal Summary" value="8" onclick={handleStepClick}></lightning-progress-step>
+        <lightning-progress-step label="Upload Documents" value="9" onclick={handleStepClick}></lightning-progress-step>
+        <lightning-progress-step label="Completed" value="10"></lightning-progress-step>
+    </lightning-progress-indicator>
+    <lightning-button label="Click Me" onclick={handleClick}></lightning-button>
+    
+        <div lwc:if={isCurrentStep1}>
+            <c-program-details onsubmitform={handleSubmitChild} application-id={applicationId}></c-program-details>
+        </div>
+        <div lwc:if={isCurrentStep2}>
+            <c-personal-details></c-personal-details>
+        </div>
+        <div lwc:if={isCurrentStep3}>
+            <c-program-details onsubmitform={handleSubmitChild} application-id={applicationId}></c-program-details>
+        </div>
+        <div lwc:if={isCurrentStep4}>
+            <c-program-details onsubmitform={handleSubmitChild} application-id={applicationId}></c-program-details>
+        </div>
+
+        <div lwc:if={isCurrentStep5}>
+            <c-program-details onsubmitform={handleSubmitChild} application-id={applicationId}></c-program-details>
+        </div>
+        <div lwc:if={isCurrentStep6}>
+            <c-program-details onsubmitform={handleSubmitChild} application-id={applicationId}></c-program-details>
+        </div>
+        <div lwc:if={isCurrentStep7}>
+            <c-program-details onsubmitform={handleSubmitChild} application-id={applicationId}></c-program-details>
+        </div>
+        <div lwc:if={isCurrentStep8}>
+            <c-program-details onsubmitform={handleSubmitChild} application-id={applicationId}></c-program-details>
+        </div>
+        <div lwc:if={isCurrentStep9}>
+            <c-program-details onsubmitform={handleSubmitChild} application-id={applicationId}></c-program-details>
+        </div>
+
+    
+    
+</template>

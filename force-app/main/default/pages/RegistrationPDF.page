@@ -1,0 +1,833 @@
+<apex:page controller="RegistrationPDF" sidebar="false" showHeader="false">
+    <html>
+        <apex:slds />
+        
+        
+        <body class="slds-scope">
+           <apex:form >  
+            <div style="width:90%;margin-top:-20px;margin-left: 70px;text-align:center;display:inline-flex;">
+                <div style="min-width:500px;margin:30px auto;text-align:center;">
+                        <div Style="Float:left;">To*:</div>
+                        <apex:inputText value="{!emailId}" label="Enter Email Id" styleClass="slds-input" style="width:100%;Margin-top:5px;" required="true"></apex:inputText>
+                        <div Style="Float:left;"> Subject*:</div>
+                        <apex:inputText value="{!subject}" label="Enter Subject" styleClass="slds-input" style="width:100%;Margin-top:5px;" required="false"></apex:inputText>
+                        <div Style="Float:left;">Body:</div>
+                        <apex:inputTextarea value="{!body}" label="Body" styleClass="slds-input" style="width:100%;Margin-top:5px;"></apex:inputTextarea>&nbsp;
+                        <apex:commandButton action="{!Cancel}" value="Cancel" styleClass="slds-button slds-button_destructive slds-button__icon_right slds-button--brand slds-m-top--medium" style="Margin-top:5px;margin-left: -1px;float:right;" immediate="true"></apex:commandButton>
+                        <apex:commandButton action="{!saveTemp}" value="Save" styleClass="slds-button slds-button_brand" style="Margin-top:5px;float:right;margin-right:5px;" immediate="true"></apex:commandButton>
+                        <apex:commandButton action="{!saveAndSend}" value="Save And Send" styleClass="slds-button slds-button_brand" style="Margin-top:5px;float:right;" ></apex:commandButton>
+                </div>
+            </div>
+                <div class="slds-box" style="width: 90%;margin:auto;border: 0.5px solid black;margin-bottom:5px">  
+                    <div>
+                        <table style=" width:100%; border:none; border-collapse: collapse; ">
+                            <tr>
+                                <td><img style="width:1500px;height:60px" alt="logo" src="{!$Resource.AksharLogo}"/>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div>
+                        <table style=" width: 100%; border:none; border-collapse: collapse;;margin-bottom:15px;"> 
+                            <tr>
+                                <th  colspan="3" style="font-size:18px;text-align:left;">
+                                    Registration Form
+                                </th> 
+                            </tr> 
+                        </table>
+                        <table style=" width: 100%; border:none; border-collapse: collapse;;margin-bottom:15px;"> 
+                            
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:35%">
+                                    <b> Name of the Child :</b> {!acc.Name}
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:25%">
+                                    <b> Gender : </b>  {!acc.Gender__c }
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:25%">
+                                    <b> Date of Birth : </b>
+                                    <apex:outputText value="{0,date,dd/MM/yyyy}">
+                                        <apex:param value="{!acc.Date_Of_Birth__c }" />
+                                    </apex:outputText> 
+                                </td>
+                                <td rowspan="3" style="padding:5px 5px;font-size:12px;width:25%">
+                                    <apex:image url="/servlet/servlet.FileDownload?file={!childimage}" style="height:80px;width:70px;float:right;margin-right:25px;"/>
+                                </td>
+                            </tr>  
+                            
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:35%">
+                                    <b> Blood Group :</b>  {!acc.Blood_Group__c }
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:25%">
+                                    <b> Place of Birth : </b>  {!acc.Place_of_Birth__c }
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:25%">
+                                    <b> Nationality : </b>  {!acc.Nationality__c }
+                                </td>                                    
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:35%">
+                                    <b> Admission In:</b>  {!acc.Admission_In__c }
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:25%">
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:25%">
+                                </td>                                    
+                            </tr>
+                            
+                        </table>
+                        
+                        <div style="page-break-after:always;">
+                            <table style=" width: 100%; border:none; border-collapse: collapse;;margin-bottom:15px;">
+                                <tr>
+                                    <th  colspan="3" style="font-size:15px;text-align:left">
+                                        Name &amp; Address of the previous school (if applicable)
+                                    </th> 
+                                </tr>
+                                <tr>
+                                    <td style="padding:5px 5px;font-size:12px;width:50%">
+                                        <b> School Name :</b>  {!acc.Previous_School_If_Any__c }
+                                    </td>
+                                    <td style="padding:5px 5px;font-size:12px;width:50%">
+                                        <b> Address : </b> {!acc.BillingStreet} {!acc.BillingCity} {!acc.BillingPostalCode} {!acc.BillingState} {!acc.BillingCountry}
+                                    </td>
+                                </tr>
+                            </table>
+                            <table style=" width: 100%; border:none; border-collapse: collapse;;margin-bottom:15px;">
+                                
+                                <tr>
+                                    <th  colspan="2" style="font-size:15px;text-align:left">
+                                        Home Address
+                                    </th> 
+                                </tr>
+                                
+                                <tr>
+                                    <td style="padding:5px 5px;font-size:12px;width:50%">
+                                        <b> Address :</b>  {!acc.ShippingStreet} {!acc.ShippingCity} {!acc.ShippingPostalCode} {!acc.ShippingState} {!acc.ShippingCountry}
+                                    </td>
+                                    <td style="padding:5px 5px;font-size:12px;">
+                                        <b> Telephone No : </b>  {!acc.Telephone_No__c}
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <apex:outputPanel id="tab" rendered="{!(mother.size!=0)}">
+                                
+                                <table style=" width: 100%; border:none; border-collapse: collapse;margin-bottom:15px;"> 
+                                    <tr>
+                                        <th  colspan="3" style="font-size:15px;text-align:left">
+                                            Mother's Details
+                                        </th> 
+                                    </tr> 
+                                    <tr>
+                                        <td style="padding:5px 5px;font-size:12px;width:35%">
+                                            <b> Name :</b> {!mother[0].Parent_Name__c}
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                            <b> Qualification : </b> {!mother[0].Qualification__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                            <b> Designation : </b> {!mother[0].Designation__c } 
+                                        </td>
+                                        <td rowspan="3" style="padding:5px 5px;font-size:12px;width:25%">
+                                            <apex:image url="/servlet/servlet.FileDownload?file={!motherimage}" style="height:80px;width:70px;float:right;margin-right:25px;"/>
+                                        </td>
+                                    </tr>  
+                                    <tr>
+                                        <td style="padding:5px 5px;font-size:12px;width:35%">
+                                            <b> Telephone No :</b> {!mother[0].Telephone_No_Home__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                            <b> Mobile No :</b> {!mother[0].Mobile__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                            <b> Email Id :</b> {!mother[0].Email_Id__c } 
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px 5px;font-size:12px;width:35%">
+                                            <b> Office Address :</b> {!mother[0].Parent_Address_Info__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                        </td>  
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                        </td>  
+                                    </tr>
+                                </table>
+                            </apex:outputPanel>
+                            
+                            <apex:outputPanel id="tab1" rendered="{!(father.size!=0)}">
+                                
+                                <table style=" width: 100%; border:none; border-collapse: collapse;margin-bottom:15px;"> 
+                                    <tr>
+                                        <th  colspan="3" style="font-size:15px;text-align:left">
+                                            Father's Details
+                                        </th> 
+                                    </tr> 
+                                    
+                                    <tr>
+                                        <td style="padding:5px 5px;font-size:12px;width:35%">
+                                            <b> Name :</b> {!father[0].Parent_Name__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                            <b> Qualification : </b> {!father[0].Qualification__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                            <b> Designation : </b> {!father[0].Designation__c } 
+                                        </td>
+                                        <td rowspan="3" style="padding:5px 5px;font-size:12px;width:25%">
+                                            <apex:image url="/servlet/servlet.FileDownload?file={!fatherimage}" style="height:80px;width:70px;float:right;margin-right:25px;"/>
+                                        </td>
+                                    </tr>  
+                                    <tr>
+                                        <td style="padding:5px 5px;font-size:12px;width:35%">
+                                            <b> Telephone No :</b> {!father[0].Telephone_No_Home__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                            <b> Mobile No :</b> {!father[0].Mobile__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                            <b> Email Id :</b> {!father[0].Email_Id__c }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:5px 5px;font-size:12px;width:35%">
+                                            <b> Office Address :</b> {!father[0].Parent_Address_Info__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                        </td> 
+                                        <td style="padding:5px 5px;font-size:12px;width:25%">
+                                        </td> 
+                                    </tr>
+                                </table>
+                            </apex:outputPanel>
+                            
+                            <apex:outputPanel id="tab2" rendered="{!(Guardian.size!=0)}">
+                                <table style=" width: 100%; border:none; border-collapse: collapse;margin-bottom:15px;"> 
+                                    <tr>
+                                        <th  colspan="3" style="font-size:15px;text-align:left">
+                                            Guardian's Details
+                                        </th> 
+                                    </tr> 
+                                    <tr>
+                                        <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                            <b> Name :</b> {!Guardian[0].Parent_Name__c}
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                            <b> Qualification : </b> {!Guardian[0].Qualification__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                            <b> Designation : </b> {!Guardian[0].Designation__c } 
+                                        </td>
+                                    </tr>  
+                                    <tr>
+                                        <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                            <b> Telephone No :</b> {!Guardian[0].Telephone_No_Home__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;">
+                                            <b> Mobile No :</b> {!Guardian[0].Mobile__c }
+                                        </td>
+                                        <td style="padding:5px 5px;font-size:12px;">
+                                            <b> Email Id :</b> {!Guardian[0].Email_Id__c } 
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:-15px;margin-bottom:15px;"> 
+                                    <tr>
+                                        <td style="padding:5px 5px;font-size:12px;width:100%">
+                                            <b> Office Address :</b> {!Guardian[0].Parent_Address_Info__c }
+                                        </td>
+                                    </tr>
+                                </table>
+                            </apex:outputPanel>
+                            
+                            <apex:outputPanel id="tab124" rendered="{!(sibling.size!=0)}">
+                                <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:15px; ">  
+                                    <tr>
+                                        <th  colspan="3" style="font-size:15px;text-align:left">
+                                            Sibling Details
+                                        </th> 
+                                    </tr>
+                                    <tr> 
+                                        <th style="padding:5px 5px;font-size:12px;width:16.66%;">Name</th>
+                                        <th style="padding:5px 5px;font-size:12px;width:16.66%;">Gender</th>
+                                        <th style="padding:5px 5px;font-size:12px;width:16.66%;">Date of Birth</th> 
+                                        <th style="padding:5px 5px;font-size:12px;width:16.66%;">Present School</th>
+                                    </tr>
+                                    
+                                    <apex:repeat value="{!sibling}" var="sib"> 
+                                        <tr>
+                                            <td style="padding:5px 5px;font-size:12px;width:16.66%;"><apex:outputText value="{!sib.Name}"></apex:outputText></td>
+                                            <td style="padding:5px 5px;font-size:12px;width:16.66%;"><apex:outputField value="{!sib.Gender__c}"></apex:outputField></td>
+                                            <td style="padding:5px 5px;font-size:12px;width:16.66%;">
+                                                <apex:outputText value="{0,date,dd/MM/yyyy}">
+                                                    <apex:param value="{!sib.Date_of_Birth__c }" />
+                                                </apex:outputText> </td>
+                                            <td style="padding:5px 5px;font-size:12px;width:16.66%;"><apex:outputField value="{!sib.Other_School_Name__c}"></apex:outputField></td>
+                                        </tr>   
+                                    </apex:repeat> 
+                                </table>
+                            </apex:outputPanel>
+                            <table style=" width: 100%; border:none; border-collapse: collapse;margin-bottom:15px;margin-top:15px;"> 
+                                <tr>
+                                    <td style="padding:5px 5px;font-size:12px;width:100%">
+                                        <b> Address for correspondence :</b> {!acc.Address_for_correspondence__c}
+                                    </td>
+                                </tr>
+                            </table>
+                            <table style=" width: 100%; border:none; border-collapse: collapse;"> 
+                                <tr>
+                                    <td style="padding:5px 5px;font-size:12px;width:100%">
+                                        <b>Emergency Contact Details: </b> (If we cannot be reached in case of emergency or cannot collect our child on a normal day, the following person is authorized to act on our behalf)
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <table style=" width: 100%; border:none; border-collapse: collapse;"> 
+                                
+                                <tr>
+                                    <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                        <b> Name :</b>{!acc.Emergency_Contact_Name__c}
+                                    </td>
+                                    <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                        <b> Relationship with the child : </b> {!acc.Emergency_Contact_Relationship__c}
+                                    </td>
+                                    <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                        <b> Contact No : </b> {!acc.Emergency_Contact_No_Other_than_Parents__c}
+                                    </td>
+                                </tr>  
+                            </table>
+                        </div>
+                        <!---------------2nd Page Starts Here----------->
+                        
+                        <table style=" width: 100%; border:none; border-collapse: collapse;"> 
+                            <tr>
+                                <td style="padding:5px 5px;font-size:13px;width:100%">
+                                    <b>Child's History: Please tell us about your child, so that we may better understand him/her</b>
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:10px;"> 
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:70%">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:center">
+                                    <b>Remarks</b> 
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:70%">
+                                    What Language Does your child speak at home?
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.What_Language_your_child_speaks_at_home__c } 
+                                </td>
+                                <td style="padding:10px 10px;border:0.5px solid black;font-size:12px;width:20%">
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Does your child speak/understand English? 
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Does_child_speakunderstand_English__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Is your child speaking his/her language at an appropriate level for his/her age?
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Speaking_language_at_appropriate_level__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Do you have any difficulty in understanding your child's speech? 
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Difficulty_in_understanding_child_speech__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Is your child toilet trained? 
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Is_your_child_toilet_trained__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Did your child reach the developemental milestones at an appropriate time? E.g Sitting up, Standing, walking, crawling, talking
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Developmental_milestones_at_correct_time__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    {!acc.Comment_7__c}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Has your child undergone any major illness? (if yes, please provide details)
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Has_the_child_suffered_any_major_illness__c }   
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    {!acc.Comment_1__c}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Has your child undergone any major surgery? (if yes, please provide details)
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Has_child_undergone_any_major_surgery__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    {!acc.Comment_2__c}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Does your child have any allergies? (if yes, please provide details)
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Does_your_child_have_any_allergies__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    {!acc.Comment_3__c}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Does your child have any specific fears? (if yes, please provide details)
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Child_have_any_specific_fears__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    {!acc.Comment_4__c }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Does your child have any specific learning, physical and behavioural difficulties? (if yes, please provide details)
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Does_child_have_any_specific_difficulty__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    {!acc.Comment_5__c }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Do you have any general comments about your child which you wish to place on record? E.g Special interest or talents
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.General_comments_about_your_child__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    {!acc.Comment_8__c }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Do you consent making your name and home phone number available to other parents in your childs class?
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Make_your_contact_details_available__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:90%">
+                                    Would you like to participate in the school activities? (if yes please specify)
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%">
+                                    {!acc.Like_to_participate_in_school_activities__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%">
+                                    {!acc.Comment_6__c }                                
+                                </td>
+                            </tr>
+                        </table>
+                        <table style=" width: 100%; border:none; border-collapse: collapse;"> 
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;border-top:0px solid black;font-size:12px;width:50%">
+                                    Pediatrician / Family Doctor's Name : {!acc.Pediatrician_Family_Doctors_Name__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;border-top:0px solid black;font-size:12px;width:25%;text-align:left">
+                                    Clinic’s Tel. No : {!acc.Clinics_Tel_No__c }
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;border-top:0px solid black;font-size:12px;width:25%;text-align:left">
+                                    Mobile No : {!acc.Mobile_No__c }
+                                </td>
+                            </tr>  
+                        </table>
+                        
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:15px;"> 
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:100%">
+                                    <apex:inputCheckbox value="{!acc.Terms_and_Conditions__c}" id="my_chk_bx" disabled="true" />   <b>I have read, understood and agreed to the terms and conditions of the school.</b>
+                                </td>
+                            </tr>
+                        </table>    
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:5px;"> 
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:50%">
+                                    Mother's  Signature : ...............................................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:50%;text-align:right">
+                                    Father 's Signature : ...............................................
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:50%">
+                                    Date : ...............................................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:50%;text-align:right">
+                                    Place : ...............................................
+                                </td>
+                            </tr>
+                        </table>
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:5px;"> 
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:90%">
+                                    
+                                    ____________________________________________________________________________________________________________________________________________________________________________
+                                </td>
+                            </tr>
+                        </table>
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:5px;"> 
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:100%">
+                                    <b>For Official Purpose</b>
+                                </td>
+                            </tr>
+                        </table>  
+                        
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:5px;"> 
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                    Registration   No : ................................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%;">
+                                    Program  Admitted  To : .............................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%;">
+                                    Date  of Joining : .............................
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                    Remarks, if any : ................................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%;">
+                                    School Head's Signature : ........................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%;">
+                                    Date : ..............................................
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:10px;"> 
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:100%">
+                                    <b>Pre School / Child Care Rollover Record</b>
+                                </td>
+                            </tr>
+                        </table> 
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:5px;"> 
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    <b>Grade</b> 
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    <b>Program</b> 
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%;text-align:center">
+                                    <b>Month &amp; Year</b> 
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:35%;text-align:center">
+                                    <b>Remarks</b> 
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:15%;text-align:center">
+                                    <b>School Head's Signature</b> 
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Pre-Nursery
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Child Care Infant
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:35%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:15%;text-align:center">
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Nursery
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Child Care Toddler
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:35%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:15%;text-align:center">
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Kindergarten 1
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Child Care Junior
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:35%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:15%;text-align:center">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Kindergarten 11
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Child Care Senior
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:10%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:35%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:15%;text-align:center">
+                                </td>
+                            </tr>
+                        </table><br/>
+                        <!----------Terms and Conditions---------->
+                        
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:5px;"> 
+                            <tr>
+                                <td style="padding:5px 5px;font-size:15px;width:100%">
+                                    <b>TERMS AND CONDITIONS OF ENROLMENT</b>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:100%">
+                                    The admission in Vivero International Pre-School &amp; Child Care (hereinafter referred to as “the School”) is granted subject to the following terms &amp; conditions, which form an integral part of the Agreement between the School and the Parent/Guardian of the child (hereinafter referred to as “the Parent”):<br/>
+                                    <br/>
+                                    <b>  A. ENROLMENT</b><br/>
+                                    1.  The School must be informed of any issues relating to health, physical, academic as well as behavioral issues of the child prior to enrolment. In all such cases, the Parent has an obligation to provide relevant supporting documents as may be requested by the School. Where necessary, the School may seek any further documentation or evaluation. Failure to inform the School of any relevant issues and submit documents sought by the School within the specified period of time may result in cancellation of enrolment.<br/>
+                                    
+                                    2.  Where a child requires special educational support in the light of the above issues, the enrolment is subject to the student's ability to function independently or with the support of Special Educator/Facilitator, fully sponsored by the Parent. This is with a view that such a child is able to achieve positive outcomes of the learning.<br/>
+                                    
+                                    3.  In the case of behavioral issues, a probationary enrolment may be offered. The Parent may be requested to terminate the enrolment if this is considered to be in the best interests of that child and/or of the school community as a whole. The decision taken by the School in all such cases shall be final and binding.<br/>
+                                    
+                                    4.  The School reserves the right to withhold acceptance of an enrolment entirely at its discretion, without assigning any reasons. Such action of the School is deemed to be in the best interests of the Child or the School.<br/>
+                                    <br/>
+                                    
+                                    <b> B.  FEES</b>  <br/>
+                                    
+                                    1.  A non-refundable one time registration fee is payable at the time of registration of the child at the School.  <br/>
+                                    
+                                    2.  Any fees once paid is not refundable.  <br/>
+                                    
+                                    3.  The Tuition/Child Care Fee is payable in advance either in cash or by way of cheques/ demand draft NEFT/ RTGS / Debit or credit Card. All bank charges on account of electronic fund transfer or dishonor of cheques shall be borne by the Parent. A charge of Rs. 500 will be levied for any returned cheque.
+                                    <br/>
+                                    4.  The first Installment of the Tuition/Child Care Fee is payable together with the registration fee and child kit.
+                                    <br/>
+                                    5.  Where any fee or part of applicable fees remaining unpaid after the due date, excepting where the Parent has sought additional time from the School, the School reserves its right to -
+                                    (a) Charge late fee of Rs. 100/- per day calculated from the due date until the date of payment;
+                                    (b) Cease providing any course material and/or education to the child without prejudice to the obligation of the Parent to pay Fees; and/or
+                                    (c) Demand payment in full of all fees and installments outstanding as of that date.
+                                    <br/>
+                                    6.  Notwithstanding the above, if the fees remain outstanding for a period of 15 (fifteen) days, in spite of the School sending reminders/notices to the Parent, the School reserves the right to terminate enrolment of the child and initiate legal remedies that may be available to it to recover such outstanding fees and compensation at the cost of the Parent.
+                                    <br/>
+                                    7.  To continue your child’s enrolment in the school/ Child Care, the fee should be paid regardless of absence for any reason including illness, holidays, bandh or closures due to unforeseen reasons outside of the school’s control.
+                                    <br/>
+                                    8.  your child will be transitioned to the next programme as per his age which will be intimated to you well in advance. Post transition, the new program’s fee structure will be applicable.
+                                    <br/>
+                                    9.  If the child remains absent from the enrolled programme without any prior intimation from the Parent for a period of more than 30 (thirty) days, there shall be no refund of the Fees, if already paid. Resumption of admission would entail payment of registration fees afresh.
+                                    <br/>
+                                    10. The School shall be entitled to increase Fees at any time, as it may deem fit. Any such increase in Fees shall be notified to the Parent and such revised Fees shall become payable from the date stipulated in the notice.
+                                    <br/>
+                                    11. A late pick-up/ extra hour fee will be charged if the parent drops the child early or reaches late to school to pick up the child. The child should be dropped or picked up within the child's program hours for which the child is enrolled. As early/ late fee for Child Care programme is different for different time slots, please check with the school for more details
+                                    <br/> <br/>
+                                    
+                                    
+                                    <b> C.  PARENTAL OBLIGATIONS</b> 
+                                    <br/>
+                                    1.  Since the School operates to a regular timetable it is an obligation on the part of the Parent to ensure that the child reports to the School in time and attends all School working days.
+                                    <br/>
+                                    2.  Parents must inform the School in writing about any absence of the child to attend the School owing to illness or such other contingencies. In case of the child contracting communicable disease/s, a "Fit for School" certificate from a doctor will be required to be submitted before re-joining.
+                                    <br/>
+                                    3.  Any request for withdrawal of the child must be made in writing to the School minimum a month in advance
+                                    <br/>
+                                    4.  To strictly follow the dress code of the School and to ensure that the child shall only wear the uniform/shoes/bag etc., as approved by the School.
+                                    <br/><br/>
+                                    
+                                    <b> D.  RESERVATION OF RIGHTS</b><br/>
+                                    The School reserves the right -<br/><br/>
+                                    
+                                    1.  To change, alter or modify these terms &amp; conditions at any time at its discretion and such changes, alterations or modifications shall remain binding on the parties hereto. The School shall notify these on its notice board.
+                                    <br/>
+                                    2.  To change, alter or modify, as it may deem appropriate, the content, course/programme offerings, any published information, curriculum, academic policies and such other rules and regulations including venue affecting the students and to substitute any teaching staff at any time.
+                                    <br/>
+                                    3.  To alter or modify the mode and manner of payment of fees.
+                                    <br/>
+                                    4.  To not be liable for any claims arising from any error, omission or misstatement occurring in any of its communications in the print or electronic media.
+                                    <br/>
+                                    5.  To assign the whole or any part of the Agreement including the programme to any person or body, at any time.
+                                    <br/><br/>
+                                    
+                                    <b> E.  UNDERTAKING</b><br/>
+                                    I have read and understood the above terms and conditions and solemnly undertake and declare as follows:
+                                    <br/><br/>
+                                    1.  That the information furnished by me in this application is true to the best of my knowl- edge and belief. If any statement/information is found to be false or I do not furnish the relevant documents to the School within 7 (seven) days of admission, the admission given to our child may be cancelled/terminated by the School.
+                                    <br/>
+                                    2.  That I shall at all times abide by the instructions contained in this form and as amended from time to time, and/or any other rules, regulations etc. of the School, as may be specified from time to time by way of circulars or otherwise.
+                                    <br/>
+                                    3.  That I shall remit the Fees in terms of the rules and policies of the School as amended from time to time.
+                                    <br/>
+                                    4.  That in case I choose to withdraw our child from the school, I agree and accept that the fees once paid shall not be refundable and if not paid shall have to be paid, failing which, I shall not be entitled to demand for my child’s portfolio.
+                                    <br/>
+                                    5.  That I agree and understand that while the School will do its best to provide immediate medical aid/first aid, in the event of any unavoidable incidents/mishaps/accidents occurring, despite its best preventive efforts, during the workshops, sports, out-door tours or activities, transportation to and from the school, arising from any toys, games or other playing or learning instruments, consumption of any food or water etc., I shall not hold the School or any member of its staff responsible and accordingly indemnify the School and its staff and officers against all losses, liabilities, claims damages, proceedings, charges, costs &amp; expenses which they may suffer or incur arising from such events.
+                                    <br/>
+                                    6.  I declare that the School and its management shall have the exclusive right to retain and use our child’s photograph/video as well as any work of art or project created by the child during his/her learning process at the School for any purposes it may consider appropriate.
+                                    <br/>
+                                    7.  Being a group care setup, the school will not be held responsible for the loss or damage of any personal item which belongs to the child.
+                                    
+                                </td>
+                            </tr>
+                        </table><br/>
+                        
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:5px;"> 
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                    Name  of  the  Child : ................................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%;">
+                                    Registration No : .............................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%;">
+                                    Programme : .............................
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%;">
+                                    Father’s  / Mother's / Guardian’s Name : .............................
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%">
+                                    Signature : ................................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%;">
+                                    Date : ........................
+                                </td>
+                                <td style="padding:5px 5px;font-size:12px;width:33.33%;">
+                                    Place : ..............................................
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <table style=" width: 100%; border:none; border-collapse: collapse;margin-top:5px;"> 
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    <b>For Office Use Only</b> 
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:40%;text-align:center">
+                                    <b>Name</b> 
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:40%;text-align:center">
+                                    <b>Signature</b> 
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Checked by
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:40%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:40%;text-align:center">
+                                    
+                                </td>
+                                
+                            </tr>
+                            
+                            <tr>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:20%;text-align:left">
+                                    Approved by
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:40%;text-align:center">
+                                    
+                                </td>
+                                <td style="padding:5px 5px;border:0.5px solid black;font-size:12px;width:40%;text-align:center">
+                                    
+                                </td>
+                                
+                            </tr>
+                            
+                        </table><br/>
+                        
+                    </div>         
+                </div> 
+            </apex:form><br/>
+        </body>
+        
+    </html>
+</apex:page>

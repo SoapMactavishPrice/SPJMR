@@ -1,0 +1,503 @@
+<!--
+  Attendance & Schedule - Student timetable and session details.
+  When showLayout is true, renders with same navbar and left sidebar as Student Profile Dashboard.
+-->
+<template>
+    <template if:true={showLayout}>
+        <div class="dashboard-container">
+            <header class="top-navbar">
+                <div class="navbar-logo slds-size--1-of-6">
+                    <div class="logo-container slds-p-left--x-large">
+                        <img src={siteLogoIcon} alt="Site Logo" class="site-logo" />
+                    </div>
+                </div>
+                <div class="navbar-three-dots">
+                    <button type="button" class="three-dots-button" onclick={handleToggleSidebar} title="Toggle Navigation">
+                        <img src={navbarIconResource} alt="Menu Icon" class="menu-icon" />
+                    </button>
+                </div>
+                <div class="navbar-content">
+                    <div class="navbar-user">
+                        <div class="user-profile">
+                            <lightning-icon icon-name="standard:user" size="small" alternative-text="User"
+                                class="user-icon"></lightning-icon>
+                            <span class="user-name">{studentName}</span>
+                            <lightning-icon icon-name="utility:chevrondown" size="xx-small" alternative-text="Dropdown"
+                                class="dropdown-icon"></lightning-icon>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div class="dashboard-body">
+                <aside class={sidebarClass}>
+                    <nav class="sidebar-nav">
+                        <template for:each={menuItemsWithIcons} for:item="item">
+                            <!-- <a key={item.id} href="javascript:void(0)" class={item.cssClass} data-id={item.id} onclick={handleMenuClick}> -->
+                            <button
+                                key={item.id}
+                                type="button"
+                                class={item.cssClass}
+                                data-id={item.id}
+                                onclick={handleMenuClick}>
+                                <img src={item.iconUrl} alt={item.label} class="nav-icon-image" onerror={handleImageError} />
+                                <span class="nav-label">{item.label}</span>
+                            
+                            </button>
+                        </template>
+                    </nav>
+                </aside>
+                <main class={mainContentClass}>
+                    <div class="main-contianer">
+                        <div class="header-container">
+                            <div>
+                                <h2 class="dxp-text-heading-large">Student Profile Dashboard</h2>
+                                <div class="header-details slds-m-top--small slds-p-around--medium">
+                                    <div class="slds-grid slds-gutters slds-wrap">
+                                        <div class="slds-col slds-size_3-of-12">
+                                            <div class="slds-media">
+                                                <div class="slds-media__figure">
+                                                    <span class="slds-avatar slds-avatar_circle profile-avatar">
+                                                        <img alt="Person name" src={profileDummyIcon} title="User avatar" />
+                                                    </span>
+                                                </div>
+                                                <div class="slds-media__body">
+                                                    <p class="dxp-text-heading-medium">{studentName}</p>
+                                                    <p class="slds-m-top--small">{rollNumber}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="slds-col slds-size_3-of-12 slds-m-top--medium slds-text-align_center">
+                                            <p>Program</p>
+                                            <p class="dxp-text-heading-xxsmall">{programName}</p>
+                                        </div>
+                                        <div
+                                            class="slds-col slds-size_3-of-12 slds-m-top--medium slds-text-align_center">
+                                            <p>Current Term</p>
+                                            <p class="dxp-text-heading-xxsmall">{currentTerm}</p>
+                                        </div>
+                                        <div
+                                            class="slds-col slds-size_3-of-12 slds-m-top--large slds-text-align_center">
+                                            <button class="slds-button slds-button_brand active-button">Active</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="student-details-header-bar">
+                        <h2 class="student-details-header-text dxp-text-heading-xxsmall">Attendance Details</h2>
+                    </div>
+                    <div class="slds-m-top--large">
+                        <!-- Schedule content injected below via shared block -->
+                        <div class="schedule-container schedule-container-embedded">
+                            <!-- <div class="schedule-header-bar">
+                                <h2 class="schedule-header-text">Timetable</h2>
+                            </div> -->
+                            <div class="schedule-toolbar">
+                                <div class="view-tabs">
+                                    <button class={dayTabClass} onclick={handleDayView}>Day</button>
+                                    <button class={weekTabClass} onclick={handleWeekView}>Week</button>
+                                    <button class={monthTabClass} onclick={handleMonthView}>Month</button>
+                                    <button class={yearTabClass} onclick={handleYearView}>Year</button>
+                                </div>
+                                <div class="toolbar-right">
+                                    <div class="session-filter">
+                                        <label class="session-filter-label">Session</label>
+                                        <select class="session-select" onchange={handleSessionTypeChange}>
+                        <template for:each={sessionTypeOptionsWithSelected} for:item="opt">
+                            <option key={opt.value} value={opt.value} selected={opt.selected}>{opt.label}</option>
+                        </template>
+                    </select>
+                                    </div>
+                                    <div class="nav-buttons">
+                                        <button type="button" class="nav-arrow" onclick={handlePrev} title="Previous">‹</button>
+                                        <span class="date-range-label">{formattedDateRange}</span>
+                                        <button type="button" class="nav-arrow" onclick={handleNext} title="Next">›</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <template if:true={isLoading}>
+                                <div class="schedule-loading">Loading schedule…</div>
+                            </template>
+
+                            <template if:false={isLoading}>
+                                <div class="schedule-content">
+                                    <template if:true={showNoSessions}>
+                                        <div class="no-sessions-banner">No sessions scheduled for the selected period.
+                                        </div>
+                                    </template>
+                                    <!-- Week / Day view: time grid -->
+                                    <template if:true={isWeekOrDayView}>
+                                        <div class="calendar-grid" style={gridStyle}>
+                                            <div class="grid-header">
+                                                <div class="time-col-header"></div>
+                                                <template for:each={weekDays} for:item="day">
+                                                    <div key={day.key} class={day.headerClass}>
+                                                        <span class="day-name">{day.name}</span>
+                                                        <span class="day-date">{day.dateLabel}</span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div class="grid-body">
+                                                <template for:each={calendarRows} for:item="row">
+                                                    <div key={row.key} class="grid-row">
+                                                        <div class="time-slot">{row.label}</div>
+                                                        <template for:each={row.cells} for:item="cell">
+                                                            <div key={cell.dayKey} class="cell-slot">
+                                                                <template for:each={cell.events} for:item="evt">
+                                                                    <div key={evt.id} class={evt.eventClass}
+                                                                        data-id={evt.id} onclick={handleSessionClick}
+                                                                         title={evt.title}>
+                                                                        <span class="cell-session-title">{evt.title}</span>
+                                                                        <span class="cell-session-activity">{evt.courseActivity}</span>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Month view -->
+                                    <template if:true={isMonthView}>
+                                        <div class="month-view">
+                                            <div class="month-header">
+                                                <template for:each={dayNamesShort} for:item="dn">
+                                                    <div key={dn} class="month-day-name">{dn}</div>
+                                                </template>
+                                            </div>
+                                            <div class="month-weeks">
+                                                <template for:each={monthWeeksData} for:item="week">
+                                                    <div key={week.key} class="month-week-row">
+                                                        <template for:each={week.days} for:item="md">
+                                                            <div key={md.key} class={md.cellClass}>
+                                                                <div class="month-date-num">{md.dateNum}</div>
+                                                                <div class="month-events">
+                                                                    <template for:each={md.events} for:item="ev">
+                                                                        <div key={ev.id} class="month-event"
+                                                                            data-id={ev.id} onclick={handleSessionClick}
+                                                                            title={ev.title}>{ev.title}</div>
+                                                                    </template>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Year view: list by month -->
+                                    <template if:true={isYearView}>
+                                        <div class="year-view">
+                                            <template for:each={yearMonths} for:item="ym">
+                                                <div key={ym.key} class="year-month-block">
+                                                    <h3 class="year-month-title">{ym.label}</h3>
+                                                    <ul class="year-session-list">
+                                                        <template for:each={ym.sessions} for:item="s">
+                                                            <li key={s.id} class="year-session-item" data-id={s.id}
+                                                                onclick={handleSessionClick}>
+                                                                <span class="year-session-date">{s.dateLabel}</span>
+                                                                <span class="year-session-title">{s.title}</span>
+                                                                <span class="year-session-time">{s.timeLabel}</span>
+                                                            </li>
+                                                        </template>
+                                                    </ul>
+                                                    <template if:true={ym.empty}>
+                                                        <p class="year-no-sessions">No sessions</p>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <!-- Session Details Modal -->
+                            <template if:true={showDetailModal}>
+                                <section class="modal-overlay" role="dialog" tabindex="-1" aria-modal="true"
+                                    aria-labelledby="session-detail-title">
+                                    <div class="modal-container" onclick={handleModalContainerClick}>
+                                        <div class="modal-header">
+                                            <h2 id="session-detail-title" class="modal-title">Session Details</h2>
+                                            <button type="button" class="modal-close" onclick={handleCloseDetailModal} aria-label="Close">×</button>
+                                        </div>
+                                        <template if:true={detailLoading}>
+                                            <div class="modal-body">Loading…</div>
+                                        </template>
+                                        <template if:false={detailLoading}>
+                                            <template if:true={sessionDetail}>
+                                                <div class="modal-body">
+                                                    <h3 class="detail-session-name">{sessionDetail.title}</h3>
+                                                    <dl class="detail-list">
+                                                        <template if:true={sessionDetail.instructorNames}>
+                                                            <dt>Instructor</dt>
+                                                            <dd>{sessionDetail.instructorNames}</dd>
+                                                        </template>
+                                                        <template if:true={sessionDetail.sessionDateFormatted}>
+                                                            <dt><span class="detail-icon">📅</span> Date</dt>
+                                                            <dd>{sessionDetail.sessionDateFormatted}</dd>
+                                                        </template>
+                                                        <template if:true={sessionDetail.startTime}>
+                                                            <dt><span class="detail-icon">🕐</span> Time</dt>
+                                                            <dd>{sessionDetail.startTime} – {sessionDetail.endTime}</dd>
+                                                        </template>
+                                                        <template if:true={sessionDetail.location}>
+                                                            <dt><span class="detail-icon">📍</span> Location</dt>
+                                                            <dd>{sessionDetail.location}</dd>
+                                                        </template>
+                                                    </dl>
+                                                    <template if:true={hasDetailFiles}>
+                                                        <h4 class="detail-section-title">Uploaded Info / Files</h4>
+                                                        <ul class="detail-files">
+                                                            <template for:each={sessionDetail.files} for:item="file">
+                                                                <li key={file.contentDocumentId}>
+                                                                    <a href={file.downloadUrl} target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        class="detail-file-link">📎 {file.title}</a>
+                                                                </li>
+                                                            </template>
+                                                        </ul>
+                                                    </template>
+                                                    <template if:true={sessionDetail.description}>
+                                                        <h4 class="detail-section-title">Remarks / Description</h4>
+                                                        <p class="detail-description">{sessionDetail.description}</p>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </section>
+                            </template>
+                            <!-- <template if:true={showSessionHoverTooltip}>
+                                <div class="session-hover-tooltip" style={sessionHoverTooltipStyle} role="tooltip">
+                                    {sessionHoverTooltipLine}
+                                </div>
+                            </template> -->
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </template>
+    <template if:false={showLayout}>
+        <div class="schedule-container">
+            <!-- <div class="schedule-header-bar">
+                <h2 class="schedule-header-text">Timetable</h2>
+            </div> -->
+            <div class="schedule-toolbar">
+                <div class="view-tabs">
+                    <button class={dayTabClass} onclick={handleDayView}>Day</button>
+                    <button class={weekTabClass} onclick={handleWeekView}>Week</button>
+                    <button class={monthTabClass} onclick={handleMonthView}>Month</button>
+                    <button class={yearTabClass} onclick={handleYearView}>Year</button>
+                </div>
+                <div class="toolbar-right">
+                    <div class="session-filter">
+                        <label class="session-filter-label">Session</label>
+                        <select class="session-select" onchange={handleSessionTypeChange}>
+                        <template for:each={sessionTypeOptionsWithSelected} for:item="opt">
+                            <option key={opt.value} value={opt.value} selected={opt.selected}>{opt.label}</option>
+                        </template>
+                    </select>
+                    </div>
+                    <div class="nav-buttons">
+                        <button type="button" class="nav-arrow" onclick={handlePrev} title="Previous">‹</button>
+                        <span class="date-range-label">{formattedDateRange}</span>
+                        <button type="button" class="nav-arrow" onclick={handleNext} title="Next">›</button>
+                    </div>
+                </div>
+            </div>
+            <template if:true={isLoading}>
+                <div class="schedule-loading">Loading schedule…</div>
+            </template>
+            <template if:false={isLoading}>
+                <div class="schedule-content">
+                    <template if:true={showNoSessions}>
+                        <div class="no-sessions-banner">No sessions scheduled for the selected period.</div>
+                    </template>
+                    <template if:true={isWeekOrDayView}>
+                        <div class="calendar-grid" style={gridStyle}>
+                            <div class="grid-header">
+                                <div class="time-col-header"></div>
+                                <template for:each={weekDays} for:item="day">
+                                    <div key={day.key} class={day.headerClass}>
+                                        <span class="day-name">{day.name}</span>
+                                        <span class="day-date">{day.dateLabel}</span>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="grid-body">
+                                <template for:each={calendarRows} for:item="row">
+                                    <div key={row.key} class="grid-row">
+                                        <div class="time-slot">{row.label}</div>
+                                        <template for:each={row.cells} for:item="cell">
+                                            <div key={cell.dayKey} class="cell-slot">
+                                                <template for:each={cell.events} for:item="evt">
+                                                    <div key={evt.id} class={evt.eventClass} data-id={evt.id}
+                                                        onclick={handleSessionClick} title="this is hover">
+                                                        <span class="cell-session-title">{evt.title}</span>
+                                                        <span class="cell-session-activity">{evt.courseActivity}</span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+
+                        </div>
+                    </template>
+                    <template if:true={isMonthView}>
+                        <div class="month-view">
+                            <div class="month-header">
+                                <template for:each={dayNamesShort} for:item="dn">
+                                    <div key={dn} class="month-day-name">{dn}</div>
+                                </template>
+                            </div>
+                            <div class="month-weeks">
+                                <template for:each={monthWeeksData} for:item="week">
+                                    <div key={week.key} class="month-week-row">
+                                        <template for:each={week.days} for:item="md">
+                                            <div key={md.key} class={md.cellClass}>
+                                                <div class="month-date-num">{md.dateNum}</div>
+                                                <div class="month-events">
+                                                    <template for:each={md.events} for:item="ev">
+                                                        <div key={ev.id} class="month-event" data-id={ev.id}
+                                                            onclick={handleSessionClick} title={ev.title}>{ev.title}
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:true={isYearView}>
+                        <div class="year-view">
+                            <template for:each={yearMonths} for:item="ym">
+                                <div key={ym.key} class="year-month-block">
+                                    <h3 class="year-month-title">{ym.label}</h3>
+                                    <ul class="year-session-list">
+                                        <template for:each={ym.sessions} for:item="s">
+                                            <li key={s.id} class="year-session-item" data-id={s.id}
+                                                onclick={handleSessionClick}>
+                                                <span class="year-session-date">{s.dateLabel}</span>
+                                                <span class="year-session-title">{s.title}</span>
+                                                <span class="year-session-time">{s.timeLabel}</span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                    <template if:true={ym.empty}>
+                                        <p class="year-no-sessions">No sessions</p>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <template if:true={showDetailModal}>
+                <section class="modal-overlay" role="dialog" tabindex="-1" aria-modal="true"
+                    aria-labelledby="session-detail-title-embed">
+                    <div class="modal-container" onclick={handleModalContainerClick}>
+                        <div class="modal-header">
+                            <h2 id="session-detail-title-embed" class="modal-title">Session Details</h2>
+                            <button type="button" class="modal-close" onclick={handleCloseDetailModal} aria-label="Close">×</button>
+                        </div>
+                        <template if:true={detailLoading}>
+                            <div class="modal-body">Loading…</div>
+                        </template>
+                        <template if:false={detailLoading}>
+                            <template if:true={sessionDetail}>
+                                <div class="modal-body">
+                                    <h3 class="detail-session-name">{sessionDetail.title}</h3>
+                                    <dl class="detail-list">
+                                        <template if:true={sessionDetail.instructorNames}>
+                                            <dt>Instructor</dt>
+                                            <dd>{sessionDetail.instructorNames}</dd>
+                                        </template>
+                                        <template if:true={sessionDetail.sessionDateFormatted}>
+                                            <dt><span class="detail-icon">📅</span> Date</dt>
+                                            <dd>{sessionDetail.sessionDateFormatted}</dd>
+                                        </template>
+                                        <template if:true={sessionDetail.startTime}>
+                                            <dt><span class="detail-icon">🕐</span> Time</dt>
+                                            <dd>{sessionDetail.startTime} – {sessionDetail.endTime}</dd>
+                                        </template>
+                                        <template if:true={sessionDetail.location}>
+                                            <dt><span class="detail-icon">📍</span> Location</dt>
+                                            <dd>{sessionDetail.location}</dd>
+                                        </template>
+                                    </dl>
+                                    <template if:true={hasDetailFiles}>
+                                        <h4 class="detail-section-title">Uploaded Info / Files</h4>
+                                        <ul class="detail-files">
+                                            <template for:each={sessionDetail.files} for:item="file">
+                                                <li key={file.contentDocumentId}>
+                                                    <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer"
+                                                        class="detail-file-link">📎 {file.title}</a>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </template>
+                                    <template if:true={sessionDetail.description}>
+                                        <h4 class="detail-section-title">Remarks / Description</h4>
+                                        <p class="detail-description">{sessionDetail.description}</p>
+                                    </template>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                </section>
+            </template>
+        </div>
+    </template>
+
+    <!-- ================= SINGLE FLOATING TOOLTIP (ALL LAYOUTS) ================= -->
+    <template if:true={hoveredEventData}>
+        <div class="session-card floating" style={cardStyle} role="tooltip" onmouseenter={handleTooltipMouseEnter}
+            onmouseleave={handleTooltipMouseLeave}>
+            <div class="header">
+                <span class="title">Session Details</span>
+                <button type="button" class="close" onclick={handleTooltipClose} aria-label="Close tooltip">✕</button>
+            </div>
+
+            <h3>{hoveredEventData.title}</h3>
+
+            <template if:true={hoveredEventData.instructorNames}>
+                <p class="instructor">{hoveredEventData.instructorNames}</p>
+            </template>
+
+            <div class="info">
+                <template if:true={hoveredEventData.sessionDate}>
+                    <p>📅 {hoveredEventData.sessionDate}</p>
+                </template>
+                <template if:true={hoveredEventData.startTime}>
+                    <p>
+                        ⏰ {hoveredEventData.startTime}
+                        <template if:true={hoveredEventData.endTime}>
+                            – {hoveredEventData.endTime}
+                        </template>
+                    </p>
+                </template>
+                <template if:true={hoveredEventData.location}>
+                    <p>📍 {hoveredEventData.location}</p>
+                </template>
+            </div>
+
+            <template if:true={hoveredEventData.description}>
+                <div class="section">
+                    <strong>Remarks</strong>
+                    <p>{hoveredEventData.description}</p>
+                </div>
+            </template>
+        </div>
+    </template>
+</template>

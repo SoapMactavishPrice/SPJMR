@@ -1,0 +1,100 @@
+:host {
+    --th-active-bg: rgba(31, 111, 104, 0.1);
+    --th-active-border: white;
+    --th-primary: white;
+    --th-primary-hover:white;
+    --th-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --th-text-primary: white;
+    --th-text-secondary: white;
+    --th-border-color: #e5e7eb;
+    --th-hover-bg: rgba(31, 111, 104, 0.05);
+}
+
+/* ===============================
+   SIDEBAR CONTAINER
+=============================== */
+.sidebar {
+    position: sticky;
+    /* top: 80px; */
+    /* height: calc(100vh - 80px); */
+    height: 100vh;
+    /* max-height: calc(100vh - 80px); */
+    /* overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 10; */
+    background: #531F75;
+    /* border-right: 1px solid var(--th-border-color); */
+    /* box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05); */
+    /* padding: 24px 0; */
+}
+
+/* ===============================
+   HEADER TEXT
+=============================== */
+.text {
+    padding: 0 24px;
+    margin-bottom: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    /* color: var(--th-text-secondary); */
+    color: white;
+    opacity: 0.8;
+}
+
+/* ===============================
+   NAV LIST CONTAINER
+=============================== */
+ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+
+
+/* ===============================
+   ERROR MESSAGE
+=============================== */
+.error {
+    padding: 16px 24px;
+    margin: 12px;
+    color: #dc2626;
+    font-size: 14px;
+    background: #fef2f2;
+    border-radius: 8px;
+    border: 1px solid #fecaca;
+}
+
+/* ===============================
+   NAV ITEMS
+=============================== */
+:host li {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0 12px 4px 12px;
+    border-radius: 0px;
+    background: transparent;
+    transition: background var(--th-transition);
+    overflow: hidden;
+}
+
+/* 🔥 LI hover → apply SAME hover as button */
+:host li:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* 🔥 Also affect the button inside */
+:host li:hover .step-link {
+    background: transparent; /* prevent double background */
+}
+
+/* Active item */
+:host li[data-active="true"] {
+    background: var(--th-active-bg);
+}

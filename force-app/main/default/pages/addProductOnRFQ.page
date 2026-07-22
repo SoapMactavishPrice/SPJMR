@@ -1,0 +1,425 @@
+<apex:page controller="c_AddProductOnRFQ">
+    <head>
+        <apex:slds />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+        <script type="text/javascript">
+        function stopEnterKey(evt) {
+            var evt = (evt) ? evt : ((event) ? event : null);
+            var node = (evt.target) ? evt.target : ((evt.srcElement) ? evt.srcElement : null);
+            if ((evt.keyCode == 13) && (node.type == "text")) {
+                Search();
+                return false;
+            }else if((evt.keyCode == 13) && (node.type == "checkbox")) {
+                event.preventDefault();
+            }
+        }
+
+        document.onkeypress = stopEnterKey;
+        
+        function selectAllCheckboxes1(obj,receivedInputID){
+            console.log('this is called=========');
+            
+            var inputCheckBox = document.getElementsByTagName("input");                  
+            for(var i=0; i<inputCheckBox.length; i++){          
+                if(inputCheckBox[i].id.indexOf(receivedInputID)!=-1){                                     
+                    inputCheckBox[i].checked = obj.checked;
+                    //console.log('this is called');
+                }
+            }
+        }
+
+        function f_select(p_data){
+            let obj = {'checked' : p_data};
+            selectAllCheckboxes1(obj,'GST__c');
+            selectAllCheckboxes1(obj,'Credit_Period__c');
+            selectAllCheckboxes1(obj,'Delivery_Cost__c');
+            selectAllCheckboxes1(obj,'Delivery_Terms__c');
+            selectAllCheckboxes1(obj,'Discount_Chk__c');
+            selectAllCheckboxes1(obj,'Expiry_Date__c');
+            selectAllCheckboxes1(obj,'GST__c');
+            selectAllCheckboxes1(obj,'Packing_Cost__c');
+            selectAllCheckboxes1(obj,'Payment_Terms__c');
+            selectAllCheckboxes1(obj,'Total_Cost__c');
+            selectAllCheckboxes1(obj,'Unit_Price_Chk__c');
+            selectAllCheckboxes1(obj,'Vendor_Supply_Qty__c');
+
+            selectAllCheckboxes1(obj,'chk_select_all_01');
+            selectAllCheckboxes1(obj,'chk_select_all_02');
+            selectAllCheckboxes1(obj,'chk_select_all_03');
+            selectAllCheckboxes1(obj,'chk_select_all_04');
+            selectAllCheckboxes1(obj,'chk_select_all_05');
+            selectAllCheckboxes1(obj,'chk_select_all_06');
+            selectAllCheckboxes1(obj,'chk_select_all_07');
+            selectAllCheckboxes1(obj,'chk_select_all_08');
+            selectAllCheckboxes1(obj,'chk_select_all_09');
+            selectAllCheckboxes1(obj,'chk_select_all_10');
+            selectAllCheckboxes1(obj,'chk_select_all_11');
+        }
+        
+        function getdisc(pid,uom,qty)
+        {
+
+           //alert('in discount function uom'+uom);
+            //alert('in discount function qty'+qty);
+          getdiscount(pid,uom,qty);
+        }
+        function checkdis(data)
+        {
+            alert(data);
+        }
+
+        setTimeout(function() { $('#pgmessagesid').fadeOut('fast'); }, 2000);
+
+        </script>
+    </head>
+
+    <article class="slds-card s1FixedTop forceHighlightsStencilDesktop">
+        <div id="pgmessagesid" style="width: fit-content;">
+            <apex:pagemessages />
+        </div>
+        <!-- <div style="display: {!IF(oppty.Tax_Code__c!=null, 'block', 'none')}"> -->
+
+        <div style="display: 'block'">
+
+            <apex:form >
+
+
+                <apex:pageBlock id="p" rendered="{!showList}"> 
+                    <apex:actionFunction action="{!Search}" name="Search" rerender="p"/>
+                    <!--<apex:actionFunction action="{!selectAll}" name="selectAll" rerender="p"/>-->
+                    <br/>
+                    Search Product:
+                    <apex:selectList value="{!Related}" multiselect="false" size="1" style="width:150px;margin-left:5px;margin-right:5px;"
+                                     styleClass="slds-input">
+                        <apex:selectOption itemLabel="All" itemValue="All"/>
+                        <apex:selectOptions value="{!valueMap}"/>
+                    </apex:selectList>
+                    <apex:commandButton action="{!cancel}" value="Close" style="float:right;"
+                                        styleClass="slds-button slds-button_neutral"></apex:commandButton>
+                    <apex:commandButton action="{!AddRec}" value="Add" style="float:right;margin-right:5px;"
+                                        styleClass="slds-button slds-button_brand"></apex:commandButton>
+
+                    <apex:inputText value="{!SearchText}" label="Search" style="width:300px;margin-left:5px;" styleClass="slds-input"></apex:inputText>
+                    <apex:commandButton action="{!Search}" id="s" value="Search" reRender="p,Selected" status="SearchRequesting"
+                            style="margin-left:5px;" styleClass="slds-button slds-button_neutral"></apex:commandButton>
+                    <apex:actionStatus id="SearchRequesting" startText="Searching..." />
+
+                    <br/>
+                    <br/>
+
+                    
+                    <div>
+                        <table Style="width: 100%;border-collapse: collapse;" id="plist" class="slds-table slds-table_bordered">
+                            <tr Style="padding:5px 2px;border-collapse: collapse;" class="table_th slds-hint-parent">
+                                <th Style="width:50px;">
+                                    <!--<apex:inputCheckbox value="{!SelectAll}" id="chk" onchange="selectAll()"></apex:inputCheckbox>-->
+                                </th>
+                                <th class="slds-truncate slds-text-title_caps">Item No</th>
+                                <th class="slds-truncate slds-text-title_caps" Style="width:30%;">Item Name</th>
+                                <th class="slds-truncate slds-text-title_caps" Style="width:10%;">Currency</th>
+                                <th class="slds-truncate slds-text-title_caps" Style="width:30%;">Item Description</th>
+                                <!--<th class="slds-truncate slds-text-title_caps">Item Type</th>-->
+                                <th class="slds-truncate slds-text-title_caps" Style="width:15%;">Group</th>
+                                <!--<th class="slds-truncate slds-text-title_caps">UOM</th>-->
+                            </tr>
+
+                            <apex:repeat value="{!wrapList}" var="p">
+
+                                <tr Style="padding:5px 2px;border-collapse: collapse;" class="table_tr slds-hint-parent">
+                                    <td style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!p.isChecked}" id="chkid"></apex:inputCheckbox>
+                                    </td>
+                                    <td class="slds-truncate">{!p.pro.Item_No__c}</td>
+                                    <td class="slds-truncate" role="gridcell">{!p.pro.name}</td>
+                                    <td class="slds-truncate">{!p.pro.CurrencyISOCode}</td>
+                                    <td class="slds-truncate">{!p.pro.Description}</td>
+                                    <td class="slds-truncate">{!p.pro.Item_Group__r.name}</td>
+                                </tr>
+                            </apex:repeat>
+
+                        </table>
+                        <apex:pageBlockButtons location="Bottom">
+
+                            <apex:commandButton value="Next Page" action="{!nextPage}" style="Float:right;margin-top:10px;"
+                                                disabled="{!isLast}" styleClass="slds-button slds-button_neutral"> </apex:commandButton>
+                            <apex:commandButton value="Previous" action="{!prePage}" style="Float:right;margin-top:10px;"
+                                                disabled="{!isFirst}" styleClass="slds-button slds-button_neutral"> </apex:commandButton>
+
+                            <div Style="Float:right;margin-top:16px;margin-right:3px;">
+                                Page &nbsp;
+                                <apex:outPutText value="{!pageNo}"></apex:outPutText>
+                                Out of &nbsp;
+                                <apex:outPutText value="{!totalPages}"></apex:outPutText>
+                            </div>
+                        </apex:pageBlockButtons>
+                    </div>
+
+
+                </apex:pageBlock>
+            </apex:form>
+            
+            <apex:form id="form1">
+                <apex:actionFunction name="getdiscount" action="{!getdisc}" rerender="form1" status="myStatus">
+                    <apex:param name="pid" assignTo="{!pid}" value=""/>
+                    <apex:param name="uom" assignTo="{!uom}" value=""/>
+                    <apex:param name="qty" assignTo="{!qty}" value=""/>
+                </apex:actionFunction>
+                <apex:actionStatus id="myStatus" startText="Checking For Applicable Discount..." style="text-color:green;" />
+                <apex:pageBlock id="Selected" rendered="{!showForm}">
+                    <div style="text-align:right !important;padding-bottom: 10px;">
+                        <button type="button" class="btn btn-primary text-center slds-button slds-button_brand" 
+                                    onclick="f_select(1)">Select All</button>
+                        <button type="button" class="btn btn-primary text-center slds-button slds-button_brand" 
+                                onclick="f_select(0)">Unselect All</button>
+                    </div>
+
+                    <div>
+
+                        <table Style="width: 100%;border-collapse: collapse;" class="slds-table slds-table_bordered">
+                            <!--<tr Style="padding:5px 2px;border:1px solid black;text-align:center;border-collapse: collapse;"
+                                class="table_th slds-hint-parent">
+                                <th Style="width:20%;" class="slds-truncate slds-text-title_caps">Item Name</th>
+                                <th Style="width:15%;" class="slds-truncate slds-text-title_caps">Item Description</th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">RFQ Quantity*</th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">GST
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'GST__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Unit Price
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Unit_Price_Chk__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Delivery Cost
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Delivery_Cost__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Packing Cost
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Packing_Cost__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Expiry Date
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Expiry_Date__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Discount
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Discount_Chk__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Total Cost
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Total_Cost__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Credit Period
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Credit_Period__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Payment Terms
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Payment_Terms__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Delivery Terms
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Delivery_Terms__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">Vendor Supply Qty
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'Vendor_Supply_Qty__c')"/>
+                                </th>
+                            </tr>-->
+                            	<!--<th Style="width:100px;" class="slds-truncate slds-text-title_caps">GST Type
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'GST_Type__c')"/>
+                                </th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps">HSN Code
+                                    <br/><apex:inputCheckbox onclick="selectAllCheckboxes1(this,'HSN_Code_Chk__c')"/>
+                                </th>-->
+                            
+                            <tr Style="padding:5px 2px;border:1px solid black;text-align:center;border-collapse: collapse;"
+                                class="table_th slds-hint-parent">
+                                <th Style="width:5%;" class="slds-truncate slds-text-title_caps" rowspan="2">Remove</th>
+                                <th Style="width:20%;" class="slds-truncate slds-text-title_caps" rowspan="2">Item Name</th>
+                                <th Style="width:15%;" class="slds-truncate slds-text-title_caps" rowspan="2">Item Description</th>
+                                <th Style="width:100px;" class="slds-truncate slds-text-title_caps" rowspan="2">RFQ Quantity*</th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_01"  onclick="selectAllCheckboxes1(this,'GST__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_02"  onclick="selectAllCheckboxes1(this,'Unit_Price_Chk__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_03"  onclick="selectAllCheckboxes1(this,'Delivery_Cost__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_04"  onclick="selectAllCheckboxes1(this,'Packing_Cost__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_05"  onclick="selectAllCheckboxes1(this,'Expiry_Date__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_06"  onclick="selectAllCheckboxes1(this,'Discount_Chk__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_07"  onclick="selectAllCheckboxes1(this,'Total_Cost__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_08"  onclick="selectAllCheckboxes1(this,'Credit_Period__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_09"  onclick="selectAllCheckboxes1(this,'Payment_Terms__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_10"  onclick="selectAllCheckboxes1(this,'Delivery_Terms__c')" selected="true"/>
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">
+                                    <apex:inputCheckbox id="chk_select_all_11"  onclick="selectAllCheckboxes1(this,'Vendor_Supply_Qty__c')" selected="true"/>
+                                </th>
+                            </tr>
+                            
+                            <tr Style="padding:5px 2px;border:1px solid black;text-align:center;border-collapse: collapse;"
+                                class="table_th slds-hint-parent">
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">GST %
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Unit Price
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Delivery Cost
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Packing Cost
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Expiry Date
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Discount
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Total Cost
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Credit Period
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Payment Terms
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Delivery Terms
+                                </th>
+                                <th Style="width:100px;text-align:center !important;" class="slds-truncate slds-text-title_caps">Vendor Supply Qty
+                                </th>
+                            </tr>
+                            
+                            <apex:repeat value="{!opList}" var="b">
+                              
+                                <tr Style="padding:5px 2px;border-collapse: collapse;" class="table_tr slds-hint-parent">
+   <!--For removal -->
+                                     <td class="slds-truncate" style="text-align:center !important;">
+                                            <apex:commandLink action="{!f_Remove_Item}" style="height: 20px;line-height: 1;" 
+                                                           styleClass="slds-button slds-button_destructive" >
+                                             <apex:param name="Item_Name" value="{!b.op.Item_Name__c}" assignTo="{!v_Item_Id}" />  <b> x </b> 
+                                        </apex:commandLink>
+                                    </td>
+
+                                    <td class="slds-truncate">
+                                        <apex:outputfield value="{!b.op.Item_Name_Temp__c}"> </apex:outputfield>
+                                    </td>
+                                    <td class="slds-truncate">
+                                        <apex:outputfield value="{!b.op.Item_Description__c}"> </apex:outputfield>
+                                    </td>
+                                    <td class="slds-truncate">
+                                        <apex:inputfield value="{!b.op.Quantity__c}" styleClass="slds-input" required="false"> </apex:inputfield>
+                                    </td>
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.GST__c}" id="GST__c"></apex:inputCheckbox>
+                                    </td>
+                                    <!--<td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.GST_Type__c}" id="GST_Type__c"></apex:inputCheckbox>
+                                    </td>-->
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Unit_Price_Chk__c}" id="Unit_Price_Chk__c"></apex:inputCheckbox>
+                                    </td>
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Delivery_Cost__c}" id="Delivery_Cost__c"></apex:inputCheckbox>
+                                    </td>
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Packing_Cost__c}" id="Packing_Cost__c"></apex:inputCheckbox>
+                                    </td>
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Expiry_Date__c}" id="Expiry_Date__c"></apex:inputCheckbox>
+                                    </td>
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Discount_Chk__c}" id="Discount_Chk__c"></apex:inputCheckbox>
+                                    </td>
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Total_Cost__c}" id="Total_Cost__c"></apex:inputCheckbox>
+                                    </td>
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Credit_Period__c}" id="Credit_Period__c"></apex:inputCheckbox>
+                                    </td>
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Payment_Terms__c}" id="Payment_Terms__c"></apex:inputCheckbox>
+                                    </td>
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Delivery_Terms__c}" id="Delivery_Terms__c"></apex:inputCheckbox>
+                                    </td>
+                                    <!--<td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.HSN_Code_Chk__c}" id="HSN_Code_Chk__c"></apex:inputCheckbox>
+                                    </td>-->
+                                    <td class="table_chkbox" style="text-align:center !important;">
+                                        <apex:inputCheckbox value="{!b.op.Vendor_Supply_Qty__c}" id="Vendor_Supply_Qty__c"></apex:inputCheckbox>
+                                    </td>
+
+                                    <!-- <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                                        <apex:outputfield value="{!b.op.Item_Group__c.name}" > </apex:outputfield>
+                                    </td>
+
+                                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                                        <apex:selectList value="{!b.op.Sales_UOM__c}" multiselect="false" size="1" styleClass="slds-input"
+                                            onchange="getdisc('{!b.op.Product_Temp__c}',this.value,'{!b.op.Quantity}');">
+                                            <apex:selectOptions value="{!b.vMap}"/>
+                                        </apex:selectList>
+                                    </td>
+                                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                                        <apex:inputfield value="{!b.op.Quantity}" styleClass="slds-input"
+                                        onchange="getdisc('{!b.op.Product_Temp__c}','{!b.op.Sales_UOM__c}',this.value);"> </apex:inputfield>
+                                    </td>
+                                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                                        <apex:inputfield value="{!b.op.UnitPrice}" styleClass="slds-input"> </apex:inputfield>
+                                    </td>
+                                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                                        <apex:inputfield value="{!b.op.Discount}" styleClass="slds-input"> </apex:inputfield>
+                                    </td>
+                                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                                        <apex:inputfield value="{!b.op.Tax_Code__c}"  style="width: 78%;margin-left:0px;line-height: 26px;">
+                                        </apex:inputfield>
+                                    </td>
+                                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                                        {!b.op.UnitPrice*b.op.Quantity}
+                                    </td>
+                                    -->
+                                </tr>
+
+                            </apex:repeat>
+
+                        </table>
+                        <apex:pageBlockButtons location="Bottom">
+                            <apex:commandButton value="Close" action="{!cancel}" style="Float:right;margin-top:10px;"
+                             styleClass="slds-button slds-button_neutral" immediate="true"> </apex:commandButton>
+                            <!--<apex:commandButton value="Add Vendor" action="{!saveRec}" style="Float:right;margin-right:5px;margin-top:10px;"
+                             styleClass="slds-button slds-button_brand"> </apex:commandButton>-->
+                            <apex:commandButton value="Save & Exit" action="{!saveRec}" style="Float:right;margin-right:5px;margin-top:10px;"
+                             styleClass="slds-button slds-button_brand"> </apex:commandButton>
+
+                            <!-- <button type="button" class="btn btn-primary text-center slds-button slds-button_brand" 
+                                    onclick="f_select(1)">Select All</button>
+                            <button type="button" class="btn btn-primary text-center slds-button slds-button_brand" 
+                                    onclick="f_select(0)">Unselect All</button> -->
+                        </apex:pageBlockButtons>
+
+                    </div>
+                </apex:pageBlock>
+            </apex:form>
+        </div>
+
+    </article>
+
+    <style>
+        .table_th th {
+            background-color:#b12327 !important;
+            border:1px solid black !important;
+            /*text-align:center !important;*/
+            color:white !important;
+        }
+        .table_tr td {
+            border:1px solid black !important;
+            /*text-align:center !important;*/
+        }
+        .table_chkbox input {
+            width:20px !important;
+            height:20px !important;
+        }
+        .slds-truncate{
+            white-space: initial !important;
+        }
+    </style>
+</apex:page>

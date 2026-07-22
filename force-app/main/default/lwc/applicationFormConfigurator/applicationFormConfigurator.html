@@ -1,0 +1,309 @@
+<template>
+    <!--spinner-->
+    <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+  <lightning-card title="Application Configurator">
+    <div class="slds-grid slds-wrap slds-p-around_medium container">
+        <!-- LEFT PANEL: Application__c Fields -->
+        <div class="slds-col slds-size_3-of-12 slds-box slds-scrollable_y slds-scrollable_y left-panel" style="height:400px">
+
+             <lightning-combobox 
+            name="program"
+            label="Program"
+            value={programVal}
+            variant="label-hidden"
+            placeholder="Select Program"
+            options={programList}
+            onchange={handleprgoramChange}
+            ></lightning-combobox>
+
+           <lightning-combobox 
+            class="slds-m-top_small"
+            name="object"
+            label="Object"
+            value={object}
+            variant="label-hidden"
+            placeholder="Select Object"
+            options={objectsOptions}
+            onchange={handleObjectChange}
+            ></lightning-combobox>
+          <!-- <h3 class="slds-text-heading_small">Available Fields</h3> -->
+        <lightning-input 
+        class="slds-m-top_small"
+        type="search" 
+        variant="label-hidden"
+        label="Search Fields" 
+        onchange={handleSearchChange}
+        placeholder="Search by field label">
+        </lightning-input>
+       
+        <ul>
+          <template for:each={tempfields} for:item="field">
+            <li key={field.apiName} draggable="true" class="slds-box slds-m-around_x-small"
+                ondragstart={handleDragStart} data-api={field.apiName}>                
+                <p lwc:if={field.description}>{field.description}</p>
+                <p lwc:else>{field.label}</p> ({field.type})
+               <lightning-button-icon 
+                  icon-name="utility:add" 
+                  alternative-text="Add Field"
+                  onclick={handleAddField} 
+                  data-api={field.apiName} 
+                  data-sectionname={object}
+                  variant="bare" 
+                  class="slds-m-left_x-small">
+                </lightning-button-icon>
+                <template if:true={field.isSelected}>
+                    <!-- Green Tick -->
+                    <lightning-icon 
+                        icon-name="utility:success" 
+                        size="x-small" 
+                        class="green-tick">
+                    </lightning-icon>
+                </template>
+            </li>
+          </template>
+        </ul>
+      </div>
+
+      <!-- RIGHT PANEL: Drop Form Builder -->
+      <div class="slds-col slds-size_9-of-12 slds-box right-panel">
+        <lightning-button label="Add Section" onclick={addSection}></lightning-button>
+        <lightning-accordion allow-multiple-sections-open active-section-name={activeSections}>
+        <template for:each={sections} for:item="section">
+             <lightning-accordion-section 
+                key={section.id} 
+                name={section.id} 
+                label={section.label}>
+                <div class="slds-box slds-m-top_medium">
+                <lightning-layout horizontal-align="spread" vertical-align="center">
+                    <!-- Section Label -->
+                    <lightning-layout-item size="6">
+                        <lightning-input 
+                            label="Section Label" 
+                            value={section.label} 
+                            onchange={handleSectionLabelChange} 
+                            data-id={section.id}>
+                        </lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="2">
+                        <lightning-input 
+                            type="checkbox"
+                            label="Allow multi rows"
+                            checked={section.repeatable}
+                            onchange={handleSectionRequiredChange}
+                            data-id={section.id}>
+                        </lightning-input>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="2">
+                        <lightning-combobox 
+                        label="Related Object"
+                        value={section.relatedtoSection}
+                        options={objectsOptions}
+                        onchange={handleRelatedToChange}
+                        data-id={section.id}>
+                    </lightning-combobox>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="2" if:true={section.isQuestSection}>
+                        <lightning-button 
+                            icon-name="utility:close" 
+                            label="Add Question"
+                            onclick={addQuestion} 
+                            data-sectionname={section.objectapiName}
+                            data-id={section.id}
+                            variant="brand"
+                            class="slds-m-left_x-small">
+                            </lightning-button>
+                        
+                    </lightning-layout-item>
+
+                    <!-- Close Icon -->
+                    <lightning-layout-item flexibility="shrink">
+                        <lightning-button-icon 
+                            icon-name="utility:close" 
+                            alternative-text="Remove Section" 
+                            onclick={deleteSection} 
+                            data-id={section.id}
+                            class="slds-m-left_x-small">
+                        </lightning-button-icon>
+                    </lightning-layout-item>
+                </lightning-layout>
+                    <!-- <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
+                
+                    
+                    </div> -->
+                    
+                    <ul class="droppable" data-id={section.id} ondrop={handleDrop} ondragover={allowDrop}>
+                    <template for:each={section.fields} for:item="field" for:index="index" >
+                    <li key={field.id} 
+                        class="slds-box slds-m-around_x-small slds-grid slds-wrap slds-grid_vertical-align-center"
+                        draggable="true"
+                        data-secid={section.id}
+                        data-index={index}
+                        ondragstart={handleFieldDragStart}
+                        ondrop={handleFieldDrop}
+                        ondragover={allowDrop}>
+
+                        <!-- Field Label -->
+                        <div class="slds-col slds-size_3-of-12">
+                            <p lwc:if={field.description} class="slds-truncate">
+                                {field.description}
+                            </p> 
+                            <p lwc:else class="slds-truncate">
+                                {field.label}
+                            </p>
+                        </div>
+
+                         <!-- Acadamic details -->
+
+                        <div class="slds-col slds-size_6-of-12" if:true={field.isQualification}>
+                            <lightning-combobox 
+                                variant="label-hidden"
+                                label="Value"
+                                placeholder="Select field"
+                                options={field.options}
+                                data-secid={section.id}
+                                data-fieldid={field.id}
+                                value={field.value}
+                                onchange={handleQualificationChange}>
+                            </lightning-combobox>
+                        </div>
+
+                        <!-- Question Text -->
+                        <div class="slds-col slds-size_6-of-12" if:true={field.isQuestion}>
+                            <template lwc:if={field.description}>
+                                <lightning-input
+                                    label={field.description}
+                                    variant="label-hidden"
+                                    data-secid={section.id}
+                                    data-fieldid={field.id}
+                                    value={field.questionText}
+                                    onchange={handleQuestionChange}
+                                    style="width:100%;">
+                                </lightning-input>
+                            </template>
+                            <template lwc:else>
+                                <lightning-input
+                                    label={field.label}
+                                    variant="label-hidden"
+                                    data-secid={section.id}
+                                    data-fieldid={field.id}
+                                    value={field.questionText}
+                                    onchange={handleQuestionChange}
+                                    style="width:100%;">
+                                </lightning-input>
+                            </template>                           
+                        </div>
+
+                        <!-- Required Checkbox -->
+                        <div lwc:if={field.isEditDisabled} class="slds-col slds-size_2-of-12 slds-text-align_center">
+
+                        </div>
+                        <div lwc:else class="slds-col slds-size_2-of-12 slds-text-align_center">
+                            <lightning-input 
+                                type="checkbox"
+                                label="Required"
+                                data-secid={section.id}
+                                data-fieldid={field.id}
+                                onchange={handleValidationChange}
+                                checked={field.validation.required}>
+                            </lightning-input>
+                        </div>
+
+                        <!-- Max Length -->
+                        <div lwc:if={field.isEditDisabled} class="slds-col slds-size_3-of-12">
+
+                        </div>
+                        <div lwc:else class="slds-col slds-size_3-of-12">
+                            <lightning-input 
+                                type="number"
+                                label="Max Length"
+                                variant="label-hidden"
+                                value={field.validation.maxLength}
+                                data-secid={section.id}
+                                data-fieldid={field.id}
+                                data-len="maxlength"
+                                onchange={handleValidationChange}
+                                placeholder="Enter Max Length">
+                            </lightning-input>
+                        </div>
+                        <div lwc:if={field.isEditDisabled} class="slds-col slds-size_3-of-12 slds-p-left_small">
+
+                        </div>
+                        <div lwc:else class="slds-col slds-size_3-of-12 slds-p-left_small">
+                            <lightning-input 
+                                type="number"
+                                label="Min Length"
+                                variant="label-hidden"
+                                value={field.validation.minLength}
+                                data-secid={section.id}
+                                data-fieldid={field.id}
+                                data-len="minlength"
+                                onchange={handleValidationChange}
+                                placeholder="Enter Min Length">
+                            </lightning-input>
+                        </div>
+
+                        <!-- Depends On -->
+                        <div class="slds-col slds-size_3-of-12 slds-p-left_small">
+                            <lightning-combobox 
+                                label="Depends On"
+                                placeholder="Select field"
+                                options={section.fieldOptions}
+                                value={field.validation.dependency.fieldApi}
+                                data-secid={section.id}
+                                data-fieldid={field.id}
+                                onchange={handleDependencyChange}>
+                            </lightning-combobox>
+                        </div>
+
+                        <!-- Expected Values -->
+                        <template if:true={field.dependencies}>
+                            <div class="slds-col slds-size_3-of-12 slds-p-left_small">
+                                <lightning-combobox 
+                                    label="Show When Value Is"
+                                    placeholder="Select value(s)"
+                                    options={field.validation.dependencyValuesOptions}
+                                    value={field.validation.dependency.expectedValues}
+                                    data-secid={section.id}
+                                    data-fieldid={field.id}
+                                    onchange={handleExpectedValueChange}
+                                    multiple>
+                                </lightning-combobox>
+                            </div>
+                        </template>
+
+                        <div class="slds-col slds-size_12-of-12 slds-p-top_small slds-text-align_center">
+                            <lightning-button 
+                                icon-name="utility:close"
+                                alternative-text="Remove Field"
+                                onclick={removeSectionFields}
+                                data-secid={section.id}
+                                data-fieldid={field.id}
+                                data-apiname={field.apiName}
+                                variant="bare"
+                                label="Remove">
+                            </lightning-button>
+                        </div>
+
+                        <!-- Remove Button -->
+                        
+                    </li>
+
+                        
+                    </template>
+                    </ul>
+                </div>
+             </lightning-accordion-section>
+        </template>
+        </lightning-accordion>
+         <!-- <template if:false={section.fields.length}>
+            <li class="slds-text-color_weak slds-p-around_small slds-border_dashed">
+                Drop your fields here
+            </li>
+        </template> -->
+      </div>
+    </div>
+    <lightning-button label="Save Form" onclick={saveForm}></lightning-button>
+  </lightning-card>
+</template>

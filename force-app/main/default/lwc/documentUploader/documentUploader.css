@@ -1,0 +1,43 @@
+.doc-wrapper {
+    margin-bottom: 1rem;
+}
+
+.doc-label {
+    margin-bottom: 0px;
+    position: relative;
+    top: 1.0rem;
+}
+
+.doc-label-custom {
+    margin-bottom: 0px;
+    position: relative;
+    top: 0rem;
+}
+
+.file-preview {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.remove-icon {
+    cursor: pointer;
+}
+
+.limit-warning {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #c00;
+}
+
+.required-marker {
+    margin-top: 0.15rem; /* tiny spacing */
+    line-height: 1;
+}
+
+.upload-status {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #666;
+}

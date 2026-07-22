@@ -1,0 +1,29 @@
+<apex:page controller="AccountButtons">
+    <apex:slds />
+    <style>  
+        
+        .slds-button{
+        --sds-c-button-text-color:rgba(99, 24, 86, 1);
+        }
+    </style>
+    <apex:form > 
+        <apex:commandlink action="{!AddLevel}" target="_blank">
+            <apex:commandButton value="Add Level / Grade" styleClass="slds-button slds-button__icon_right slds-button--neutral" > </apex:commandButton>
+        </apex:commandLink>
+        <apex:commandButton value="Add Fee Plan"        action="{!AddFeePlan}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" > </apex:commandButton>
+        <apex:commandButton value="Add Scholarship"      action="{!AddBenefits2}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" > </apex:commandButton>
+        <apex:commandButton value="Delete Scholarship"     action="{!DeleteBenefit}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" > </apex:commandButton>
+        <apex:commandButton value="Admission Status"    action="{!EditAllPrograms}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" > </apex:commandButton>
+      <!--  <apex:commandButton value="Opt-In & Opt-Out"    action="{!OptInOptOut}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" > </apex:commandButton> -->
+        <apex:commandButton value="Add Student Kit"     action="{!AddStationaryMaster}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" style="margin-top:0px;">  </apex:commandButton>
+        <apex:commandButton value="Generate Invoice"    action="{!GenerateInvoice}"  styleClass="slds-button slds-button__icon_right slds-button--neutral"  > </apex:commandButton>
+       <!-- <apex:commandButton value="Generate Invoice LWC"    action="{!GenerateInvoiceLWC}"  styleClass="slds-button slds-button__icon_right slds-button--neutral"  > </apex:commandButton>--->
+       <!-- <apex:commandButton value="Withdrawal Process"  action="{!Withdrawal}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" style="margin-top:5px;margin-left:6px" > </apex:commandButton>--->
+        <apex:commandButton value="Transfer"            action="{!studentTransfer}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" style="margin-top:5px;margin-left:6px" > </apex:commandButton>
+        <apex:commandButton value="Withdraw"            action="{!withdraw}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" style="margin-top:5px;margin-left:6px" > </apex:commandButton>
+        <!--  <apex:commandButton value="MakePayTest"            action="{!MakePayTest}"  styleClass="slds-button slds-button__icon_right slds-button--neutral" style="margin-top:5px;margin-left:6px" > </apex:commandButton>
+        <!--<apex:commandlink action="{!studentTransfer}" target="_blank">
+            <apex:commandButton01p2w00000MnlcWAAR AttentionMM value="Transfer *" styleClass="slds-button slds-button__icon_right slds-button--neutral" > </apex:commandButton>
+        </apex:commandLink>-->
+    </apex:form>
+</apex:page>

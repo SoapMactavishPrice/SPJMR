@@ -1,0 +1,432 @@
+/* Dashboard Container */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    position: relative;
+}
+.dashboard-body {
+    display: flex;
+    flex: 1;
+}
+/* Logo Section */
+.logo-container {
+    display: flex;
+    background-color: #ffffff;
+    height: 60px;
+}
+
+.logo-graphic {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #F58220 0%, #FF9800 100%);
+    border-radius: 50% 50% 50% 0;
+    margin-right: 12px;
+    position: relative;
+}
+
+.logo-graphic::before {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, #FF9800 0%, #F58220 100%);
+    border-radius: 50% 50% 0 50%;
+    top: 5px;
+    left: 5px;
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-subtitle {
+    font-size: 10px;
+    color: #531F75;
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+.logo-title {
+    font-size: 18px;
+    color: #531F75;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+
+/* User Profile Section */
+.navbar-user {
+    display: flex;
+    align-items: center;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.user-profile:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.user-icon {
+    --sds-c-icon-color-foreground-default: #531F75;
+    background-color: #531F75;
+    border-radius: 50%;
+}
+
+.user-name {
+    color: #000000;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+
+/* Main Content Area */
+.main-content {
+    flex: 1;
+    padding: 20px;
+    margin-top: 10px;
+    background-color: #ffffff;
+    min-height: calc(100vh - 70px);
+    transition: margin-left 0.3s ease-in-out;
+}
+
+
+
+.main-content-full {
+    margin-left: 0;
+}
+
+
+/* Header Section */
+.header-title {
+    color: #4a148c;
+    border-bottom: 3px solid #4a148c;
+    padding-bottom: 8px;
+    display: inline-block;
+}
+
+.studentDetailsCard{
+    background: #FFFFFF;
+    border: 1px solid #531F75;
+    box-shadow: 0px 4px 4px 0px #0000002E;
+}
+
+.article-card {
+    border-radius: 4px;
+    height: 600px;
+    overflow: hidden;
+}
+
+/* Student Details Header Bar */
+
+.student-details-wrapper {
+    position: relative;
+    margin-top: 40px;
+}
+
+/* Purple strip */
+.student-details-header-bar {
+    position: absolute;
+    top: -16px;              /* pulls it onto the card border */
+    left: 24px;              /* aligns with card padding */
+    background-color: #531F75;
+    padding: 6px 24px;
+    width: 320px;            /* fixed width looks intentional */
+    z-index: 2;
+}
+
+/* Text */
+
+
+
+.student-details-header-text {
+    color: #ffffff;
+    font-weight: 600;
+    margin: 0;
+    text-align: left;
+}
+.dxp-text-heading-xxsmall{
+    font-size:16px;
+}
+
+
+/* Profile Placeholder */
+.profile-placeholder {
+    width: 100px;
+    height: 100px;
+    border: 2px solid #F58220;
+    border-radius: 4px;
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-placeholder lightning-icon {
+    --sds-c-icon-color-foreground-default: #7c7c7c;
+}
+
+/* Student Details Section */
+.student-name-header {
+    color: #333;
+    font-weight: 600;
+    margin: 0;
+    font-size: 18px;
+}
+
+.student-id-text {
+    color: #666;
+    margin: 4px 0 0 0;
+}
+
+.student-program-text {
+    color: #666;
+    margin: 4px 0 0 0;
+}
+
+/* Status Badge */
+.status-badge-accepted {
+    --sds-c-badge-color-background: #c8e6c9;
+    --sds-c-badge-text-color: #008D42;
+    padding: 3px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+/* .active-button{
+    background: #F58220;
+    color: white;
+    width: 45%;
+} */
+
+.header-details {
+    background-color: #e1d5f0;
+    border-radius: 4px;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    background-color: #7c7c7c;
+}
+
+.stats-badge {
+    display: flex;
+    gap: 0;
+    margin-bottom: 4px;
+}
+
+.stat-item {
+    background-color: #1e88e5;
+    color: white;
+    padding: 4px 12px;
+    font-weight: bold;
+    font-size: 14px;
+    border-radius: 4px;
+}
+
+.stat-item:first-child {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.stat-item:last-child {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.student-id {
+    color: #666;
+}
+
+/* Active Button */
+.active-button {
+    width: 35%;
+    border-radius: 0px;
+    --sds-c-button-brand-color-background: #f57c00;
+    --sds-c-button-brand-color-border: #f57c00;
+}
+
+/* Details Container */
+.details-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.section-header {
+    background-color: #4a148c;
+    color: white;
+}
+
+.section-header h3 {
+    margin: 0;
+}
+
+/* Section Title */
+.section-title {
+    font-size:20px;
+    /* font-weight: 700; */
+    font-style: Bold;
+    line-height: 100%;
+    letter-spacing: 0%;
+}
+
+/* Description List Styling */
+.slds-dl_horizontal {
+    display: block;
+}
+
+.slds-dl_horizontal::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.slds-dl_horizontal dt {
+    font-weight: normal;
+    color: #666;
+    margin-bottom: 12px;
+    padding-right: 12px;
+    float: left;
+    clear: left;
+    width: 45%;
+    text-align: left;
+}
+
+.slds-dl_horizontal dd {
+    margin-bottom: 12px;
+    margin-left: 0;
+    float: left;
+    width: 55%;
+    text-align: left;
+    padding-left: 0;
+}
+
+.slds-dl_horizontal .address-label {
+    clear: both;
+    float: none;
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+.slds-dl_horizontal .address-value {
+    clear: both;
+    float: none;
+    width: 100%;
+    margin-left: 0;
+}
+
+
+.detail-value-grey {
+    background: #EAEAEA;
+    margin: 0;
+    display: inline-block;
+    min-width: 215px;
+}
+
+
+.dxp-text-heading-xsmall {
+    color: #000000 !important;
+}
+
+/* Allow Program Name and Per Term Selected values to wrap instead of truncate */
+.program-detail-value-wrap,
+.program-detail-value-wrap p {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    overflow: visible;
+    text-overflow: unset;
+}
+
+.term-pill {
+    --slds-c-input-radius-border: 28px;
+    --slds-c-input-color-background: #531F75; /* purple */
+    --slds-c-input-text-color: #ffffff;
+    --slds-c-input-color-border: transparent;
+    --slds-c-input-shadow: none;
+    --slds-c-input-spacing-horizontal-start: 1.25rem;
+    --slds-c-input-spacing-horizontal-end: 2.5rem;
+    font-weight: 500;
+}
+.term-pill:hover {
+    --slds-c-input-color-background: #531F75;
+}
+
+.term-pill:focus-within {
+    --slds-c-input-color-border: #ffffff;
+}
+.academic-link {
+    font-size: 16px;
+    font-weight: 500;
+    color: #1a33ff;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.academic-link:hover {
+    color: #0f24cc;
+    text-decoration: underline;
+}
+
+/* Division table (current term) - fixed height, scrollable */
+.division-section {
+    width: 100%;
+}
+
+.division-section .section-title {
+    margin-bottom: 12px;
+}
+
+.division-table-wrapper {
+    height: 280px;
+    overflow-x: auto;
+    overflow-y: auto;
+    border: 1px solid #531F75;
+    border-radius: 4px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+}
+
+.division-table {
+    width: 100%;
+    min-width: 200px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.division-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.division-table thead th {
+    background-color: #d3d3d3;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid #cfcfcf;
+    word-break: break-word;
+}
+
+.division-table tbody td {
+    padding: 8px 10px;
+    border: 1px solid #cfcfcf;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.division-table tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}

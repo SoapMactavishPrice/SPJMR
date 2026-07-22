@@ -1,0 +1,91 @@
+<apex:page controller="GenerateFeePlanOnAccount" sidebar="false" showHeader="false">
+    
+    <html>
+        <apex:pagemessages />  
+        <apex:slds />
+        <style>
+            table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            }
+            
+            th, td {
+            text-align: left;
+            padding: 8px;
+            }
+            
+            tr:nth-child(even){background-color: #f2f2f2}
+            
+            .dateFormat{
+            visibility:hidden;            
+            }
+        </style>
+        <body class="slds-scope">
+            <apex:form >
+                 <apex:outputPanel id="sv1">
+                        <table  style="width:50%;margin:auto;margin-top:10px" class="slds-table slds-table_bordered  slds-table_col-bordered slds-table_resizable-cols slds-table_fixed-layout slds-border_right slds-border_left">  
+                            <tr class="slds-text-title_caps"> 
+                                <th style="background-color:#631856;color:white;" class="slds-text-align_center ">Level / Grade</th>
+                            </tr>
+                            <tr>                                                                        
+                                <td>                                     
+                                    <apex:outputPanel id="fm1">
+                                        <div class="slds-select_container">  
+                                            <apex:selectList value="{!Rtid}" multiselect="false" styleClass="slds-select slds-form-element__control" required="true" size="1">
+                                                <apex:actionSupport event="onchange"  reRender="pdf"  action="{!render}"/>
+                                                <apex:selectOptions value="{!programlist1}"  />
+                                            </apex:selectList>
+                                        </div>
+                                    </apex:outputPanel>
+                                </td>     
+                            </tr>
+                        </table>
+                    </apex:outputPanel><br/>
+                <apex:outputPanel id="pdf">
+                    <div style="width:90%;margin-top:-20px;margin-left: 70px;text-align:center;display:inline-flex;">
+                        <div style="min-width:500px;margin:30px auto;text-align:center;">
+                            
+                            <div Style="Float:left;">To*:</div>
+                            <apex:inputText value="{!emailId}" label="Enter Email Id" styleClass="slds-input" style="width:100%;Margin-top:5px;" required="true"></apex:inputText>
+                            <div Style="Float:left;"> Subject*:</div>
+                            <apex:inputText value="{!subject}" label="Enter Subject" styleClass="slds-input" style="width:100%;Margin-top:5px;" required="false"></apex:inputText>
+                            <div Style="Float:left;">Body:</div>
+                            <apex:inputTextarea value="{!body}" label="Body" styleClass="slds-input" style="width:100%;Margin-top:5px;"></apex:inputTextarea>&nbsp;
+                            <apex:commandButton action="{!Cancel}" value="Cancel" styleClass="slds-button slds-button_destructive slds-button__icon_right slds-button--brand slds-m-top--medium" style="Margin-top:5px;margin-left: -1px;float:right;" immediate="true"></apex:commandButton>
+                            <apex:commandButton action="{!saveTemp}" value="Save" styleClass="slds-button slds-button_brand" style="Margin-top:5px;float:right;margin-right:5px;" immediate="true"></apex:commandButton>
+                            <apex:commandButton action="{!saveAndSend}" value="Save And Send" styleClass="slds-button slds-button_brand" style="Margin-top:5px;float:right;" ></apex:commandButton>
+                        </div>
+                    </div>
+                    <div class="slds-box" style="width: 90%;margin:auto">                                          
+                        <apex:repeat value="{!sMap}" var="par">
+                            <table class="slds-table slds-table_bordered slds-scrollable--x slds-table_col-bordered slds-table_resizable-cols"  style="width:100%">  
+                                <tr class="slds-text-align_center">
+                                    <td colspan='6' style="font-weight: 600;font-size: initial;" class="slds-text-align_center"><apex:outputText value="{!par}"></apex:outputText></td>
+                                </tr>
+                                <tr  > 
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Fee Plan Name</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Fee Plan Category</th>
+                                    <!--  <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Academic Year</th>  -->
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Actual Fees</th>
+                                    <th style="background-color:#631856;color:white;white-space: auto;width:16.66%" class="slds-text-align_left">Total Amount</th>                              
+                                </tr>
+                                <br/>
+                                <apex:repeat value="{!sMap[par]}" var="child"> 
+                                    <tr >
+                                        <td class="slds-text-align_left"><apex:outputText value="{!child.Fee_Plan_Name__r.Name}"></apex:outputText></td>
+                                        <td class="slds-text-align_left"><apex:outputField value="{!child.Fee_Plan_Category_Master__r.Name}"></apex:outputField></td>
+                                        <!--  <td class="slds-text-align_left"><apex:outputText value="{!child.Academic_Year__c}"></apex:outputText></td>  -->
+                                        <td class="slds-text-align_left"><apex:outputField value="{!child.Actual_Fees__c}"></apex:outputField></td>
+                                        <td class="slds-text-align_left"><apex:outputField value="{!child.Grand_Total__c}"></apex:outputField></td>
+                                    </tr>   
+                                </apex:repeat>
+                            </table>
+                        </apex:repeat>
+                    </div><br/>
+                </apex:outputPanel>
+            </apex:form>  
+        </body>
+    </html>
+</apex:page>

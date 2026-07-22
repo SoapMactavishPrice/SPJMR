@@ -1,0 +1,238 @@
+.custom-dashboard {
+    padding: 10px;
+    background: #f4f2f7;
+}
+
+/* CARD */
+.custom-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* HEADER */
+.custom-header {
+    background: linear-gradient(90deg, #6b2c91, #8e44ad);
+    color: #fff;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 600;
+
+    position: sticky;
+    top: 0;
+    z-index: 20; /* above table */
+}
+
+/* TABLE WRAPPER */
+.table-box {
+    padding: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    scroll-behavior: smooth;
+
+    position: relative; /* ✅ IMPORTANT */
+}
+/* ================= TABLE ================= */
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+
+    /* 🔥 IMPORTANT FIX */
+    table-layout: fixed;
+}
+
+
+.custom-table th {
+    color: white;
+    padding: 8px;
+    text-align: left;
+}
+.custom-table thead th {
+    position: sticky;
+    top: 0px;  /* 👈 adjust based on header height */
+    z-index: 10;
+    background: #f47920;
+}
+
+/* BODY */
+.custom-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+
+    overflow: visible;        /* ✅ fix */
+    text-overflow: unset;     /* ✅ fix */
+}
+
+/* HOVER */
+.custom-table tbody tr:hover {
+    background: #faf7ff;
+}
+
+/* ================= COLUMN WIDTH CONTROL ================= */
+
+/* Leave No */
+.custom-table th:nth-child(1),
+.custom-table td:nth-child(1) {
+    width: 12%;
+}
+
+/* Status */
+.custom-table th:nth-child(2),
+.custom-table td:nth-child(2) {
+    width: 24%;
+}
+
+/* From */
+.custom-table th:nth-child(3),
+.custom-table td:nth-child(3) {
+    width: 12%;
+}
+
+/* To */
+.custom-table th:nth-child(4),
+.custom-table td:nth-child(4) {
+    width: 12%;
+}
+
+/* Remarks */
+.custom-table th:nth-child(5),
+.custom-table td:nth-child(5) {
+    width: 20%;
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Action */
+.custom-table th:nth-child(6),
+.custom-table td:nth-child(6) {
+    width: 10%;
+    text-align: center;
+}
+
+/* ================= STATUS COLORS ================= */
+
+.approved {
+    color: #2ecc71;
+    font-weight: 600;
+}
+
+.rejected {
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+.pending {
+    color: #f39c12;
+    font-weight: 600;
+}
+
+/* ================= ACTION COLUMN ================= */
+
+.action-col {
+    text-align: center;
+}
+
+/* BUTTON */
+.custom-table button {
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid #6b2c91;
+    background: #fff;
+    color: #6b2c91;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.custom-table button:hover {
+    background: #6b2c91;
+    color: #fff;
+}
+
+/* ================= EMPTY ================= */
+
+.empty {
+    padding: 12px;
+    text-align: center;
+    color: #888;
+}
+
+/* ================= MODAL ================= */
+
+.custom-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+/* ================= CUSTOM TOAST ================= */
+.custom-toast-wrapper {
+    position: fixed;
+    top: 60px;
+    right: 24px;
+    z-index: 9999;
+    animation: slideInToast 0.4s ease;
+}
+
+.custom-toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #ffffff;
+    border-left: 5px solid #27ae60;
+    border-radius: 8px;
+    padding: 14px 18px;
+    min-width: 300px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+}
+
+.toast-icon {
+    font-size: 22px;
+    color: #27ae60;
+    font-weight: 700;
+}
+
+.toast-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+}
+
+.toast-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a7f4b;
+}
+
+.toast-sub {
+    font-size: 12px;
+    color: #555;
+}
+
+.toast-close {
+    font-size: 14px;
+    color: #999;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.toast-close:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+@keyframes slideInToast {
+    from {
+        opacity: 0;
+        transform: translateX(60px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

@@ -1,0 +1,39 @@
+<apex:page controller="EventMonitoringController" lightningStylesheets="true">
+
+    <h1 style="font-size:20px;font-weight:bold;padding-bottom:15px">
+        Report Download Tracking (Event Monitoring)
+    </h1>
+
+    <apex:form >
+        <apex:pageBlock title="Report Export Logs">
+
+            <apex:pageBlockTable value="{!reportExports}" var="r">
+
+                <apex:column headerValue="Event Type">
+                    {!r.EventType}
+                </apex:column>
+
+                <apex:column headerValue="Log Date">
+                    <apex:outputText value="{0,date,dd-MMM-yyyy HH:mm}">
+                        <apex:param value="{!r.LogDate}" />
+                    </apex:outputText>
+                </apex:column>
+
+                <apex:column headerValue="File Size (Bytes)">
+                    {!r.LogFileLength}
+                </apex:column>
+
+                <!-- FIX: CommandLink inside apex:form -->
+                <apex:column headerValue="Download">
+                    <apex:commandLink value="Download Log"
+                                      action="{!downloadLog}">
+                        <apex:param name="id" value="{!r.Id}" />
+                    </apex:commandLink>
+                </apex:column>
+
+            </apex:pageBlockTable>
+
+        </apex:pageBlock>
+    </apex:form>
+
+</apex:page>

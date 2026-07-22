@@ -1,0 +1,25 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: Arial, sans-serif;
+}
+
+.section {
+    padding: 10px;
+    background-color: #45183e;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    color: white;
+    text-align: center;
+    font-size: 16px;
+}
+
+.divider {
+    height: 2px;
+    background-color: #ddd;
+    margin: 20px 0;
+    border-radius: 1px;
+}
+.slds-modal__content{
+    width: 1000px !important;
+}

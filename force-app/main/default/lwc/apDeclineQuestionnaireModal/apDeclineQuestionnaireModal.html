@@ -1,0 +1,66 @@
+<template>
+    <lightning-modal-header label="Decline Questionnaire"></lightning-modal-header>
+
+    <lightning-modal-body>
+        <lightning-record-edit-form
+            object-api-name="Decline_Questionnaire__c"
+            onsuccess={handleSuccess}
+            onsubmit={handleSubmit}
+            onchange={handleFormChange}
+            onerror={handleError}>
+
+            <!-- Prefilled + Disabled -->
+            <lightning-input-field
+                field-name={applicationField}
+                value={applicationNumberValue}
+                disabled>
+            </lightning-input-field>
+
+            <lightning-input-field
+                field-name={regEmail}
+                value={regEmailValue}
+                disabled>
+            </lightning-input-field>
+
+            <!-- Institute -->
+            <lightning-input-field
+                field-name={instituteName}
+                onchange={handleInstituteChange}>
+            </lightning-input-field>
+
+            <template lwc:if={otherInstituteShow}>
+                <lightning-input-field
+                    field-name={otherInstitute}>
+                </lightning-input-field>
+            </template>
+
+            <!-- Reasons -->
+            <lightning-input-field
+                field-name={reason1}
+                onchange={handleReasonChange}>
+            </lightning-input-field>
+
+            <lightning-input-field
+                field-name={reason2}
+                onchange={handleReasonChange}>
+            </lightning-input-field>
+
+            <template lwc:if={otherReasonShow}>
+                <lightning-input-field
+                    field-name={otherReason}>
+                </lightning-input-field>
+            </template>
+
+            <!-- Submit -->
+            <div class="slds-var-m-top_medium">
+                <lightning-button
+                    variant="brand"
+                    type="submit"
+                    label="Complete Questionnaire"
+                    disabled={isSubmitDisabled}>
+                </lightning-button>
+            </div>
+
+        </lightning-record-edit-form>
+    </lightning-modal-body>
+</template>

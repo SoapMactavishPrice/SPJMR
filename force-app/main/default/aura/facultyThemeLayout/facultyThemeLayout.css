@@ -1,0 +1,58 @@
+.THIS.layoutContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.THIS .headerContainer {
+    height: 60px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.THIS .bodyContainer {
+    display: flex;
+    flex: 1;
+    margin-top: 60px; /* leave room for header */
+    min-height: calc(100vh - 60px);
+    overflow: hidden;
+}
+
+/* Sidebar column */
+.THIS .sidebarContainer {
+    display: flex;
+    flex-direction: column;
+    width: 250px;
+    height: 100%;
+    transition: width 0.3s ease;
+    background: #f8f8f8;
+    border-right: 1px solid #e5e5e5;
+    overflow: hidden;
+}
+
+.THIS .sidebarContainer.closed {
+    width: 0;
+}
+
+/* Make any child inside sidebar stretch */
+.THIS .sidebarContainer > * {
+    flex: 1;
+    height: 100%;
+    width: 100%;
+}
+
+/* Main content area */
+.THIS .contentContainer {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    overflow-y: auto;
+    background: #fff;
+    min-width: 0;
+}

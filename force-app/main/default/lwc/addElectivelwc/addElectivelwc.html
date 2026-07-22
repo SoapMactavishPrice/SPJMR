@@ -1,0 +1,90 @@
+<template>
+    <lightning-card title="ADD ELECTIVE" icon-name="custom:custom14">
+        <template if:true={showSpinner}>
+            <lightning-spinner alternative-text="Loading" size="xx-large" variant="base"></lightning-spinner>
+        </template>
+        <lightning-layout multiple-rows>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small">
+                <div class="form-group">
+                    <!-- <lightning-combobox name="majorgrade" label="Major" value={majorValue} options={majorOptions}
+                        onchange={handleMajorValueChange} required>
+                    </lightning-combobox> -->
+                    <lightning-input name="semester" label="Current Major" value={ccName} disabled>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small">
+                <div class="form-group">
+                    <lightning-input name="courseoffer" label="Grade" value={majorName} disabled>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small" style="padding-top: 0px !important;">
+                <div class="form-group">
+                    <!-- <lightning-combobox name="semester" label="Sem" value={semValue} options={semOptions}
+                        onchange={handleSemValueChange} required>
+                    </lightning-combobox> -->
+                    <lightning-input name="semester" label="Semester" value={semName} disabled>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small" style="padding-top: 0px !important;">
+                <div class="form-group">
+                    <lightning-input name="section" label="Section" value={sectionName} disabled>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+        </lightning-layout>
+        <!-- <section class="section" style="margin-left: 10px; margin-right: 10px;">
+            <h2>Major Lecture's</h2>
+        </section> -->
+        <lightning-layout multiple-rows if:true={minTerm}>
+
+            <lightning-layout-item size="4" small-device-size="4" medium-device-size="4" large-device-size="4"
+                padding="around-small" style="padding-top: 0px !important;">
+                <div class="form-group">
+                    <lightning-input label="Total Credit" value={totalCredit} readonly>
+                    </lightning-input>
+                </div>
+            </lightning-layout-item>
+            <lightning-layout-item size="4" small-device-size="4" medium-device-size="4" large-device-size="4"
+                padding="around-small" style="padding-top: 0px !important;">
+                <lightning-input label="Added Credit" value={addedCredit} readonly>
+                </lightning-input>
+            </lightning-layout-item>
+            <lightning-layout-item size="4" small-device-size="4" medium-device-size="4" large-device-size="4"
+                padding="around-small" style="padding-top: 0px !important;">
+                <lightning-input label="Balance Credit" value={balanceCredit} readonly>
+                </lightning-input>
+            </lightning-layout-item>
+
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small">
+                <section class="section">
+                    <h2>MANDATORY</h2>
+                </section>
+                <lightning-datatable data={major_mandatorytableData} columns={columnsMan} key-field="id"
+                    hide-checkbox-column="true" max-row-selection="5">
+                </lightning-datatable>
+            </lightning-layout-item>
+            <lightning-layout-item size="6" small-device-size="6" medium-device-size="6" large-device-size="6"
+                padding="around-small">
+                <section class="section">
+                    <h2>ELECTIVE</h2>
+                </section>
+                <lightning-datatable data={major_electivetableData} columns={columnsElec} key-field="id"
+                    onrowselection={handleRowSelection} max-row-selection="5">
+                </lightning-datatable>
+            </lightning-layout-item>
+            <lightning-layout-item size="12" small-device-size="12" medium-device-size="12" large-device-size="12"
+                padding="around-small" style="padding-top: 0px !important; text-align: center;">
+                <lightning-button variant="Brand" label="Save" onclick={handlerOnSave}></lightning-button>
+            </lightning-layout-item>
+        </lightning-layout>
+    </lightning-card>
+</template>

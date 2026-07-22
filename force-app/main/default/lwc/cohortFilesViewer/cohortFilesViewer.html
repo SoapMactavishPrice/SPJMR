@@ -1,0 +1,181 @@
+<template>
+    <lightning-card title="Cohort Files" icon-name="standard:file">
+        <div slot="actions">
+            <lightning-button
+                variant="brand"
+                label="Download All"
+                icon-name="utility:download"
+                icon-position="left"
+                onclick={handleDownloadAll}
+                disabled={downloadAllDisabled}>
+            </lightning-button>
+        </div>
+        <div class="slds-p-around_medium">
+            <!-- Filter Section: equal-width columns -->
+            <div class="filter-grid slds-grid slds-gutters slds-m-bottom_medium">
+                <div class="slds-col slds-size_1-of_2 filter-col">
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label">File Type</label>
+                        <div class="slds-form-element__control">
+                            <lightning-combobox
+                                name="fileType"
+                                value={selectedFileType}
+                                options={fileTypeOptionsList}
+                                onchange={handleFileTypeChange}
+                                placeholder="Select file type"
+                                class="file-type-combobox">
+                            </lightning-combobox>
+                        </div>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of_2 filter-col">
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label">Batch (Programme Cohort)</label>
+                        <div class="slds-form-element__control cohort-lookup-wrap">
+                        <template if:true={hasSelectedCohort}>
+                            <div class="slds-input-has-icon slds-input-has-icon_right">
+                                <input
+                                    type="text"
+                                    class="slds-input cohort-search-input"
+                                    readonly
+                                    value={selectedCohortLabel}
+                                    placeholder="Select a batch"
+                                />
+                                <button
+                                    type="button"
+                                    class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                    title="Clear"
+                                    onclick={handleClearCohort}
+                                    aria-label="Clear selection">
+                                    <lightning-icon icon-name="utility:clear" size="x-small" alternative-text="Clear"></lightning-icon>
+                                </button>
+                            </div>
+                        </template>
+                        <template if:false={hasSelectedCohort}>
+                            <div class={cohortDropdownTriggerClass}>
+                                <div class="slds-combobox slds-combobox-picker">
+                                    <input
+                                        type="text"
+                                        class="slds-input slds-combobox__input cohort-search-input"
+                                        placeholder="Type to search by batch name..."
+                                        oninput={handleCohortSearchInput}
+                                        onfocus={handleCohortFocus}
+                                        onblur={handleCohortBlur}
+                                        autocomplete="off"
+                                        aria-expanded={showCohortDropdown}
+                                        aria-controls="cohort-listbox"
+                                    />
+                                    <template if:true={isLoadingCohorts}>
+                                        <span class="slds-spinner slds-spinner_small slds-spinner_inline slds-m-left_x-small" role="status"></span>
+                                    </template>
+                                </div>
+                                <template if:true={showCohortDropdown}>
+                                    <div
+                                        id="cohort-listbox"
+                                        class="cohort-dropdown slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid"
+                                        role="listbox">
+                                        <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                            <template if:true={isLoadingCohorts}>
+                                                <li class="slds-listbox__item slds-p-around_x-small">
+                                                    <span class="slds-text-body_small slds-text-color_weak">Searching...</span>
+                                                </li>
+                                            </template>
+                                            <template if:false={isLoadingCohorts}>
+                                                <template for:each={cohortOptions} for:item="opt">
+                                                    <li
+                                                        key={opt.value}
+                                                        role="option"
+                                                        class="slds-listbox__item cohort-option-item"
+                                                        data-id={opt.value}
+                                                        data-label={opt.label}
+                                                        onmousedown={handleCohortSelect}>
+                                                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small">
+                                                            <span class="slds-media__body">
+                                                                <span class="slds-truncate" title={opt.label}>{opt.label}</span>
+                                                            </span>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                                <template if:true={noCohortResults}>
+                                                    <li class="slds-listbox__item slds-p-around_x-small">
+                                                        <span class="slds-text-body_small slds-text-color_weak">No batches found. Try a different search.</span>
+                                                    </li>
+                                                </template>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Display Section -->
+            <template if:true={hasSelectedCohort}>
+                <template if:true={isLoadingFiles}>
+                    <lightning-spinner alternative-text="Loading files" size="medium"></lightning-spinner>
+                </template>
+                <template if:false={isLoadingFiles}>
+                    <template if:true={hasFiles}>
+                        <!-- Toolbar: file count + inline progress -->
+                        <div class="files-toolbar slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
+                            <span class="slds-badge file-count-badge">{fileCount} file(s)</span>
+                            <template if:true={isDownloadingAll}>
+                                <span class="slds-m-left_small slds-text-body_small slds-text-color_weak">{downloadProgressLabel}</span>
+                            </template>
+                        </div>
+                        <div class="slds-scrollable_x files-table-wrap">
+                            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped files-table">
+                                <thead>
+                                    <tr class="slds-line-height_reset">
+                                        <th scope="col"><span class="slds-truncate">#</span></th>
+                                        <th scope="col"><span class="slds-truncate">File Name</span></th>
+                                        <th scope="col"><span class="slds-truncate">Account Name</span></th>
+                                        <th scope="col"><span class="slds-truncate">Document Name</span></th>
+                                        <th scope="col" class="download-col"><span class="slds-truncate">Download</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template for:each={files} for:item="file" for:index="index">
+                                        <tr key={file.fileId}>
+                                            <td><span class="slds-truncate">{file.rowNumber}</span></td>
+                                            <td><span class="slds-truncate" title={file.fileName}>{file.fileName}</span></td>
+                                            <td><span class="slds-truncate" title={file.accountName}>{file.accountName}</span></td>
+                                            <td><span class="slds-truncate" title={file.documentName}>{file.documentName}</span></td>
+                                            <td class="download-col">
+                                                <template if:true={file.downloadUrl}>
+                                                    <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer" class="download-link" title="Download file">
+                                                        <lightning-icon icon-name="utility:download" size="small" alternative-text="Download"></lightning-icon>
+                                                    </a>
+                                                </template>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                        <template if:true={isDownloadingAll}>
+                            <div class="slds-m-top_small">
+                                <lightning-progress-bar value={downloadProgressPercent} size="medium" variant="circular"></lightning-progress-bar>
+                            </div>
+                        </template>
+                    </template>
+                    <template if:false={hasFiles}>
+                        <div class="slds-text-align_center slds-p-vertical_large">
+                            <lightning-icon icon-name="utility:open_folder" size="medium" alternative-text="No files" class="empty-icon"></lightning-icon>
+                            <p class="slds-text-heading_small slds-m-top_small">No files found for this batch.</p>
+                            <p class="slds-text-body_small slds-m-top_x-small slds-text-color_weak">Try changing the file type filter or ensure documents are linked to cohort members.</p>
+                        </div>
+                    </template>
+                </template>
+            </template>
+            <template if:false={hasSelectedCohort}>
+                <div class="slds-text-align_center slds-p-vertical_large">
+                    <p class="slds-text-body_regular slds-text-color_weak">Select a batch (Programme Cohort) to view files.</p>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

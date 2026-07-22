@@ -1,0 +1,54 @@
+/* ================= MAIN CONTAINER ================= */
+.container {
+    padding: 16px;
+}
+
+/* ================= CONTENT WRAPPER ================= */
+.shift-right {
+    margin-left:6px;
+}
+
+/* ================= TITLE ================= */
+.custom-title {
+    margin-left: 10px;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* ================= REDUCE TITLE GAP ================= */
+.slds-card__header {
+    padding-bottom: 6px !important;
+}
+
+.slds-card__body {
+    padding-top: 6px !important;
+}
+
+/* ================= SECTION ================= */
+.section {
+    margin-bottom: 16px;
+}
+
+/* ================= CHECKBOX IN ONE LINE ================= */
+.checkbox-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+}
+
+/* ================= REMARKS ================= */
+.remarks-wrapper lightning-textarea {
+    width: 100%;
+}
+
+/* ================= BUTTON ================= */
+.button-container {
+    margin-top: 20px;
+}
+
+/* ================= GLOBAL SPACING ================= */
+lightning-input,
+lightning-textarea {
+    margin-bottom: 6px;
+}

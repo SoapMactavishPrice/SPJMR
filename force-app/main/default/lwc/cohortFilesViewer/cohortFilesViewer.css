@@ -1,0 +1,107 @@
+/* Equal-width filter columns; prevent combobox from stretching */
+.filter-grid {
+    align-items: flex-end;
+}
+
+.filter-col {
+    min-width: 0; /* allow flex item to shrink so columns stay equal */
+}
+
+.filter-col .slds-form-element__control {
+    width: 100%;
+}
+
+.file-type-combobox {
+    max-width: 100%;
+}
+
+/* Batch lookup: position dropdown relative to trigger */
+.cohort-dropdown-trigger {
+    position: relative;
+    width: 100%;
+}
+
+.cohort-dropdown-trigger .slds-combobox {
+    width: 100%;
+}
+
+.cohort-dropdown-trigger .cohort-search-input {
+    width: 100%;
+}
+
+/* Dropdown list: visible above other content */
+.cohort-dropdown {
+    position: absolute;
+    left: 0 !important;
+    right: auto !important;
+    top: 100%;
+    z-index: 7000;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    transform: none !important;
+    margin-left: 0 !important;
+    margin-top: 0.125rem;
+}
+
+/* Ensure option items are clickable and don't trigger blur before mousedown */
+.cohort-option-item {
+    cursor: pointer;
+}
+
+.cohort-option-item:hover {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+/* Download column: icon link */
+.download-col {
+    width: 1%;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.download-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--lwc-brandPrimary, #0176d3);
+}
+
+.download-link:hover {
+    color: var(--lwc-brandPrimaryActive, #014486);
+}
+
+/* Toolbar above the files table */
+.files-toolbar {
+    padding: 0.25rem 0;
+}
+
+.file-count-badge {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+    color: var(--slds-g-color-neutral-30, #444);
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+}
+
+/* Table polish */
+.files-table-wrap {
+    border-radius: 0.25rem;
+    border: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+    overflow: hidden;
+}
+
+.files-table tbody tr {
+    transition: background-color 120ms ease;
+}
+
+.files-table tbody tr:hover {
+    background-color: var(--slds-g-color-neutral-base-95, #f7f9fb);
+}
+
+.files-table thead tr {
+    background-color: var(--slds-g-color-neutral-base-95, #fafafa);
+}
+
+.empty-icon {
+    --sds-c-icon-color-foreground-default: var(--slds-g-color-neutral-base-50, #b5b5b5);
+}

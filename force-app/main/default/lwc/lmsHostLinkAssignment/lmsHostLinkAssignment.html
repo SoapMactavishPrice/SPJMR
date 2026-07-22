@@ -1,0 +1,136 @@
+<template>
+    <lightning-card title="Link LMS to Host Programme Course" icon-name="standard:course">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={pageData}>
+                    <!-- FIX 1: Added a space after the colon so label and value are not jammed together -->
+                    <p class="slds-text-body_small slds-m-bottom_small">
+                        Attendee batch: <strong>{attendeeBatchLabel}</strong>
+                    </p>
+                    <!-- FIX 2: Unified to slds-text-body_small (same class as the line above) -->
+                    <!-- FIX 3: dateRangeLabel must now be formatted DD/MM/YYYY in the JS getter -->
+                    <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                        Date filter (host batch must overlap this range): <span>{dateRangeLabel}</span>
+                    </p>
+                </template>
+
+                <!-- FIX 2 cont.: Body description also unified to slds-text-body_small -->
+             
+
+                <template if:true={hasSections}>
+                    <p class="slds-text-body_small slds-m-bottom_medium">
+                        Each <strong>non–host</strong> Programme course on this batch is listed. Expand a row to
+                        see host Programme courses on other batches with the same learning course, then pick one
+                        host and save to set <strong>LMS Course</strong> on the attendee Programme course.
+                    </p>
+                    <lightning-accordion allow-multiple-sections-open class="host-link-accordion slds-m-bottom_small">
+                        <template for:each={attendeeSections} for:item="sec">
+                            <lightning-accordion-section
+                                key={sec.sectionKey}
+                                name={sec.sectionKey}
+                                label={sec.accordionLabel}
+                            >
+                                <div class="slds-p-around_x-small slds-m-bottom_small acc-section-body">
+                                    <template if:false={sec.hasLearningCourse}>
+                                        <p class="slds-text-color_weak slds-m-bottom_x-small slds-text-body_small">
+                                            Set a <strong>Learning Course</strong> on this Programme course before
+                                            you can link to a host.
+                                        </p>
+                                    </template>
+
+                                    <template if:true={sec.hasLearningCourse}>
+                                        <template if:false={sec.hasHostOptions}>
+                                            <p class="slds-text-color_weak slds-m-bottom_x-small slds-text-body_small">
+                                                No host Programme course found. Add the same course as a <strong>host</strong> on another batch with overlapping dates, or
+                                                check that those records exist in your org.
+                                            </p>
+                                        </template>
+                                        <template if:true={sec.hasHostOptions}>
+                                            <div class="slds-scrollable_x">
+                                                <table
+                                                    class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped slds-table_fixed-layout"
+                                                >
+                                                    <thead>
+                                                        <tr>
+                                                            <th class="slds-text-align_center" style="width:3rem" scope="col">
+                                                                <span class="slds-assistive-text">Select</span>
+                                                            </th>
+                                                            <th scope="col">Batch name</th>
+                                                            <th scope="col">Programme name</th>
+                                                            <th scope="col">Programme code</th>
+                                                            <th scope="col">Programme course code</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <template for:each={sec.hostOptions} for:item="opt">
+                                                            <tr key={opt.rowKey}>
+                                                                <td class="slds-text-align_center">
+                                                                    <lightning-input
+                                                                        type="radio"
+                                                                        name={sec.sectionKey}
+                                                                        value={opt.hostProgramCourseId}
+                                                                        data-attendeeid={sec.attendeeProgramCourseId}
+                                                                        checked={opt.isSelected}
+                                                                        onchange={handleHostRadio}
+                                                                    ></lightning-input>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="slds-truncate" title={opt.hostBatchName}>
+                                                                        {opt.hostBatchName}
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="slds-truncate" title={opt.hostProgramName}>
+                                                                        {opt.hostProgramName}
+                                                                    </div>
+                                                                </td>
+                                                                
+                                                                <td>
+                                                                    <div class="slds-truncate" title={opt.hostProgramCode}>
+                                                                        {opt.hostProgramCode}
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="slds-truncate" title={opt.hostProgramCourseCode}>
+                                                                        {opt.hostProgramCourseCode}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        </template>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </lightning-accordion-section>
+                        </template>
+                    </lightning-accordion>
+                    <p class="slds-text-body_small slds-m-bottom_small slds-text-color_success">
+                        {selectedCount} Programme course(s) with a host selected
+                    </p>
+                    <div class="slds-grid slds-grid_align-end slds-m-top_small">
+                        <lightning-button
+                            label="Save LMS links"
+                            variant="brand"
+                            onclick={handleSave}
+                            disabled={saveDisabled}
+                        ></lightning-button>
+                    </div>
+                </template>
+
+                <template if:false={hasSections}>
+                    <!-- FIX 2 cont.: Unified to slds-text-body_small -->
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-vertical_medium">
+                        No non–host Programme courses on this batch. Add Programme courses to this batch with <strong>Is Host Programme Course</strong> set to off, then return here to link them to a host on another batch.
+                    </p>
+                    </p>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

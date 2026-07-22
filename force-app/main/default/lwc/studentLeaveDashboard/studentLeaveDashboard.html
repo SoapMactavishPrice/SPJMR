@@ -1,0 +1,224 @@
+<template>
+  <template if:true={showLeaveDashboard}>
+    <!-- ================= CUSTOM TOAST ================= -->
+<template if:true={showSuccessToast}>
+    <div class="custom-toast-wrapper">
+        <div class="custom-toast">
+            <span class="toast-icon">✔</span>
+            <div class="toast-text">
+                <span class="toast-title">Resubmission Successful</span>
+                <span class="toast-sub">Your leave has been resubmitted for approval</span>
+            </div>
+            <span class="toast-close" onclick={closeToast}>✕</span>
+        </div>
+    </div>
+</template>
+
+    <div class="custom-dashboard">
+
+        <div class="custom-card">
+
+            <!-- HEADER -->
+            <div class="custom-header">
+                My Leave Applications
+            </div>
+
+            <!-- TABLE -->
+            <template if:true={hasLeaves}>
+                <div class="table-box">
+
+                    <table class="custom-table">
+
+                        <thead>
+                            <tr>
+                                <th>Leave No</th>
+                                <th>Status</th>
+                                <th>From</th>
+                               <th>To</th>
+                                <th>Remarks</th>
+                                <th class="action-col">Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <template for:each={leaves} for:item="leave">
+                                <tr key={leave.Id}>
+
+                                    <td>{leave.Name}</td>
+
+                                    <td>
+                                        <span class={leave.statusClass}>
+                                            {leave.displayStatus}
+                                        </span>
+                                    </td>
+
+                                    <td>{leave.formattedStartDate}</td>
+                                    <td>{leave.formattedEndDate}</td>
+                                    <td>{leave.remarksDisplay}</td>
+
+                                    <td class="action-col">
+                                        <template if:true={leave.isEditable}>
+                                            <button data-id={leave.Id} onclick={handleEdit}>
+                                                Edit
+                                            </button>
+                                        </template>
+                                        <template if:false={leave.isEditable}>
+                                            -
+                                        </template>
+                                    </td>
+
+                                </tr>
+                            </template>
+                        </tbody>
+
+                    </table>
+
+                </div>
+            </template>
+
+            <!-- EMPTY -->
+            <template if:false={hasLeaves}>
+                <div class="empty">
+                    No leave applications found
+                </div>
+            </template>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================= EDIT MODAL ================= -->
+    <template if:true={showModal}>
+        <section class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <!-- HEADER -->
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Edit Leave</h2>
+                </header>
+
+                <!-- BODY -->
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <!-- START DATE -->
+                    <lightning-input 
+                        type="date" 
+                        label="Start Date" 
+                        value={startDate} 
+                        onchange={handleStartDate}>
+                    </lightning-input>
+
+                    <!-- END DATE -->
+                    <lightning-input 
+                        type="date" 
+                        label="End Date" 
+                        value={endDate} 
+                        onchange={handleEndDate}>
+                    </lightning-input>
+
+                    <!-- LEAVE TYPE -->
+                    <lightning-combobox
+                        label="Leave Type"
+                        value={leaveType}
+                        options={leaveTypeOptions}
+                        onchange={handleLeaveType}>
+                    </lightning-combobox>
+
+                    <!-- REMARKS -->
+                    <lightning-textarea 
+                        label="Remarks" 
+                        value={remarks} 
+                        onchange={handleRemarks}>
+                    </lightning-textarea>
+
+                    <!-- FILE UPLOAD -->
+                    <lightning-input 
+                        name="fileUpload"
+                        type="file" 
+                        label="Upload Document"
+                        accept=".pdf,.jpg,.png,.doc,.docx"
+                        onchange={handleFileChange}>
+                    </lightning-input>
+
+                    <!-- EXISTING FILES -->
+                    <template if:true={existingFiles.length}>
+                        <div style="margin-top:15px;">
+                            <p><b>Existing Files:</b></p>
+
+                            <template for:each={existingFiles} for:item="file">
+                                <div key={file.id} style="margin-bottom:15px;">
+
+                                    <p>{file.name}</p>
+
+                                    <!-- IMAGE PREVIEW -->
+                                    <template if:true={file.isImage}>
+                                        <img src={file.url}
+                                             data-url={file.url}
+                                             onclick={handleImageClick}
+                                             style="max-width:200px; border-radius:6px; border:1px solid #ddd; cursor:pointer;" />
+                                    </template>
+
+                                    <!-- NON IMAGE -->
+                                    <template if:false={file.isImage}>
+                                        <p>📄 File attached</p>
+                                    </template>
+
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- SELECTED FILE -->
+                    <template if:true={fileData}>
+                        <p style="margin-top:8px; color:#2ecc71; font-size:13px;">
+                            ✔ Selected File: {fileData.filename}
+                        </p>
+                    </template>
+
+                </div>
+
+                <!-- FOOTER -->
+                <footer class="slds-modal__footer custom-footer">
+                    <lightning-button 
+                        label="Cancel" 
+                        onclick={closeModal}>
+                    </lightning-button>
+                
+                    <lightning-button 
+                        variant="brand" 
+                        label="Update" 
+                        onclick={handleSave}>
+                    </lightning-button>
+                </footer>
+
+            </div>
+        </section>
+
+        <!-- BACKDROP -->
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+
+    <!-- ================= IMAGE PREVIEW MODAL ================= -->
+    <template if:true={showImagePreview}>
+        <section class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container" style="max-width:80%;">
+
+                <div class="slds-modal__content slds-p-around_medium" style="text-align:center;">
+                    <img src={previewImageUrl}
+                         style="max-width:100%; max-height:80vh; border-radius:8px;" />
+                </div>
+
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Close" onclick={closeImagePreview}></lightning-button>
+                </footer>
+
+            </div>
+        </section>
+
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+  </template>
+
+</template>

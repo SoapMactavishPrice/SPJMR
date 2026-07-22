@@ -1,0 +1,402 @@
+<apex:page controller="PGDM_Application_PDF_A" renderAs="pdf" showHeader="false" applyBodyTag="false" applyHtmlTag="false" sidebar="false" cache="false" contentType="application/pdf">
+    <html>
+        <head>
+            <style type="text/css">
+                
+                @page {
+                size: A4;
+                margin: 15mm 10mm 15mm 10mm;
+                
+                @bottom-right {
+                content: "Page " counter(page) " / " counter(pages);
+                font-family: Arial;
+                font-size: 10px;
+                color: #531F75;
+                }
+                }
+                
+                body{
+                font-family: Arial, sans-serif;
+                font-size:12px;
+                }
+                
+                .section {
+                page-break-inside: avoid;
+                page-break-before: auto;
+                page-break-after: auto;
+                }
+                
+                table {
+                width:100%;
+                border-collapse:collapse;
+                page-break-inside:avoid;
+                }
+                
+                tr {
+                page-break-inside:avoid;
+                }
+                
+            </style>
+        </head>    
+<!-- ===== HEADER SECTION ===== -->
+<table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:13px">
+<tr>
+<td style="width:25%; text-align:left; border:none; vertical-align:middle; border: 1px solid;">
+<!-- Replace with your org’s logo -->
+  <apex:image alt="Sarex" url="{!$Resource.SPJMIR_logo}" height="50px" style="text-align:Center;" /><br/>
+</td>
+<td style="width:50%; text-align:center; font-weight:bold; font-size:16px; vertical-align:middle;    border: 1px solid;color:#531F75;font-weight:bold;">
+           <!-- PGDM &amp; PGDM (BM) 2025-27<br/> -->
+            PGDM &amp; PGDM (BM) 2025-27<br/>
+<span style="font-size:13px;">APPLICATION NO: {!quo.Name}</span>
+</td>
+<td style="width:25%; text-align:right; vertical-align:middle;border: 1px solid;">
+  <div style="width:90px; height:100px; overflow:hidden;  display:block; margin:auto;border:1px solid #000;">
+   <img src="{!passportPhotoUrl}" style="width:90px; height:120px; object-fit:cover; "/>
+  </div>
+</td>
+</tr>
+</table>
+<!-- ================= PERSONAL INFORMATION ================= -->
+<table style="width:100%;border-collapse:collapse;font-family:Arial;font-size:10pt;;margin-top:16px;">
+    <tr>
+        <td colspan="4" style="background:#f39c12;color:#fff;font-weight:bold;padding:6px;border:1px solid #000;">
+            Personal Information:
+        </td>
+    </tr>
+    <tr>
+        <td style="width:25%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            First Name
+        </td>
+        <td style="width:25%;border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.First_Name__c}</td>
+
+        <td style="width:25%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Middle Name
+        </td>
+        <td style="width:25%;border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.Middle_Name__c}</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Last Name
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.Last_Name__c}</td>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Gender
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.Gender__c}</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Date of Birth (As Per 10th Marksheet)
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;"><apex:outputText value=" {!PDInfo.Date_of_Birth_As_Per_10th_Marksheet__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Age As On <apex:outputText value=" {!quo.Batch__r.CalculateAgeAsOf__c}"><apex:param value="dd/MM/yyyy" /></apex:outputText></td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.FormattedAge__c}</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Category
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">
+            {!IF(
+            PDInfo.Category__c = 'Other',
+            PDInfo.OtherCategory__c,
+            PDInfo.Category__c
+            )}</td>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Nationality
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.Nationality__c}</td>
+    </tr>
+    <apex:outputPanel layout="none" rendered="{!PDInfo.HavePassport__c == 'No'}">
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Do You Have Aadhaar Card ?
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">Yes</td>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Aadhaar Card Number
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.AadhaarCardNumber__c}</td>
+    </tr>
+    </apex:outputPanel> 
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Do You Have a Passport ?
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.HavePassport__c}</td>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Passport Number
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.PassportNumber__c}</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Indian Origin Card (IOC)
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
+
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Passport Issuing Country
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
+    </tr>
+</table>
+<!-- ================= END PERSONAL INFORMATION ================= -->    
+<!-- ================= FAMILY DETAILS ================= -->
+<table style="width:100%;border-collapse:collapse;font-family:Arial;font-size:10pt;margin-top:16px;">
+    <!-- Header -->
+    <tr>
+        <td colspan="4" style="background:#f39c12;color:#ffffff;font-weight:bold;padding:6px;border:1px solid #000;">
+            Family Details:
+        </td>
+    </tr>
+    <!-- Father's Details -->
+    <tr>
+        <td colspan="4" style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Parents/ Father's Details
+        </td>
+    </tr>
+    <tr>
+        <td style="width:24%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Full Name
+        </td>
+        <td colspan="3" style="border:1px solid #000;padding:5px;color:#531F75;">V</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Qualification
+        </td>
+        <td style="width:26%;border:1px solid #000;padding:5px;color:#531F75;">Graduate- B.Com</td>
+
+        <td style="width:25%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Occupation
+        </td>
+        <td style="width:25%;border:1px solid #000;padding:5px;color:#531F75;">Manager</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Contact Detail (Email ID)
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">Contact@gmail.com</td>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Contact Number
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">1111111111</td>
+    </tr>
+    <!-- Mother's Details -->
+    <tr>
+        <td colspan="4" style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Parents/ Mother's Details
+        </td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Full Name
+        </td>
+        <td colspan="3" style="border:1px solid #000;padding:5px;color:#531F75;">R</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Qualification
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">HOMEMAKER</td>
+
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Occupation
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">Home Maker</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Contact Detail (Email ID)
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">R</td>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Contact Number
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">222222222</td>
+    </tr>
+    <!-- Annual Family Income -->
+    <tr>
+        <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Annual Family Income (In INR), Excluding Your Income
+        </td>
+        <td colspan="3" style="border:1px solid #000;padding:5px;color:#531F75;">Rs 8 Lacs to Rs 10 Lacs</td>
+    </tr>
+</table>
+<!-- ================= END FAMILY DETAILS ================= -->  
+<!-- ================= FAMILY BACKGROUND ================= -->
+<table style="width:100%;border-collapse:collapse;font-family:Arial;font-size:10pt;margin-top:16px;">
+    <!-- Header -->
+    <tr>
+        <td colspan="4" style="background:#f39c12;color:#ffffff;font-weight:bold;padding:6px;border:1px solid #000;">
+            Family Background:
+        </td>
+    </tr>
+    <!-- Column Headers -->
+    <tr>
+        <td style="width:25%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Sibling Name
+        </td>
+        <td style="width:25%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Sibling Relationship
+        </td>
+        <td style="width:25%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Sibling Qualification
+        </td>
+        <td style="width:25%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+            Sibling Occupation
+        </td>
+    </tr>
+    <!-- Row 1 -->
+    <tr>
+        <td style="border:1px solid #000;padding:5px;height:34px;color:#531F75;">
+            s
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">
+            BROTHER
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">
+            Pursuing B.Com Hons from DU
+        </td>
+        <td style="border:1px solid #000;padding:5px;color:#531F75;">
+            Other|Student- DELHI UNIVERSITY 2nd Year
+        </td>
+    </tr>
+    <!-- Blank Row -->
+    <tr>
+        <td style="border:1px solid #000;height:18px;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+    </tr>
+    <!-- Blank Row -->
+    <tr>
+        <td style="border:1px solid #000;height:18px;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+    </tr>
+    <!-- Blank Row -->
+    <tr>
+        <td style="border:1px solid #000;height:18px;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+    </tr>
+    <!-- Blank Row -->
+    <tr>
+        <td style="border:1px solid #000;height:18px;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+        <td style="border:1px solid #000;color:#531F75;"></td>
+    </tr>
+</table>
+<!-- ================= END FAMILY BACKGROUND ================= -->   
+
+<!-- ================= PERSONAL SUMMARY ================= -->
+<table style="width:100%;border-collapse:collapse;font-family:Arial;font-size:9pt;margin-top:16px;">
+    <!-- Header -->
+    <tr>
+        <td style="background:#f39c12;color:#ffffff;font-weight:bold;padding:6px;border:1px solid #000;">
+            Personal Summary:
+        </td>
+    </tr>
+    <!-- Question 1 -->
+    <tr>
+        <td style="border:1px solid #000;padding:6px;color:#531F75;font-weight:bold;line-height:1.4;">
+            1. State 10 random things/statements about you (each statement should not be more than 10 words) a few examples are:
+            <br/>
+            A. Born in an another country, I might be
+            <br/>
+            B. If I had a different set of parents
+            <br/>
+            C. I would love to switch roles with
+            <br/>
+            D. If I could relive one moment
+        </td>
+    </tr>
+    <!-- Answer 1 -->
+    <tr>
+        <td style="border-left:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;padding:6px;color:#531F75;line-height:1.6;">
+Winning the 'Student of the Year' award is unforgettable.
+<br/>
+If I were a product, my USP would be versatility.
+<br/>
+Born to question, I never accept answers without personal exploration.
+<br/>
+If I could relive one moment, it'd be my German youth camp.
+<br/>
+Fashion felt distant once, so I joined an influencer agency to innovate.
+<br/>
+Winning academic awards proved my diligence; losing taught me resilience.
+<br/>
+I believe in empowering others through the "Each One Teach One" program.
+<br/>
+I believe pursuing an MBA early leverages my high energy and flow of study.
+<br/>
+I dream of experiencing every culture through a global tour with my parents.
+<br/>
+Striving to be my family's pride while challenging traditional narratives.
+        </td>
+    </tr>
+    <!-- Question 2 -->
+    <tr>
+        <td style="border-left:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;padding:6px;color:#531F75;font-weight:bold;line-height:1.4;">
+2. Describe one instance of a time you significantly contributed to enhancing someones sense of inclusion in your professional or personal community (choose either professional/personal). (max 150 words)
+        </td>
+    </tr>
+    <!-- Answer 2 -->
+    <tr>
+        <td style="border-left:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;padding:6px;color:#531F75;line-height:1.6;">
+I dealt with students from a variety of backgrounds as a dance instructor, each of them had their own skills and difficulties. My main goal was to establish a welcoming atmosphere where everyone felt encouraged and free to express themselves. By adapting my teaching style to each student's needs, I helped them all feel like they belonged.
+<br/>
+In one particularly noteworthy case, a youngster with Oppositional Defiant Disorder (ODD) originally objected to becoming part of group activities. I made sure she felt comfortable and supported by introducing smaller chores and progressively integrating her into team exercises after learning about her needs.
+<br/>
+She eventually started interacting with her peers and even picked up a dance routine. It was incredibly satisfying to see her confidence soar and the gang accept her as one of their own. I learned from this experience how empathy and flexibility can promote a feeling of acceptance.
+        </td>
+    </tr>
+</table>
+<!-- ================= END PERSONAL SUMMARY PART 1 ================= -->
+<!-- ================= PERSONAL SUMMARY - PART 2 ================= -->
+<table style="width:100%;border-collapse:collapse;font-family:Arial;font-size:8.5pt;">    
+    <!-- Question 3 -->
+    <tr>
+        <td style="border:1px solid #000;padding:6px;color:#531F75;font-weight:bold;line-height:1.4;">
+            3. Describe an achievement, experience, or realization that led to significant personal growth / deepened your self-awareness. (max 150 words)
+        </td>
+    </tr>
+    <!-- Answer 3 -->
+    <tr>
+        <td style="border-left:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;padding:6px;color:#531F75;line-height:1.6;">
+One of my most transformative experiences was leading and performing as part of the World Cancer Day event (Feb 4, 2023) with the Indian Cancer Society. Combining my passion for dance with my commitment to making a difference, I choreographed and performed for cancer patients, especially children, at a mall near their rehabilitation center. Having previously connected with these children through recreational activities, I knew how much they loved dancing, and I wanted to bring joy to their challenging lives.
+<br/>
+I played an integral role in organizing the event, coordinating with teams, and ensuring every performer was well-prepared. The emotional impact was profound; seeing the children's excitement and their radiant smiles reaffirmed the healing power of art.
+<br/>
+This experience deepened my self-awareness, teaching me gratitude, leadership, impact created by an art form, and adaptability. It solidified my passion for creating meaningful change, values I am eager to bring to my MBA journey.
+        </td>
+    </tr>
+</table>
+<table style="width:100%;border-collapse:collapse;font-family:Arial;font-size:8.5pt;">
+    <!-- Question 4 -->
+    <tr>
+        <td style="border:1px solid #000;padding:6px;color:#531F75;font-weight:bold;line-height:1.4;">
+            4. Describe a situation where you failed. How did you handle this failure? (max 150 words)
+        </td>
+    </tr>
+    <!-- Answer 4 -->
+    <tr>
+        <td style="border-left:1px solid #000;border-right:1px solid #000;border-bottom:1px solid #000;padding:6px;color:#531F75;line-height:1.6;">
+During my time in class 11, I contested for the position of house captain, a role I deeply aspired to. Despite my strong academic record, leadership experience, and active participation in extracurriculars, I lost by a narrow margin. The disappointment was significant, as I had put considerable effort into my campaign and envisioned myself contributing meaningfully in the role.
+<br/>
+Instead of dwelling on the loss, I took it as an opportunity to reflect. I analyzed areas where I could improve, sought feedback from peers and teachers, and focused on enhancing my communication and teamwork skills. Simultaneously, I redirected my energy toward excelling in other areas, which eventually led to me winning the "Student of the Year" award.
+<br/>
+This experience taught me resilience, humility, and the value of learning from setbacks. It reinforced my belief in perseverance and adaptability, qualities I continue to carry forward in life.
+        </td>
+    </tr>
+</table>
+<!-- ================= END PERSONAL SUMMARY - PART 2 ================= -->        
+</html>
+</apex:page>

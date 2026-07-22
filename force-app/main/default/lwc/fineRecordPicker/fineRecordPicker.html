@@ -1,0 +1,84 @@
+<template>
+    <div class="lookup" onclick={stopPropagation}
+     onmousedown={stopPropagation}>
+
+        <!-- Input wrapper -->
+        <div class="input-wrapper">
+
+            <!-- Search input ALWAYS exists -->
+            <lightning-input
+                type="search"
+                label={label}
+                variant={variant}
+                placeholder={placeholder}
+                disabled={disabled}
+                value={searchTerm}
+                onfocus={handleFocus}
+                oninput={handleInput}
+                onchange={handleInput}
+                autocomplete="nope"
+                onkeydown={handleKeyDown}>
+            </lightning-input>
+
+            <!-- Pill rendered INSIDE input -->
+            <template if:true={hasValue}>
+                <div class="pill-overlay">
+                    <span class="pill-label" title={selectedLabel}>{selectedLabel}</span>
+                    <button
+                        class="pill-remove"
+                        onclick={clear}
+                        disabled={disabled}
+                        tabindex="-1">
+                        ✕
+                    </button>
+                </div>
+            </template>
+
+        </div>
+
+        <!-- Dropdown -->
+        <template if:true={open}>
+            <div class="dropdown" onscroll={handleScroll}>
+
+                <template for:each={decorated} for:item="rec">
+                    <div
+                        key={rec.Id}
+                        class={rec._rowClass}
+                        data-id={rec.Id}
+                        data-primary-label={rec._primaryLabel}
+                        data-secondary-label={rec._secondaryLabel}
+                        data-index={rec._index}
+                        onclick={select}>
+
+                        <div class="title">
+                            {rec._primaryLabel}
+                        </div>
+
+                        <template if:true={hasAdditionalFields}>
+                            <div lwc:if={showSecondaryLabel} class="sub">
+                                {rec._secondaryLabel}
+                            </div>
+                        </template>
+
+                    </div>
+                </template>
+                
+                <template if:true={showScrollAgainHint}>
+                    <div class="hint subtle">
+                        Scroll again to load more
+                    </div>
+                </template>
+
+                <template if:true={loading}>
+                    <div class="hint">Loading…</div>
+                </template>
+
+                <template if:true={showNoResults}>
+                    <div class="hint">No values found</div>
+                </template>
+
+            </div>
+        </template>
+
+    </div>
+</template>

@@ -1,0 +1,739 @@
+<apex:page controller="LeadWebFormHelper" showHeader="false" sidebar="false" docType="html-5.0">
+
+
+
+<head>
+    <meta http-equiv="Content-type" content="text/html; charset=UTF-8"/>
+    <script src="https://www.google.com/recaptcha/api.js"></script>
+
+    <style>
+        #field_Country__c {
+    display: none;
+}
+        h2 {
+    font-weight: 700 !important;
+    font-size: 22px !important;
+}
+      .heading-title {
+    font-weight: 700 !important;
+    font-size: 22px !important;
+    color: #333 !important;
+    text-align: center !important;
+    margin-bottom: 20px !important;
+}
+        
+ /* Base state */
+button.btn-register {
+    background-color: #d79e2f !important;
+    border: 1px solid #d79e2f !important;
+    color: #000 !important;
+    background-image: none !important;
+
+    transition: all 0.4s ease !important;
+}
+
+/* Hover state */
+button.btn-register:hover {
+    background-color: #fff !important;
+    color: #d79e2f !important;
+    border: 1px solid #d79e2f !important;
+}
+
+/* Keep focus/active same as base (optional) */
+button.btn-register:focus,
+button.btn-register:active {
+    background-color: #d79e2f !important;
+    border: 1px solid #d79e2f !important;
+    color: #000 !important;
+}
+       html, body {
+    background-color: #33004b !important;
+    margin: 0;
+    padding: 30px;
+}
+
+        .container {
+    width: 100% !important;
+    max-width: 500px !important;
+    margin: 40px auto !important;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+        
+
+        .input-box {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .input-box input,
+        .input-box select {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+   
+	.code-box {
+    flex: 0 0 120px;
+	}
+
+     
+
+.row-phone {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.row-two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+                                  
+            * {
+    box-sizing: border-box;
+		}
+                                  
+
+    </style>
+
+    <script>
+                                  
+    var fieldConfigFromApex = JSON.parse('{!JSENCODE(visibilityJSON)}' || '{}');
+    console.log('Visibility Config:', fieldConfigFromApex);
+                                  //var programCode = "PGDM-BM";
+                                  
+    var programCode = "GMP";
+    // var fieldConfig = {
+    //     "GMP": {
+    //         "Graduation__c": true,
+    //         "Work_Experience__c": true,
+    //         "Entrance_Exam__c": true,              
+    //         "Entrance_Exam_Name__c": true         
+    //     },
+	// 	"PGDM-BM": {
+    //     "Graduation__c": false,
+    //     "Work_Experience__c": false,
+    //     "Entrance_Exam__c": false,
+    //     "Entrance_Exam_Name__c": false
+    // },
+
+    // "PGDM": {
+    //     "Graduation__c": false,
+    //     "Work_Experience__c": false,
+    //     "Entrance_Exam__c": false,
+    //     "Entrance_Exam_Name__c": false
+    // },
+
+    // "PGPM": {
+    //     "Graduation__c": false,
+    //     "Entrance_Exam__c": false,
+    //     "Entrance_Exam_Name__c": false,
+    //     "Work_Experience__c": true
+    // },
+
+    // "PGEMP": {
+    //     "Work_Experience__c": true,
+    //     "SPJIMRPartnerCompany__c": true,
+    //     "Graduation__c": false,
+    //     "Entrance_Exam__c": false,
+    //     "Entrance_Exam_Name__c": false
+    // },
+
+    // "PGPMBM": {
+    //     "Work_Experience__c": true,
+    //     "Current_Employer__c": true,
+    //     "SPJIMRPartnerCompany__c": true,
+    //     "Graduation__c": false,
+    //     "Entrance_Exam__c": false,
+    //     "Entrance_Exam_Name__c": false
+    // },
+
+    // "PGPFMB": {
+    //     "Graduation__c": false,
+    //     "Work_Experience__c": false,
+    //     "Entrance_Exam__c": false,
+    //     "Entrance_Exam_Name__c": false
+    // },
+
+    // "SYB": {
+    //     "Graduation__c": false,
+    //     "Work_Experience__c": false,
+    //     "Entrance_Exam__c": false,
+    //     "Entrance_Exam_Name__c": false
+    // },
+
+    // "PGPGM": {
+    //     "Course__c": true,
+    //     "Work_Experience__c": true,
+    //     "Current_Organization__c": true
+    // },
+
+    // "FPM": {
+    //     "State": false
+    // },
+
+    // "PGDM-Online": {
+    //     "Country__c": true,
+    //     "State": false
+    // },
+
+    // "PGPDM": {
+    //     // default → State + City only
+    //     "Graduation__c": false,
+    //     "Work_Experience__c": false,
+    //     "Entrance_Exam__c": false,
+    //     "Entrance_Exam_Name__c": false
+    // },
+
+    // "MDP": {
+    //     "Current_Designation__c": true,
+    //     "Interested_Programme__c": true,
+    //     "Source__c": true,
+    //     "Work_Experience__c": true,
+    //     "Designation__c": true,
+    //     "Query__c": true
+    // }
+    // };
+
+                                  
+
+function validateForm() {
+
+    let isValid = true;
+
+    const mandatoryNames = ["first_name", "email", "phone"];
+        var phoneInput = document.getElementById("phone");
+
+if(phoneInput.value === "+91") {
+    phoneInput.value = "";
+}
+    mandatoryNames.forEach(function(name) {
+        const input = document.getElementsByName(name)[0];
+
+        if(input && !input.value.trim()) {
+            input.style.border = "2px solid red";
+            isValid = false;
+        } else if(input) {
+            input.style.border = "";
+        }
+    });
+
+    const allFieldDivs = document.querySelectorAll(".input-box");
+
+    allFieldDivs.forEach(function(div) {
+
+        if(div.offsetParent === null) return; 
+
+        const input = div.querySelector("input, select");
+        if(!input) return;
+
+        if(mandatoryNames.includes(input.name)) return;
+
+        if(!input.value.trim()) {
+            input.style.border = "2px solid red";
+            isValid = false;
+        } else {
+            input.style.border = "";
+        }
+    });
+
+    if(!isValid) {
+        alert("Please fill all required fields");
+        return false;
+    }
+    combinePhone();
+
+    submitFormToApex(
+    document.getElementsByName("first_name")[0].value,
+    document.getElementsByName("email")[0].value,
+    document.getElementById("phone").value,
+    programCode
+);
+
+    return true;
+}
+
+var rawVisibility = '{!JSENCODE(visibilityJSON)}';
+var fieldConfig = {};
+try {
+    if (rawVisibility && rawVisibility !== 'null') {
+        fieldConfig = JSON.parse(rawVisibility);
+    }
+} catch (e) {
+    console.error('Visibility JSON parse error:', e);
+}
+
+function applyFieldVisibility() {
+
+    console.log("Program:", programCode);
+
+    var config = fieldConfig;
+    if(!config) return;
+    console.log('Current Visibility is ',JSON.stringify(config))
+    var allFields = [
+        "Graduation__c",
+        "Work_Experience__c",
+        "Entrance_Exam__c",
+        "Entrance_Exam_Name__c",
+        "SPJIMRPartnerCompany__c",
+        "Current_Employer__c",
+        "Course__c",
+        "Current_Organization__c",
+        "Country__c",
+        "Current_Designation__c",
+        "Interested_Programme__c",
+        "Source__c",
+        "Designation__c",
+        "Query__c"
+    ];
+
+    allFields.forEach(function(field) {
+        var div = document.getElementById('field_' + field);
+        if (!div) return;
+        div.style.display = (config[field] === true) ? 'block' : 'none';
+    });
+
+    // allFields.forEach(function(field) {
+
+    //     var fieldDiv = document.getElementById("field_" + field);
+    //     if(!fieldDiv) return;
+
+    //     if(config[field] !== true) {
+    //         fieldDiv.style.display = "none";
+    //     } else {
+    //         fieldDiv.style.display = "block";
+    //     }
+    // });
+
+    // if(programCode === "PGDM-Online") {
+    //     document.getElementById("field_State").style.display = "none";
+    //     document.getElementById("field_City").style.display = "block";
+    //     document.getElementById("field_Country__c").style.display = "block";
+    // } else {
+    //     document.getElementById("field_State").style.display = "block";
+    //     document.getElementById("field_City").style.display = "block";
+
+    //     var countryField = document.getElementById("field_Country__c");
+    //     if(countryField) countryField.style.display = "none";
+    // }
+}
+                
+    
+		function combinePhone() {
+    var code = document.getElementById("code").value;
+    var phone = document.getElementById("phone");
+
+    
+    if(!phone.value.trim() || phone.value.startsWith("+")) return;
+
+    phone.value = code + phone.value;
+}
+            
+        function timestamp() {
+            var response = document.getElementById("g-recaptcha-response");
+            if (!response || response.value.trim() === "") {
+                var elems = JSON.parse(document.getElementsByName("captcha_settings")[0].value);
+                elems["ts"] = JSON.stringify(new Date().getTime());
+                document.getElementsByName("captcha_settings")[0].value = JSON.stringify(elems);
+            }
+        }
+        setInterval(timestamp, 500);
+            
+           function handleGraduationChange() {
+    var grad = document.getElementById("graduation").value;
+    var workExp = document.getElementById("workExp");
+
+    workExp.innerHTML = '<option value="">Years of Work Experience *</option>';
+
+    if (grad === "Yes") {
+        workExp.innerHTML += `
+            <option value="0-2">0-2</option>
+            <option value="2-3">2-3</option>
+            <option value="3+">More than 3 years</option>`;
+    } 
+    else if (grad === "No") {
+        workExp.innerHTML += `<option value="NA">N/A</option>`;
+    }
+}
+
+// Entrance Exam → Exam Name
+function handleExamChange() {
+    var exam = document.getElementById("exam").value;
+    var examName = document.getElementById("examName");
+
+    examName.innerHTML = '<option value="">Entrance Exam Name</option>';
+
+    if (exam === "Yes") {
+        examName.innerHTML += `
+            <option value="GRE">GRE</option>
+            <option value="GMAT">GMAT</option>
+            <option value="NMAT">NMAT</option>
+            <option value="CAT">CAT</option>
+            <option value="XAT">XAT</option>
+            <option value="GMAT Focus">GMAT Focus</option>`;
+    } 
+    else if (exam === "No") {
+        examName.innerHTML += `<option value="NA">N/A</option>`;
+    }
+}
+            
+            function resetDefaults() {
+    document.getElementById("workExp").innerHTML =
+        '<option value="">Years of Work Experience *</option>';
+
+    document.getElementById("examName").innerHTML =
+        '<option value="">Entrance Exam Name</option>';
+}
+            
+            window.onload = function() {
+        resetDefaults();
+                applyFieldVisibility();
+    };
+    </script>
+</head>
+
+<body>
+
+<div class="container">
+    <h2 class="heading-title">Enquire Now</h2>
+
+    <apex:form onsubmit=" return validateForm();">
+        <apex:actionFunction name="submitFormToApex"
+                     action="{!handleSubmit}"
+                     rerender="none">
+    <apex:param name="firstName" value="" assignTo="{!firstName}"/>
+    <apex:param name="email" value="" assignTo="{!email}"/>
+    <apex:param name="phone" value="" assignTo="{!phone}"/>
+    <apex:param name="programCode" value="" assignTo="{!programCode}"/>
+</apex:actionFunction>
+
+        <!-- CAPTCHA -->
+        <input type="hidden" name="captcha_settings"
+               value='{"keyname":"GoogleRecaptcha_v3","fallback":"true","orgId":"00DC1000002cd5h","ts":""}' />
+
+        <input type="hidden" name="oid" value="00DC1000002cd5h"/>
+        <input type="hidden" name="retURL" value="https://test.salesforce.com"/>
+
+        <!-- Name -->
+        <div class="input-box">
+            <span class="icon">👤</span>
+            <input name="first_name" type="text" placeholder="Enter Name *"/>
+        </div>
+
+        <!-- Email -->
+        <div class="input-box">
+            <span class="icon">✉️</span>
+            <input name="email" type="email" placeholder="Enter Email Address *"/>
+        </div>
+
+        <!-- Phone -->
+        <div class="row-phone">
+
+            <div class="input-box">
+                <span class="icon">📞</span>
+                <select id="code" style="padding-left:40px;">
+                    <option value="+91">(+91) India</option>
+
+                        <option value="+93">(+93) Afghanistan</option>
+                        <option value="+355">(+355) Albania</option>
+                        <option value="+213">(+213) Algeria</option>
+                        <option value="+376">(+376) Andorra</option>
+                        <option value="+244">(+244) Angola</option>
+                        <option value="+54">(+54) Argentina</option>
+                        <option value="+374">(+374) Armenia</option>
+                        <option value="+61">(+61) Australia</option>
+                        <option value="+43">(+43) Austria</option>
+                        <option value="+994">(+994) Azerbaijan</option>
+                    
+                        <!-- B -->
+                        <option value="+973">(+973) Bahrain</option>
+                        <option value="+880">(+880) Bangladesh</option>
+                        <option value="+375">(+375) Belarus</option>
+                        <option value="+32">(+32) Belgium</option>
+                        <option value="+229">(+229) Benin</option>
+                        <option value="+975">(+975) Bhutan</option>
+                        <option value="+591">(+591) Bolivia</option>
+                        <option value="+387">(+387) Bosnia and Herzegovina</option>
+                        <option value="+267">(+267) Botswana</option>
+                        <option value="+55">(+55) Brazil</option>
+                        <option value="+673">(+673) Brunei</option>
+                        <option value="+359">(+359) Bulgaria</option>
+                        <option value="+226">(+226) Burkina Faso</option>
+                        <option value="+257">(+257) Burundi</option>
+                    
+                        <!-- C -->
+                        <option value="+855">(+855) Cambodia</option>
+                        <option value="+237">(+237) Cameroon</option>
+                        <option value="+1">(+1) Canada</option>
+                        <option value="+238">(+238) Cape Verde</option>
+                        <option value="+236">(+236) Central African Republic</option>
+                        <option value="+235">(+235) Chad</option>
+                        <option value="+56">(+56) Chile</option>
+                        <option value="+86">(+86) China</option>
+                        <option value="+57">(+57) Colombia</option>
+                        <option value="+269">(+269) Comoros</option>
+                        <option value="+242">(+242) Congo</option>
+                        <option value="+243">(+243) DR Congo</option>
+                        <option value="+506">(+506) Costa Rica</option>
+                        <option value="+385">(+385) Croatia</option>
+                        <option value="+53">(+53) Cuba</option>
+                        <option value="+357">(+357) Cyprus</option>
+                        <option value="+420">(+420) Czech Republic</option>
+                    
+                        <!-- D -->
+                        <option value="+45">(+45) Denmark</option>
+                        <option value="+253">(+253) Djibouti</option>
+                    
+                        <!-- E -->
+                        <option value="+20">(+20) Egypt</option>
+                        <option value="+503">(+503) El Salvador</option>
+                        <option value="+240">(+240) Equatorial Guinea</option>
+                        <option value="+291">(+291) Eritrea</option>
+                        <option value="+372">(+372) Estonia</option>
+                        <option value="+268">(+268) Eswatini</option>
+                        <option value="+251">(+251) Ethiopia</option>
+                    
+                        <!-- F -->
+                        <option value="+679">(+679) Fiji</option>
+                        <option value="+358">(+358) Finland</option>
+                        <option value="+33">(+33) France</option>
+                    
+                        <!-- G -->
+                        <option value="+241">(+241) Gabon</option>
+                        <option value="+220">(+220) Gambia</option>
+                        <option value="+995">(+995) Georgia</option>
+                        <option value="+49">(+49) Germany</option>
+                        <option value="+233">(+233) Ghana</option>
+                        <option value="+30">(+30) Greece</option>
+                        <option value="+224">(+224) Guinea</option>
+                    
+                        <!-- H -->
+                        <option value="+509">(+509) Haiti</option>
+                        <option value="+504">(+504) Honduras</option>
+                        <option value="+36">(+36) Hungary</option>
+                    
+                        <!-- I -->
+                        <option value="+354">(+354) Iceland</option>
+                        <option value="+62">(+62) Indonesia</option>
+                        <option value="+98">(+98) Iran</option>
+                        <option value="+964">(+964) Iraq</option>
+                        <option value="+353">(+353) Ireland</option>
+                        <option value="+972">(+972) Israel</option>
+                        <option value="+39">(+39) Italy</option>
+                    
+                        <!-- J -->
+                        <option value="+81">(+81) Japan</option>
+                        <option value="+962">(+962) Jordan</option>
+                    
+                        <!-- K -->
+                        <option value="+7">(+7) Kazakhstan</option>
+                        <option value="+254">(+254) Kenya</option>
+                        <option value="+965">(+965) Kuwait</option>
+                    
+                        <!-- L -->
+                        <option value="+856">(+856) Laos</option>
+                        <option value="+371">(+371) Latvia</option>
+                        <option value="+961">(+961) Lebanon</option>
+                        <option value="+266">(+266) Lesotho</option>
+                        <option value="+231">(+231) Liberia</option>
+                        <option value="+218">(+218) Libya</option>
+                        <option value="+370">(+370) Lithuania</option>
+                        <option value="+352">(+352) Luxembourg</option>
+                    
+                        <!-- M -->
+                        <option value="+261">(+261) Madagascar</option>
+                        <option value="+265">(+265) Malawi</option>
+                        <option value="+60">(+60) Malaysia</option>
+                        <option value="+960">(+960) Maldives</option>
+                        <option value="+223">(+223) Mali</option>
+                        <option value="+356">(+356) Malta</option>
+                        <option value="+222">(+222) Mauritania</option>
+                        <option value="+230">(+230) Mauritius</option>
+                        <option value="+52">(+52) Mexico</option>
+                        <option value="+373">(+373) Moldova</option>
+                        <option value="+377">(+377) Monaco</option>
+                        <option value="+976">(+976) Mongolia</option>
+                        <option value="+212">(+212) Morocco</option>
+                        <option value="+258">(+258) Mozambique</option>
+                        <option value="+95">(+95) Myanmar</option>
+                    
+                        <!-- N -->
+                        <option value="+264">(+264) Namibia</option>
+                        <option value="+977">(+977) Nepal</option>
+                        <option value="+31">(+31) Netherlands</option>
+                        <option value="+64">(+64) New Zealand</option>
+                        <option value="+227">(+227) Niger</option>
+                        <option value="+234">(+234) Nigeria</option>
+                        <option value="+47">(+47) Norway</option>
+                    
+                        <!-- O -->
+                        <option value="+968">(+968) Oman</option>
+                    
+                        <!-- P -->
+                        <option value="+92">(+92) Pakistan</option>
+                        <option value="+970">(+970) Palestine</option>
+                        <option value="+51">(+51) Peru</option>
+                        <option value="+63">(+63) Philippines</option>
+                        <option value="+48">(+48) Poland</option>
+                        <option value="+351">(+351) Portugal</option>
+                    
+                        <!-- Q -->
+                        <option value="+974">(+974) Qatar</option>
+                    
+                        <!-- R -->
+                        <option value="+40">(+40) Romania</option>
+                        <option value="+7">(+7) Russia</option>
+                        <option value="+250">(+250) Rwanda</option>
+                    
+                        <!-- S -->
+                        <option value="+966">(+966) Saudi Arabia</option>
+                        <option value="+221">(+221) Senegal</option>
+                        <option value="+381">(+381) Serbia</option>
+                        <option value="+248">(+248) Seychelles</option>
+                        <option value="+232">(+232) Sierra Leone</option>
+                        <option value="+65">(+65) Singapore</option>
+                        <option value="+421">(+421) Slovakia</option>
+                        <option value="+386">(+386) Slovenia</option>
+                        <option value="+252">(+252) Somalia</option>
+                        <option value="+27">(+27) South Africa</option>
+                        <option value="+34">(+34) Spain</option>
+                        <option value="+94">(+94) Sri Lanka</option>
+                        <option value="+249">(+249) Sudan</option>
+                        <option value="+46">(+46) Sweden</option>
+                        <option value="+41">(+41) Switzerland</option>
+                    
+                        <!-- T -->
+                        <option value="+66">(+66) Thailand</option>
+                        <option value="+228">(+228) Togo</option>
+                        <option value="+216">(+216) Tunisia</option>
+                        <option value="+90">(+90) Turkey</option>
+                    
+                        <!-- U -->
+                        <option value="+256">(+256) Uganda</option>
+                        <option value="+971">(+971) UAE</option>
+                        <option value="+44">(+44) UK</option>
+                        <option value="+1">(+1) USA</option>
+                    
+                        <!-- V -->
+                        <option value="+58">(+58) Venezuela</option>
+                        <option value="+84">(+84) Vietnam</option>
+                    
+                        <!-- Z -->
+                        <option value="+260">(+260) Zambia</option>
+                        <option value="+263">(+263) Zimbabwe</option>
+
+                    
+                </select>
+            </div>
+
+            <div class="input-box">
+                <span class="icon">📱</span>
+                <input id="phone" name="phone" type="text" placeholder="Enter Mobile Number *"/>
+            </div>
+            
+            
+
+        </div>
+
+        <!-- Company (required by SF) -->
+        <input type="hidden" name="company" value="Website"/>
+
+        <div class="input-box" id="field_Country__c">
+    <span class="icon">🌍</span>
+    <input name="Country__c" type="text" placeholder="Enter Country"/>
+</div>
+
+
+        <div class="row-two">
+        
+            <div class="input-box" id="field_State">
+                <span class="icon">📍</span>
+                <input name="state" type="text" placeholder="Enter State"/>
+            </div>
+        
+            <div class="input-box" id="field_City">
+                <span class="icon">🏙️</span>
+                <input name="city" type="text" placeholder="Enter City"/>
+            </div>
+
+		</div>
+        
+<div class="input-box" id="field_Graduation__c">
+<span class="icon">🎓</span>
+<select id="graduation" name="Graduation__c" onchange="handleGraduationChange()">
+<option value="">Have you completed your graduation? *</option>
+<option>Yes</option>
+<option>No</option>
+</select>
+</div>
+
+<!-- Work Exp -->
+<div class="input-box" id="field_Work_Experience__c">
+<span class="icon">💼</span>
+<select id="workExp" name="Work_Experience__c">
+    <option value="">Years of Work Experience *</option>
+</select>
+   
+</div>
+
+<!-- Exam -->
+<div class="input-box" id="field_Entrance_Exam__c">
+<span class="icon">📝</span>
+<select id="exam" name="Entrance_Exam__c" onchange="handleExamChange()">
+<option value="">Do you have Entrance Exam Scores?</option>
+<option>Yes</option>
+<option>No</option>
+</select>
+</div>
+
+<!-- Exam Name -->
+<div class="input-box" id="field_Entrance_Exam_Name__c">
+<span class="icon">📚</span>
+<select id="examName" name="Entrance_Exam_Name__c">
+    <option value="">Entrance Exam Name</option>
+</select>
+</div>      
+       
+
+        <!-- reCAPTCHA -->
+        <div class="g-recaptcha" data-sitekey="6LdIKZcsAAAAAG5gjqUp-WmC7FHhpI6S-OC65bIO"></div><br/>
+	
+        <!-- Consent Checkbox -->
+        <div style="margin-top:15px;">
+    <input type="checkbox" id="consent"/>
+    <label for="consent">
+        I agree to receive information regarding my registration by signing up. *
+    </label>
+</div>
+        
+    
+   <apex:commandButton value="Register"
+                    onclick="return validateForm();"
+                    styleClass="btn-register"/>
+
+<div style="text-align:center; margin-top:12px;">
+    <a href="/login" class="login-link">
+        Already Registered? Login
+    </a>
+</div>
+    </apex:form>
+</div>
+
+</body>
+</apex:page>

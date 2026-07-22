@@ -1,0 +1,112 @@
+<apex:page controller="AddFeePlan" sidebar="false" showHeader="false">
+    
+    <html>
+        <apex:pagemessages />  
+        <apex:slds />
+        <style>  
+            
+
+            table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            }
+            
+            th, td {
+            text-align: left;
+            padding: 8px;
+            }
+            
+            tr:nth-child(even){background-color: #f2f2f2}
+            
+            .dateFormat{
+            visibility:hidden;            
+            }
+        </style>
+        <body class="slds-scope">
+            <apex:form >  <br/>
+                
+                <div class="slds-box" style="width: 98%;margin:auto">
+                    <apex:outputPanel id="sv1">
+                        <table  style="width:50%;margin:auto" class="slds-table slds-table_bordered  slds-table_col-bordered slds-table_resizable-cols slds-table_fixed-layout slds-border_right slds-border_left">  
+                            <tr class="slds-text-title_caps"> 
+                                <th style="background-color:#631856;color:white;" class="slds-text-align_center ">Level / Grade</th>
+                            <!---     <th style="background-color:#631856;color:white;" class="slds-text-align_center ">Fee Plan Type</th>   -->
+                            </tr>
+                            <tr>                                                                        
+                                <td>                                     
+                                    <apex:outputPanel id="fm1">
+                                        <div class="slds-select_container">  
+                                            <apex:selectList value="{!Rtid}" multiselect="false" styleClass="slds-select slds-form-element__control" required="true" size="1">
+                                                <apex:actionSupport event="onchange"  reRender="fm1,pdf" action="{!render}"/>
+                                                <apex:selectOptions value="{!programlist1}"  />
+                                            </apex:selectList>
+                                        </div>
+                                    </apex:outputPanel>
+                                </td>     
+                           <!---     <td>
+                                    <apex:outputPanel id="fm2">
+                                        <div class="slds-select_container">
+                                            <apex:selectList value="{!FeeId}" multiselect="false" styleClass="slds-select slds-form-element__control" required="true" size="1">
+                                                <apex:actionSupport event="onchange"  reRender="fm2,pdf" action="{!render}"/>
+                                                <apex:selectOptions value="{!feeplanlist}" />
+                                            </apex:selectList>
+                                        </div>
+                                    </apex:outputPanel>
+                                </td>   -->
+                            </tr>
+                        </table>
+                    </apex:outputPanel><br/>
+                    
+                    
+                    <apex:outputPanel id="pdf">
+                        <div style="display:{!if(Rtid==null, 'none', 'block')}">
+                            
+                            <apex:repeat value="{!sMap}" var="par">
+                                <table class="slds-table slds-table_bordered slds-scrollable--x slds-table_col-bordered slds-table_resizable-cols"  style="width:100%">  
+                                    <tr class="slds-text-align_center">
+                                        <td colspan='11' style="font-weight: 600;font-size: initial;" class="slds-text-align_center">
+                                            <apex:outputText value="{!par}"></apex:outputText></td>
+                                    </tr>
+                                    <tr > 
+                                        <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_center">Select</th>
+                                        <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_left">Fee Plan Name</th>
+                                        <th style="background-color:#631856;color:white;white-space: auto;width:10%" class="slds-text-align_left">Actual Fees</th>
+                                        <th style="background-color:#631856;color:white;white-space: auto;width:10%" class="slds-text-align_left">Total Amount</th>
+                                        <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_left">Tenure Type</th>
+                                        <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_left">Payment Type</th>  
+                                        <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_left">Tax Applicable</th>
+                                        <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_left">Benefit Applicable</th>
+                                        <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_left">Refund Applicable</th>
+                                        <th style="background-color:#631856;color:white;white-space: auto;" class="slds-text-align_left">Pro Rata Applicable</th>
+                                    </tr>
+                                    <br/>
+                                    <apex:repeat value="{!sMap[par]}" var="child"> 
+                                        <tr >
+                                            <td class="slds-text-align_center;" style="text-align:center"><apex:inputField value="{!child.Select__c}"/></td>
+                                            <td class="slds-text-align_left;"><apex:outputText value="{!child.Name}"/></td>
+                                            <td class="slds-text-align_left"><apex:outputField value="{!child.Actual_Fees__c}" /></td>
+                                            <td class="slds-text-align_left"><apex:outputField value="{!child.Total_Amount_with_Tax__c}" /></td>
+                                            <td class="slds-text-align_left"><apex:outputField value="{!child.Tenure_Type__c}"/></td>
+                                            <td class="slds-text-align_left"><apex:outputField value="{!child.Payment_Type__c}" /></td>
+                                            <td class="slds-text-align_center"><apex:outputField value="{!child.Tax_Applicable__c}" /></td>
+                                            <td class="slds-text-align_center"><apex:outputField value="{!child.Benefit_Applicable__c}" /></td>
+                                            <td class="slds-text-align_center"><apex:outputField value="{!child.Refund_Applicable__c}"/></td>
+                                            <td class="slds-text-align_center"><apex:outputField value="{!child.Pro_Rata_Fees_Applicable__c}" /></td>
+                                        </tr>   
+                                    </apex:repeat>
+                                </table>
+                            </apex:repeat>
+                            <div class="slds-scope" align="center" style="margin-top: 11px;"> 
+                                <apex:commandButton action="{!save}" value="Add Fee Plans" style="background-color: #631856;" styleClass="slds-button slds-button_brand"/>
+                                <apex:commandButton action="{!cancel}" value="Cancel" styleClass="slds-button slds-button_destructive"/>
+                            </div>
+                        </div>
+                    </apex:outputPanel>
+                </div>
+                <br/>
+            </apex:form>  
+        </body>
+    </html>
+</apex:page>

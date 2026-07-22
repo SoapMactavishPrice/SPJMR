@@ -1,0 +1,174 @@
+<template>
+    <lightning-card title="Available Program Courses" icon-name="standard:course">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+                <div class="slds-m-bottom_medium">
+                    <lightning-input
+                        type="search"
+                        label="Search Courses"
+                        value={searchKey}
+                        onchange={handleSearchChange}
+                        placeholder="Search by course name, number, or code..."
+                        class="slds-m-bottom_small">
+                    </lightning-input>
+                </div>
+
+                <template if:true={filteredCourses}>
+                    <div class="slds-scrollable_x">
+                        <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                            <thead>
+                                <tr class="slds-line-height_reset">
+                                    <th scope="col" style="width: 50px;">
+                                        <div class="slds-truncate" title="#">#</div>
+                                    </th>
+                                    <th scope="col">
+                                        <div class="slds-truncate" title="Course Name">Course Name</div>
+                                    </th>
+                                    <th scope="col">
+                                        <div class="slds-truncate" title="Course Number">Course Number</div>
+                                    </th>
+                                    <th scope="col">
+                                        <div class="slds-truncate" title="Program Course Code">Program Course Code</div>
+                                    </th>
+                                    <th scope="col" class="slds-text-align_center" style="width: 120px;">
+                                        <div class="slds-truncate" title="Multi Term">Multi Term</div>
+                                    </th>
+                                    <th scope="col" class="slds-text-align_center" style="width: 150px;">
+                                        <div class="slds-truncate" title="Status">Status</div>
+                                    </th>
+                                    <th scope="col" class="slds-text-align_center" style="width: 150px;">
+                                        <div class="slds-truncate" title="Action">Action</div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={filteredCourses} for:item="course" for:index="index">
+                                    <tr key={course.programCourseId} class="slds-hint-parent">
+                                        <td>
+                                            <div class="slds-truncate">{course.rowNumber}</div>
+                                        </td>
+                                        <td>
+                                            <div class="slds-truncate" title={course.courseName}>{course.courseName}</div>
+                                        </td>
+                                        <td>
+                                            <div class="slds-truncate" title={course.courseNumber}>{course.courseNumber}</div>
+                                        </td>
+                                        <td>
+                                            <div class="slds-truncate" title={course.programCourseCode}>{course.programCourseCode}</div>
+                                        </td>
+                                        <td class="slds-text-align_center">
+                                            <template if:true={course.isMultiTerm}>
+                                                <lightning-icon icon-name="utility:check" size="small" class="slds-icon-text-success"></lightning-icon>
+                                            </template>
+                                            <template if:false={course.isMultiTerm}>
+                                                <lightning-icon icon-name="utility:close" size="small" class="slds-icon-text-default"></lightning-icon>
+                                            </template>
+                                        </td>
+                                        <td class="slds-text-align_center">
+                                            <template if:true={course.isAlreadyOffered}>
+                                                <span class="slds-badge slds-badge_success">Already Offered</span>
+                                            </template>
+                                            <template if:false={course.isAlreadyOffered}>
+                                                <span class="slds-badge slds-badge_inverse">Available</span>
+                                            </template>
+                                        </td>
+                                        <td class="slds-text-align_center">
+                                            <lightning-button
+                                                label="Select"
+                                                variant="brand"
+                                                data-course-id={course.programCourseId}
+                                                onclick={handleSelectCourse}
+                                                disabled={course.isAlreadyOffered}
+                                                class="slds-m-vertical_x-small">
+                                            </lightning-button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
+
+                <template if:false={filteredCourses}>
+                    <div class="slds-text-align_center slds-p-vertical_large">
+                        <p class="slds-text-heading_medium">No courses available</p>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+
+    <!-- Modal for Date Selection -->
+    <template if:true={showModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_medium" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Create Course Offering</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                    <template if:true={selectedCourse}>
+                        <div class="slds-m-bottom_medium">
+                            <p><strong>Course:</strong> {selectedCourse.courseName}</p>
+                            <p><strong>Course Number:</strong> {selectedCourse.courseNumber}</p>
+                            <template if:true={selectedCourse.isMultiTerm}>
+                                <p class="slds-text-color_success"><strong>Multi-Term Course</strong></p>
+                            </template>
+                        </div>
+
+                        <lightning-input
+                            type="date"
+                            label="Start Date"
+                            value={startDate}
+                            onchange={handleStartDateChange}
+                            required
+                            class="slds-m-bottom_medium">
+                        </lightning-input>
+
+                        <lightning-input
+                            type="date"
+                            label="End Date"
+                            value={endDate}
+                            onchange={handleEndDateChange}
+                            required
+                            class="slds-m-bottom_medium">
+                        </lightning-input>
+
+                        <template if:true={showEvaluationTerm}>
+                            <lightning-combobox
+                                label="Evaluation Term"
+                                value={evaluationTermId}
+                                options={academicTerms}
+                                onchange={handleEvaluationTermChange}
+                                required
+                                class="slds-m-bottom_medium">
+                            </lightning-combobox>
+                        </template>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        onclick={handleCloseModal}
+                        class="slds-m-right_small">
+                    </lightning-button>
+                    <lightning-button
+                        label="Save"
+                        variant="brand"
+                        onclick={handleSaveOffering}
+                        disabled={isSaveDisabled}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

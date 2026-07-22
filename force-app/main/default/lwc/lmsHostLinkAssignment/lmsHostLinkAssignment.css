@@ -1,0 +1,13 @@
+.slds-truncate {
+    max-width: 16rem;
+}
+
+/* Plain hex only — do not use --lwc-palette* or other internal design tokens in custom LWCs. */
+.host-link-accordion {
+    --sds-c-accordion-summary-color-background: #f3f2f2;
+}
+
+.host-link-accordion .acc-section-body {
+    max-height: 22rem;
+    overflow: auto;
+}

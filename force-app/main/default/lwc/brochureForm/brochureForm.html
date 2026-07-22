@@ -1,0 +1,189 @@
+<!-- <template>
+    <div class="form-wrapper">
+        <lightning-card title="Download brochure" icon-name="action:download">
+            <div class="slds-p-around_medium">
+                <p class="form-subtitle">Please fill in the following details</p>
+
+                <form onsubmit={handleSubmit} class="form-grid">
+                    <lightning-input name="Name" label="Full Name" required value={formData.Name}
+                        onchange={handleChange}></lightning-input>
+
+                    <lightning-input name="Email" label="Email ID" type="email" required value={formData.Email}
+                        onchange={handleChange}></lightning-input>
+
+                    <lightning-input name="Phone" label="Mobile Number" type="tel" required pattern="[0-9]{10}"
+                        message-when-pattern-mismatch="Enter a valid 10-digit number" value={formData.Phone}
+                        onchange={handleChange}></lightning-input>
+
+                    <lightning-input name="City" label="City" required value={formData.City}
+                        onchange={handleChange}></lightning-input>
+
+                    <lightning-input name="State" label="State" required value={formData.State}
+                        onchange={handleChange}></lightning-input>
+
+                    <div class="captcha-section full-width">
+                        <div class="captcha-row">
+                            <div class="captcha-box">{captchaText}</div>
+                            <lightning-input name="Captcha" label="Enter Captcha" required value={formData.Captcha}
+                                onchange={handleChange} class="captcha-input" variant="label-stacked">
+                            </lightning-input>
+                        </div>
+                    </div>
+
+
+                    <div class="submit-container full-width">
+                        <button class="submit-button" type="submit">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </lightning-card>
+    </div>
+</template> -->
+
+<!-- <template>
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
+            class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+\                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={closeModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close"
+                            size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-text-heading_medium">Download Brochure</h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                    <p class="form-subtitle">Please fill in the following details</p>
+
+                    <form onsubmit={handleSubmit} class="form-grid">
+                        <lightning-input name="Name" label="Full Name" required value={formData.Name}
+                            onchange={handleChange}></lightning-input>
+
+                        <lightning-input name="Email" label="Email ID" type="email" required value={formData.Email}
+                            onchange={handleChange}></lightning-input>
+
+                        <lightning-input name="Phone" label="Mobile Number" type="tel" required pattern="[0-9]{10}"
+                            message-when-pattern-mismatch="Enter a valid 10-digit number" value={formData.Phone}
+                            onchange={handleChange}></lightning-input>
+
+                        <lightning-input name="City" label="City" required value={formData.City}
+                            onchange={handleChange}></lightning-input>
+
+                        <lightning-input name="State" label="State" required value={formData.State}
+                            onchange={handleChange}></lightning-input>
+
+                        <div class="captcha-section full-width">
+                            <div class="captcha-row">
+                                <div class="captcha-box">{captchaText}</div>
+                                <lightning-input name="Captcha" label="Enter Captcha" required value={formData.Captcha}
+                                    onchange={handleChange} class="captcha-input" variant="label-stacked">
+                                </lightning-input>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
+                    <lightning-button variant="brand" label="Submit" onclick={handleSubmit}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template> -->
+
+
+<template>
+    <!-- <lightning-button variant="brand" label="Download Brochure" onclick={openModal}></lightning-button> -->
+
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
+            class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={closeModal}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close"
+                            size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="modal-heading-01" class="slds-text-heading_medium">{modalTitle}</h2>
+                </header>
+                <template if:false={isSubmitted}>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <p class="form-subtitle">Please fill in the following details</p>
+                        <form onsubmit={handleSubmit} class="form-grid">
+                            <lightning-input name="Name" label="Full Name" required value={formData.Name}
+                                onchange={handleChange} variant="label-hidden" placeholder="Full Name"
+                                class="my-custom-input"></lightning-input>
+
+                            <lightning-input name="Email" label="Email ID" type="email" required value={formData.Email}
+                                onchange={handleChange} variant="label-hidden" placeholder="Email ID"
+                                class="my-custom-input"></lightning-input>
+
+                            <lightning-input name="Phone" label="Mobile Number" type="tel" required pattern="[0-9]{10}"
+                                message-when-pattern-mismatch="Enter a valid 10-digit number" value={formData.Phone}
+                                onchange={handleChange} variant="label-hidden" placeholder="Mobile Number"
+                                class="my-custom-input"></lightning-input>
+
+                            <lightning-input name="City" label="City" required value={formData.City}
+                                onchange={handleChange} variant="label-hidden" placeholder="City"
+                                class="my-custom-input"></lightning-input>
+
+                            <lightning-input name="State" label="State" required value={formData.State}
+                                onchange={handleChange} variant="label-hidden" placeholder="State"
+                                class="my-custom-input"></lightning-input>
+
+                            <!-- <div class="captcha-section full-width">
+                            <div class="captcha-row">
+                                <div class="captcha-box">{captchaText}</div>
+                                <lightning-input name="Captcha" label="Enter Captcha" required value={formData.Captcha}
+                                    onchange={handleChange} class="captcha-input" variant="label-hidden"
+                                    placeholder="Enter Captcha">
+                                </lightning-input>
+                            </div>
+                        </div> -->
+
+                            <div class="captcha-section full-width">
+                                <div class="captcha-row">
+                                    <div class="captcha-box">{captchaText}</div>
+                                    <lightning-input name="Captcha" label="Enter Captcha" required
+                                        value={formData.Captcha} onchange={handleChange} class="captcha-input"
+                                        variant="label-hidden" placeholder="Enter Captcha">
+                                    </lightning-input>
+                                </div>
+                            </div>
+
+                            <!-- <div class="submit-container full-width slds-m-top_medium">
+                            <button label="Submit" class="submit-button" type="submit"></button>
+                        </div> -->
+                            <div class="submit-container full-width">
+                                <button class="submit-button" type="submit">Submit</button>
+                            </div>
+                        </form>
+                    </div>
+                </template>
+
+                <template if:true={isSubmitted}>
+                    <div class="slds-modal__content slds-p-around_medium thankyou-container">
+                        <img src={imageUrl} alt="SPJIMR Logo" class="thankyou-logo" />
+                        <!-- <p class="thankyou-text">
+                            Thank you for your interest! <br />
+                            You will be redirected to the brochure shortly. Please keep checking your mailbox regularly
+                            for more updates from SPJIMR!
+                        </p> -->
+                        <lightning-formatted-rich-text class="thankyou-text"
+                            value={brochureThankYouText}></lightning-formatted-rich-text>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+</template>

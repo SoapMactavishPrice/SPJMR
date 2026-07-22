@@ -1,0 +1,118 @@
+<template>
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="b2c-lead-title">
+        <div class="modal-container">
+            <!-- Header -->
+            <header class="modal-header">
+                <h2 id="b2c-lead-title" class="modal-title">
+                    Create B2C Lead
+                </h2>
+                <button type="button"
+                        class="modal-close"
+                        onclick={handleCancel}
+                        aria-label="Close">
+                    ×
+                </button>
+            </header>
+
+            <!-- Body -->
+            <div class="modal-body">
+                <lightning-messages></lightning-messages>
+
+                <template if:true={errorMessage}>
+                    <div class="slds-m-bottom_medium slds-theme_error slds-p-around_small">
+                        {errorMessage}
+                    </div>
+                </template>
+
+                <div class="slds-form slds-form_stacked">
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                class="slds-m-bottom_medium"
+                                label="First Name"
+                                type="text"
+                                value={firstName}
+                                onchange={handleFirstNameChange}
+                                placeholder="Enter First Name">
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                class="slds-m-bottom_medium"
+                                label="Last Name"
+                                type="text"
+                                value={lastName}
+                                onchange={handleLastNameChange}
+                                placeholder="Enter Last Name"
+                                required>
+                            </lightning-input>
+                        </div>
+                    </div>
+
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                class="slds-m-bottom_medium"
+                                label="Company"
+                                type="text"
+                                value={company}
+                                onchange={handleCompanyChange}
+                                placeholder="Enter Company Name"
+                                required>
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                class="slds-m-bottom_medium"
+                                label="Email"
+                                type="email"
+                                value={email}
+                                onchange={handleEmailChange}
+                                placeholder="Enter Email">
+                            </lightning-input>
+                        </div>
+                    </div>
+
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                class="slds-m-bottom_medium"
+                                label="Phone"
+                                type="tel"
+                                value={phone}
+                                onchange={handlePhoneChange}
+                                placeholder="Enter Phone">
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-combobox
+                                class="slds-m-bottom_medium"
+                                label="Status"
+                                value={status}
+                                options={statusOptions}
+                                onchange={handleStatusChange}>
+                            </lightning-combobox>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="modal-footer">
+                <lightning-button
+                    label="Cancel"
+                    onclick={handleCancel}
+                    variant="neutral"
+                    class="slds-m-right_small">
+                </lightning-button>
+
+                <lightning-button
+                    variant="brand"
+                    label="Save"
+                    onclick={handleSave}
+                    disabled={isSaving}>
+                </lightning-button>
+            </footer>
+        </div>
+    </div>
+</template>

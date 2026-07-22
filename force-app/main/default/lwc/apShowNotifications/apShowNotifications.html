@@ -1,0 +1,32 @@
+<template>
+    <template lwc:if={loading}>
+        <div class="loading">Loading notifications...</div>
+    </template>
+
+    <template lwc:else>
+        <template lwc:if={notifications.length}>
+            <ul class="notif-list">
+                <template for:each={notifications} for:item="notif">
+                    <li key={notif.Id} class="notif-item">
+                        <div class="notif-title">{notif.Title__c}</div>
+                        <div class="notif-message">{notif.Message__c}</div>
+                        <div class="notif-date"> <lightning-formatted-date-time
+                value={notif.CreatedDate}
+                year="numeric"
+                month="long"
+                day="2-digit"
+                hour="2-digit"
+                minute="2-digit"
+                second="2-digit"
+                time-zone-name="short"
+            ></lightning-formatted-date-time></div>
+                    </li>
+                </template>
+            </ul>
+        </template>
+
+        <template lwc:else>
+            <p>No notifications found.</p>
+        </template>
+    </template>
+</template>

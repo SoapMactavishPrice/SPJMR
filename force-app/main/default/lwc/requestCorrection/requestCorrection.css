@@ -1,0 +1,64 @@
+.section-block {
+    background: #ffffff;
+    border: 1px solid #d8dde6; /* Salesforce soft grey border */
+    border-radius: 0.5rem; /* smooth rounded corners */
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.section-block:hover {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.section-block h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #032d60; /* Salesforce dark blue */
+    margin-bottom: 0.8rem;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 0.3rem;
+}
+
+.field-block {
+    display: flex;
+    flex-direction: column;
+    background: #f9fbfd;
+    border: 1px dashed #d0d6e1;
+    border-radius: 0.4rem;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+}
+
+.row-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #4b4b4b;
+    margin-top: 0.75rem;
+}
+
+lightning-input,
+lightning-textarea {
+    margin-top: 0.4rem;
+    margin-bottom: 0.4rem;
+}
+
+.slds-button_brand {
+    background-color: #0176d3;
+}
+
+.slds-button_brand:hover {
+    background-color: #025cb7;
+}
+
+/* Make the entire layout responsive */
+@media screen and (max-width: 768px) {
+    .section-block {
+        padding: 0.8rem;
+    }
+    .field-block {
+        padding: 0.6rem;
+    }
+}

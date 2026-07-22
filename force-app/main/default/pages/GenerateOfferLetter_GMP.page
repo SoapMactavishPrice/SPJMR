@@ -1,0 +1,274 @@
+<apex:page controller="GenerateGMPOfferLetterController"
+           renderAs="pdf"
+           showHeader="false"
+           sidebar="false"
+           applyHtmlTag="false"
+           applyBodyTag="false">
+
+<html>
+<body style="font-family: Arial, sans-serif; font-size: 11pt; color: #111; margin: 40pt;">
+
+    <!-- Header -->
+    <div style="text-align:right; font-weight:600; margin-bottom:20px;">
+        S.P. Jain Institute of Management and Research
+    </div>
+
+    <!-- Greeting -->
+    <div style="margin-bottom:14px;">
+        Dear {!ApplicantName},
+    </div>
+
+    <!-- Subject -->
+    <div style="font-weight:600; margin-bottom:14px;">
+        Sub: Admission to Global Management Programme (GMP) 2025 - June Cohort
+    </div>
+
+    <!-- Intro -->
+    <div style="line-height:1.5; margin-bottom:14px;">
+        Congratulations! You are selected for the Global Management Programme (GMP).
+        GMP will commence on <b>{!ProgrammeStartDate}</b>.
+        You can report on campus on <b>{!CampusReportingDate}</b>.
+        Hostel details will be provided closer to the date.
+    </div>
+
+    <!-- Fees Heading -->
+    <div style="font-weight:600; margin-bottom:8px;">
+        GMP Fees Payable in INR to SPJIMR, Mumbai
+    </div>
+
+    <!-- Fees Table -->
+    <table style="width:100%; border-collapse:collapse; font-size:10.5pt; margin-bottom:14px;">
+        <tr>
+            <th style="border:1px solid #444; padding:6px;">Fee Component</th>
+            <th style="border:1px solid #444; padding:6px;">Amount (INR)</th>
+            <th style="border:1px solid #444; padding:6px;">Remarks</th>
+            <th style="border:1px solid #444; padding:6px;">Payment Date</th>
+        </tr>
+
+        <tr>
+            <td style="border:1px solid #444; padding:6px;">Preparatory Term (Online) Fees*</td>
+            <td style="border:1px solid #444; padding:6px;">1,30,000</td>
+            <td style="border:1px solid #444; padding:6px;">Non-refundable</td>
+            <td style="border:1px solid #444; padding:6px;">April 11, 2025</td>
+        </tr>
+
+        <tr>
+            <td style="border:1px solid #444; padding:6px;">Tuition Fees**</td>
+            <td style="border:1px solid #444; padding:6px;">5,00,000</td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+            <td style="border:1px solid #444; padding:6px;">May 15, 2025</td>
+        </tr>
+
+        <tr>
+            <td style="border:1px solid #444; padding:6px;">Computer &amp; IT Services Fees</td>
+            <td style="border:1px solid #444; padding:6px;">20,000</td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+        </tr>
+
+        <tr>
+            <td style="border:1px solid #444; padding:6px;">Library, Online Courses &amp; Database Fees</td>
+            <td style="border:1px solid #444; padding:6px;">30,000</td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+        </tr>
+
+        <tr>
+            <td style="border:1px solid #444; padding:6px;">Development Fees</td>
+            <td style="border:1px solid #444; padding:6px;">50,000</td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+        </tr>
+
+        <tr style="font-weight:600;">
+            <td style="border:1px solid #444; padding:6px;">Total Fees in INR</td>
+            <td style="border:1px solid #444; padding:6px;">7,30,000</td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+        </tr>
+
+        <tr>
+            <td style="border:1px solid #444; padding:6px;">Hostel Fees (Approx)</td>
+            <td style="border:1px solid #444; padding:6px;">74,250</td>
+            <td style="border:1px solid #444; padding:6px;">Available on first come basis</td>
+            <td style="border:1px solid #444; padding:6px;">May 15, 2025</td>
+        </tr>
+
+        <tr>
+            <td style="border:1px solid #444; padding:6px;">Mess (Approx) – Not payable to SPJIMR</td>
+            <td style="border:1px solid #444; padding:6px;">60,000</td>
+            <td style="border:1px solid #444; padding:6px;">Based on Individual</td>
+            <td style="border:1px solid #444; padding:6px;">May 20, 2025</td>
+        </tr>
+
+        <tr style="font-weight:600;">
+            <td style="border:1px solid #444; padding:6px;">Total Fees in India</td>
+            <td style="border:1px solid #444; padding:6px;">8,64,250</td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+            <td style="border:1px solid #444; padding:6px;"></td>
+        </tr>
+    </table>
+
+    <!-- Legal / Important Text -->
+    <!-- ================= LEGAL / IMPORTANT TERMS ================= -->
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    Admission will be confirmed upon payment of INR 1,53,400/- 
+    (i.e., INR 1,30,000 (Preparatory Term Fees) + INR 23,400 (18% GST)).
+    GST No. 27AAATB1693E7ZR.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    Preparatory Term Fees are Non - Refundable.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    All payments are to be made online. In “Remarks” please add 
+    “GMP &lt;your name&gt;” and mail a screenshot and transaction details to
+    <b>gmp.admissions@spjimr.org</b> with the subject line
+    “Preparatory Term Fees towards GMP”.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    <b>**</b> Cancellation of admission till May 19, 2025 will be subject to a
+    10 percent deduction of tuition fees. From May 20, 2025 no fees other than
+    hostel fees will be refunded.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    You must have a Windows laptop with Registered Microsoft 365 Cloud version installed.
+    Configuration requirements attached. Apple Laptop not allowed.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    Please carry all original documents that were submitted before interviews.
+    These will be verified during registration. Failure to produce the same or
+    any discrepancy between the original documents and the information furnished
+    in your application form shall be construed as a misstatement of facts and
+    will render the offer of admission invalid.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    All claims/disputes must be settled under Mumbai jurisdiction only.
+</div>
+
+<div style="font-weight:600; margin-top:14px; margin-bottom:6px;">
+    Important:
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    Preparatory Term (Online Harvard Module) to be completed by April 30, 2025 with 95%.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    Tuition Fees for language courses (A1 &amp; A2 level) will be borne by SPJIMR.
+    However, payment for exam fees for foreign language courses conducted by
+    Goethe, Alliance Française, etc. have to be paid directly to the respective institutes.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    A cheque of INR 50,000/- dated 15/12/25 has to be deposited at the GMP office
+    on the date of registration. The cheque will be encashed at the end of the
+    academic year if the attendance in the language classes is less than 85%.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    Hostel to be vacated as per the validity mentioned on the ID card.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    English Proficiency (IELTS/TOFEL/PTE) is required by the Consulate for VISA.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    The APS/WES/VISA process is not under the control of SPJIMR or the Partner School.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:14px;">
+    Please apply for transcripts from your college and for a passport if you don't have one.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:20px;">
+    This offer stands valid considering all academic, financial requirements and
+    deadlines are met, as per the schools and respective authorities.
+</div>
+
+<div style="margin-bottom:20px;">
+    We look forward to welcoming you to the GMP Batch of 2025.
+</div>
+
+<div style="margin-bottom:30px;">
+    Yours sincerely,<br/><br/>
+    <b>Prof. Milind Kamat</b><br/>
+    Chairperson, GMP
+</div>
+
+<!-- ================= PAGE BREAK ================= -->
+<div style="page-break-before:always;"></div>
+
+<!-- ================= ANNEXURE 1 ================= -->
+
+<div style="font-weight:600; margin-bottom:12px;">
+    Annexure 1
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:12px;">
+    As per your preference EBS has offered the MS Finance Programme to you.
+    After successful completion of GMP, EBS Business School,
+    Oestrich-Winkel, Germany, will accept the credits you acquired at GMP towards it.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:12px;">
+    The MS Programme of EBS for GMP students starts from January 2026.
+</div>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:14px;">
+    Please check the website for details.
+</div>
+
+<!-- EBS Fees Table -->
+<table style="width:100%; border-collapse:collapse; font-size:10.5pt; margin-bottom:14px;">
+    <tr>
+        <th style="border:1px solid #444; padding:6px;">Payable in EUR to EBS</th>
+        <th style="border:1px solid #444; padding:6px;">Approximate Payment Date</th>
+    </tr>
+    <tr>
+        <td style="border:1px solid #444; padding:6px;">Tuition Fees – 12,000 (6000 x 2)</td>
+        <td style="border:1px solid #444; padding:6px;">Sep 2025 / Jan 2026</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #444; padding:6px;">Enrolment Fees – 690</td>
+        <td style="border:1px solid #444; padding:6px;">July 2025</td>
+    </tr>
+    <tr>
+        <td style="border:1px solid #444; padding:6px;">Semester Ticket – 400 (200 x 2 approx.)</td>
+        <td style="border:1px solid #444; padding:6px;">Sep 2025 / Jan 2026</td>
+    </tr>
+</table>
+
+<div style="font-size:10.5pt; line-height:1.5; margin-bottom:10px;">
+    The details of the mode of payment will be communicated in the offer letter from EBS.
+</div>
+
+<div style="font-weight:600; margin-bottom:8px;">
+    Additional Estimated Cost
+</div>
+
+<table style="width:100%; border-collapse:collapse; font-size:10.5pt;">
+    <tr><td style="border:1px solid #444; padding:6px;">Blocked Account</td><td style="border:1px solid #444; padding:6px;">EUR 11,904 (992 x 12 months)</td></tr>
+    <tr><td style="border:1px solid #444; padding:6px;">Initial Rent Deposit</td><td style="border:1px solid #444; padding:6px;">EUR 650 (approx.)</td></tr>
+    <tr><td style="border:1px solid #444; padding:6px;">Medical Insurance</td><td style="border:1px solid #444; padding:6px;">INR 50,000</td></tr>
+    <tr><td style="border:1px solid #444; padding:6px;">APS Charges</td><td style="border:1px solid #444; padding:6px;">INR 18,000</td></tr>
+    <tr><td style="border:1px solid #444; padding:6px;">Air Ticket</td><td style="border:1px solid #444; padding:6px;">INR 40,000 (approx.)</td></tr>
+    <tr><td style="border:1px solid #444; padding:6px;">Visa Charges</td><td style="border:1px solid #444; padding:6px;">INR 12,000</td></tr>
+    <tr><td style="border:1px solid #444; padding:6px;">Contingency Funds</td><td style="border:1px solid #444; padding:6px;">INR 2,00,000</td></tr>
+    <tr style="font-weight:600;">
+        <td style="border:1px solid #444; padding:6px;">Approximate Total Cost towards EBS (INR)</td>
+        <td style="border:1px solid #444; padding:6px;">INR 26,80,000</td>
+    </tr>
+</table>
+
+
+</body>
+</html>
+</apex:page>

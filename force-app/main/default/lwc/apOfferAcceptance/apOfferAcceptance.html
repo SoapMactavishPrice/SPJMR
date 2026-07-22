@@ -1,0 +1,86 @@
+<template>
+    <div class="container">
+
+        <!-- Page Title -->
+        <h1 class="title">Offer and Acceptance</h1>
+
+        <!-- Offer List -->
+        <template if:true={offers}>
+            <template for:each={offers} for:item="offer">
+                <div key={offer.admissionDecisionId} class="offer-card">
+
+                    <!-- Label -->
+                    <div class="label">Offer - {offer.ProgramName}</div>
+
+                    <!-- Buttons -->
+                     <template lwc:if={offer.offerDeclined}>
+                        Rejected!
+                     </template>
+                     <template lwc:elseif={offer.offerAccepted}>
+                         <button class="btn btn-withdraw"
+                                        data-id={offer.applicationId}
+                                        data-admid={offer.admissionDecisionId}
+                                        onclick={handleWithdraw}
+                                        >
+                                    Withdraw Offer
+                                </button>
+                            </template>
+                        <template lwc:elseif={offer.isWithdrawDisabled}>
+                           Offer Withdrawn
+                        </template>
+                       
+                      
+                        
+                        
+                            
+                       
+                  
+                     
+                        <template lwc:if={offer.showButtons}>
+                        <div class="actions">
+                        
+                        <!-- DOWNLOAD -->
+                        <button class="btn btn-outline"
+                                data-id={offer.offerLetterLink}
+                                onclick={handleDownload}>
+                            Download Offer
+                        </button>
+
+                        <!-- ACCEPT -->
+                        <button class="btn btn-accept"
+                                data-id={offer.admissionDecisionId}
+                                data-admid={offer.admissionDecisionId}
+                                onclick={handleAccept}
+                                disabled={isDisabled}>
+                            Accept
+                        </button>
+
+                        <!-- REJECT -->
+                        <button class="btn btn-reject"
+                                data-id={offer.applicationId}
+                                data-admid={offer.admissionDecisionId}
+                                onclick={handleReject}
+                                disabled={isDisabled}>
+                            Reject
+                        </button>
+                        
+                        </div>
+                        </template>
+                    
+                    
+                </div>
+                <template lwc:if={offer.selectedAccepted}>
+                        <c-ap-offer-acceptance-child key={offer.admissionId} admission-id={offer.admissionDecisionId}
+                        application-id={offer.applicationId} onupdateadmissionaccept={handleUpdateAdmissionAccept}></c-ap-offer-acceptance-child>
+                </template>
+                
+            </template>
+        </template>
+
+        <!-- No Offers -->
+        <template if:false={offers}>
+            <p>No offers available.</p>
+        </template>
+
+    </div>
+</template>

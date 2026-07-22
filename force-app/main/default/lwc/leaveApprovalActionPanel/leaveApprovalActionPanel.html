@@ -1,0 +1,104 @@
+<template>
+    <lightning-card title="Leave Approval">
+
+        <!-- 🔄 Spinner -->
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Processing"></lightning-spinner>
+        </template>
+
+        <div class="container">
+
+            <!-- ================= PROGRAMME OFFICE ================= -->
+            <template if:true={isProgrammeOffice}>
+
+                <div class="section">
+
+                    <lightning-radio-group
+                        label="Select Action"
+                        options={poDecisionOptions}
+                        value={decision}
+                        onchange={handlePODecision}>
+                    </lightning-radio-group>
+
+                </div>
+
+            </template>
+
+            <!-- ================= MANAGER / DEPUTY ================= -->
+            <template if:true={isManagerOrDeputy}>
+
+                <div class="section">
+
+                    <!-- 🔘 Main Decision -->
+                    <lightning-radio-group
+                        label="Final Decision"
+                        options={mainDecisionOptions}
+                        value={decision}
+                        onchange={handleDecision}>
+                    </lightning-radio-group>
+
+                    <!-- ☑️ Extra Options -->
+                    <div class="checkbox-group">
+
+                        <lightning-input
+                            type="checkbox"
+                            label="Eligible for Makeup"
+                            checked={eligibleForMakeup}
+                            onchange={handleEligible}>
+                        </lightning-input>
+
+                        <lightning-input
+                            type="checkbox"
+                            label="Not Eligible for Makeup"
+                            checked={notEligibleForMakeup}
+                            onchange={handleNotEligible}>
+                        </lightning-input>
+
+                        <lightning-input
+                            type="checkbox"
+                            label="Incomplete"
+                            checked={incomplete}
+                            onchange={handleIncomplete}>
+                        </lightning-input>
+
+                    </div>
+
+                    <!-- 🔁 Route to Deputy -->
+                    <template if:true={isManager}>
+                        <lightning-input
+                            class="route-checkbox"
+                            type="checkbox"
+                            label="Route to Deputy"
+                            checked={routeToDeputy}
+                            disabled={isRouteDisabled}
+                            onchange={handleDeputy}>
+                        </lightning-input>
+                    </template>
+
+                </div>
+
+            </template>
+<br>
+            <!-- 📝 Remarks -->
+            <div class="section">
+                <lightning-textarea
+                    label="Remarks"
+                    value={remarks}
+                    onchange={handleRemarks}>
+                </lightning-textarea>
+            </div>
+<br>
+            <!-- 🚀 Process Button -->
+            <div class="button-container">
+                <lightning-button
+                    label="Process Application"
+                    variant="brand"
+                    onclick={handleProcess}
+                    disabled={isLoading}>
+                </lightning-button>
+            </div>
+
+        </div>
+
+    </lightning-card>
+</template>

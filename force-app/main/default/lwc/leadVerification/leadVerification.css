@@ -1,0 +1,52 @@
+.brand-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f5eef9 0%, #fff6ec 100%);
+}
+
+.brand-card {
+    width: 100%;
+    max-width: 640px;
+    background: #ffffff;
+    border-radius: 1rem;
+    border-top: 6px solid #531f75;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    padding: 2rem 1.5rem;
+}
+
+.brand-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.brand-logo {
+    max-width: 220px;
+    width: 100%;
+    height: auto;
+}
+
+.brand-subtitle {
+    margin-top: 0.85rem;
+    color: #531f75;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.status-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    text-align: center;
+    color: #1f1f1f;
+    min-height: 64px;
+}
+
+.status-text {
+    font-size: 1.15rem;
+    font-weight: 600;
+}

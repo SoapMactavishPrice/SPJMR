@@ -1,0 +1,123 @@
+<template>
+    <lightning-card title="Convert B2C Lead" icon-name="standard:lead">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-p-around_large">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={isAlreadyConverted}>
+                    <div class="slds-notify slds-notify_alert slds-alert_warning" role="alert">
+                        <span class="slds-assistive-text">warning</span>
+                        <lightning-icon icon-name="utility:warning" alternative-text="Warning" size="small" class="slds-m-right_x-small"></lightning-icon>
+                        <h2>This lead has already been converted.</h2>
+                    </div>
+                </template>
+
+                <template if:false={isAlreadyConverted}>
+                    <template if:false={conversionComplete}>
+                        <!-- Lead Details -->
+                        <div class="slds-section slds-is-open">
+                            <h3 class="slds-section__title">
+                                <span class="slds-truncate" title="Lead Information">Lead Information</span>
+                            </h3>
+                            <div class="slds-section__content">
+                                <dl class="slds-dl_horizontal">
+                                    <dt class="slds-dl_horizontal__label">Name:</dt>
+                                    <dd class="slds-dl_horizontal__detail">{leadName}</dd>
+                                    <dt class="slds-dl_horizontal__label">Email:</dt>
+                                    <dd class="slds-dl_horizontal__detail">{leadEmail}</dd>
+                                    <dt class="slds-dl_horizontal__label">Phone:</dt>
+                                    <dd class="slds-dl_horizontal__detail">{leadPhone}</dd>
+                                </dl>
+                            </div>
+                        </div>
+
+                        <!-- Programs -->
+                        <div class="slds-section slds-is-open slds-m-top_medium">
+                            <h3 class="slds-section__title">
+                                <span class="slds-truncate" title="Selected Programs">Selected Programs ({programCount})</span>
+                            </h3>
+                            <div class="slds-section__content">
+                                <template if:true={hasPrograms}>
+                                    <ul class="slds-list_dotted">
+                                        <template for:each={programs} for:item="program">
+                                            <li key={program.id}>{program.name}</li>
+                                        </template>
+                                    </ul>
+                                </template>
+                                <template if:false={hasPrograms}>
+                                    <div class="slds-text-color_error">
+                                        <lightning-icon icon-name="utility:error" alternative-text="Error" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        No programs found. Please add programs to the lead before converting.
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Conversion Preview -->
+                        <template if:true={hasPrograms}>
+                            <div class="slds-box slds-theme_shade slds-m-top_medium">
+                                <h3 class="slds-text-heading_small slds-m-bottom_small">What will be created:</h3>
+                                <ul class="slds-list_dotted">
+                                    <li>1 Account (Record Type: Applicant)</li>
+                                    <li>{programCount} Opportunity(ies) - one per program</li>
+                                    <li>{programCount} Application(s) - one per program</li>
+                                </ul>
+                            </div>
+                        </template>
+
+                        <!-- Error Message -->
+                        <template if:true={errorMessage}>
+                            <div class="slds-notify slds-notify_alert slds-alert_error slds-m-top_medium" role="alert">
+                                <lightning-icon icon-name="utility:error" alternative-text="Error" size="small" class="slds-m-right_x-small"></lightning-icon>
+                                <h2>{errorMessage}</h2>
+                            </div>
+                        </template>
+                    </template>
+
+                    <!-- Success Message -->
+                    <template if:true={conversionComplete}>
+                        <div class="slds-notify slds-notify_alert slds-alert_success" role="alert">
+                            <lightning-icon icon-name="utility:success" alternative-text="Success" size="small" class="slds-m-right_x-small"></lightning-icon>
+                            <h2>{successMessage}</h2>
+                        </div>
+
+                        <div class="slds-m-top_medium">
+                            <p><strong>Account ID:</strong> 
+                                <a onclick={navigateToAccount}>{accountId}</a>
+                            </p>
+                            <p class="slds-m-top_x-small"><strong>Opportunities Created:</strong> {opportunityCount}</p>
+                            <p class="slds-m-top_x-small"><strong>Applications Created:</strong> {applicationCount}</p>
+                        </div>
+                    </template>
+                </template>
+            </template>
+        </div>
+
+        <div slot="footer" class="slds-p-around_small">
+            <template if:false={conversionComplete}>
+                <lightning-button 
+                    label="Cancel" 
+                    onclick={handleCancel}
+                    class="slds-m-right_small">
+                </lightning-button>
+                <lightning-button 
+                    variant="brand" 
+                    label="Convert Lead" 
+                    onclick={handleConvert}
+                    disabled={isConvertDisabled}>
+                </lightning-button>
+            </template>
+            <template if:true={conversionComplete}>
+                <lightning-button 
+                    variant="brand" 
+                    label="View Account" 
+                    onclick={navigateToAccount}>
+                </lightning-button>
+            </template>
+        </div>
+    </lightning-card>
+</template>

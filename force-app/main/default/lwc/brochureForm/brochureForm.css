@@ -1,0 +1,119 @@
+lightning-input {
+    --slds-c-input-radius-border: 0;
+}
+
+.THIS .slds-form-element__help {
+    margin: 0;
+}
+
+.form-wrapper {
+    background-color: #4B0076;
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.form-subtitle {
+    text-align: center;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    color: white;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.full-width {
+    grid-column: span 2;
+}
+
+lightning-input {
+    background: white;
+}
+
+.captcha-section {
+    margin-top: 1rem;
+}
+
+.captcha-box {
+    background: white;
+    color: black;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.submit-container {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.submit-button {
+    background-color: #FFA500;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.captcha-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.captcha-box {
+    background: white;
+    color: black;
+    padding: 12px 20px;
+    font-weight: bold;
+    border-radius: 4px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+    height: 34px;
+}
+
+
+
+.slds-input {
+    border-radius: 0 !important;
+}
+
+.form-grid lightning-input {
+    margin-bottom: 10px;
+    background-color: #4B0076;
+    flex-grow: 2;
+}
+
+.my-custom-input .slds-input {
+    border-radius: 0 !important;
+}
+
+.slds-modal__content {
+    background-color: #4B0076;
+}
+
+.thankyou-container {
+    text-align: center;
+    background-color: #fff;
+}
+
+.thankyou-logo {
+    width: 150%;
+}
+
+.thankyou-text {
+    font-size: 18px;
+}

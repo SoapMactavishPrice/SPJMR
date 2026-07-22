@@ -1,0 +1,72 @@
+<template>
+    <div class="lookup-wrap" onclick={stopPropagation}>
+        <div class="slds-form-element">
+            <label class="slds-form-element__label" if:true={showLabel}>
+                <template if:true={required}>
+                    <abbr class="slds-required" title="required">*</abbr>
+                </template>
+                {label}
+            </label>
+            <div class="slds-form-element__control lookup-input-wrap">
+                <input
+                    type="text"
+                    class="lookup-input slds-input"
+                    placeholder={placeholder}
+                    value={inputDisplayValue}
+                    readonly={inputReadonly}
+                    oninput={handleMainInput}
+                    onclick={handleInputClick}
+                    onfocus={handleInputClick}
+                    aria-label={label}
+                    aria-haspopup="listbox"
+                    aria-expanded={isOpen} />
+                <template if:false={hasValue}>
+                    <span class="lookup-icon" aria-hidden="true">
+                        <lightning-icon icon-name="utility:search" size="x-small" alternative-text="Search"></lightning-icon>
+                    </span>
+                </template>
+                <template if:true={hasValue}>
+                    <button type="button" class="lookup-clear slds-button slds-button_icon" onclick={handleClear} aria-label="Clear">×</button>
+                </template>
+            </div>
+        </div>
+        <template if:true={isOpen}>
+            <div class="lookup-dropdown">
+                <div class="lookup-dropdown-section">Recent Items</div>
+                <div class="lookup-dropdown-list" role="listbox">
+                    <template for:each={filteredOptions} for:item="opt">
+                        <div
+                            key={opt.value}
+                            class="lookup-row"
+                            role="option"
+                            data-id={opt.value}
+                            data-label={opt.label}
+                            data-sublabel={opt.subLabel}
+                            onclick={handleSelectOption}>
+                            <span class="lookup-row-icon">
+                                <lightning-icon icon-name="utility:clock" size="xx-small" alternative-text=""></lightning-icon>
+                            </span>
+                            <div class="lookup-row-content">
+                                <div class="lookup-row-primary">{opt.label}</div>
+                                <template if:true={opt.subLabel}>
+                                    <div class="lookup-row-secondary">{opt.subLabel}</div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:true={hasNoFilteredOptions}>
+                        <div class="lookup-row lookup-row-empty">No values found</div>
+                    </template>
+                </div>
+                <template if:true={showNewRecord}> <!--1001-->
+                    <div class="lookup-dropdown-footer">
+                        <a href="javascript:void(0)" class="lookup-new-action" onclick={handleNewRecord}>
+                            <lightning-icon icon-name="utility:add" size="xx-small" alternative-text=""></lightning-icon>
+                            {newRecordLabel}
+                        </a>
+                    </div>
+               </template> <!-- 1001-->
+            </div>
+        </template>
+    </div>
+</template>

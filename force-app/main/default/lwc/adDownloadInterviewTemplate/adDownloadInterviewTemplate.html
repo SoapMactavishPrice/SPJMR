@@ -1,0 +1,144 @@
+<template>
+    <lightning-card
+        title="Take Interviews"
+        icon-name="standard:task"
+    >
+        <div class="slds-m-around_medium">
+
+            <!-- TOP ACTIONS -->
+            <div class="slds-grid slds-wrap slds-gutters slds-m-bottom_medium">
+
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
+                    <lightning-file-upload
+                        label="Upload Interview Template (CSV)"
+                        accept=".csv"
+                        onuploadfinished={handleUploadFinished}>
+                    </lightning-file-upload>
+
+                    <template if:true={fileName}>
+                        <p class="meta-text">
+                            <strong>Selected File:</strong> {fileName}
+                        </p>
+                    </template>
+                </div>
+
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
+                    <lightning-combobox
+                        name="Round"
+                        label="Interview Round"
+                        value={selectedRound}
+                        placeholder={placeholderRound}
+                        options={rounds}
+                        onchange={handleChange}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-align-bottom">
+                    <lightning-button
+                        label="Download Interview Template"
+                        variant="brand"
+                        class="primary-download-btn"
+                        onclick={handleDownload}
+                        disabled={disableDownload}>
+                    </lightning-button>
+                </div>
+
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="slds-grid slds-wrap slds-gutters">
+
+                <!-- TABLE SECTION -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
+
+                    <!-- TABLE HEADER WITH ACTION -->
+                    <!-- TABLE HEADER WITH RIGHT-ALIGNED ACTION -->
+<div class="table-header-row slds-grid slds-grid_align-end slds-m-bottom_small">
+    <template lwc:if={isRoundSelected}>
+        <lightning-button
+            label="Add/Remove Criteria"
+            variant="brand"
+            class="business-action-btn"
+            onclick={handleNavigateToRound}>
+        </lightning-button>
+    </template>
+</div>
+
+
+                    <lightning-datatable
+                        key-field="Id"
+                        data={pagedData}
+                        columns={columns}
+                        selected-rows={selectedRows}
+                        onrowselection={handleRowSelection}
+                        onrowaction={handleRowAction}>
+                    </lightning-datatable>
+                </div>
+
+                <!-- RIGHT INFO PANEL -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
+                    <div class="round-panel">
+
+                        <div class="round-panel__header">
+                            <h2 class="panel-title">Round Information</h2>
+                        </div>
+
+                        <div class="round-panel__body">
+                            <template lwc:if={isRoundSelected}>
+                                <table class="criteria-table">
+                                    <thead>
+                                        <tr>
+                                            <th>SI No.</th>
+                                            <th>Scoring Criteria</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={roundInfo} for:item="template" for:index="index">
+                                            <tr key={template.Id}>
+                                                <td>{template.index}</td>
+                                                <td>{template.CriteriaName__c}</td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </template>
+
+                            <template lwc:else>
+                                <div class="empty-state">
+                                    <p>No round selected</p>
+                                    <span>Select an interview round to view details</span>
+                                </div>
+                            </template>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- PAGINATION -->
+            <div class="slds-align_absolute-center slds-m-top_medium">
+                <lightning-button
+                    label="Previous"
+                    onclick={previousPage}
+                    disabled={isFirstPage}>
+                </lightning-button>
+
+                <span class="page-indicator">
+                    Page {page} of {totalPages}
+                </span>
+
+                <lightning-button
+                    label="Next"
+                    onclick={nextPage}
+                    disabled={isLastPage}>
+                </lightning-button>
+            </div>
+
+        </div>
+    </lightning-card>
+    <template lwc:if={isRoundSelected}>
+        <!-- <c-ad-view-evaluated-interview-details application-ids={selectedRows} round-id={selectedRound}></c-ad-view-evaluated-interview-details> -->
+    </template>
+    
+</template>

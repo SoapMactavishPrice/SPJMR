@@ -1,0 +1,127 @@
+<!--
+  @description       : Header component with logo and navigation
+  @author            : 
+  @group             : 
+  @last modified on  : 02-06-2026
+  @last modified by  : 
+-->
+<template>
+    <header class="top-navbar">
+            <!-- Logo Section -->
+            <div class="navbar-logo slds-size--1-of-6">
+                <div class="logo-container slds-p-left--x-large">
+                    <img src={logoImage} alt="Site Logo" class="site-logo" />
+                </div>
+            </div>
+
+            <!-- <div class="navbar-three-dots">
+                <button type="button" class="three-dots-button" onclick={handleToggleSidebar} title="Toggle Navigation">
+                <img src={navbarIcon} alt="Menu Icon" class="menu-icon" />
+              </button>
+            </div> -->
+
+            <template if:true={studentName}>
+            <div class="navbar-content">
+                <!-- Right: notifications + user -->
+                <div class="navbar-user">
+                    <!-- Portal Notifications Bell (fetches Salesforce Custom Notifications from PortalNotificationController) -->
+                    <div class="notif-bell-wrap">
+                        <button
+                            type="button"
+                            class={notifBellBtnClass}
+                            onclick={handleNotifBellClick}
+                            title="Notifications"
+                            aria-label="Notifications">
+                            <lightning-icon
+                                icon-name="utility:notification"
+                                size="small"
+                                alternative-text="Notifications"
+                                class="bell-icon">
+                            </lightning-icon>
+                            <template if:true={hasUnread}>
+                                <span class="notif-badge" aria-hidden="true">{unreadCountDisplay}</span>
+                            </template>
+                        </button>
+                        <template if:true={notifPanelOpen}>
+                            <div class="notif-panel" role="dialog" aria-label="Notifications">
+                                <div class="notif-panel__header">
+                                    <span class="notif-panel__title">Notifications</span>
+                                    <template if:true={hasUnread}>
+                                        <button type="button" class="notif-panel__mark-all" onclick={handleMarkAllRead}>Mark all read</button>
+                                    </template>
+                                </div>
+                                <template if:true={hasNotifications}>
+                                    <ul class="notif-list">
+                                        <template for:each={notifications} for:item="notif">
+                                            <li key={notif.id} class={notif.itemClass} data-id={notif.id} onclick={handleNotifItemClick}>
+                                                <p class="notif-item__title">{notif.title}</p>
+                                                <p class="notif-item__body">{notif.body}</p>
+                                                <p class="notif-item__time">{notif.timeAgo}</p>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </template>
+                                <template if:true={isEmpty}>
+                                    <p class="notif-panel__empty">No notifications</p>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Old profile-upload-window bell (commented out: replaced by portal notifications bell above)
+                    <div
+                        class="notification-bell-wrap"
+                        onmouseenter={handleBellMouseEnter}
+                        onmouseleave={handleBellMouseLeave}>
+                        <button
+                            type="button"
+                            class={notificationBellButtonClass}
+                            onclick={handleBellClick}
+                            title="Notifications"
+                            aria-label="Profile photo upload window notification">
+                            <lightning-icon
+                                icon-name="utility:notification"
+                                size="small"
+                                alternative-text="Notifications"
+                                class="bell-icon">
+                            </lightning-icon>
+                            <template if:true={uploadWindowActive}>
+                                <span class="notification-badge notification-badge--pulse" aria-hidden="true"></span>
+                            </template>
+                        </button>
+                        <template if:true={uploadWindowActive}>
+                            <div
+                                class={notificationPopoverClass}
+                                role="tooltip"
+                                onmouseenter={handlePopoverMouseEnter}
+                                onmouseleave={handlePopoverMouseLeave}>
+                                <p class="notification-popover__text">{uploadPopoverMessage}</p>
+                            </div>
+                        </template>
+                    </div>
+                    -->
+
+                    <div class="user-profile">
+                        <template if:true={hasProfilePhoto}>
+                            <img
+                                src={profilePhotoUrl}
+                                alt=""
+                                class="header-profile-photo"
+                                onerror={handleHeaderProfilePhotoError}
+                            />
+                        </template>
+                        <template if:false={hasProfilePhoto}>
+                            <lightning-icon icon-name="standard:user" size="small" alternative-text="User"
+                                class="user-icon">
+                            </lightning-icon>
+                        </template>
+                        <span class="user-name">{studentName}</span>
+                        <!-- <lightning-icon icon-name="utility:chevrondown" size="xx-small" alternative-text="Dropdown"
+                            class="dropdown-icon">
+                        </lightning-icon> -->
+                    </div>
+                </div>
+            </div>
+            </template>
+        </header>
+</template>

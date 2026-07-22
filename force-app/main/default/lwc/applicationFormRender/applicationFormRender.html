@@ -1,0 +1,362 @@
+<template>
+    <!--spinner-->
+    <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
+
+
+    <template if:false={showThankyou}>
+        <template if:true={formMetadata}>
+            <div class="slds-grid slds-gutters">
+                <div class="slds-col slds-size_10-of-12">
+                    <!-- Render Active Step (grouped) -->
+                    <template for:each={stepperGroups} for:item="grp">
+                        <template if:true={grp.isActive}>
+                            <template for:each={grp.sections} for:item="section">
+                                <template if:false={section.isHidden}>
+                                    <lightning-card key={section.id} title={section.label}>
+                                        <div class="slds-p-around_small">
+
+                                            <!-- Normal (non-quest) non-repeatable -->
+                                            <template if:false={section.isQuestSection}>
+                                                <template if:false={section.repeatable}>
+                                                    <lightning-layout multiple-rows>
+                                                        <template for:each={section.fields} for:item="fld">
+                                                            <lightning-layout-item key={fld.id} size="3" padding="around-small" if:false={fld.dependencies}>
+
+                                                                <!-- Picklist Rendering -->
+                                                                <template if:true={fld.isPicklist}>
+                                                                    <lightning-combobox
+                                                                        name={fld.apiName}
+                                                                        label={fld.label}
+                                                                        options={fld.options}
+                                                                        required={fld.validation.required}
+                                                                        value={fld.value}
+                                                                        disabled={fld.isEditDisabled}
+                                                                        onchange={handleInputChange}
+                                                                        data-section={section.id}
+                                                                        data-row="0"
+                                                                        data-api={fld.apiName}
+                                                                        data-type={fld.type}>
+                                                                    </lightning-combobox>
+                                                                </template>
+
+                                                                <!-- Lookup Rendering -->
+                                                                <template if:true={fld.isLookup}>
+                                                                    <lightning-input 
+                                                                        type="search"
+                                                                        label={fld.label}
+                                                                        value={fld.displayValue}
+                                                                        disabled={fld.isEditDisabled}
+                                                                        onchange={handleLookupSearch}
+                                                                        data-section={section.id}
+                                                                        data-row="0"
+                                                                        data-api={fld.apiName}
+                                                                        data-id={fld.id}
+                                                                        data-type={fld.type}
+                                                                        required={fld.validation.required}
+                                                                        minlength={fld.validation.minLength}
+                                                                        maxlength={fld.validation.maxLength}>
+                                                                    </lightning-input>
+
+                                                                    <template if:true={fld.searchResults}>
+                                                                        <ul class="slds-listbox slds-listbox_vertical slds-box lookup-dropdown" role="listbox">
+                                                                            <template for:each={fld.searchResults} for:item="rec">
+                                                                                <li key={rec.value} class="slds-listbox__item" role="presentation"
+                                                                                    onclick={handleLookupSelect}
+                                                                                    data-value={rec.value}
+                                                                                    data-label={rec.label}
+                                                                                    data-section={section.id}
+                                                                                    data-row="0"
+                                                                                    data-api={fld.apiName}
+                                                                                    data-type={fld.type}
+                                                                                    data-id={fld.id}>
+                                                                                    <div class="slds-media slds-listbox__option slds-listbox__option_entity" role="option">
+                                                                                        <span class="slds-media__body">
+                                                                                            <span class="slds-truncate">{rec.label}</span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </li>
+                                                                            </template>
+                                                                        </ul>
+                                                                    </template>
+                                                                </template>
+
+                                                                <!-- Normal Input -->
+                                                                <template if:false={fld.isLookup}>
+                                                                    <template if:false={fld.isPicklist}>
+                                                                        <template if:false={fld.dependencies}>
+                                                                            <template if:false={fld.isFileUpload}>
+                                                                                <lightning-input
+                                                                                    name={fld.apiName}
+                                                                                    label={fld.label}
+                                                                                    type={fld.type}
+                                                                                    required={fld.validation.required}
+                                                                                    minlength={fld.validation.minLength}
+                                                                                    maxlength={fld.validation.maxLength}
+                                                                                    value={fld.value}
+                                                                                    disabled={fld.isEditDisabled}
+                                                                                    onchange={handleInputChange}
+                                                                                    data-section={section.id}
+                                                                                    data-row="0"
+                                                                                    data-api={fld.apiName}
+                                                                                    data-type={fld.type}>
+                                                                                </lightning-input>
+                                                                            </template>
+                                                                            <template if:true={fld.isFileUpload}>
+                                                                                <lightning-input 
+                                                                                    type="file"
+                                                                                    label={fld.label}
+                                                                                    accept=".pdf,.png,.jpg,.jpeg"
+                                                                                    onchange={handleFileChange}
+                                                                                    data-section={section.id}
+                                                                                    data-api={fld.apiName}>
+                                                                                </lightning-input>
+                                                                                <template if:true={fld.uploadedFiles}>
+                                                                                    <ul class="slds-m-top_small">
+                                                                                        <template for:each={fld.uploadedFiles} for:item="file" for:index="index">
+                                                                                            <li key={file.name} class="slds-grid slds-grid_align-spread slds-p-around_x-small slds-box">
+                                                                                                <span>{file.name}</span>
+                                                                                                <lightning-button-icon 
+                                                                                                    icon-name="utility:close" 
+                                                                                                    alternative-text="Remove" 
+                                                                                                    title="Remove"
+                                                                                                    onclick={removeFile}
+                                                                                                    data-api={fld.apiName}
+                                                                                                    data-index={index}
+                                                                                                    data-id={file.id}
+                                                                                                    class="slds-m-left_small">
+                                                                                                </lightning-button-icon>
+                                                                                            </li>
+                                                                                        </template>
+                                                                                    </ul>
+                                                                                </template>
+                                                                            </template>
+                                                                        </template>
+                                                                    </template>
+                                                                </template>
+
+                                                            </lightning-layout-item>
+                                                        </template>
+                                                    </lightning-layout>
+                                                </template>
+
+                                                <!-- Repeatable Section (normal, non-quest) -->
+                                                <template if:true={section.repeatable}>
+                                                    <template for:each={section.rows} for:item="row" for:index="rowIndex">
+                                                        <lightning-layout key={section.id} multiple-rows>
+                                                            <template for:each={row} for:item="fld">
+                                                                <lightning-layout-item key={fld.id} size="4" padding="around-small" if:false={fld.dependencies}>
+
+                                                                    <!-- Picklist -->
+                                                                    <template if:true={fld.isPicklist}>
+                                                                        <lightning-combobox
+                                                                            name={fld.apiName}
+                                                                            label={fld.label}
+                                                                            options={fld.options}
+                                                                            value={fld.value}
+                                                                            disabled={fld.isEditDisabled}
+                                                                            required={fld.validation.required}
+                                                                            onchange={handleInputChange}
+                                                                            data-section={section.id}
+                                                                            data-row={rowIndex}
+                                                                            data-api={fld.apiName}
+                                                                            data-type={fld.type}
+                                                                            data-id={fld.id}>
+                                                                        </lightning-combobox>
+                                                                    </template>
+
+                                                                    <!-- Lookup -->
+                                                                    <template if:true={fld.isLookup}>
+                                                                        <lightning-input 
+                                                                            type="search"
+                                                                            label={fld.label}
+                                                                            value={fld.displayValue}
+                                                                            disabled={fld.isEditDisabled}
+                                                                            onchange={handleLookupSearch}
+                                                                            data-section={section.id}
+                                                                            data-row={rowIndex}
+                                                                            data-api={fld.apiName}
+                                                                            data-id={fld.id}
+                                                                            data-type={fld.type}
+                                                                            required={fld.validation.required}
+                                                                            minlength={fld.validation.minLength}
+                                                                            maxlength={fld.validation.maxLength}>
+                                                                        </lightning-input>
+
+                                                                        <template if:true={fld.searchResults}>
+                                                                            <ul class="slds-listbox slds-listbox_vertical slds-dropdown slds-dropdown_fluid" role="listbox">
+                                                                                <template for:each={fld.searchResults} for:item="rec">
+                                                                                    <li key={rec.value} class="slds-listbox__item" role="presentation"
+                                                                                        onclick={handleLookupSelect}
+                                                                                        data-value={rec.value}
+                                                                                        data-label={rec.label}
+                                                                                        data-section={section.id}
+                                                                                        data-row={rowIndex}
+                                                                                        data-api={fld.apiName}
+                                                                                        data-type={fld.type}
+                                                                                        data-id={fld.id}>
+                                                                                        <div class="slds-media slds-listbox__option slds-listbox__option_entity" role="option">
+                                                                                            <span class="slds-media__body">
+                                                                                                <span class="slds-truncate">{rec.label}</span>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </li>
+                                                                                </template>
+                                                                            </ul>
+                                                                        </template>
+                                                                    </template>
+
+                                                                    <!-- Normal input inside row -->
+                                                                    <template if:false={fld.isLookup}>
+                                                                        <template if:false={fld.isPicklist}>
+                                                                            <template if:false={fld.dependencies}>
+                                                                                <template if:false={fld.isFileUpload}>
+                                                                                    <lightning-input
+                                                                                        name={fld.apiName}
+                                                                                        label={fld.label}
+                                                                                        type={fld.type}
+                                                                                        value={fld.value}
+                                                                                        disabled={fld.isEditDisabled}
+                                                                                        onchange={handleInputChange}
+                                                                                        data-section={section.id}
+                                                                                        data-row={rowIndex}
+                                                                                        data-api={fld.apiName}
+                                                                                        data-id={fld.id}
+                                                                                        data-type={fld.type}
+                                                                                        required={fld.validation.required}
+                                                                                        minlength={fld.validation.minLength}
+                                                                                        maxlength={fld.validation.maxLength}>
+                                                                                    </lightning-input>
+                                                                                </template>
+                                                                                <template if:true={fld.isFileUpload}>
+                                                                                    <lightning-input 
+                                                                                        type="file"
+                                                                                        label={fld.label}
+                                                                                        accept=".pdf,.png,.jpg,.jpeg"
+                                                                                        onchange={handleFileChange}
+                                                                                        data-section={section.id}
+                                                                                        data-row={rowIndex}
+                                                                                        data-api={fld.apiName}>
+                                                                                    </lightning-input>
+                                                                                </template>
+                                                                            </template>
+                                                                        </template>
+                                                                    </template>
+
+                                                                </lightning-layout-item>
+                                                            </template>
+
+                                                            <!-- Remove Row Button -->
+                                                            <lightning-button-icon
+                                                                icon-name="utility:delete"
+                                                                alternative-text="Remove Row"
+                                                                onclick={removeRow}
+                                                                data-section={section.id}
+                                                                data-row={rowIndex}
+                                                                class="slds-m-left_small"
+                                                                style="margin-top: 35px;">
+                                                            </lightning-button-icon>
+                                                        </lightning-layout>
+                                                    </template>
+
+                                                    <!-- Add Row Button -->
+                                                    <lightning-button
+                                                        label="Add Row"
+                                                        icon-name="utility:add"
+                                                        onclick={addRow}
+                                                        data-section={section.id}
+                                                        class="slds-m-top_small">
+                                                    </lightning-button>
+                                                </template>
+                                            </template>
+
+                                            <!-- Quest Section Rendering -->
+                                            <template if:true={section.isQuestSection}>
+                                                <template for:each={section.fields} for:item="fld" for:index="qIndex">
+                                                    <div key={fld.id} class="slds-m-around_x-small" if:true={fld.isQuestion}>
+                                                        <p>{fld.questionText}</p>
+                                                    </div>
+                                                    <div key={fld.id} if:true={fld.isAnswer}>
+                                                        <lightning-input
+                                                            name={fld.apiName}
+                                                            label={fld.label}
+                                                            type={fld.type}
+                                                            required={fld.validation.required}
+                                                            value={fld.value}
+                                                            disabled={fld.isEditDisabled}
+                                                            onchange={handleInputChange}
+                                                            data-section={section.id}
+                                                            data-row={qIndex}
+                                                            data-api={fld.apiName}
+                                                            data-type={fld.type}
+                                                            data-question={fld.isQuestion}
+                                                            data-answer={fld.isAnswer}
+                                                            variant="label-hidden"
+                                                            data-id={fld.id}>
+                                                        </lightning-input>
+                                                    </div>
+                                                </template>
+                                            </template>
+
+                                        </div>
+                                    </lightning-card>
+                                </template>
+                            </template>
+                        </template>
+                    </template>
+
+                    <!-- Navigation -->
+                    <div class="slds-p-around_small slds-grid slds-grid_align-spread">
+                        <lightning-button label="Previous" onclick={prevStep} disabled={isFirstStep}>
+                        </lightning-button>
+
+                        <template if:false={isLastStep}>
+                            <lightning-button variant="brand" label="Next" onclick={nextStep}>
+                            </lightning-button>
+                        </template>
+
+                        <template if:true={isLastStep}>
+                            <lightning-button variant="brand" label="Submit" onclick={handleSubmit}>
+                            </lightning-button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Vertical Stepper -->
+                <div class="slds-col slds-size_2-of-12">
+                    <div class="slds-progress slds-progress_vertical">
+                        <ol class="slds-progress__list">
+                            <template for:each={stepperGroups} for:item="grp">
+                                <li key={grp.stepLabel} class={grp.stepClass}>
+                                    <div class="slds-progress__marker" title={grp.stepLabel}></div>
+                                    <div class="slds-progress__item_content slds-grid slds-grid_align-start">
+                                        <span class="slds-progress__label">{grp.stepLabel}</span>
+                                    </div>
+                                </li>
+                            </template>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </template>
+    <!-- 🟥 CORRECTIONS SECTION -->
+    <template if:true={correctionList}>
+        <div class="correction-section">
+            <h2 class="section-title">Correction Requests</h2>
+
+            <template for:each={correctionList} for:item="corr">
+                <div key={corr.Id} class="correction-card">
+                    <p class="field-name"><strong>{corr.Field_Label__c}</strong></p>
+                    <p class="remark">{corr.Staff_Remark__c}</p>
+                    <p class="status">Status: {corr.Status__c}</p>
+                </div>
+            </template>
+        </div>
+    </template>
+
+    <template if:true={showThankyou}>
+        <c-application-form-thank-you message="Your application has been submitted successfully."></c-application-form-thank-you>
+    </template>
+</template>

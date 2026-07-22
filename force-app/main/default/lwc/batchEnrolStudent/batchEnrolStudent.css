@@ -1,0 +1,23 @@
+.slds-table {
+    width: 100%;
+}
+
+.slds-truncate {
+    max-width: 200px;
+    display: inline-block;
+}
+
+.slds-table {
+    width: 100%;
+}
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #f3f2f2;
+}
+
+.table-scroll-container {
+    max-height: 400px;
+    overflow-y: auto;
+}

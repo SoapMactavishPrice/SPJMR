@@ -1,0 +1,1767 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 05-15-2026
+  @last modified by  : 
+-->
+<template>
+    <div class="calendar-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Academic Scheduler</h1>
+        </div>
+        <!--829 Start -->
+            <!-- Filters moved to top -->
+            <div class="filters-top-section">
+               <!-- <div class="filters-sidebar-header">
+                    <div class="filters-sidebar-title">Structure Filters</div>
+                </div>-->
+                <div class="filters-top-grid">
+                    <div class="filter-item">
+                        <lightning-combobox
+                            label="Program"
+                            value={selectedProgram}
+                            placeholder="Select Program"
+                            options={programOptions}
+                            onchange={handleProgramChange}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-item">
+                        <lightning-combobox
+                            label="Batch"
+                            value={selectedBatch}
+                            placeholder="Select Batch"
+                            options={batchOptions}
+                            onchange={handleBatchChange}
+                            disabled={isProgramNotSelected}>
+                        </lightning-combobox>
+                    </div> 
+                    <div class="filter-item">
+                        <lightning-combobox
+                            label="Batch Group"
+                            value={selectedBatchGroup}
+                            placeholder="Select Batch Group"
+                            options={batchGroupOptions}
+                            onchange={handleBatchGroupChange}
+                            disabled={isBatchNotSelected}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-item">
+                        <lightning-combobox
+                            label="Term"
+                            value={selectedTerm}
+                            placeholder="Select Term"
+                            options={termOptions}
+                            onchange={handleTermChange}
+                            disabled={isBatchGroupNotSelected}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="filter-item division-filter-item">
+                        <lightning-combobox
+                            label="Division"
+                            value={selectedDivision}
+                            placeholder="Select Division"
+                            options={divisionOptions}
+                            onchange={handleDivisionChange}
+                            disabled={isTermNotSelected}>
+                        </lightning-combobox>
+                    </div>
+                    <!-- Faculty Filter -->
+                    <div class="filter-item faculty-filter-item">
+                        <span class="filter-label">Faculty</span>
+                        <div class="faculty-filter-picklist"
+                            role="group"
+                            aria-label="Faculty filter">
+                            <template if:true={hasNoFacultyOptions}>
+                                <div class="faculty-filter-empty">
+                                    No faculty for selected division(s)
+                                </div>
+                            </template>
+                            <template if:false={hasNoFacultyOptions}>
+                                <div class="faculty-filter-pills-wrap">
+                                    <template if:true={hasFilterFacultyPills}>
+                                        <div class="faculty-filter-pills-container">
+                                            <template for:each={filterFacultyPills}
+                                                    for:item="faculty">
+                                                <span key={faculty.value}
+                                                    class="faculty-filter-pill">
+                                                    {faculty.label}
+                                                    <button type="button"
+                                                            class="faculty-filter-pill-remove"
+                                                            data-faculty-id={faculty.value}
+                                                            onclick={handleFilterFacultyRemove}
+                                                            title="Remove faculty from filter">
+                                                        <svg viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            width="12"
+                                                            height="12">
+                                                            <path d="M18 6L6 18M6 6L18 18"
+                                                                stroke="currentColor"
+                                                                stroke-width="2"
+                                                                stroke-linecap="round"/>
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template if:false={hasFilterFacultyPills}>
+                                        <p class="faculty-filter-hint">
+                                            No faculty selected
+                                        </p>
+                                    </template>
+                                    <lightning-combobox
+                                        placeholder="Select faculty to add..."
+                                        options={filterAvailableFacultyOptions}
+                                        value={filterFacultyComboboxValueDisplay}
+                                        onchange={handleFilterFacultyAdd}
+                                        variant="label-hidden"
+                                        disabled={isFacultyFilterDisabled}>
+                                    </lightning-combobox>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <!-- Schedule Type Filter -->
+                    <div class="filter-item schedule-type-inline">
+                        <div class="schedule-type-filter-title">
+                            SESSION SCHEDULE TYPE
+                        </div>
+                        <div class="schedule-type-checkboxes">
+                            <label class="schedule-type-checkbox-label">
+                                <input type="checkbox"
+                                    checked={filterScheduleTypeDraft}
+                                    onchange={handleScheduleTypeDraftChange}
+                                    class="schedule-type-checkbox" />
+                                <span>Draft</span>
+                            </label>
+                            <label class="schedule-type-checkbox-label">
+                                <input type="checkbox"
+                                    checked={filterScheduleTypePublished}
+                                    onchange={handleScheduleTypePublishedChange}
+                                    class="schedule-type-checkbox" />
+                                <span>Published</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <!--829 End -->
+        <!-- Filters + Calendar -->
+        <div class="calendar-layout">
+            <!-- Right Calendar -->
+            <div class="calendar-main">
+                <!-- Calendar Navigation Section -->
+                <div class="calendar-navigation">
+                    <div class="navigation-left">
+                        <button class="nav-arrow" onclick={handlePreviousWeek} title="Previous">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15,18 9,12 15,6"></polyline>
+                            </svg>
+                        </button>
+                        <button class="nav-arrow" onclick={handleNextWeek} title="Next">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9,18 15,12 9,6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="navigation-center">
+                        <div class="week-display">{formattedDateRange}</div>
+                        <div class="semester-display" if:true={semesterInfo}>{semesterInfo}</div>
+                    </div>
+                    <div class="navigation-right">
+                        <lightning-button
+                            label="Publish"
+                            variant="brand"
+                            onclick={handlePublishSessions}
+                            disabled={isPublishDisabled}
+                            class="publish-btn">
+                        </lightning-button>
+                        <div class="view-toggle">
+                            <button class={dayViewClass} onclick={handleDayView}>{dayViewLabel}</button>
+                            <button class={weekViewClass} onclick={handleWeekView}>Week</button>
+                            <button class={monthViewClass} onclick={handleMonthView}>Month</button>
+                        </div>
+                        <button class="today-link" onclick={handleToday}>Today</button>
+                    </div>
+                </div>
+                <!-- Status Message -->
+                <div class="status-message" if:true={showNoSessionsMessage}>
+                    No sessions scheduled for the selected criteria.
+                </div>
+                <!-- Calendar Grid -->
+                <div class="calendar-body">
+            <!-- Month View -->
+            <template if:true={isMonthView}>
+                <div class="month-calendar">
+                    <!-- Days of Week Header -->
+                    <div class="month-header">
+                        <template for:each={dayNames} for:item="dayName">
+                            <div key={dayName} class="month-day-header">{dayName}</div>
+                        </template>
+                    </div>    
+                    <!-- Calendar Weeks -->
+                    <div class="month-weeks">
+                        <template for:each={monthWeeks} for:item="week">
+                            <div key={week.key} class="month-week">
+                                <template for:each={week.days} for:item="day">
+                                    <div key={day.key} 
+                                         class={day.monthDayClass}
+                                         data-day={day.dateStr}
+                                         onclick={handleMonthDayClick}>
+                                        <div class={day.dateNumberClass}>
+                                            {day.date}
+                                        </div>
+                                        <div class="month-day-events">
+                                            <template for:each={day.visibleEvents} for:item="event">
+                                                <div key={event.rowKey}
+                                                     class={event.eventClass}
+                                                     style={event.eventTileStyle}
+                                                     onclick={handleEventClick}
+                                                     data-id={event.id}
+                                                     data-division-id={event.divisionId}
+                                                     title=""
+                                                     onmouseenter={handleEventMouseEnter}
+                                                     onmouseleave={handleEventMouseLeave}>
+                                                    <span class="month-event-time">{event.timeRange}</span>
+                                                    <span class="month-event-title">{event.displayTitle}</span>
+                                                    <span class="month-event-title">{event.divisionDisplayName}</span>
+                                                    <span class="month-event-title">{event.courseName}</span>
+                                                    <span class="month-event-title">{event.primaryFacultyName}</span>
+                                                </div>
+                                            </template>
+                                            <template if:true={day.hasMoreEvents}>
+                                                <button type="button"
+                                                        class="month-more-events-btn"
+                                                        data-day={day.dateStr}
+                                                        onclick={handleMonthMoreClick}>
+                                                    +{day.moreEventsCount} more
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <!-- Day/Week View -->
+            <template if:false={isMonthView}>
+                <!-- All Divisions: Week/Day matrices -->
+                <template if:true={isAllDivisionsSelected}>
+                    <template if:true={isWeekView}>
+                        <div class="divisions-week-grid">
+                            <div class="divisions-week-header divisions-week-header-cols-time-only">
+                                <div class="divisions-header-cell divisions-week-time-header-cell">TIME</div>
+                                <template for:each={weekMatrixDays} for:item="day">
+                                    <div key={day.key} class={day.headerClass}>
+                                        <div class="div-week-day-name">{day.name}</div>
+                                        <div class="div-week-day-date">{day.date}</div>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="divisions-week-body">
+                                <div class="divisions-week-grid-inner" style={divisionsWeekGridBodyStyle}>
+                                    <template for:each={divisionWeekRows} for:item="row">
+                                        <div key={row.key} class="division-time-cell" style={row.timeGridStyle}>{row.timeLabel}</div>
+                                        <template for:each={row.cells} for:item="cell">
+                                            <div key={cell.key}
+                                                 class={cell.cellClass}
+                                                 style={cell.cellGridStyle}
+                                                 data-day={cell.dateStr}
+                                                 data-hour={row.hour}
+                                                 onclick={handleAllDivisionsWeekCellClick}>
+                                                <template for:each={cell.events} for:item="event">
+                                                    <div key={event.key}
+                                                         class={event.eventClass}
+                                                         style={event.eventStyle}
+                                                         data-id={event.id}
+                                                         data-division-id={event.divisionId}
+                                                         onclick={handleEventClick}
+                                                         title={event.tooltipText}
+                                                         onmouseenter={handleEventMouseEnter}
+                                                         onmouseleave={handleEventMouseLeave}>
+                                                        <span class="div-cell-division">{event.divisionLabel}</span>
+                                                        <span class="div-cell-title">{event.title}</span>
+                                                        <span class="div-cell-title">{event.courseName}</span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <template if:true={isDayView}>
+                        <div class="divisions-day-grid" style={divisionsDayWrapperStyle}>
+                            <div class="divisions-day-fixed-col" onscroll={handleDivisionsDayFixedColScroll}>
+                                <div class="divisions-header-cell">DIVISIONS</div>
+                                <template for:each={divisionDayTimelineRows} for:item="row">
+                                    <div key={row.divisionId} class="divisions-row-header" style={row.rowStyle}>
+                                        <div class="division-row-name">{row.divisionName}</div>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="divisions-day-scroll-area" onscroll={handleDivisionsDayScrollAreaScroll}>
+                                <div class="divisions-day-time-header">
+                                    <template for:each={divisionDayHours} for:item="h">
+                                        <div key={h.key} class="divisions-hour-header">{h.label}</div>
+                                    </template>
+                                </div>
+                                <template for:each={divisionDayTimelineRows} for:item="row">
+                                    <div key={row.divisionId} class="divisions-day-time-row" style={row.rowStyle} data-division={row.divisionId}>
+                                        <div class="division-timeline">
+                                            <div class="division-timeline-grid">
+                                                <template for:each={divisionDayHours} for:item="h">
+                                                    <div key={h.key}
+                                                         class="division-timeline-hour"
+                                                         data-hour={h.hour}
+                                                         data-day={dayDivisionDateStr}
+                                                         data-division={row.divisionId}
+                                                         onclick={handleAllDivisionsSlotClick}></div>
+                                                </template>
+                                            </div>
+                                            <template for:each={row.events} for:item="event">
+                                                <div key={event.key}
+                                                     class={event.eventClass}
+                                                     style={event.style}
+                                                     data-id={event.id}
+                                                     data-division-id={event.divisionId}
+                                                     onclick={handleEventClick}
+                                                     title={event.tooltipText}
+                                                     onmouseenter={handleEventMouseEnter}
+                                                     onmouseleave={handleEventMouseLeave}>
+                                                    <span class="div-timeline-title">{event.courseName}</span>
+                                                    <span class="div-timeline-title">{event.title}</span>
+                                                    <span class="div-timeline-title">{event.primaryFacultyName}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+                <!-- Single Division: existing time grid -->
+                <template if:false={isAllDivisionsSelected}>
+                <!-- Time Grid (header inside same scrollport so column widths match scrollbar) -->
+                <div class="time-grid-container" style={timeGridWrapperStyle}>
+                    <div class="days-header">
+                        <div class="time-column-header"></div>
+                        <template for:each={weekDays} for:item="day">
+                            <div key={day.key} class={day.headerClass}>
+                                <template if:true={isDayView}>
+                                    <span class="day-name">{selectedDivisionLabel}</span>
+                                </template>
+                                <template if:false={isDayView}>
+                                    <span class="day-name">{day.name}</span>
+                                    <span class={day.dateClass}>{day.date}</span>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="time-grid-body">
+                    <div class="time-grid">
+                        <!-- Time Labels -->
+                        <div class="time-labels">
+                            <template for:each={timeSlots} for:item="slot">
+                                <div key={slot.key} class="time-label">
+                                    <span>{slot.time}</span>
+                                </div>
+                            </template>
+                        </div>
+                        <!-- Day Columns -->
+                        <div class={dayColumnsClass}>
+                            <template for:each={weekDays} for:item="day">
+                                <div key={day.key} 
+                                     class={day.columnClass}
+                                     data-day={day.key}
+                                     ondragover={handleDragOver}
+                                     ondrop={handleDrop}
+                                     ondragleave={handleDragLeave}>
+                                    <!-- Hour Lines -->
+                                    <template for:each={timeSlots} for:item="slot">
+                                        <div key={slot.key} 
+                                             class="hour-cell" 
+                                             data-hour={slot.hour} 
+                                             data-day={day.key} 
+                                             onclick={handleCellClick}
+                                             ondragover={handleCellDragOver}
+                                             ondrop={handleCellDrop}></div>
+                                    </template>
+                                    <!-- Events for this day -->
+                                            <template for:each={day.events} for:item="event">
+                                                <div key={event.rowKey}
+                                                     class={event.eventClass}
+                                                     style={event.style}
+                                                     draggable={canDragEvents}
+                                                     ondragstart={handleDragStart}
+                                                     ondragend={handleDragEnd}
+                                                     onclick={handleEventClick}
+                                                     onmouseenter={handleEventMouseEnter}
+                                                     onmouseleave={handleEventMouseLeave}
+                                                     data-id={event.id}
+                                                     data-division-id={event.divisionId}
+                                                     title="">
+                                            <div class="event-content">
+                                                <template if:true={isWeekView}>
+                                                    <span class="event-title">{event.divisionDisplayName}</span>
+                                                    <span class="event-title">{event.title}</span>
+                                                    <span class="event-course">{event.courseName}</span>
+                                                </template>
+                                                <template if:true={isDayView}>
+                                                    <span class="event-course">{event.courseName}</span>
+                                                    <span class="event-title">{event.title}</span>
+                                                    <span class="event-course">{event.primaryFacultyName}</span>
+                                                </template>
+                                            </div>
+                                            <!-- Resize Handle -->
+                                            <div class="resize-handle" 
+                                                 onmousedown={handleResizeStart}
+                                                 data-id={event.id}
+                                                 data-division-id={event.divisionId}></div>
+                                        </div>
+                                    </template>
+                                    <!-- Drop Zone Indicator -->
+                                    <div class="drop-zone-indicator" if:true={day.showDropIndicator} style={day.dropIndicatorStyle}></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <!-- Current Time Indicator -->
+                    <div if:true={showCurrentTime} class="current-time-indicator" style={currentTimeStyle}>
+                        <div class="current-time-dot"></div>
+                        <div class="current-time-line"></div>
+                    </div>
+                    </div>
+                </div>
+                </template>
+            </template>
+        </div>
+            </div>
+        </div>
+        <!-- Event Modal -->
+        <template if:true={showModal}>
+            <div class="modal-overlay" onclick={handleCloseModal}>
+                <div class={createSessionsModalClass} onclick={handleModalClick}>
+                    <!-- Create Sessions (multi-session) modal -->
+                    <template if:true={isCreateSessionsMode}>
+                        <div class="modal-header create-sessions-header">
+                            <div class="modal-header-left">
+                                <div class="modal-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M3 10H21" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M8 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                        <path d="M16 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <div class="modal-header-text">
+                                    <h2 class="modal-title">Create Sessions</h2>
+                                    <p class="modal-subtitle">Plan multiple sessions for a course and merge with existing programs.</p>
+                                </div>
+                            </div>
+                            <button class="close-btn" onclick={handleCloseModal}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="context-info-bar">
+                            <div class="context-item">
+                                <span class="context-label">PROGRAM</span>
+                                <div class="context-value-readonly">{createModalProgramLabel}</div>
+                            </div>
+                            <div class="context-item">
+                                <span class="context-label">BATCH</span>
+                                <div class="context-value-readonly">{createModalBatchLabel}</div>
+                            </div>
+                            <div class="context-item">
+                                <span class="context-label">TERM</span>
+                                <div class="context-value-readonly">{createModalTermLabel}</div>
+                            </div>
+                            <div class="context-item">
+                                <span class="context-label">DIVISION</span>
+                                <template if:true={isAllDivisionsSelected}>
+                                    <lightning-combobox
+                                        value={modalDivisionId}
+                                        placeholder="Select Division"
+                                        options={createModalDivisionOptions}
+                                        onchange={handleCreateModalDivisionChange}
+                                        variant="label-hidden">
+                                    </lightning-combobox>
+                                </template>
+                                <template if:false={isAllDivisionsSelected}>
+                                    <div class="context-value-readonly">{createModalDivisionLabel}</div>
+                                </template>
+                            </div>
+                            <div class="context-item context-item-course">
+                                <span class="context-label">COURSE <span class="required-asterisk">*</span></span>
+                                <lightning-combobox
+                                    value={modalCourse}
+                                    placeholder="Select Course"
+                                    options={modalCourseOptions}
+                                    onchange={handleModalCourseChange}
+                                    variant="label-hidden">
+                                </lightning-combobox>
+                            </div>
+                        </div>
+                        <div class="modal-body create-sessions-body">
+                            <div class="sessions-section">
+                                <div class="sessions-header">
+                                    <h3 class="section-title">
+                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 8V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                                        </svg>
+                                        Sessions Timeline
+                                    </h3>
+                                    <button class="add-session-btn" onclick={handleAddCreateSession}>
+                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                        </svg>
+                                        Add Session
+                                    </button>
+                                </div>
+                                <div class="sessions-cards-container">
+                                    <template for:each={createSessionsWithIndex} for:item="session">
+                                        <div key={session.id}
+                                             class={session.cardClass}
+                                             data-index={session.index}
+                                             onclick={handleSelectCreateSession}>
+                                            <div class="session-card-header">
+                                                <div class="session-number">
+                                                    <span class="session-badge">Session {session.displayNumber}</span>
+                                                    <template if:true={session.isSelected}>
+                                                        <span class="selected-indicator">
+                                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                                                            </svg>
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                                <div class="session-actions">
+                                                    <span class="programs-count" title="Programs selected">
+                                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        {session.mergedCount} merged
+                                                    </span>
+                                                    <template if:true={showCreateSessionDeleteButton}>
+                                                        <button type="button" class="delete-session-btn" data-index={session.index} onclick={handleRemoveCreateSession} title="Cancel session">
+                                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                                <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            </svg>
+                                                        </button>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <div class="session-card-body">
+                                                <!-- Row 1: Session Title + Course Activity (half row each) -->
+                                                <div class="form-row form-row-title-activity">
+                                                    <div class="form-field form-field-title">
+                                                        <label class="field-label">SESSION TITLE <span class="required-asterisk">*</span></label>
+                                                        <lightning-input
+                                                            type="text"
+                                                            value={session.title}
+                                                            placeholder="Enter session title"
+                                                            max-length="60"
+                                                            data-index={session.index}
+                                                            data-field="title"
+                                                            onchange={handleCreateSessionFieldChange}
+                                                            variant="label-hidden">
+                                                        </lightning-input>
+                                                        <template if:true={session.fieldErrors.titleError}>
+                                                            <div class="field-inline-error">{session.fieldErrors.titleError}</div>
+                                                        </template>
+                                                    </div>
+                                                    <div class="form-field form-field-course-activity">
+                                                        <label class="field-label">COURSE ACTIVITY</label>
+                                                        <lightning-combobox
+                                                            value={session.courseActivity}
+                                                            placeholder="Select Course Activity"
+                                                            options={courseActivityOptions}
+                                                            data-index={session.index}
+                                                            data-field="courseActivity"
+                                                            onchange={handleCreateSessionFieldChange}
+                                                            variant="label-hidden">
+                                                        </lightning-combobox>
+                                                    </div>
+                                                    <div class="form-field form-field-session-type">
+                                                        <label class="field-label">SESSION TYPE</label>
+                                                        <lightning-combobox
+                                                             value={session.sessionType}
+                                                             placeholder="Select Session Type"
+                                                             options={sessionTypeOptions}
+                                                             data-index={session.index}
+                                                             data-field="sessionType"
+                                                             onchange={handleCreateSessionFieldChange}
+                                                             variant="label-hidden">
+                                                        </lightning-combobox>
+                                                    </div>
+                                                </div>        
+                                                <!-- Row 2: Faculty (required) + Support Faculty (optional) in same row -->
+                                                <div class="form-row form-row-faculty-support">
+                                                    <div class="form-field form-field-faculty">
+                                                        <label class="field-label">FACULTY <span class="required-asterisk">*</span></label>
+                                                        <div class="faculty-selector">
+                                                            <div class="faculty-pills-container">
+                                                                <template for:each={session.leadFacultyPills} for:item="faculty">
+                                                                    <span key={faculty.value} class="faculty-pill">
+                                                                        {faculty.label}
+                                                                        <button class="pill-remove"
+                                                                                data-session-index={session.index}
+                                                                                data-faculty={faculty.value}
+                                                                                onclick={handleCreateSessionRemoveFaculty}>
+                                                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                                            </svg>
+                                                                        </button>
+                                                                    </span>
+                                                                </template>
+                                                            </div>
+                                                            <lightning-combobox
+                                                                placeholder={session.facultyPlaceholder}
+                                                                options={session.leadFacultyOptions}
+                                                                value={session.leadFacultyId}
+                                                                data-index={session.index}
+                                                                onchange={handleCreateSessionLeadFacultyChange}
+                                                                variant="label-hidden">
+                                                            </lightning-combobox>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-field form-field-support">
+                                                        <label class="field-label">Support Faculty</label>
+                                                        <div class="faculty-selector faculty-selector-support">
+                                                            <div class="faculty-pills-container">
+                                                                <template for:each={session.supportFacultyPills} for:item="faculty">
+                                                                    <span key={faculty.value} class="faculty-pill">
+                                                                        {faculty.label}
+                                                                        <button class="pill-remove"
+                                                                                data-session-index={session.index}
+                                                                                data-faculty={faculty.value}
+                                                                                onclick={handleCreateSessionRemoveFaculty}>
+                                                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                                            </svg>
+                                                                        </button>
+                                                                    </span>
+                                                                </template>
+                                                            </div>
+                                                            <lightning-combobox
+                                                                placeholder="Select support faculty to add..."
+                                                                options={session.availableFacultyOptions}
+                                                                value=""
+                                                                data-index={session.index}
+                                                                onchange={handleCreateSessionSupportFacultyAdd}
+                                                                variant="label-hidden">
+                                                            </lightning-combobox>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <template if:true={session.fieldErrors.facultyError}>
+                                                    <div class="field-inline-error">{session.fieldErrors.facultyError}</div>
+                                                </template>
+                                                <!-- Row 3: Date, Start Time, End Time (side by side) -->
+                                                <div class="form-row form-row-date-time">
+                                                    <div class="form-field date-input-clickable" onclick={handleDateBoxClick}>
+                                                        <label class="field-label">DATE <span class="required-asterisk">*</span></label>
+                                                        <lightning-input
+                                                            type="date"
+                                                            value={session.date}
+                                                            data-index={session.index}
+                                                            data-field="date"
+                                                            onchange={handleCreateSessionFieldChange}
+                                                            variant="label-hidden">
+                                                        </lightning-input>
+                                                    </div>
+                                                    <div class="form-field">
+                                                        <label class="field-label">START TIME <span class="required-asterisk">*</span></label>
+                                                        <lightning-input
+                                                            type="time"
+                                                            value={session.startTime}
+                                                            data-index={session.index}
+                                                            data-field="startTime"
+                                                            onchange={handleCreateSessionFieldChange}
+                                                            variant="label-hidden"
+                                                            message-when-bad-input="Your entry does not match the expected format HH:MM">
+                                                        </lightning-input>
+                                                        <template if:true={session.fieldErrors.startTimeError}>
+                                                            <div class="field-inline-error">{session.fieldErrors.startTimeError}</div>
+                                                        </template>
+                                                    </div>
+                                                    <div class="form-field">
+                                                        <label class="field-label">END TIME <span class="required-asterisk">*</span></label>
+                                                        <lightning-input
+                                                            type="time"
+                                                            value={session.endTime}
+                                                            data-index={session.index}
+                                                            data-field="endTime"
+                                                            onchange={handleCreateSessionFieldChange}
+                                                            variant="label-hidden"
+                                                            message-when-bad-input="Your entry does not match the expected format HH:MM">
+                                                        </lightning-input>
+                                                        <template if:true={session.fieldErrors.endTimeError}>
+                                                            <div class="field-inline-error">{session.fieldErrors.endTimeError}</div>
+                                                        </template>
+                                                        <template if:true={session.fieldErrors.orderError}>
+                                                            <div class="field-inline-error">{session.fieldErrors.orderError}</div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                                <!-- Row 4: Class Room, Remark, URL (all optional) -->
+                                                <div class="form-row form-row-class-room-remark-url">
+                                                    <div class="form-field">
+                                                        <label class="field-label">CLASS ROOM</label>
+                                                        <lightning-input
+                                                            type="text"
+                                                            value={session.classRoom}
+                                                            placeholder="Enter class room"
+                                                            data-index={session.index}
+                                                            data-field="classRoom"
+                                                            onchange={handleCreateSessionFieldChange}
+                                                            variant="label-hidden">
+                                                        </lightning-input>
+                                                        <template if:true={session.fieldErrors.classRoomError}>
+                                                            <div class="field-inline-error">{session.fieldErrors.classRoomError}</div>
+                                                        </template>
+                                                    </div>
+                                                    <div class="form-field">
+                                                        <label class="field-label">REMARK</label>
+                                                        <lightning-input
+                                                            type="text"
+                                                            value={session.remark}
+                                                            placeholder="Enter remark"
+                                                            data-index={session.index}
+                                                            data-field="remark"
+                                                            onchange={handleCreateSessionFieldChange}
+                                                            variant="label-hidden">
+                                                        </lightning-input>
+                                                        <template if:true={session.fieldErrors.remarkError}>
+                                                            <div class="field-inline-error">{session.fieldErrors.remarkError}</div>
+                                                        </template>
+                                                    </div>
+                                                    <div class="form-field">
+                                                        <label class="field-label">URL</label>
+                                                        <lightning-input
+                                                            type="text"
+                                                            value={session.url}
+                                                            placeholder="Enter URL"
+                                                            data-index={session.index}
+                                                            data-field="url"
+                                                            onchange={handleCreateSessionFieldChange}
+                                                            variant="label-hidden">
+                                                        </lightning-input>
+                                                        <template if:true={session.fieldErrors.urlError}>
+                                                            <div class="field-inline-error">{session.fieldErrors.urlError}</div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="programs-section">
+                                <div class="programs-header">
+                                    <h3 class="section-title">
+                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        Programs Running This Course
+                                    </h3>
+                                    <template if:true={hasActiveCreateSession}>
+                                        <span class="selection-info">Selecting for Session {activeCreateSessionDisplayNumber}</span>
+                                    </template>
+                                </div>
+                                <template if:true={hasActiveCreateSession}>
+                                    <template if:true={allowMultiProgramDisabledMessage}>
+                                        <div class="programs-disabled-message">
+                                            <span class="programs-disabled-icon">ℹ</span>
+                                            {allowMultiProgramDisabledMessage}
+                                        </div>
+                                    </template>
+                                    <template if:false={allowMultiProgramDisabledMessage}>
+                                    <div class="programs-info-text">
+                                        <!-- <span class="info-icon">ℹ</span> -->
+                                        Select programs where this course is already running to merge with this session.
+                                    </div>
+                                    <div class="programs-table-container">
+                                        <table class="programs-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="checkbox-col">
+                                                        <input type="checkbox"
+                                                               checked={allCreateSessionProgramsSelected}
+                                                               onchange={handleSelectAllCreateSessionPrograms}
+                                                               class="select-checkbox"/>
+                                                    </th>
+                                                    <th>PROGRAM</th>
+                                                    <th>BATCH</th>
+                                                    <th>BATCH GROUP</th>
+                                                    <th>DIVISION</th>
+                                                    <th>TERM / ACADEMIC YEAR</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template for:each={createSessionProgramsForMerge} for:item="program">
+                                                    <tr key={program.assignmentKey} class={program.rowClass}>
+                                                        <td class="checkbox-col">
+                                                            <input type="checkbox"
+                                                                   checked={program.isSelected}
+                                                                   data-assignment-key={program.assignmentKey}
+                                                                   onchange={handleCreateSessionProgramToggle}
+                                                                   class="select-checkbox"/>
+                                                        </td>
+                                                        <td class="program-name-cell">
+                                                            <span class="program-name">{program.programName}</span>
+                                                        </td>
+                                                        <td>{program.batchName}</td>
+                                                        <td>{program.batchGroupName}</td>
+                                                        <td>
+                                                            <span class="division-badge">{program.divisionName}</span>
+                                                        </td>
+                                                        <td>{program.termName}</td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <!-- SE-502: Show eligible makeup students when Make Up Exam selected -->    
+                                <template if:true={hasEligibleStudents}>
+                                    <div class="slds-m-top_medium slds-box slds-theme_default">
+                                        <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
+                                            <!-- SE-502: Select-all checkbox for eligible students -->    
+                                            <span class="slds-checkbox">
+                                                <input type="checkbox" 
+                                                       id="selectAllStudents"
+                                                       checked={allStudentsSelected}
+                                                       onchange={handleSelectAllStudents}
+                                                       data-index={activeCreateSessionIndex}
+                                                       class="slds-checkbox__input" />
+                                                <label class="slds-checkbox__label" for="selectAllStudents">
+                                                    <span class="slds-checkbox_faux"></span>
+                                                    <span class="slds-form-element__label" style="font-weight: 700; font-size: 14px; margin-left: 4px;">
+                                                        Eligible Makeup Students
+                                                    </span>
+                                                </label>
+                                            </span>
+                                        </div> 
+                                        <!-- SE-502: Multiselect checkbox group for eligible students -->     
+                                        <lightning-checkbox-group
+                                                options={eligibleStudentOptions}
+                                                value={selectedStudentIds}
+                                                data-index={activeCreateSessionIndex}
+                                                onchange={handleStudentSelection}>
+                                        </lightning-checkbox-group>
+                                    </div>
+                                </template>
+                                </template>
+                                </template>
+                                <template if:false={hasActiveCreateSession}>
+                                    <div class="programs-placeholder">
+                                        <p class="placeholder-title">Select a Session</p>
+                                        <p class="placeholder-text">Click on a session card to select programs where this course is already running and can be merged.</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="modal-footer create-sessions-footer">
+                            <div class="footer-summary">
+                                <span class="summary-item">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 8V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                    {totalCreateSessionsCount} session(s) scheduled
+                                </span>
+                                <span class="summary-divider">|</span>
+                                <span class="summary-item">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    {totalCreateSessionProgramsMerged} program(s) to merge
+                                </span>
+                                <span class="summary-divider">|</span>
+                                <span class="summary-item summary-item-faculty-conflicts">
+                                    <svg class="icon-warning" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18C1.65 18.3 1.57 18.64 1.57 19C1.57 19.36 1.65 19.7 1.82 20C2 20.3 2.24 20.56 2.54 20.73C2.84 20.9 3.17 21 3.52 21H20.48C20.83 21 21.16 20.9 21.46 20.73C21.76 20.56 22 20.3 22.18 20C22.35 19.7 22.43 19.36 22.43 19C22.43 18.64 22.35 18.3 22.18 18L13.71 3.86C13.53 3.56 13.28 3.32 12.98 3.15C12.68 2.98 12.34 2.88 12 2.88C11.66 2.88 11.32 2.98 11.02 3.15C10.72 3.32 10.47 3.56 10.29 3.86Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    {facultyConflictsCount} faculty conflict(s)
+                                    <button type="button" class="btn-view-conflicts" onclick={handleOpenConflictsModal} disabled={hasFacultyConflictsDisabled} title="View conflict details">
+                                        View details
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="footer-actions">
+                                <button class="btn-cancel" onclick={handleCloseModal}>Cancel</button>
+                                <button class="btn-save" onclick={handleCreateSessionsSave} disabled={isCreateSessionsSaveDisabled}>
+                                    Create Sessions
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                    <!-- Single session (edit only) modal - show only when NOT in Create Sessions mode -->
+                    <template if:false={isCreateSessionsMode}>
+                    <div class="modal-header">
+                        <h2>{modalTitle}</h2>
+                        <button class="close-btn" onclick={handleCloseModal}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="modal-body session-modal-body">
+                        <!-- Row 1: Session Name (1/2), Course (1/2) -->
+                        <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_small">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <div class="form-group">
+                                    <label for="eventTitle">Session Name <span class="required">*</span></label>
+                                    <input type="text" id="eventTitle" value={eventTitle} maxlength="60" oninput={handleTitleChange} placeholder="Enter event title" disabled={isEditSessionReadOnly} />
+                                    <template if:true={editSessionFieldErrors.titleError}>
+                                        <div class="field-inline-error">{editSessionFieldErrors.titleError}</div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <div class="form-group">
+                                    <lightning-combobox
+                                        label="Course"
+                                        value={selectedCourse}
+                                        placeholder="Select Course"
+                                        options={courseOptions}
+                                        onchange={handleCourseChange}
+                                        disabled={isEditModalCourseFieldsDisabled}>
+                                    </lightning-combobox>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Row 2: Department (1/2), Course Activity (1/2) -->
+                        <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_small">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <div class="form-group">
+                                    <lightning-input
+                                        label="Department"
+                                        value={selectedCourseDepartmentName}
+                                        placeholder="No department"
+                                        readonly>
+                                    </lightning-input>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <div class="form-group">
+                                    <lightning-combobox
+                                        label="Course Activity"
+                                        value={selectedCourseActivity}
+                                        placeholder="Select Course Activity"
+                                        options={courseActivityOptions}
+                                        onchange={handleCourseActivityChange}
+                                        disabled={isEditModalCourseFieldsDisabled}>
+                                    </lightning-combobox>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <div class="form-group">
+                                    <lightning-combobox
+                                        label="Session Type"
+                                        value={selectedSessionType}
+                                        placeholder="Select Session Type"
+                                        options={sessionTypeOptions}
+                                        onchange={handleSessionTypeChange}
+                                        disabled={isEditModalCourseFieldsDisabled}>
+                                    </lightning-combobox>
+                            </div>
+                        </div>
+                        <!-- Row 3: Faculty (required) + Support Faculty (optional) in same row -->
+                        <template if:true={showFacultyDropdown}>
+                        <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_small edit-faculty-support-row">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <div class="form-group">
+                                    <label class="field-label">Faculty <span class="required-asterisk">*</span></label>
+                                    <div class="faculty-selector edit-faculty-selector">
+                                        <div class="faculty-pills-container">
+                                            <template for:each={editLeadFacultyPills} for:item="faculty">
+                                                <span key={faculty.value} class="faculty-pill">
+                                                    {faculty.label}
+                                                    <button type="button" class="pill-remove"
+                                                            data-faculty={faculty.value}
+                                                            onclick={handleEditFacultyRemove}
+                                                            disabled={isEditSessionReadOnly}
+                                                            title="Remove faculty">
+                                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            </template>
+                                        </div>
+                                        <lightning-combobox
+                                            placeholder={facultyPlaceholder}
+                                            options={editLeadFacultyOptions}
+                                            value={editLeadFacultyId}
+                                            onchange={handleEditLeadFacultyChange}
+                                            variant="label-hidden"
+                                            disabled={isFacultyDisabled}>
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <div class="form-group">
+                                    <label class="field-label">Support Faculty</label>
+                                    <div class="faculty-selector edit-faculty-selector">
+                                        <div class="faculty-pills-container">
+                                            <template for:each={editSupportFacultyPills} for:item="faculty">
+                                                <span key={faculty.value} class="faculty-pill">
+                                                    {faculty.label}
+                                                    <button type="button" class="pill-remove"
+                                                            data-faculty={faculty.value}
+                                                            onclick={handleEditSupportFacultyRemove}
+                                                            disabled={isEditSessionReadOnly}
+                                                            title="Remove support faculty">
+                                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            </template>
+                                        </div>
+                                        <lightning-combobox
+                                            placeholder="Select support faculty to add..."
+                                            options={editSupportFacultyOptions}
+                                            value=""
+                                            onchange={handleEditSupportFacultyAdd}
+                                            variant="label-hidden"
+                                        disabled={isFacultyDisabled}>
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </template>   
+                        <!-- Row 4: Date -->
+                        <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_small">
+                            <div class="slds-col slds-size_1-of-1">
+                                <div class="form-group">
+                                    <label for="eventDate">Date <span class="required">*</span></label>
+                                    <input type="date" id="eventDate" value={eventDate} onchange={handleDateChange} onclick={handleDateBoxClick} disabled={isEditSessionReadOnly} />
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Row 5: Start Time (1/2), End Time (1/2) -->
+                        <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_small">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <div class="form-group">
+                                    <label for="startTime">Start Time <span class="required">*</span></label>
+                                    <lightning-combobox
+                                        id="startTime"
+                                        value={eventStartTime}
+                                        options={editSessionTimeOptions}
+                                        placeholder="Select start time"
+                                        onchange={handleStartTimeChange}
+                                        variant="label-hidden"
+                                        disabled={isEditSessionReadOnly}>
+                                    </lightning-combobox>
+                                    <template if:true={editSessionFieldErrors.startTimeError}>
+                                        <div class="field-inline-error">{editSessionFieldErrors.startTimeError}</div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <div class="form-group">
+                                    <label for="endTime">End Time <span class="required">*</span></label>
+                                    <lightning-combobox
+                                        id="endTime"
+                                        value={eventEndTime}
+                                        options={editSessionTimeOptions}
+                                        placeholder="Select end time"
+                                        onchange={handleEndTimeChange}
+                                        variant="label-hidden"
+                                        disabled={isEditSessionReadOnly}>
+                                    </lightning-combobox>
+                                    <template if:true={editSessionFieldErrors.endTimeError}>
+                                        <div class="field-inline-error">{editSessionFieldErrors.endTimeError}</div>
+                                    </template>
+                                    <template if:true={editSessionFieldErrors.orderError}>
+                                        <div class="field-inline-error">{editSessionFieldErrors.orderError}</div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Row 6: Class Room (1/3), Remark (1/3), URL (1/3) - all optional -->
+                        <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_small">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                <div class="form-group">
+                                    <label for="eventClassRoom">Class Room</label>
+                                    <lightning-input
+                                        id="eventClassRoom"
+                                        type="text"
+                                        value={eventClassRoom}
+                                        onchange={handleClassRoomChange}
+                                        placeholder="Enter class room"
+                                        variant="label-hidden"
+                                        disabled={isEditSessionReadOnly}>
+                                    </lightning-input>
+                                    <template if:true={editSessionFieldErrors.classRoomError}>
+                                        <div class="field-inline-error">{editSessionFieldErrors.classRoomError}</div>
+                                    </template>
+                                    <template if:true={isEditMode}>
+                                        <div class="slds-m-top_x-small">
+                                            <button class="btn-secondary view-attendance-btn" onclick={handleViewAttendance}>
+                                                View Attendance
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                <div class="form-group">
+                                    <label for="eventRemark">Remark</label>
+                                    <lightning-input
+                                        id="eventRemark"
+                                        type="text"
+                                        value={eventRemark}
+                                        onchange={handleRemarkChange}
+                                        placeholder="Enter remark"
+                                        variant="label-hidden"
+                                        disabled={isEditSessionReadOnly}>
+                                    </lightning-input>
+                                    <template if:true={editSessionFieldErrors.remarkError}>
+                                        <div class="field-inline-error">{editSessionFieldErrors.remarkError}</div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                <div class="form-group">
+                                    <label for="eventUrl">URL</label>
+                                    <lightning-input
+                                        id="eventUrl"
+                                        type="text"
+                                        value={eventUrl}
+                                        onchange={handleUrlChange}
+                                        placeholder="Enter URL"
+                                        variant="label-hidden"
+                                        disabled={isEditSessionReadOnly}>
+                                    </lightning-input>
+                                    <template if:true={editSessionFieldErrors.urlError}>
+                                        <div class="field-inline-error">{editSessionFieldErrors.urlError}</div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- RSVP read-back (Target 1): live Google Calendar attendee responses -->
+                        <template if:true={isEditMode}>
+                            <template if:true={showAttendeePanel}>
+                                <div class="form-group rsvp-panel">
+                                    <label>Attendee Responses (Google Calendar)</label>
+                                    <template if:true={attendeeLoading}>
+                                        <div class="rsvp-loading">
+                                            <lightning-spinner alternative-text="Loading responses" size="x-small"></lightning-spinner>
+                                            <span class="slds-m-left_x-small">Fetching latest responses…</span>
+                                        </div>
+                                    </template>
+                                    <template if:false={attendeeLoading}>
+                                        <template if:true={attendeeSummary}>
+                                            <div class="rsvp-summary">
+                                                <span class="rsvp-pill rsvp-accepted">{attendeeSummary.accepted} Yes</span>
+                                                <span class="rsvp-pill rsvp-declined">{attendeeSummary.declined} No</span>
+                                                <span class="rsvp-pill rsvp-tentative">{attendeeSummary.tentative} Maybe</span>
+                                                <span class="rsvp-pill rsvp-awaiting">{attendeeSummary.awaiting} Awaiting</span>
+                                                <span class="rsvp-total">of {attendeeSummary.total} invited</span>
+                                            </div>
+                                            <template if:true={attendeeRows.length}>
+                                                <ul class="rsvp-list">
+                                                    <template for:each={attendeeRows} for:item="row">
+                                                        <li key={row.key} class="rsvp-row">
+                                                            <span class="rsvp-email">{row.email}</span>
+                                                            <span class="rsvp-type">{row.type}</span>
+                                                            <span class={row.statusClass}>{row.status}</span>
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                            </template>
+                                        </template>
+                                        <template if:true={attendeeMessage}>
+                                            <div class="rsvp-message">{attendeeMessage}</div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </template>
+                        </template>
+                        <!-- Course Assignments Table -->
+                        <template if:true={showCourseAssignmentsAndNotEdit}>
+                            <div class="form-group course-assignments-section">
+                                <label>Select Program, Batch, Batch Group, and Divisions</label>
+                                <div class="course-assignments-table">
+                                    <table class="assignments-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="checkbox-col">
+                                                    <input type="checkbox" 
+                                                           checked={allAssignmentsSelected}
+                                                           onchange={handleSelectAllAssignments}
+                                                           title="Select All" />
+                                                </th>
+                                                <th>Program</th>
+                                                <th>Batch</th>
+                                                <th>Batch Group</th>
+                                                <th>Divisions</th>
+                                                <th>Term / Academic Year</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={courseAssignments} for:item="assignment" for:index="index">
+                                                <tr key={assignment.assignmentKey}>
+                                                    <td class="checkbox-col">
+                                                        <input type="checkbox" 
+                                                               data-key={assignment.assignmentKey}
+                                                               checked={assignment.isSelected}
+                                                               onchange={handleAssignmentToggle} />
+                                                    </td>
+                                                    <td>
+                                                        <div class="program-info">
+                                                            <div class="program-name">{assignment.programName}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="batch-info">{assignment.batchName}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="batch-group-info">{assignment.batchGroupName}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="division-info">
+                                                            {assignment.divisionName}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="term-info">{assignment.termName}</div>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </template>
+                        <template if:true={showExistingDivisions}>
+                            <div class="form-group existing-divisions-section">
+                                <label>Existing Session Divisions</label>
+                                <template if:true={hasFilteredExistingDivisionsRows}>
+                                <div class="course-assignments-table">
+                                    <table class="assignments-table existing-divisions-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Program</th>
+                                                <th>Batch</th>
+                                                <th>Batch Group</th>
+                                                <th>Divisions</th>
+                                                <th>Term / Academic Year</th>
+                                                <th class="existing-divisions-actions-col"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={filteredExistingSessionDivisions} for:item="division">
+                                                <tr key={division.divisionId}>
+                                                    <td>
+                                                        <div class="program-info">
+                                                            <div class="program-name">{division.programName}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="batch-info">{division.batchName}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="batch-group-info">{division.batchGroupName}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="division-info">
+                                                            {division.divisionName}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div class="term-info">{division.termName}</div>
+                                                    </td>
+                                                    <td class="existing-divisions-actions-col">
+                                                        <button type="button"
+                                                                class="btn-remove-division"
+                                                                title="Remove this division from the session"
+                                                                data-division-id={division.divisionId}
+                                                                onclick={handleRemoveSessionDivision}
+                                                                disabled={isEditSessionReadOnly}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                                <polyline points="3,6 5,6 21,6"></polyline>
+                                                                <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"></path>
+                                                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                            </svg>
+                                                            Remove
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                </template>
+                                <template if:false={hasFilteredExistingDivisionsRows}>
+                                    <p class="existing-divisions-empty-msg">No other divisions for this session.</p>
+                                </template>
+                            </div>
+                        </template>
+                        <template if:true={showEditAddDivisionsSection}>
+                            <template if:true={hasEditAddDivisionsRows}>
+                                <div class="form-group edit-add-divisions-section">
+                                    <label>Add this session to another division</label>
+                                    <p class="edit-add-divisions-hint">Select divisions where this course is running to add this session to them.</p>
+                                    <div class="course-assignments-table">
+                                    <table class="assignments-table existing-divisions-table">
+                                        <thead>
+                                            <tr>
+                                                <th class="checkbox-col"></th>
+                                                <th>Program</th>
+                                                <th>Batch</th>
+                                                <th>Batch Group</th>
+                                                <th>Divisions</th>
+                                                <th>Term / Academic Year</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template for:each={editAddCourseAssignmentsFiltered} for:item="addItem">
+                                                <tr key={addItem.assignmentKey} class={addItem.rowClass}>
+                                                    <td class="checkbox-col">
+                                                        <input type="checkbox"
+                                                               checked={addItem.isSelected}
+                                                               data-assignment-key={addItem.assignmentKey}
+                                                               onchange={handleEditAddAssignmentToggle}
+                                                               class="select-checkbox"/>
+                                                    </td>
+                                                    <td><div class="program-name">{addItem.programName}</div></td>
+                                                    <td>{addItem.batchName}</td>
+                                                    <td>{addItem.batchGroupName}</td>
+                                                    <td><span class="division-badge">{addItem.divisionName}</span></td>
+                                                    <td>{addItem.termName}</td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                </div>
+                            </template>
+                        </template>
+            <!-- SE-502: Show eligible makeup students in edit session when Make Up Exam selected -->            
+            <template if:true={showEnrolledStudents}>
+                <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_small">
+                    <div class="slds-col slds-size_1-of-1">
+                        <div class="form-group">
+                            <!-- SE-502: Select-all checkbox for eligible students in edit session -->    
+                            <span class="slds-checkbox">
+                                <input type="checkbox"
+                                       id="selectAllEditStudents"
+                                       checked={allEditStudentsSelected}
+                                       onchange={handleSelectAllEditStudents}
+                                       class="slds-checkbox__input" />
+                                <label class="slds-checkbox__label" for="selectAllEditStudents">
+                                    <span class="slds-checkbox_faux"></span>
+                                    <span class="slds-form-element__label" style="font-weight: 700; font-size: 14px; margin-left: 4px;">
+                                        Eligible Makeup Students
+                                    </span>
+                                </label>
+                            </span>
+                                <!-- SE-502: Multiselect checkbox group for eligible students in edit session -->
+                                <div class="slds-box slds-theme_default slds-m-top_small">
+                                    <lightning-checkbox-group
+                                        name="editEnrolledStudents"
+                                        options={editEnrolledStudentOptions}
+                                        value={editEnrolledSelectedIds}
+                                        onchange={handleEligibleStudentEditSelection}>
+                                    </lightning-checkbox-group>
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </template>     
+                    </div>
+                    <div class="modal-footer">
+                        <button if:true={isEditMode} type="button" class="delete-btn" onclick={handleDeleteEvent} disabled={isEditSessionReadOnly}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3,6 5,6 21,6"></polyline>
+                                <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"></path>
+                            </svg>
+                            Cancel
+                        </button>
+                        <div class="modal-actions">
+                            <button class="cancel-btn" onclick={handleCloseModal}>Close</button>
+                            <button class="save-btn" onclick={handleSaveEvent} disabled={editSessionSaveDisabled}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20,6 9,17 4,12"></polyline>
+                                </svg>
+                                {saveSessionButtonLabel}
+                            </button>
+                        </div>
+                    </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+        <!-- Drag Ghost Element -->
+        <!-- Unified conflict details modal (Google Calendar + Faculty + Session) -->
+        <template if:true={showConflictsModal}>
+            <div class="conflicts-modal-overlay" onclick={handleCloseConflictsModal}>
+                <div class="conflicts-modal-content conflicts-modal-content-redesign" onclick={handleModalClick}>
+                    <div class="conflicts-modal-header">
+                        <div class="conflicts-modal-header-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </div>
+                        <h3 class="conflicts-modal-title">Conflict details</h3>
+                        <button type="button" class="close-btn" onclick={handleCloseConflictsModal} aria-label="Close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="conflicts-modal-body">
+                        <p class="conflicts-modal-intro">Conflicts were found for this date and time. Review the details below. You can still proceed if needed.</p>
+                        <lightning-accordion allow-multiple active-section-name={conflictsAccordionActiveSections} class="conflicts-accordion">
+                            <template if:true={hasCalendarConflictsToShow}>
+                                <lightning-accordion-section name="gcal" label="Google Calendar Conflicts">
+                                    <div class="conflicts-cards conflicts-cards-calendar">
+                                        <template for:each={calendarConflictsWithDisplay} for:item="gc">
+                                            <article key={gc.key} class="conflict-card">
+                                                <div class="conflict-card-label conflict-card-label-faculty">Google Calendar conflict</div>
+                                                <div class="conflict-card-value conflict-card-faculty-names">{gc.facultyName}</div>
+                                                <div class="conflict-card-row">
+                                                    <div class="conflict-card-half">
+                                                        <div class="conflict-card-label">Conflicting event</div>
+                                                        <div class="conflict-card-session-name">{gc.conflictingSummary}</div>
+                                                        <div class="conflict-card-meta">{gc.conflictingTimeStr}</div>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        </template>
+                                    </div>
+                                </lightning-accordion-section>
+                            </template>
+                            <template if:true={hasFacultySessionConflictsToShow}>
+                                <lightning-accordion-section name="faculty" label="Faculty Session Conflicts">
+                                    <div class="conflicts-cards">
+                                        <template for:each={facultyConflictsWithDisplay} for:item="conflict">
+                                            <article key={conflict.conflictKey} class="conflict-card">
+                                                <div class="conflict-card-label conflict-card-label-faculty">Faculty session conflict</div>
+                                                <div class="conflict-card-value conflict-card-faculty-names">{conflict.facultyNamesStr}</div>
+                                                <div class="conflict-card-row">
+                                                    <div class="conflict-card-half">
+                                                        <div class="conflict-card-label">Your session</div>
+                                                        <div class="conflict-card-session-name">{conflict.proposedSessionName}</div>
+                                                        <div class="conflict-card-meta">{conflict.proposedDateStr} · {conflict.proposedTimeStr}</div>
+                                                        <template if:true={conflict.hasProposedContext}>
+                                                            <div class="conflict-card-context-block">
+                                                                <template if:true={conflict.proposedCourseName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Course:</span> {conflict.proposedCourseName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedDivisionNames}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Division(s):</span> {conflict.proposedDivisionNames}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedProgramName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Program:</span> {conflict.proposedProgramName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedBatchName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Batch:</span> {conflict.proposedBatchName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedBatchGroupName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Batch group:</span> {conflict.proposedBatchGroupName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedTermName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Term:</span> {conflict.proposedTermName}</div>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                    <div class="conflict-card-half conflict-card-half-conflicting">
+                                                        <div class="conflict-card-label">Conflicting session</div>
+                                                        <div class="conflict-card-session-name">{conflict.conflictingSessionName}</div>
+                                                        <div class="conflict-card-meta">{conflict.conflictingDateStr} · {conflict.conflictingTimeStr}</div>
+                                                        <template if:true={conflict.hasConflictingContext}>
+                                                            <div class="conflict-card-context-block">
+                                                                <template if:true={conflict.conflictingCourseName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Course:</span> {conflict.conflictingCourseName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingDivisionNames}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Division(s):</span> {conflict.conflictingDivisionNames}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingProgramName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Program:</span> {conflict.conflictingProgramName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingBatchName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Batch:</span> {conflict.conflictingBatchName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingBatchGroupName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Batch group:</span> {conflict.conflictingBatchGroupName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingTermName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Term:</span> {conflict.conflictingTermName}</div>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        </template>
+                                    </div>
+                                </lightning-accordion-section>
+                            </template>
+                            <template if:true={hasSessionConflictsToShow}>
+                                <lightning-accordion-section name="session" label="Session Conflicts">
+                                    <div class="conflicts-cards">
+                                        <template for:each={sessionConflictsWithDisplay} for:item="conflict">
+                                            <article key={conflict.conflictKey} class="conflict-card">
+                                                <div class="conflict-card-row">
+                                                    <div class="conflict-card-half">
+                                                        <div class="conflict-card-label">Your session</div>
+                                                        <div class="conflict-card-session-name">{conflict.proposedSessionName}</div>
+                                                        <div class="conflict-card-meta">{conflict.proposedDateStr} · {conflict.proposedTimeStr}</div>
+                                                        <template if:true={conflict.hasProposedContext}>
+                                                            <div class="conflict-card-context-block">
+                                                                <template if:true={conflict.proposedCourseName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Course:</span> {conflict.proposedCourseName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedDivisionNames}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Division(s):</span> {conflict.proposedDivisionNames}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedProgramName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Program:</span> {conflict.proposedProgramName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedBatchName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Batch:</span> {conflict.proposedBatchName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedBatchGroupName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Batch group:</span> {conflict.proposedBatchGroupName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.proposedTermName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Term:</span> {conflict.proposedTermName}</div>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                    <div class="conflict-card-half conflict-card-half-conflicting">
+                                                        <div class="conflict-card-label">Conflicting session</div>
+                                                        <div class="conflict-card-session-name">{conflict.conflictingSessionName}</div>
+                                                        <div class="conflict-card-meta">{conflict.conflictingDateStr} · {conflict.conflictingTimeStr}</div>
+                                                        <template if:true={conflict.hasConflictingContext}>
+                                                            <div class="conflict-card-context-block">
+                                                                <template if:true={conflict.conflictingCourseName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Course:</span> {conflict.conflictingCourseName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingDivisionNames}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Division(s):</span> {conflict.conflictingDivisionNames}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingProgramName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Program:</span> {conflict.conflictingProgramName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingBatchName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Batch:</span> {conflict.conflictingBatchName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingBatchGroupName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Batch group:</span> {conflict.conflictingBatchGroupName}</div>
+                                                                </template>
+                                                                <template if:true={conflict.conflictingTermName}>
+                                                                    <div class="conflict-card-context-line"><span class="conflict-context-label">Term:</span> {conflict.conflictingTermName}</div>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        </template>
+                                    </div>
+                                </lightning-accordion-section>
+                            </template>
+                        </lightning-accordion>
+                    </div>
+                    <div class="conflicts-modal-footer conflicts-modal-footer-submit">
+                        <p class="conflicts-submit-message">Click Submit if you still want to proceed with the session creation?</p>
+                        <div class="conflicts-modal-footer-actions">
+                            <button type="button" class="btn-cancel btn-conflicts-close" onclick={handleCloseConflictsModal}>Close</button>
+                            <button type="button" class="btn-save btn-conflicts-submit" onclick={handleConflictSubmitAnyway}>Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <!-- Student overlapping sessions conflict modal -->
+        <template if:true={showStudentConflictsModal}>
+            <div class="conflicts-modal-overlay" onclick={handleCloseStudentConflictsModal}>
+                <div class="conflicts-modal-content conflicts-modal-content-redesign" onclick={handleModalClick}>
+                    <div class="conflicts-modal-header">
+                        <div class="conflicts-modal-header-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </div>
+                        <h3 class="conflicts-modal-title">Students have overlapping sessions</h3>
+                        <button type="button" class="close-btn" onclick={handleCloseStudentConflictsModal} aria-label="Close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="conflicts-modal-body">
+                        <p class="conflicts-modal-intro">One or more students are already enrolled in another session at the same date and time. Please adjust the schedule or division to avoid conflicts.</p>
+                        <div class="conflicts-cards">
+                            <template for:each={studentConflictsWithDisplay} for:item="conflict">
+                                <article key={conflict.conflictKey} class="conflict-card">
+                                    <div class="conflict-card-label conflict-card-label-faculty">Student(s) in conflict</div>
+                                    <div class="conflict-card-value conflict-card-faculty-names">{conflict.studentNamesStr}</div>
+                                    <div class="conflict-card-row">
+                                        <div class="conflict-card-half">
+                                            <div class="conflict-card-label">Your session</div>
+                                            <div class="conflict-card-session-name">{conflict.proposedSessionName}</div>
+                                            <div class="conflict-card-meta">{conflict.proposedDateStr} · {conflict.proposedTimeStr}</div>
+                                        </div>
+                                        <div class="conflict-card-half conflict-card-half-conflicting">
+                                            <div class="conflict-card-label">Conflicting session</div>
+                                            <div class="conflict-card-session-name">{conflict.conflictingSessionName}</div>
+                                            <template if:true={conflict.conflictingCourseName}>
+                                                <div class="conflict-card-context-line"><span class="conflict-context-label">Course:</span> {conflict.conflictingCourseName}</div>
+                                            </template>
+                                            <div class="conflict-card-meta">{conflict.conflictingDateStr} · {conflict.conflictingTimeStr}</div>
+                                        </div>
+                                    </div>
+                                </article>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="conflicts-modal-footer">
+                        <button type="button" class="btn-cancel btn-conflicts-close" onclick={handleCloseStudentConflictsModal}>Close</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <template if:true={showPublishModal}>
+            <div class="modal-overlay" onclick={handleClosePublishModal}>
+                <div class="month-more-modal-content publish-range-modal" onclick={handleModalClick}>
+                    <div class="month-more-modal-header">
+                        <h3>Publish sessions</h3>
+                        <button type="button" class="close-btn" onclick={handleClosePublishModal} disabled={isPublishingSessions}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="publish-modal-body">
+                        <lightning-input
+                            type="date"
+                            label="From Date"
+                            value={publishFromDate}
+                            onchange={handlePublishFromDateChange}
+                            required
+                            disabled={isPublishingSessions}
+                        ></lightning-input>
+                        <lightning-input
+                            type="date"
+                            label="To Date"
+                            value={publishToDate}
+                            onchange={handlePublishToDateChange}
+                            required
+                            disabled={isPublishingSessions}
+                            class="publish-modal-to-date"
+                        ></lightning-input>
+                    </div>
+                    <div class="publish-modal-footer">
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={handleClosePublishModal}
+                            disabled={isPublishingSessions}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="brand"
+                            label="Publish"
+                            onclick={handleConfirmPublishSessions}
+                            disabled={isPublishingSessions}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <template if:true={showMonthMoreEventsModal}>
+            <div class="modal-overlay" onclick={handleCloseMonthMoreEvents}>
+                <div class="month-more-modal-content" onclick={handleModalClick}>
+                    <div class="month-more-modal-header">
+                        <h3>{monthMoreEventsTitle}</h3>
+                        <button class="close-btn" onclick={handleCloseMonthMoreEvents}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="month-more-modal-list">
+                        <template for:each={monthMoreEventsList} for:item="event">
+                            <div key={event.rowKey}
+                                 class={event.eventClass}
+                                 style={event.eventTileStyle}
+                                 onclick={handleEventClick}
+                                 data-id={event.id}
+                                 data-division-id={event.divisionId}
+                                 title=""
+                                 onmouseenter={handleEventMouseEnter}
+                                 onmouseleave={handleEventMouseLeave}>
+                                <span class="month-event-time">{event.timeRange}</span>
+                                <span class="month-event-title">{event.displayTitle}</span>
+                                <span class="month-event-title">{event.divisionDisplayName}</span>
+                                <span class="month-event-title">{event.courseName}</span>
+                                <span class="month-event-title">{event.primaryFacultyName}</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <div class="drag-ghost" if:true={isDragging}>
+            <span class="drag-ghost-title">{draggedEventTitle}</span>
+        </div>
+        <!-- Session hover tooltip (Division first, then Course, Course Activity, Faculty, etc.) -->
+        <template if:true={showSessionHoverTooltip}>
+            <div class="session-hover-tooltip"
+                 style={sessionHoverTooltipStyle}
+                 role="tooltip">
+                <div class="session-tooltip-line"><span class="session-tooltip-label">Division:</span> {hoveredEventTooltip.divisionName}</div>
+                <div class="session-tooltip-line"><span class="session-tooltip-label">Course:</span> {hoveredEventTooltip.courseName}</div>
+                <div class="session-tooltip-line"><span class="session-tooltip-label">Course Activity:</span> {hoveredEventTooltip.courseActivity}</div>
+                <div class="session-tooltip-line"><span class="session-tooltip-label">Faculty:</span> {hoveredEventTooltip.facultyStr}</div>
+                <div class="session-tooltip-line"><span class="session-tooltip-label">Support Faculty:</span> {hoveredEventTooltip.supportFacultyStr}</div>
+                <div class="session-tooltip-line"><span class="session-tooltip-label">Class Room:</span> {hoveredEventTooltip.classRoom}</div>
+            </div>
+        </template>
+        <!-- Toast Notification -->
+        <template if:true={showToast}>
+            <div class={toastClass}>
+                <span class="toast-message">{toastMessage}</span>
+                <button class="toast-close" onclick={handleCloseToast}>×</button>
+            </div>
+        </template>
+    </div>
+</template>

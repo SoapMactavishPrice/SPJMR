@@ -1,0 +1,196 @@
+<!--
+  @description       : 
+  @author            : 
+  @group             : 
+  @last modified on  : 12-13-2025
+  @last modified by  : 
+-->
+<template>
+    <div class="login-container">
+        <!-- Main Content Grid: Image and Login Form -->
+        <div class="slds-grid main-content-wrapper">
+            <!-- Left Section: Background Image with Overlay Info -->
+            <div class="slds-col slds-size--1-of-1">
+                <img src={bgUrl} alt="Student Login Background Image" />
+
+                <!-- Information Section Overlay on Image -->
+                <!-- <div class="info-section-overlay">
+                    <div class="slds-grid slds-grid_vertical-align-center info-content">
+                        <div class="slds-col slds-size_1-of-1">
+                           
+                        </div>
+                    </div>
+                </div> -->
+                <article class="slds-card slds-size--3-of-5 article-card">
+                    <div class="slds-grid slds-grid_vertical-align-center">
+                        <!-- Left: Text Content -->
+                        <div class="slds-col slds-size_1-of-1 slds-large-size_4-of-12 slds-m-around--large">
+                            <h3 class="slds-text-heading_medium info-title">Join the Top-Ranked PGDM</h3>
+                            <p class="slds-text-body_small info-text">Journey at SPJIMR!</p>
+                        </div>
+
+                        <!-- Right: Metrics -->
+                        <div class="slds-col">
+                            <div class="slds-grid slds-grid_align-space-around metrics-container">
+                                <div class="slds-col slds-size_1-of-3 metric-item">
+                                    <div class="slds-text-align_center">
+                                        <div class="metric-circle">
+                                            <span class="metric-number">#35</span>
+                                        </div>
+                                        <p class="slds-text-body_small metric-label">Business School Globally (Financial
+                                            Times MiM 2025 Ranking),Top 3 in India
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="vertical-line"></div>
+                                <div class="slds-col slds-size_1-of-3 metric-item">
+                                    <div class="slds-text-align_center">
+                                        <div class="metric-circle">
+                                            <span class="metric-number">44</span>
+                                        </div>
+                                        <p class="slds-text-body_small metric-label">Years of Legacy</p>
+                                    </div>
+                                </div>
+                                <div class="vertical-line"></div>
+                                <div class="slds-col slds-size_1-of-3 metric-item">
+                                    <div class="slds-text-align_center">
+                                        <div class="metric-circle">
+                                            <span class="metric-number">88+</span>
+                                        </div>
+                                        <p class="slds-text-body_small metric-label">Companies</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <!-- <div class="slds-col"> -->
+            <article class="login-card slds-card slds-size--1-of-4">
+                <div class="slds-grid slds-grid_vertical-align-center">
+                    <!-- Login Form Content -->
+                    <div class="slds-col slds-size_1-of-1">
+                        <!-- Header Banner -->
+                        <div class="login-header dxp-text-heading-medium">
+                            <h2 class="login-header-text">Student User Login</h2>
+                        </div>
+
+                        <!-- Form Body -->
+                        <div class="login-form-body">
+                            <form class="login-form" onsubmit={handleSubmit}>
+                                <!-- Email ID Field -->
+                                <div class="slds-form-element slds-m-bottom_medium">
+                                    <label class="slds-form-element__label" for="email-input">
+                                            <lightning-icon icon-name="action:email" alternative-text="email" size="x-small" class="slds-m-right_x-small" title="email"></lightning-icon>
+                                            Email ID
+                                        </label>
+                                    <div class="slds-form-element__control">
+                                        <input
+                                                type="email"
+                                                id="email-input"
+                                                class="slds-input"
+                                                placeholder="Enter Your Mail Id"
+                                                value={email}
+                                                onchange={handleEmailChange}
+                                                required
+                                                disabled={isLoading}
+                                            />
+                                    </div>
+                                </div>
+
+                                <!-- Password Field -->
+                                <div class="slds-form-element slds-m-bottom_small">
+                                    <label class="slds-form-element__label" for="password-input">
+                                            <!-- <lightning-icon icon-name="utility:lock" size="x-small" class="slds-m-right_x-small"></lightning-icon> -->
+                                            <lightning-icon 
+                                                icon-name="action:password_unlock" 
+                                                alternative-text="password_unlock" 
+                                                size="x-small"  
+                                                class="slds-m-right_x-small" 
+                                                title="password_unlock"
+                                            ></lightning-icon>
+                                            Password
+                                        </label>
+                                    <div
+                                        class="slds-form-element__control slds-input-has-icon slds-input-has-icon_right password-input-wrapper">
+                                        <input
+                                                type={passwordFieldType}
+                                                id="password-input"
+                                                class="slds-input"
+                                                placeholder="Enter Your Password"
+                                                value={password}
+                                                onchange={handlePasswordChange}
+                                                required
+                                                disabled={isLoading}
+                                            />
+                                        <button
+                                                type="button"
+                                                class="slds-button slds-button_icon slds-button_icon-bare password-toggle-button"
+                                                onclick={togglePasswordVisibility}
+                                                title="Toggle Password Visibility"
+                                            >
+                                                <lightning-icon 
+                                                    icon-name={passwordIconName} 
+                                                    size="x-small" 
+                                                    class="slds-icon_container password-toggle-icon"
+                                                ></lightning-icon>
+                                            </button>
+                                    </div>
+                                </div>
+
+                                <!-- Error Message -->
+                                <template if:true={errorMessage}>
+                                    <div class="slds-m-bottom_small error-message-container">
+                                        <div class="error-message-text">{errorMessage}</div>
+                                    </div>
+                                </template>
+
+                                <!-- Forgot Password Link -->
+                                <div class="slds-m-bottom_medium">
+                                    <!-- <a href="#" class="forgot-password-link" onclick={handleForgotPassword}>Forgot Password?</a> -->
+                                    <!-- <button type="button" class="slds-button forgot-password-link" onclick={handleForgotPassword}>
+                                            Forgot Password?
+                                        </button> -->
+                                    <span class="slds-text-link forgot-password-link"
+                                        onclick={handleForgotPassword}>
+                                    Forgot Password?
+                                </span>
+
+                                </div>
+
+                                <!-- Submit Button -->
+                                <div class="slds-form-element slds-size_1-of-1">
+                                    <button type="submit" class="slds-button submit-button" style="margin-left: 25%; width: 50%;" disabled={isLoading}>
+                                            <template if:true={isLoading}>
+                                                <span class="slds-spinner slds-spinner_x-small slds-spinner_inline slds-m-right_x-small" role="status">
+                                                    <span class="slds-assistive-text">Loading</span>
+                                                </span>
+                                            </template>
+                                            <template if:false={isLoading}>
+                                                Submit
+                                            </template>
+                                        </button>
+                                </div>
+                                <div class="or-divider">
+                                OR
+                               </div>
+                              <div class="google-login-wrapper">
+                                <img 
+                                src={googleLogoUrl}
+                                alt="Sign in with Google"
+                                class="google-logo"
+                                onclick={handleGoogleLogin}
+                                />
+                            </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <!-- </div> -->
+
+
+        </div>
+    </div>
+</template>

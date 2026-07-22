@@ -1,0 +1,25 @@
+.container {
+    padding: 16px;
+}
+
+.section {
+    margin-bottom: 20px;
+}
+
+.checkbox-group {
+    margin-top: 10px;
+    padding-left: 10px;
+}
+
+.checkbox-group lightning-input {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.route-checkbox {
+    margin-top: 12px;
+}
+
+.button-container {
+    margin-top: 16px;
+}

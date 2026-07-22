@@ -1,0 +1,212 @@
+<template>
+    <!-- Reflect visibility as a data attribute on the wrapper so parent CSS can collapse spacing -->
+    <div class="field-wrapper" data-visible={visible}>
+        <template if:true={visible}>
+            <!-- STATIC LABEL (Sequence Number Column) -->
+            <template lwc:if={isButton}>
+            </template>
+            <template lwc:elseif={isLabel}>
+                <div class="static-label">
+                    <span class="static-label__text slds-truncate" title={field.label}>{field.label}</span>
+                </div>
+            </template>
+
+            <template lwc:if={isButton}>
+            </template>
+            <label lwc:elseif={showNormalLabel} class="field-label">
+                <span class="field-label__text slds-truncate" title={field.label}>{field.label}</span>
+                <template if:true={field.required}><span class="req">*</span></template>
+            </label>
+
+            <template if:true={isNote}>
+                <div class="note-box note-text" lwc:dom="manual"></div>
+            </template>
+
+            <template lwc:if={isRichText}>
+                <div class="rich-text-block" lwc:dom="manual"></div>
+            </template>
+
+            <template if:true={isButton}>
+                <lightning-button 
+                    lwc:on={buttonEventHandlers}
+                    data-api={field.api}
+                    disabled={field.disabled}
+                    label={field.label}>
+                </lightning-button>
+            </template>
+            
+            <template if:true={isFile}>
+               <c-document-uploader
+                    field-meta={field}
+                    data-api={field.api}
+                    type={inputType}
+                    value={normalizedValue}
+                    disabled={isDisabled}
+                    section-name={sectionName}
+                    application-id={applicationId}
+                    ondocsfetched={handleFileChange}>
+                </c-document-uploader>
+            </template>
+
+
+
+            <!-- LOOKUP -->
+            <!-- <template lwc:if={isLookup}>
+                <lightning-record-picker
+                    data-api={field.api}
+                    object-api-name={field.objectApi}
+                    display-info={field.displayFields}
+                    matching-info={field.matchingInfo}
+                    value={normalizedValue}
+                    filter={field.filter}
+                    onchange={handleLookupChange}
+                    disabled={isDisabled}
+                    label={field.label}
+                    variant="label-hidden">
+                </lightning-record-picker>
+            </template> -->
+
+            <template lwc:if={isLookup}>
+                <c-fine-record-picker
+                    data-api={field.api}
+                    object-api-name={field.objectApi}
+                    display-info={field.displayFields}
+                    sort-info={field.sortInfo}
+                    matching-info={field.matchingInfo}
+                    value={normalizedValue}
+                    filter={field.filter}
+                    allow-other={field.allowOther}
+                    onlookupchange={handleLookupChange}
+                    onlookupset={handleLookupSet}
+                    disabled={isDisabled}
+                    label={field.label}
+                    show-pill="true"
+                    variant="label-hidden">
+                </c-fine-record-picker>
+            </template>
+
+            <!-- Month, Year -->
+            <template lwc:elseif={isMonthYear}>
+                <c-month-year-picker
+                    data-api={field.api}
+                    value={normalizedValue}
+                    disabled={isDisabled}
+                    min={field.min}
+                    max={field.max}
+                    onmonthyearchange={handleChange}>
+                </c-month-year-picker>
+            </template>
+
+            <!-- PHONE INPUT -->
+            <template lwc:elseif={isPhone}>
+                <c-phone-input
+                    value={normalizedValue}
+                    data-api={field.api}
+                    disabled={isDisabled}
+                    options={countryOptions}
+                    required={field.required}
+                    onphonechange={handleChange}>
+                </c-phone-input>
+            </template>
+
+
+            <!-- INPUT (text, number, date) -->
+            <template lwc:elseif={isInput}>
+                <lightning-input
+                    class="fine-inputs"
+                    data-api={field.api}
+                    type={inputType}
+                    value={normalizedValue}
+                    step={step}
+                    placeholder={field.placeholder}
+                    oninput={handleChange}
+                    onchange={handleChange}
+                    onblur={handleChange}
+                    disabled={isDisabled}
+                    title={value}
+                    sequence={field.sequence}
+                    checked={normalizedValue}
+                    min={field.min}
+                    max={max}
+                    message-when-bad-input="Enter a valid number"
+                    message-when-range-underflow={field.messageWhenRangeUnderflow}
+                    message-when-range-overflow={field.messageWhenRangeOverflow}
+                    maxlength={field.maxlength}                    
+                    pattern={field.pattern}
+                    variant="label-hidden">
+                </lightning-input>
+            </template>
+
+            <!-- COMBOBOX -->
+            <template lwc:elseif={isPicklist}>
+                <lightning-combobox
+                    data-api={field.api}
+                    options={field.options}
+                    value={value}
+                    title={value}
+                    placeholder={field.placeholder}
+                    onchange={handleChange}
+                    disabled={isDisabled}
+                    variant="label-hidden">
+                </lightning-combobox>
+            </template>
+
+            <!-- RADIO -->
+            <template lwc:elseif={isRadio}>
+                <lightning-radio-group
+                    data-api={field.api}
+                    options={field.options}
+                    type="radio"
+                    value={value}
+                    onchange={handleChange}
+                    disabled={isDisabled}
+                    variant="label-hidden">
+                </lightning-radio-group>
+            </template>
+
+            <template lwc:elseif={isCheckboxGroup}>
+                <lightning-checkbox-group
+                    name={field.api}
+                    data-api={field.api}
+                    options={field.options}
+                    value={valueList}
+                    variant="label-hidden"
+                    disabled={isDisabled}
+                    onchange={handleChange}>
+                </lightning-checkbox-group>
+            </template>
+
+
+            <!-- TEXTAREA -->
+            <template lwc:elseif={isTextarea}>
+                <div class="textarea-container">
+                    <lightning-textarea
+                        class="text-area-body"
+                        data-api={field.api}
+                        value={value}
+                        maxlength={field.maxlength}
+                        placeholder={field.placeholder}
+                        oninput={handleTextareaInput}
+                        onchange={handleChange}
+                        disabled={isDisabled}
+                        variant="label-hidden">
+                    </lightning-textarea>
+
+                    <template if:true={showWordCounter}>
+                        <div class={wordCounterClass}>
+                            {wordCounter}
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <template lwc:if={field.helpText}>
+                <div class="help-text"><i>{field.helpText}</i></div>
+            </template>
+
+            <template if:true={error}>
+                <div class="error">{error}</div>
+            </template>
+        </template>
+    </div>
+</template>

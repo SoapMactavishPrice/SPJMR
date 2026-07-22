@@ -1,0 +1,18 @@
+<template>
+    <!-- Sidebar -->
+    <div id="sidebar" class={sidebarClass}>
+        <template for:each={menuItems} for:item="item">
+            <a key={item.name}
+            data-name={item.name}
+            data-page={item.page}
+            class={item.class}
+            onclick={handleMenuClick}>
+                <lightning-icon icon-name={item.icon}
+                                size="small"
+                                class="slds-m-right_small icon-white">
+                </lightning-icon>
+                {item.label}
+            </a>
+        </template>
+    </div>
+</template>

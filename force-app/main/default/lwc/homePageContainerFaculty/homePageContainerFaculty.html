@@ -1,0 +1,36 @@
+<template>
+    <div class="header">
+    <div class="header-left">
+      <div class="logo">
+        <!-- SPJIMR -->
+        <img src={logoUrl} alt="App Logo" class="app-logo" />
+      </div>
+      <button class="menu-toggle" onclick={toggleMenu}>☰</button>
+    </div>
+    <div class="header-right">
+      <div class="profile-icon">👤</div>
+      <span>{userName} ▼</span>
+    </div>
+  </div>
+
+
+  <div id="sidebar" class={sidebarClass}>
+    <!-- <a href="#" class="active">
+        <lightning-icon icon-name="standard:home" size="small" class="slds-m-right_small"></lightning-icon>
+        Dashboard
+    </a> -->
+    <template for:each={menuItems} for:item="item">
+        <a key={item.name}
+           data-name={item.name}
+           class={item.class}
+           onclick={handleMenuClick}>
+            <lightning-icon icon-name={item.icon}
+                            size="small"
+                            class="slds-m-right_small icon-white">
+            </lightning-icon>
+            {item.label}
+        </a>
+    </template>
+  </div>
+
+</template>

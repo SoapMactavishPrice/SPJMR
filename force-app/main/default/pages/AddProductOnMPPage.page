@@ -1,0 +1,161 @@
+<apex:page controller="AddProductOnMP" id="page1">
+  <head>
+       <apex:slds />
+       <style>
+            .slds-truncate{
+                white-space: initial !important;
+            }
+       </style>
+         <script type="text/javascript">
+    function stopEnterKey(evt) {
+        var evt = (evt) ? evt : ((event) ? event : null);
+        var node = (evt.target) ? evt.target : ((evt.srcElement) ? evt.srcElement : null);
+        if ((evt.keyCode == 13) && (node.type == "text")) { 
+           Search();
+           return false; 
+        }
+    }
+    document.onkeypress = stopEnterKey;
+</script>
+    </head>  
+
+    <article class="slds-card s1FixedTop forceHighlightsStencilDesktop">
+    <apex:form >
+    <apex:pageBlock id="p" rendered="{!showList}">
+        <apex:actionFunction action="{!Search}" name="Search" rerender="p"/>
+        <apex:actionFunction action="{!selectAll}" name="selectAll" rerender="p"/>
+            
+        Search Product: 
+        <apex:selectList value="{!Related}" multiselect="false" size="1" style="width:150px;margin-left:5px;margin-right:5px;" styleClass="slds-input">
+            <apex:selectOption itemLabel="All" itemValue="All"/>
+			<apex:selectOptions value="{!valueMap}"/> 
+        </apex:selectList>
+           <apex:commandButton action="{!cancel}" value="cancel" style="float:right;" styleClass="slds-button slds-button_neutral"></apex:commandButton>
+	<apex:commandButton action="{!AddRec}" value="Add" style="float:right;margin-right:5px;" styleClass="slds-button slds-button_brand"></apex:commandButton> 
+        
+        <apex:inputText value="{!SearchText}" label="Search" style="width:300px;margin-left:5px;" styleClass="slds-input"></apex:inputText>
+        <apex:commandButton action="{!Search}" id="s" value="Search" reRender="p,Selected" status="SearchRequesting" style="margin-left:5px;" styleClass="slds-button slds-button_neutral"></apex:commandButton>
+        <apex:actionStatus id="SearchRequesting" startText="Searching..." />     
+     
+        <br/>
+        <br/>
+        
+    <div>
+        
+        <table Style="width: 100%;border-collapse: collapse;" id="plist" class="slds-table slds-table_bordered">
+            <tr Style="padding:5px 2px;border:1px solid black;text-align:center;border-collapse: collapse;" class="slds-hint-parent">
+                <th Style="background-color:#b12327;border:1px solid black;text-align:center;color:white;border:1px solid black;text-align:center;width:50px;">
+                    <apex:inputCheckbox value="{!SelectAll}" id="chk" onchange="selectAll()"></apex:inputCheckbox>
+                </th>
+                <th Style="background-color:#b12327;border:1px solid black;text-align:center;color:white;border:1px solid black;text-align:center;" class="slds-truncate slds-text-title_caps">Item No</th>
+                <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;border:1px solid black;text-align:center;width:300px;" class="slds-truncate slds-text-title_caps">Item Name</th>
+                <th Style="background-color:#b12327;border:1px solid black;text-align:center;color:white;border:1px solid black;text-align:center;" class="slds-truncate slds-text-title_caps">Item Description</th>
+                <th Style="background-color:#b12327;border:1px solid black;text-align:center;color:white;border:1px solid black;text-align:center;" class="slds-truncate slds-text-title_caps">Group</th>
+                <th Style="background-color:#b12327;border:1px solid black;text-align:center;color:white;border:1px solid black;text-align:center;" class="slds-truncate slds-text-title_caps">UOM</th>              
+            </tr>
+            
+            <apex:repeat value="{!wrapList}" var="p">
+                
+                <tr Style="padding:5px 2px;border:1px solid black;text-align:center;border-collapse: collapse;" class="slds-hint-parent">
+                    <td Style="border:1px solid black;text-align:center;"> 
+                        <apex:inputCheckbox value="{!p.isChecked}" id="chkid"></apex:inputCheckbox>
+                    </td>
+                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">{!p.pro.ProductCode}</td>
+                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate" role="gridcell">{!p.pro.Name}</td>
+                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">{!p.pro.product2.Description}</td>
+                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">{!p.pro.Product2.Item_Group__r.name}</td>
+                    <td Style="border:1px solid black;text-align:center;" class="slds-truncate">{!p.pro.Product2.UOM_Master__r.Name}</td>
+                </tr>
+            </apex:repeat>
+        </table>
+           <apex:pageBlockButtons location="Bottom">
+                
+          	<apex:commandButton value="Next Page" action="{!nextPage}" style="Float:right;margin-top:10px;" disabled="{!isLast}" styleClass="slds-button slds-button_neutral"> </apex:commandButton>
+         	<apex:commandButton value="Previous" action="{!prePage}" style="Float:right;margin-top:10px;" disabled="{!isFirst}" styleClass="slds-button slds-button_neutral"> </apex:commandButton>
+   
+               <div Style="Float:right;margin-top:16px;margin-right:3px;">
+                   Page &nbsp;
+                   <apex:outPutText value="{!pageNo}"></apex:outPutText>
+                   Out of &nbsp;
+                   <apex:outPutText value="{!totalPages}"></apex:outPutText>
+               </div> 
+        </apex:pageBlockButtons>
+        </div>
+     </apex:pageBlock>
+    </apex:form>
+    <apex:form >
+    <apex:pageBlock id="Selected" rendered="{!showForm}">
+     <div>
+         
+          <table Style="width: 100%;border-collapse: collapse;" class="slds-table slds-table_bordered">
+              <tr Style="padding:5px 2px;border:1px solid black;text-align:center;border-collapse: collapse;" class="slds-hint-parent">
+                  <!--<th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:130px;" class="slds-truncate slds-text-title_caps">Item No</th>-->
+                  <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;;width:20%;" class="slds-truncate slds-text-title_caps">Item Name</th>
+                 <!-- <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:100px;" class="slds-truncate slds-text-title_caps">Item Group</th>-->
+                  <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:20%;" class="slds-truncate slds-text-title_caps">Stock Available</th>
+                  <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:20%;" class="slds-truncate slds-text-title_caps">UOM</th>
+                  <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:20%;" class="slds-truncate slds-text-title_caps">Quantity</th>
+                   <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:20%;" class="slds-truncate">Remark</th>
+               <!--   <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:120px;" class="slds-truncate slds-text-title_caps">Unit Price</th>
+                  <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:120px;" class="slds-truncate slds-text-title_caps">Discount</th>
+                  <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:120px;" class="slds-truncate slds-text-title_caps">Tax Code</th>
+                  <th Style="background-color:#b12327;color:white;border:1px solid black;text-align:center;width:120px;" class="slds-truncate slds-text-title_caps">Total Price</th>-->
+              </tr>
+				<apex:repeat value="{!opList}" var="b">
+                	<tr Style="padding:5px 2px;border:1px solid black;text-align:center;border-collapse: collapse;" class="slds-hint-parent">
+                    	
+                       <!--<td Style="border:1px solid black;text-align:center;" class="slds-truncate"> 
+                         <apex:outputfield value="{!b.op.Item_Code__c}"> </apex:outputfield>
+                        </td>-->
+                        <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                        <apex:outputfield value="{!b.op.Item_Name__c}"> </apex:outputfield>
+                        </td>
+                        
+                     	<!--<td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                         <apex:outputfield value="{!b.op.Item_Group__r.name}"> </apex:outputfield>
+                        </td>-->
+                    	<td Style="border:1px solid black;text-align:center;" class="slds-truncate"> 
+                            <apex:outputfield value="{!b.op.In_Stock__c}" styleClass="slds-input"> </apex:outputfield>
+                        </td>
+                        <td Style="border:1px solid black;text-align:center;" class="slds-truncate"> 
+                            <!--  <apex:inputfield value="{!b.Sales_UOM__c}" styleClass="slds-input"> </apex:inputfield>-->
+                            
+                            <apex:selectList value="{!b.op.Sales_UOM__c}" multiselect="false" size="1" styleClass="slds-input">
+                                <apex:selectOptions value="{!b.vMap}"/> 
+                            </apex:selectList>
+                        </td>
+
+                         <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                         <apex:inputfield value="{!b.op.BOM_Quantity__c}" styleClass="slds-input" required="true"> </apex:inputfield>
+                        </td> 
+                        <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                            <apex:inputfield value="{!b.op.Remark__c}" styleClass="slds-input"> </apex:inputfield>
+                        </td>
+                       <!-- <td Style="border:1px solid black;text-align:center;" class="slds-truncate"> 
+                            <apex:inputfield value="{!b.op.UnitPrice__c}" styleClass="slds-input"> </apex:inputfield>
+                        </td>
+                        <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                            <apex:inputfield value="{!b.op.Discount__c}" styleClass="slds-input"> </apex:inputfield>
+                        </td>
+                        <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                            <apex:inputfield value="{!b.op.Tax_Code__c}"   style="width: 78%;margin-left:0px;line-height: 26px;"> </apex:inputfield>
+                        </td>
+                        <td Style="border:1px solid black;text-align:center;" class="slds-truncate">
+                         {!b.op.UnitPrice__c*b.op.BOM_Quantity__c}
+                        </td>-->
+                    </tr>
+                
+                </apex:repeat>
+                
+            </table>
+            <apex:pageBlockButtons location="Bottom">
+              <apex:commandButton value="Cancel" action="{!cancel}" style="Float:right;margin-top:10px;" styleClass="slds-button slds-button_neutral" immediate="true"> </apex:commandButton>
+                <apex:commandButton value="Save" action="{!saveRec}" style="Float:right;margin-right:5px;margin-top:10px;" styleClass="slds-button slds-button_brand"> </apex:commandButton>
+            </apex:pageBlockButtons>
+        
+     </div>
+    </apex:pageBlock>
+     </apex:form>
+    </article>
+    
+</apex:page>

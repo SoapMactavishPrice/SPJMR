@@ -1,0 +1,82 @@
+<template>
+    <lightning-card title="Document Review">
+        <div class="slds-p-around_medium">
+
+            <template if:true={loading}>
+                <lightning-spinner size="medium"></lightning-spinner>
+            </template>
+
+            <template if:true={documents.length}>
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                    <thead>
+                        <tr>
+                            <th><strong>Document Number</strong></th>
+                            <th><strong>Status</strong></th>
+                            <th><strong>Remarks</strong></th>
+                            <th><strong>Select File</strong></th>
+                            <th><strong>Preview</strong></th>
+                            <th><strong>Download</strong></th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template for:each={documents} for:item="doc">
+                            <tr key={doc.id}>
+                                <td>{doc.name}</td>
+
+                                <td>
+                                    <lightning-combobox
+                                        value={doc.status}
+                                        options={statusOptions}
+                                        data-id={doc.id}
+                                        onchange={handleStatusChange}>
+                                    </lightning-combobox>
+                                </td>
+
+                                <td>
+                                    <textarea
+                                        class="remarks-textarea"
+                                        data-id={doc.id}
+                                        oninput={handleRemarksTyping}>
+                                        {doc.remarks}
+                                    </textarea>
+                                </td>
+
+                                <td>
+                                    <template if:true={doc.showFileSelector}>
+                                        <lightning-combobox
+                                            placeholder="Select file"
+                                            options={doc.fileOptions}
+                                            data-id={doc.id}
+                                            onchange={handleFileSelect}>
+                                        </lightning-combobox>
+                                    </template>
+                                    <template if:false={doc.showFileSelector}>
+                                        {doc.selectedFile.title}
+                                    </template>
+                                </td>
+
+                                <td>
+                                    <template if:true={doc.selectedFile}>
+                                        <a href={doc.selectedFile.previewUrl} target="_blank">Preview</a>
+                                    </template>
+                                </td>
+
+                                <td>
+                                    <template if:true={doc.selectedFile}>
+                                        <a href={doc.selectedFile.downloadUrl}>Download</a>
+                                    </template>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </template>
+
+            <template if:false={documents.length}>
+                <p>No documents available.</p>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

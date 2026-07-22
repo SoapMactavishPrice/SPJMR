@@ -1,0 +1,167 @@
+<template>
+  <lightning-card
+    title="Student Division Distribution"
+    icon-name="standard:groups"
+  >
+    <div class="slds-p-around_medium">
+      <!-- Action Buttons -->
+      <div class="slds-grid slds-gutters slds-m-bottom_medium">
+        <div class="slds-col">
+          <lightning-button
+            label="Validate Distribution"
+            variant="neutral"
+            onclick={handleValidate}
+            disabled={isLoading}
+          ></lightning-button>
+        </div>
+        <div class="slds-col">
+          <lightning-button
+            label="Distribute Students"
+            variant="brand"
+            onclick={handleDistribute}
+            disabled={isLoading}
+          ></lightning-button>
+        </div>
+      </div>
+
+      <!-- Loading Spinner -->
+      <template if:true={isLoading}>
+        <lightning-spinner
+          alternative-text="Loading"
+          size="medium"
+        ></lightning-spinner>
+      </template>
+
+      <!-- Error Message -->
+      <template if:true={errorMessage}>
+        <div class="slds-m-bottom_medium">
+          <lightning-alert
+            type="error"
+            message={errorMessage}
+            onclose={handleCloseError}
+          ></lightning-alert>
+        </div>
+      </template>
+
+      <!-- Success Message -->
+      <template if:true={successMessage}>
+        <div class="slds-m-bottom_medium">
+          <lightning-alert
+            type="success"
+            message={successMessage}
+            onclose={handleCloseSuccess}
+          ></lightning-alert>
+        </div>
+      </template>
+
+      <!-- Validation Message -->
+      <template if:true={validationMessage}>
+        <div class="slds-m-bottom_medium">
+          <lightning-alert
+            type={validationAlertType}
+            message={validationMessage}
+            onclose={handleCloseValidation}
+          ></lightning-alert>
+        </div>
+      </template>
+
+      <!-- Distribution Results Table -->
+      <template if:true={showResults}>
+        <div class="slds-m-top_medium">
+          <h3 class="slds-text-heading_small slds-m-bottom_small">
+            Distribution Statistics
+          </h3>
+
+          <div class="table-container">
+            <table
+              class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped"
+            >
+              <thead>
+                <tr class="slds-line-height_reset">
+                  <th scope="col">
+                    <div class="slds-truncate" title="Division Name">
+                      Division Name
+                    </div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate" title="Total Students">
+                      Total Students
+                    </div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate" title="Male">Male</div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate" title="Female">Female</div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate" title="Technical">Technical</div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate" title="Non-Technical">
+                      Non-Technical
+                    </div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate" title="Avg Work Exp">
+                      Avg Work Exp (Years)
+                    </div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate" title="Avg Male Work Exp">
+                      Avg Male Work Exp
+                    </div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate" title="Avg Female Work Exp">
+                      Avg Female Work Exp
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <template for:each={divisionStatsList} for:item="stat">
+                  <tr key={stat.divisionId} class="slds-hint-parent">
+                    <td data-label="Division Name">
+                      <div class="slds-truncate" title={stat.divisionName}>
+                        {stat.divisionName}
+                      </div>
+                    </td>
+                    <td data-label="Total Students">
+                      <div class="slds-truncate">{stat.totalStudents}</div>
+                    </td>
+                    <td data-label="Male">
+                      <div class="slds-truncate">{stat.maleCount}</div>
+                    </td>
+                    <td data-label="Female">
+                      <div class="slds-truncate">{stat.femaleCount}</div>
+                    </td>
+                    <td data-label="Technical">
+                      <div class="slds-truncate">{stat.technicalCount}</div>
+                    </td>
+                    <td data-label="Non-Technical">
+                      <div class="slds-truncate">{stat.nonTechnicalCount}</div>
+                    </td>
+                    <td data-label="Avg Work Exp">
+                      <div class="slds-truncate">{stat.avgWorkExperience}</div>
+                    </td>
+                    <td data-label="Avg Male Work Exp">
+                      <div class="slds-truncate">
+                        {stat.avgMaleWorkExperience}
+                      </div>
+                    </td>
+                    <td data-label="Avg Female Work Exp">
+                      <div class="slds-truncate">
+                        {stat.avgFemaleWorkExperience}
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </template>
+    </div>
+  </lightning-card>
+</template>

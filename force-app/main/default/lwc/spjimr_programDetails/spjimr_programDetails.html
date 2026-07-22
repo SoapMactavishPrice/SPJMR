@@ -1,0 +1,249 @@
+<template>
+    <div class="dashboard-container">
+        <div class="dashboard-body">
+            <main class={mainContentClass}>
+                <div class="main-contianer">
+                    <div class="header-container">
+                        <h2 class="dxp-text-heading-large">Student Programme Details</h2>
+                        <c-spjimr_student-info-header class="slds-m-top--small"></c-spjimr_student-info-header>
+                    </div>
+                </div>
+                <template if:true={isStudentDetailsSection}>
+                    <!-- <div class="student-details-header-bar">
+                        <h2 class="student-details-header-text dxp-text-heading-xxsmall">Program Details</h2>
+                    </div>
+                    <div class="slds-m-top--large studentDetailsCard">
+                        <article class="slds-card article-card">
+                            <div class="slds-card__body slds-card__body_inner slds-m-top--x-large">
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-12">
+                                        <div class="profile-placeholder">
+                                            <span class="slds-avatar slds-avatar_circle profile-avatar">
+                                <img
+                                    alt="Person name"
+                                    src={profileDummyIcon}
+                                    title="User avatar"
+                                />
+                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-m-left--large slds-size_7-of-12">
+                                        <div class="slds-grid slds-gutters slds-size--2-of-4">
+                                            <div class="slds-col">
+                                                <h2 class="slds-text-heading_medium student-name-header">{studentName}
+                                                </h2>
+                                                <p class="slds-text-body_small slds-m-top--xx-small student-id-text">
+                                                    {rollNumber}
+                                                </p>
+                                                <p
+                                                    class="slds-text-body_small slds-m-top--xx-small student-program-text">
+                                                    {programName}</p>
+                                            </div>
+                                            <div class="slds-col">
+                                                <lightning-badge label="Status: Accepted" class="status-badge-accepted">
+                                                </lightning-badge>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_3-of-12 slds-text-align_right slds-m-left--xx-large">
+                                        <lightning-button label="Change of Specialization" variant="brand" disabled
+                                            class="specialization-button" onclick={handleChangeSpecialization}>
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-card__body slds-card__body_inner slds-m-top--x-large">
+                                <div class="slds-grid slds-gutters">
+                                    <div class="slds-col slds-size_1-of-3">
+                                        <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Personal
+                                            Details</h3>
+                                        <dl class="slds-dl_horizontal slds-m-top_small">
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body">Date of Birth</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate dxp-text-body">{dateOfBirth}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body ">Gender</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate  dxp-text-body">{studentGender}</p>
+                                            </dd>
+                                        </dl>
+
+                                        <h3
+                                            class="slds-section-title slds-text-heading_small section-title slds-m-top_medium">
+                                            Contact info</h3>
+                                        <dl class="slds-dl_horizontal slds-m-top_small">
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body">Phone</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate dxp-text-body">{mobileNumber}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body ">Email</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate  dxp-text-body">{studentEmail}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label address-label">
+                                                <p class="dxp-text-body">Address</p>
+                                            </dt>
+                                            
+                                            <dd class="slds-dl_horizontal__detail address-value">
+                                                <p class="dxp-text-body">{address}</p>
+                                            </dd>
+                                        </dl>
+                                        <div class="slds-m-top_medium">
+                                            <lightning-button label="Emergency contact" variant="brand"
+                                                class="emergency-button" onclick={handleEmergencyContact}>
+                                            </lightning-button>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="slds-col slds-size_1-of-3">
+                                        <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Academic
+                                            Background
+                                        </h3>
+                                        <dl class="slds-dl_horizontal slds-m-top_small">
+                                            <dt class="slds-dl_horizontal__label" style="width:45%">
+                                                <p class="dxp-text-body">Previous Qualification</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail" style="width:50%">
+                                                <p class="slds-truncate dxp-text-body">{prevQualification}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body ">Graduation Year</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate  dxp-text-body">{graduationYear}</p>
+                                            </dd>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate dxp-text-body">Marks/CGPA</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                <p class="slds-truncate dxp-text-body">{marks}</p>
+                                            </dd>
+                                        </dl>
+                                        
+                                    </div>
+
+                                </div>
+                            </div>
+                        </article>
+                    </div> -->
+                    <div class="student-details-wrapper">
+                        <div class="student-details-header-bar">
+                            <h2 class="student-details-header-text dxp-text-heading-xxsmall">
+                                Programme Details
+                            </h2>
+                        </div>
+
+                        <div class="slds-m-top--large studentDetailsCard">
+                            <article class="slds-card article-card">
+                                <div class="slds-card__body slds-card__body_inner slds-m-top--x-large">
+                                    <div class="slds-grid slds-gutters">
+                                        <!-- Left Column: Personal Details -->
+                                        <div class="slds-col slds-size_1-of-3">
+                                            <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Programme
+                                                Overview</h3>
+                                            <div style="margin-left:5px">
+                                                <dl class="slds-dl_horizontal slds-m-top_small">
+                                                    <dt class="slds-dl_horizontal__label">
+                                                        <p class="slds-truncate dxp-text-body">Programme Name</p>
+                                                    </dt>
+                                                    <dd class="slds-dl_horizontal__detail program-detail-value-wrap">
+                                                        <p class="dxp-text-body">{displayProgramName}</p>
+                                                    </dd>
+                                                    <dt class="slds-dl_horizontal__label">
+                                                        <p class="slds-truncate dxp-text-body ">Programme Code</p>
+                                                    </dt>
+                                                    <dd class="slds-dl_horizontal__detail">
+                                                        <p class="slds-truncate  dxp-text-body">{displayProgramCode}</p>
+                                                    </dd>
+                                                    <dt class="slds-dl_horizontal__label">
+                                                        <p class="slds-truncate dxp-text-body ">Duration</p>
+                                                    </dt>
+                                                    <dd class="slds-dl_horizontal__detail">
+                                                        <p class="slds-truncate  dxp-text-body">{displayProgramDuration}</p>
+                                                    </dd>
+                                                    <dt class="slds-dl_horizontal__label">
+                                                        <p class="slds-truncate dxp-text-body ">Term</p>
+                                                    </dt>
+                                                    <dd class="slds-dl_horizontal__detail slds-m-top_none">
+                                                        <lightning-combobox class="dxp-text-body term-pill"
+                                                            variant="label-hidden" options={student.termOptions}
+                                                            value={selectedTermValue} onchange={handleTermChange}>
+                                                        </lightning-combobox>
+                                                        <!-- <p class="slds-truncate  dxp-text-body">{student.term}</p> -->
+                                                    </dd>
+                                                </dl>
+                                            </div>
+                                            <!-- <div class="division-section slds-m-top_medium">
+                                                <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Division</h3>
+                                                <div class="division-table-wrapper">
+                                                    <table class="division-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Division Name</th>
+                                                                <th>Division Group</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <template for:each={divisionRows} for:item="divRow">
+                                                                <tr key={divRow.id}>
+                                                                    <td>{divRow.divisionName}</td>
+                                                                    <td>{divRow.divisionGroup}</td>
+                                                                </tr>
+                                                            </template>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div> -->
+                                        </div>
+
+                                        <!-- Middle Column: Program Structure -->
+                                        <div class="slds-col slds-size_1-of-3">
+                                            <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Programme
+                                                Structure
+                                            </h3>
+                                            <div style="margin-left:5px">
+                                                <dl class="slds-dl_horizontal slds-m-top_small">
+                                                    <dt class="slds-dl_horizontal__label" style="width:45%">
+                                                        <p class="dxp-text-body">Academic Calender</p>
+                                                    </dt>
+                                                    <dd class="slds-dl_horizontal__detail" style="width:50%">
+                                                        <!-- <p class="slds-truncate dxp-text-body">view calendar</p> -->
+                                                        <a href={calendarUrl} target="_blank" class=" slds-truncate dxp-text-body academic-link"> View Academic Calendar
+                                                        </a>
+                                                    </dd>
+                                                    <dt class="slds-dl_horizontal__label">
+                                                        <p class="dxp-text-body ">Per Term Selected</p>
+                                                    </dt>
+                                                    <dd class="slds-dl_horizontal__detail program-detail-value-wrap">
+                                                        <p class="dxp-text-body">{courseCountText}</p>
+                                                    </dd>
+                                                    <dt class="slds-dl_horizontal__label">
+                                                        <p class="slds-truncate dxp-text-body">Current Term</p>
+                                                    </dt>
+                                                    <dd class="slds-dl_horizontal__detail">
+                                                        <p class="slds-truncate dxp-text-body">{displayStudentTerm}</p>
+                                                    </dd>
+                                                </dl>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+
+                </template>
+
+            </main>
+        </div>
+    </div>
+</template>

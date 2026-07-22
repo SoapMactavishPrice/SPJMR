@@ -1,0 +1,52 @@
+<template>
+    <!-- Record Type Selection Screen -->
+    <template if:true={showSelection}>
+        <lightning-card title="New Lead" icon-name="standard:lead">
+            <div class="slds-p-around_medium">
+                <div class="slds-form-element">
+                    <label class="slds-form-element__label slds-text-heading_small">
+                        Select a record type
+                    </label>
+                    <div class="slds-form-element__control slds-m-top_small">
+                        <lightning-radio-group
+                            name="recordType"
+                            options={recordTypeOptions}
+                            value={selectedRecordType}
+                            type="radio"
+                            onchange={handleRecordTypeChange}>
+                        </lightning-radio-group>
+                    </div>
+                </div>
+            </div>
+            <div slot="footer" class="slds-text-align_right">
+                <lightning-button
+                    label="Cancel"
+                    onclick={handleCancel}
+                    variant="neutral"
+                    class="slds-m-right_small">
+                </lightning-button>
+                <lightning-button
+                    label="Next"
+                    onclick={handleNext}
+                    variant="brand">
+                </lightning-button>
+            </div>
+        </lightning-card>
+    </template>
+
+    <!-- B2C Form Component -->
+    <template if:true={showB2CForm}>
+        <c-b2c-lead-form
+            onclose={handleB2CFormClose}
+            onsuccess={handleB2CFormSuccess}>
+        </c-b2c-lead-form>
+    </template>
+
+    <!-- B2B Form Component -->
+    <template if:true={showB2BForm}>
+        <c-b2b-lead-form
+            onclose={handleB2BFormClose}
+            onsuccess={handleB2BFormSuccess}>
+        </c-b2b-lead-form>
+    </template>
+</template>

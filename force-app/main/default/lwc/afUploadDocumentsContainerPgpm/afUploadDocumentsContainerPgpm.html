@@ -1,0 +1,13 @@
+<template>
+    <div lwc:if={isLoading}>
+        <lightning-spinner size="large" alternative-text="Loading"></lightning-spinner>
+    </div>
+    <div class="page">
+
+        <c-af-section-engine ondocsfetched={handleDocsFetched} sections={sectionModel} context={document} onsectionfieldchange={handleSectionFieldChange} oncustomlookupset={handleLookupSet} collapse-hidden-columns="false"></c-af-section-engine>
+
+        <!-- <div class="actions">
+            <lightning-button label="Save" onclick={saveForm} variant="brand"></lightning-button>
+        </div> -->
+    </div>
+</template>

@@ -1,0 +1,11 @@
+<apex:page controller="PdfAutoMergeCtrl"
+           showHeader="false"
+           sidebar="false"
+           renderAs="pdf"
+           applyBodyTag="false">
+
+    <apex:repeat value="{!pdfUrls}" var="u">
+        <iframe src="{!u}" width="100%" height="1000px"/>
+    </apex:repeat>
+
+</apex:page>

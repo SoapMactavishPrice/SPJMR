@@ -1,0 +1,57 @@
+/**
+ * @description CSS styles for Enroll Students in Term modal
+ * Uses CSS custom properties to control modal sizing for ScreenAction
+ */
+
+/* Increase modal width for ScreenAction using CSS custom properties */
+:host {
+    --slds-c-modal-sizing-width: 90vw;
+    --slds-c-modal-sizing-max-width: 1400px;
+    width: 100%;
+    display: block;
+}
+
+/* Target the modal container directly - for ScreenAction modals */
+:host .slds-modal__container,
+.slds-modal__container {
+    width: 90vw !important;
+    max-width: 1400px !important;
+    min-width: 1200px !important;
+}
+
+/* Ensure lightning-card takes full width */
+lightning-card {
+    width: 100%;
+}
+
+/* Table styling for better display */
+.slds-table {
+    width: 100%;
+}
+
+/* Center align checkbox columns */
+.slds-table td.slds-text-align_center {
+    vertical-align: middle;
+}
+
+/* Table row hover effect */
+.slds-table tbody tr:hover {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+/* Ensure scrollable area has proper height */
+.slds-scrollable_x {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #f3f2f2;
+}
+
+.table-scroll-container {
+    max-height: 400px;
+    overflow-y: auto;
+}

@@ -1,0 +1,51 @@
+<template>
+    <div class="dashboard-container">
+        <div class="dashboard-body">
+            <main class={mainContentClass}>
+                <div class="main-container">
+                    <div class="header-container">
+                        <div>
+                            <h2 class="dxp-text-heading-large">{pageTitle}</h2>
+                            <c-spjimr_student-info-header class="slds-m-top--small"></c-spjimr_student-info-header>
+                        </div>
+                    </div>
+                    <div class="term-selector-row slds-m-top_medium slds-m-bottom_medium">
+                    <dl class="term-dl slds-m-top_small">
+                        <dt class="term-dl__label">
+                            <p class="slds-truncate dxp-text-body" style="margin-top:2px;font-size:20px">Term</p>
+                        </dt>
+                        <dd class="term-dl__detail slds-m-top_none" style="width:180px">
+                            <lightning-combobox
+                                name="term"
+                                label="Term"
+                                variant="label-hidden"
+                                options={termOptions}
+                                value={selectedTermValue}
+                                onchange={handleTermChange}
+                                class="dxp-text-body term-pill">
+                            </lightning-combobox>
+                        </dd>
+                    </dl>
+                </div>
+
+                    <div class="dashboard-wrapper slds-p-around_medium">
+                        <div class={dashboardGridClass}>
+                            <template if:true={showLeaveApplication}>
+                                <div class={leftPanelClass}>
+                                    <c-leave-application></c-leave-application>
+                                </div>
+                            </template>
+
+                            <template if:true={showAttendance}>
+                                <div class={rightPanelClass}>
+                                    <c-attendance-dashboard term-id={selectedTermValue}></c-attendance-dashboard>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+</template>

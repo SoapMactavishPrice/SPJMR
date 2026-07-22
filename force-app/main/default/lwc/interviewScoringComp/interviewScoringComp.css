@@ -1,0 +1,31 @@
+.slds-box {
+    background-color: rgb(255, 255, 255);
+    border-radius: 0.5rem;
+    border: 1px solid rgb(221, 219, 218);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+   
+}
+
+.interview-button{
+    padding-bottom:10px;
+   
+}
+
+.orange-button .slds-button {
+    background-color: #f58220 !important;
+    border-color: #f58220 !important;
+    color: white !important;
+}
+
+
+.slds-theme_default {
+    border-left: 6px solid rgb(75, 0, 118); 
+}
+
+.spinner-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 120px; 
+    width: 100%;
+}

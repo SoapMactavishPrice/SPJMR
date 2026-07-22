@@ -1,0 +1,331 @@
+<apex:page renderAs="pdf" showHeader="false" sidebar="false" standardStylesheets="false">
+<html>
+  <body style="font-family:Arial, Helvetica, sans-serif; font-size:10.5pt; color:#000000; margin:6mm 12mm;">
+
+    <!-- ===== Compact Header / Letterhead Bar ===== -->
+    <!-- ===== Compact Header / Letterhead Bar ===== -->
+<table width="100%" cellpadding="0" cellspacing="0" 
+       style="border-collapse:collapse; margin-bottom:4pt; font-family:Arial, sans-serif;">
+  <tr>
+    <td width="60%" 
+        style="padding:0; border-bottom:2px solid #f0c200; vertical-align:middle;">
+      <img src="{!URLFOR($Resource.SPJIMR_Logo)}" alt="SPJIMR" 
+           style="height:20px; max-height:20px; vertical-align:middle;"/>
+    </td>
+    <td width="40%" align="right" 
+        style="padding:0; border-bottom:2px solid #f0c200; font-size:9pt; color:#555; vertical-align:middle;">
+      <span style="font-weight:bold;">SPJIMR - </span><br/>
+      <span style="font-size:8pt;">Proforma Invoice</span>
+    </td>
+  </tr>
+</table>
+
+
+    <h1 style="color:#f0c200; font-size:13pt; margin:0 0 1pt 0;">PGDM &amp; PGDM (BM) 2025-27</h1>
+    <p style="margin:0 0 4pt 0; font-size:10pt;"><b>APPLICATION NO:</b> 202554058</p>
+
+    <!-- ===== Programme Details ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200;">
+      <tr><td colspan="2" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Programme Details (Choose the programmes you wish to apply to for the 2025-27 intake)</b></td></tr>
+      <tr><td style="width:50%">1st Programme Applying for</td><td>PGDM</td></tr>
+      <tr><td>2nd Programme Applying for</td><td>—</td></tr>
+      <tr><td>Please Select Your Preference 1</td><td>—</td></tr>
+      <tr><td>Please Select Your Preference 2</td><td>—</td></tr>
+      <tr><td>Specialization 1 For PGDM</td><td>Finance</td></tr>
+      <tr><td>Specialization 2 For PGDM</td><td>—</td></tr>
+      <tr><td>Reasons I Have (Specialization 1)</td><td>Graduation in related area; Specialized course(s) in the chosen area</td></tr>
+      <tr><td>Reasons I Have (Specialization 2)</td><td>—</td></tr>
+      <tr><td>Mention Your Interest 1</td><td>—</td></tr>
+      <tr><td>Mention Your Interest 2</td><td>—</td></tr>
+    </table>
+
+    <!-- ===== Personal Information ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="2" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Personal Information</b></td></tr>
+      <tr><td style="width:50%">First Name</td><td>test</td></tr>
+      <tr><td>Middle Name</td><td>—</td></tr>
+      <tr><td>Last Name</td><td>mer</td></tr>
+      <tr><td>Gender</td><td>Female</td></tr>
+      <tr><td>Date of Birth (As Per 10th Marksheet)</td><td>02/02/2000</td></tr>
+      <tr><td>Age as on 22/11/2024</td><td>24 years , 9 months , 20 days</td></tr>
+      <tr><td>Nationality</td><td>Indian</td></tr>
+      <tr><td>Category</td><td>GEN (General)</td></tr>
+      <tr><td>Do You Have Aadhar Card?</td><td>Yes</td></tr>
+      <tr><td>Aadhar Card Number</td><td>777777777777</td></tr>
+      <tr><td>Do You Have a Passport?</td><td>Yes</td></tr>
+      <tr><td>Passport Number</td><td>784677473g</td></tr>
+      <tr><td>Indian Origin Card (IOC)</td><td>—</td></tr>
+      <tr><td>Passport Issuing Country</td><td>—</td></tr>
+    </table>
+
+    <!-- ===== Contact Details ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="2" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Contact Details</b></td></tr>
+      <tr><td style="width:50%">Mobile Number</td><td>+91-7240802351</td></tr>
+      <tr><td>Parent's Mobile Number</td><td>+91-7834786773</td></tr>
+      <tr><td>Email</td><td>sheetalrawat1109@gmail.com</td></tr>
+      <tr><td>Alternate Email Address</td><td>test@gmail.com</td></tr>
+    </table>
+
+    <!-- ===== Address Details ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="7" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Address Details</b></td></tr>
+      <tr><td colspan="7">Is your permanent address same as address for correspondence? <b>Yes</b></td></tr>
+      <tr bgcolor="#fff8dc"><th align="left">Type</th><th align="left">Address</th><th align="left">City Name</th><th align="left">District Name</th><th align="left">State Name</th><th align="left">Country Name</th><th align="left">Pincode</th></tr>
+      <tr><td>Correspondence</td><td>asdasdas</td><td>Banjar</td><td>Kullu</td><td>Himachal Pradesh</td><td>India</td><td>0</td></tr>
+      <tr><td>Permanent</td><td>asdasdas</td><td>Banjar</td><td>Kullu</td><td>Himachal Pradesh</td><td>India</td><td>0</td></tr>
+    </table>
+
+    <!-- ===== Academic Details ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="10" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Academic Details</b></td></tr>
+      <tr><td colspan="10" style="color:#333; font-size:9.5pt;">After 10th Qualification: <b>12th</b></td></tr>
+      <tr bgcolor="#fff8dc">
+        <th align="left">Level</th>
+        <th align="left">Board / University</th>
+        <th align="left">Institute Name</th>
+        <th align="left">Examination ID</th>
+        <th align="left">Month &amp; Year of Passing</th>
+        <th align="left">Marking Scheme</th>
+        <th align="left">Max Marks/CGPA</th>
+        <th align="left">Obtained Marks/CGPA</th>
+        <th align="left">Conversion Factor</th>
+        <th align="left">Percentage</th>
+      </tr>
+      <tr>
+        <td>10th</td><td>Board of Technical Education</td><td>kjhg</td><td>2334279</td><td>01/2019</td><td>Marks</td><td>100</td><td>90</td><td>—</td><td>90.00</td>
+      </tr>
+      <tr>
+        <td>12th</td><td>Board of Vocational Higher Secondary Education</td><td>sdf</td><td>13691033</td><td>01/2021</td><td>Marks</td><td>100</td><td>90</td><td>—</td><td>90.00</td>
+      </tr>
+      <tr>
+        <td>Diploma</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+      </tr>
+    </table>
+
+    <!-- ===== Graduation Details (Summary) ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="2" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Graduation Details</b></td></tr>
+      <tr><td style="width:50%">University State</td><td>Andaman Nicobar Island University; Pondicherry University, Puducherry</td></tr>
+      <tr><td>Institute Name</td><td>Dr. B.R. Ambedkar Institute of Technology (Govt. Polytechnic Campus), Juglighat, Port Blair</td></tr>
+      <tr><td>Mode Of Study</td><td>Full Time</td></tr>
+      <tr><td>Degree</td><td>AMIE</td></tr>
+      <tr><td>Specialization</td><td>Accountancy</td></tr>
+      <tr><td>Degree Type</td><td>3 Year degree</td></tr>
+      <tr><td>Pattern of Examination</td><td>Semester Wise</td></tr>
+      <tr><td>UG Result Status</td><td>Completed</td></tr>
+      <tr><td>Commencement (Month/Year)</td><td>03/2021</td></tr>
+      <tr><td>Month &amp; Year of Passing</td><td>02/2024</td></tr>
+      <tr><td>Marking Scheme</td><td>Marks</td></tr>
+      <tr><td>Maximum Marks/CGPA</td><td>100</td></tr>
+      <tr><td>Obtained Marks/CGPA</td><td>76</td></tr>
+      <tr><td>Graduation Percentage</td><td>89</td></tr>
+      <tr><td>Academic Break / Special Conditions</td><td>No</td></tr>
+    </table>
+
+    <!-- ===== Graduation Details (Semester Wise) ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200;">
+      <tr><td colspan="3" bgcolor="#fff8dc" style="color:#8a6f00; border:1px solid #f0c200;"><b>Semester Wise Details</b></td></tr>
+      <tr bgcolor="#fff8dc"><th align="left">Semester</th><th align="left">Max SGPA / Max Marks</th><th align="left">Obtained SGPA / Obtained Marks</th></tr>
+      <tr><td>1st</td><td>100</td><td>100</td></tr>
+      <tr><td>2nd</td><td>100</td><td>100</td></tr>
+      <tr><td>3rd</td><td>100</td><td>100</td></tr>
+      <tr><td>4th</td><td>100</td><td>100</td></tr>
+      <tr><td>5th</td><td>100</td><td>100</td></tr>
+      <tr><td>6th</td><td>100</td><td>100</td></tr>
+      <tr><td>7th</td><td>—</td><td>—</td></tr>
+      <tr><td>8th</td><td>—</td><td>—</td></tr>
+      <tr><td>9th</td><td>—</td><td>—</td></tr>
+      <tr><td>10th</td><td>—</td><td>—</td></tr>
+    </table>
+
+    <!-- ===== Graduation Details (Year Wise) ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200;">
+      <tr><td colspan="3" bgcolor="#fff8dc" style="color:#8a6f00; border:1px solid #f0c200;"><b>Year Wise Details</b></td></tr>
+      <tr bgcolor="#fff8dc"><th align="left">Year</th><th align="left">Max SGPA / Max Marks</th><th align="left">Obtained SGPA / Obtained Marks</th></tr>
+      <tr><td>1st Year</td><td>—</td><td>—</td></tr>
+      <tr><td>2nd Year</td><td>—</td><td>—</td></tr>
+      <tr><td>3rd Year</td><td>—</td><td>—</td></tr>
+      <tr><td>4th Year</td><td>—</td><td>—</td></tr>
+      <tr><td>5th Year</td><td>—</td><td>—</td></tr>
+    </table>
+
+    <!-- ===== Post Graduation Details ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="2" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Post Graduation Details</b></td></tr>
+      <tr><td style="width:50%">Any Post Graduation?</td><td>No</td></tr>
+      <tr><td>University State</td><td>—</td></tr>
+      <tr><td>University Name</td><td>—</td></tr>
+      <tr><td>Institute Name</td><td>—</td></tr>
+      <tr><td>Degree</td><td>—</td></tr>
+      <tr><td>Stream</td><td>—</td></tr>
+      <tr><td>Mode Of Study</td><td>—</td></tr>
+      <tr><td>PG Status</td><td>—</td></tr>
+      <tr><td>Month and Year of Passing</td><td>—</td></tr>
+      <tr><td>Marking Scheme</td><td>—</td></tr>
+      <tr><td>Maximum Marks/CGPA</td><td>—</td></tr>
+      <tr><td>Obtained Marks/CGPA</td><td>—</td></tr>
+      <tr><td>Conversion Factor</td><td>—</td></tr>
+      <tr><td>Master's Degree Percentage</td><td>—</td></tr>
+    </table>
+
+    <!-- ===== Professional Qualification ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="2" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Professional Qualification</b></td></tr>
+      <tr><td style="width:50%">Do you have Professional Qualification?</td><td>—</td></tr>
+      <tr><td>Name of Qualification</td><td>—</td></tr>
+      <tr><td>Name of Institute</td><td>—</td></tr>
+      <tr><td>Qualification Status</td><td>—</td></tr>
+      <tr><td>Level Achieved</td><td>—</td></tr>
+      <tr><td>Rank Achieved</td><td>—</td></tr>
+      <tr><td>Year of Commencement</td><td>—</td></tr>
+      <tr><td>Year of Passing</td><td>—</td></tr>
+      <tr><td>Important Certification/Programme (If Any)</td><td>—</td></tr>
+    </table>
+
+    <!-- ===== Work Experience (Current) ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="10" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Work Experience</b></td></tr>
+      <tr><td colspan="10">Do You Have Any Work Experience? <b>No</b></td></tr>
+      <tr bgcolor="#fff8dc">
+        <th align="left">Name Of Organisation</th>
+        <th align="left">Industry</th>
+        <th align="left">Function</th>
+        <th align="left">Employment Type</th>
+        <th align="left">Designation</th>
+        <th align="left">Gross Annual CTC</th>
+        <th align="left">Is Current Job?</th>
+        <th align="left">Start Date</th>
+        <th align="left">End Date</th>
+        <th align="left">Role (Brief)</th>
+      </tr>
+      <tr><td colspan="10" align="center" style="color:#777;">— No entries —</td></tr>
+    </table>
+
+    <!-- ===== Previous Work Experience Details ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200;">
+      <tr bgcolor="#fff8dc">
+        <th align="left">Name Of Organisation</th>
+        <th align="left">Industry</th>
+        <th align="left">Function</th>
+        <th align="left">Designation</th>
+        <th align="left">From</th>
+        <th align="left">To</th>
+        <th align="left">Total Months</th>
+        <th align="left">Describe Role</th>
+      </tr>
+      <tr><td colspan="8" align="center" style="color:#777;">— No entries —</td></tr>
+      <tr><td>Months Of Work Experience Beyond Above (If Any)?</td><td colspan="7">—</td></tr>
+      <tr><td>Total Work Experience (In Month)</td><td colspan="7">—</td></tr>
+    </table>
+
+    <!-- ===== Achievements ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="6" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Achievements</b> <span style="font-size:10pt; color:#8a6f00;">(Academic up to 3)</span></td></tr>
+      <tr bgcolor="#fff8dc">
+        <th align="left">Title of the Award</th>
+        <th align="left">Institute</th>
+        <th align="left">Year</th>
+        <th align="left">Award/Position</th>
+        <th align="left">Level</th>
+        <th align="left">Description (Max 25 words)</th>
+      </tr>
+      <tr><td colspan="6" align="center" style="color:#777;">— No entries —</td></tr>
+    </table>
+
+    <!-- ===== Versatility ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="6" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Versatility</b></td></tr>
+      <tr bgcolor="#fff8dc">
+        <th align="left">Name of the Activity</th>
+        <th align="left">Interest</th>
+        <th align="left">Proficiency</th>
+        <th align="left">Award</th>
+        <th align="left">Level</th>
+        <th align="left">Description (Max 25 words)</th>
+      </tr>
+      <tr><td colspan="6" align="center" style="color:#777;">— No entries —</td></tr>
+      <tr><td colspan="5"><b>Overall Versatility Rating</b></td><td>—</td></tr>
+    </table>
+
+    <!-- ===== Responsibility Shouldered ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="2" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Responsibility Shouldered</b></td></tr>
+      <tr><td style="width:50%">Personal – Level</td><td>—</td></tr>
+      <tr><td>Personal – Describe Briefly</td><td>—</td></tr>
+      <tr><td>Professional – Level</td><td>—</td></tr>
+      <tr><td>Professional – Describe Briefly</td><td>—</td></tr>
+    </table>
+
+    <!-- ===== Information Source ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="2" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Information Source</b></td></tr>
+      <tr><td style="width:50%">How Did You Get To Know About SPJIMR?</td><td>Friends / Relatives; Magazine</td></tr>
+      <tr><td>Are You Interested In Knowing About Other SPJIMR Programmes?</td><td>—</td></tr>
+    </table>
+
+    <!-- ===== Competitive Exam Details ===== -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td colspan="4" bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Competitive Exam Details</b></td></tr>
+      <tr><td colspan="4">Competitive Exam Details: CAT; GMAT; GMAT Focus Edition</td></tr>
+
+      <!-- CAT 2024 -->
+      <tr><td colspan="4" bgcolor="#fff8dc" style="border:1px solid #f0c200;"><b>CAT 2024 Exam Details</b></td></tr>
+      <tr><td style="width:25%">CAT Result Status</td><td>Declared</td><td>CAT Registration No.</td><td>23074006</td></tr>
+      <tr><td>Is your primary email same as CAT email?</td><td>Yes</td><td>CAT Score Card</td><td>Yes</td></tr>
+      <tr><td>Overall score</td><td>89.19</td><td>Overall Percentile</td><td>99.68</td></tr>
+      <tr><td>VARC score</td><td>97.61</td><td>VARC percentile</td><td>97.61</td></tr>
+      <tr><td>DILR score</td><td>97.61</td><td>DILR percentile</td><td>97.61</td></tr>
+      <tr><td>QA score</td><td>97.61</td><td>QA percentile</td><td>97.61</td></tr>
+    </table>
+
+    <!-- GMAT Classic -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200;">
+      <tr><td colspan="4" bgcolor="#fff8dc" style="border:1px solid #f0c200;"><b>GMAT Exam Details (Jan 01, 2022 to Dec 10, 2024)</b></td></tr>
+      <tr><td style="width:25%">Result Status</td><td>Declared</td><td>GMAT ID.</td><td>87</td></tr>
+      <tr><td>Appointment No.</td><td>87</td><td>Test Date</td><td>15/05/2023</td></tr>
+      <tr><td>Score Issue Date</td><td>12/06/2024</td><td>Score Card</td><td>Yes</td></tr>
+      <tr><td>Overall score</td><td>97.61</td><td>Overall Percentile</td><td>97.61</td></tr>
+      <tr><td>Quant Score</td><td>97.61</td><td>Quant Percentile</td><td>97.61</td></tr>
+      <tr><td>Verbal Score</td><td>97.61</td><td>Verbal Percentile</td><td>97.61</td></tr>
+    </table>
+
+    <!-- GMAT Focus Edition -->
+    <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200;">
+      <tr><td colspan="4" bgcolor="#fff8dc" style="border:1px solid #f0c200;"><b>GMAT Focus Edition (From Nov 2023 to Dec 10, 2024)</b></td></tr>
+      <tr><td style="width:25%">Result Status</td><td>Declared</td><td>GMAT ID.</td><td>kjhkjhkjkj</td></tr>
+      <tr><td>Appointment No.</td><td>87</td><td>Test Date</td><td>20/12/2023</td></tr>
+      <tr><td>Score Issue Date</td><td>10/12/2024</td><td>Score Card</td><td>Yes</td></tr>
+      <tr><td>Overall score</td><td>97.61</td><td>Overall Percentile</td><td>97.61</td></tr>
+      <tr><td>Data Score</td><td>97.61</td><td>Data Percentile</td><td>97.61</td></tr>
+      <tr><td>Quant Score</td><td>97.61</td><td>Quant Percentile</td><td>97.61</td></tr>
+      <tr><td>Verbal Score</td><td>97.61</td><td>Verbal Percentile</td><td>97.61</td></tr>
+    </table>
+
+    <!-- ===== Declaration ===== -->
+    <table width="100%" border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse; border-color:#f0c200; margin-top:6pt;">
+      <tr><td bgcolor="#fff8dc" style="color:#8a6f00; font-size:12pt; border:1px solid #f0c200;"><b>Declaration</b></td></tr>
+      <tr><td style="line-height:1.35;">
+        I declare that the information provided by me in the application form and the supporting documents is correct. If the furnished information is found misleading or incorrect, I will be responsible for any action taken that the institute may deem fit. I understand that the right to carry out the admission process for PGDM &amp; PGDM (BM) lies with SPJIMR. I understand that SPJIMR reserves the exclusive right to reject any application for non-fulfillment of eligibility documentation and/ or for information provided by the applicant being misstated. In such cases, fees paid by the applicant will be forfeited at any stage of admission. I understand that a non-refundable fee of Rs.2000/- as application fee is payable by every applicant for registration for each of the programmes PGDM and PGDM (BM) when applied separately. I further confirm that a non-refundable fee of Rs 3000/- as a combined application fee is payable by every applicant when applying for both PGDM and PGDM (BM) together. Applicants can make an online payment through Credit/Debit Card (MasterCard/Visa). I undertake to abide by the disciplinary rules and regulations of the institute.
+        <br/><br/>
+        <b>Please Note:</b><br/>
+        • All disputes in this regard are subject to the legal jurisdiction of Mumbai.<br/>
+        • All general information pertaining to PGDM and PGDM (BM) will be posted on our website.<br/>
+        • Any communication or update related to the application will be uploaded on the applicant's individual profile, also information will be posted on admissions platform, mail communication may also be done as a service.<br/>
+        • The information that the applicant provides in the application form will be used by SPJIMR for its Admission purposes.<br/>
+        • The information collected for the admission process may also be used for research purposes as the institute deems fit.
+        <br/><br/>
+        <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;">
+          <tr>
+            <td style="width:50%"><b>Applicant Name</b><br/>test mer</td>
+            <td><b>Date</b><br/>18/12/2024</td>
+          </tr>
+        </table>
+      </td></tr>
+    </table>
+
+    <p align="center" style="font-size:9pt; color:#666; margin-top:6pt;">Static Visualforce PDF – Application No. 202554058</p>
+
+  </body>
+</html>
+</apex:page>

@@ -1,0 +1,38 @@
+.payment-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+}
+
+.card {
+    text-align: center;
+    padding: 2rem;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    max-width: 400px;
+}
+
+.icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.success {
+    border-top: 6px solid #2e844a;
+}
+
+.failed {
+    border-top: 6px solid #ba0517;
+}
+
+.warning {
+    border-top: 6px solid #ffb75d;
+}
+
+.subtext {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #666;
+}

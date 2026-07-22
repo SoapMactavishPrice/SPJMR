@@ -1,0 +1,80 @@
+<template>
+
+    <template lwc:if={interviewBooked}>
+
+        <!-- PANEL CONTAINER -->
+        <div style="
+            background:#ffffff;
+            border-radius:12px;
+            padding:20px;
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);
+            font-family: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+            color:#333;
+            max-width:750px;
+            margin:0 auto 20px auto;
+        ">
+
+            <!-- Accordion (Closed by Default) -->
+            <lightning-accordion allow-multiple-sections-open="false">
+
+                <!-- INTERVIEW DETAILS SECTION -->
+                <lightning-accordion-section name="interviewDetails" label="GMP Interview Details">
+
+                    <p style="margin-bottom: 15px;">
+                        <strong>Dear {applicantName},</strong>
+                    </p>
+
+                    <p style="margin-bottom: 15px;">
+                        Greetings from <strong>{programName}</strong>!
+                    </p>
+
+                    <p style="margin-bottom: 15px;">
+                        Your Round – {roundNumber} Interview (i.e.
+                        <strong>{programName} interview</strong>) is scheduled on
+                        <strong> {bookingTime}</strong> at
+                        <strong> {bookingAddress}</strong>.
+                    </p>
+
+                    <p style="margin-bottom: 15px;">
+                        <a href={googleMapsUrl}
+                           target="_blank"
+                           style="color:#1a73e8; text-decoration:none; font-weight:bold;">
+                           View Location on Google Maps
+                        </a>
+                    </p>
+
+                    <p style="margin-bottom: 15px;">
+                        Do carry a Government ID (PAN/Aadhar/Passport)
+                        and all original documents for verification.
+                        Arrange them in the following order:
+                    </p>
+
+                    <ul style="padding-left:20px; margin-bottom: 15px;">
+                        <li>Relieving letter OR latest pay slip OR appointment letter</li>
+                        <li>GMAT / GRE / CAT / XAT / NMAT score card</li>
+                        <li>IELTS / TOEFL score card</li>
+                        <li>Graduation Transcript and/or Marksheet</li>
+                        <li>XII and X certificate & Marksheet</li>
+                        <li>3 best extracurricular certificates</li>
+                    </ul>
+
+                    <p style="margin-bottom: 15px;">
+                        <em>Freshers do not need relieving letters or pay slips.</em>
+                    </p>
+
+                    <p style="margin-bottom: 15px;">All the Best!!</p>
+
+                    <p style="margin:0;">
+                        <strong>Divya Mahesh</strong><br>
+                        9820866719
+                    </p>
+
+                </lightning-accordion-section>
+
+            </lightning-accordion>
+
+        </div>
+
+    </template>
+
+</template>

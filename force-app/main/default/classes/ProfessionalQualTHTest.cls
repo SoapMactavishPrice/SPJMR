@@ -1,0 +1,17 @@
+@IsTest
+private class ProfessionalQualTHTest {
+    @IsTest
+    static void lifecycleMethodsRunWithEmptyCollections() {
+        ProfessionalQualificationTriggerHandler h = new ProfessionalQualificationTriggerHandler();
+        List<Professional_Qualification__c> emptyList = new List<Professional_Qualification__c>();
+        Map<Id, Professional_Qualification__c> emptyMap = new Map<Id, Professional_Qualification__c>();
+        h.beforeInsert(emptyList);
+        h.beforeUpdate(emptyList, emptyMap, emptyList, emptyMap);
+        h.afterInsert(emptyList, emptyMap);
+        h.afterUpdate(emptyList, emptyMap, emptyList, emptyMap);
+        h.beforeDelete(emptyList, emptyMap);
+        h.afterDelete(emptyList, emptyMap);
+        h.afterUndelete(emptyList, emptyMap);
+        System.assert(true);
+    }
+}

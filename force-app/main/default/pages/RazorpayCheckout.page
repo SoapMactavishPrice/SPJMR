@@ -1,0 +1,88 @@
+<apex:page controller="RazorpayPageController"
+           showHeader="false"
+           sidebar="false"
+           docType="html-5.0"
+           standardStylesheets="false">
+
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 120px;
+            background-color: #f9f9f9;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 30px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            max-width: 420px;
+            margin: auto;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #f58220;
+            color: #fff;
+            padding: 12px 22px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .info {
+            margin: 10px 0;
+            font-size: 1.05rem;
+            color: #444;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+
+    <h2>Complete Your Payment</h2>
+
+    <p class="info"><strong>Order ID:</strong> {!orderId}</p>
+    <p class="info"><strong>Amount:</strong> ₹{!amount}</p>
+    <p class="info"><strong>Name:</strong> {!payeename}</p>
+
+    <br/>
+
+    <form method="POST" action="https://api.razorpay.com/v1/checkout/embedded">
+
+        <input type="hidden" name="key_id" value="{!razorpayKey}"/>
+        <input type="hidden" name="amount" value="{!amount}"/>
+        <input type="hidden" name="currency" value="INR"/>
+        <input type="hidden" name="order_id" value="{!orderId}"/>
+
+        <input type="hidden" name="name" value="{!payeename}"/>
+        <input type="hidden" name="description" value="{!description}"/>
+
+        <input type="hidden" name="prefill[name]" value="{!payeename}"/>
+        <input type="hidden" name="prefill[email]" value="{!payee_email}"/>
+
+       
+        <input type="hidden" name="callback_url" value="{!callbackUrl}"/>
+        <input type="hidden" name="cancel_url" value="{!cancelUrl}"/>
+
+        <button type="submit" class="btn">Pay Now</button>
+
+    </form>
+
+</div>
+
+</body>
+</html>
+</apex:page>

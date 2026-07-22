@@ -1,0 +1,116 @@
+<apex:page Controller="AddStationaryMaster" readOnly="false" sidebar="false" showHeader="false">
+
+    <apex:slds />
+
+    <head>
+        <apex:includescript value="//code.jquery.com/jquery-3.3.1.js" />
+        <apex:includescript value="//cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js" />
+        <apex:stylesheet value="//cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css" />
+
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+        <script>
+
+
+            $(document).ready(function () {
+                $('#example').DataTable({
+                    "scrollY": "480px",
+                    "scrollCollapse": true,
+                    "ordering": false,
+                    "paging": true
+                });
+            });
+
+            var app = angular.module('myApp', []);
+            app.controller('myCtrl', function ($scope) {
+                                $scope.wrlist1 = JSON.parse('{!JSENCODE(wrlist1)}');
+
+                // console.log(as);
+                $scope.id = '{!$currentpage.parameters.id}';
+                console.log($scope.wrlist1);
+                console.log($scope.id);
+
+                $scope.my = function (param, form) {
+                    if (param == 'cancel') {
+                        window.parent.location = "/" + $scope.id;
+                    } else {
+                        if (form.$valid) {
+                            console.log($scope.wrlist1);
+                            console.log(JSON.stringify($scope.wrlist1));
+                            Visualforce.remoting.Manager.invokeAction(
+                                '{!$RemoteAction.AddStationaryMaster.save}',
+                                JSON.stringify($scope.wrlist1),
+                                $scope.id,
+                                function (result, event) {
+                                    // console.log(result);
+                                    // console.log(event);
+                                    // window.open('apex/'+$scope.id);
+                                    window.parent.location = "/" + $scope.id;
+                                });
+                        } else {
+                            console.log('Not Valid', form)
+                        }
+                    }
+                }
+            });
+        </script>
+
+    </head>
+
+    <body ng-app="myApp" ng-controller="myCtrl">
+        <br/>
+        <div class="slds-box" style="width: 98%;margin:auto">
+
+            <p class="slds-text-title_caps" style="text-align:center;font-size:20px">ADD Student Kit</p>
+            <form name="stationaryForm" novalidate="stationaryForm">
+                <table id="example" class="slds-table slds-table_cell-buffer slds-table--bordered slds-table_col-bordered slds-border_right slds-border_left"
+                    style="width:100%;">
+                    <thead>
+                        <tr  style="text-align:center">
+
+                            <th scope="col" style="background-color:#631856;color:white;width:6%;text-align:center">
+                                Select
+                            </th>
+                            <th scope="col" style="background-color:#631856;color:white;width:20%;text-align:left">
+                                Name
+                            </th>
+                            <th scope="col" style="background-color:#631856;color:white;width:20%;text-align:left">
+                                Price
+                            </th>
+                            <th scope="col" style="background-color:#631856;color:white;width:20%;text-align:left">
+                                Quantity
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr  ng-repeat="wr in wrlist1">
+                            <td role="gridcell" class="slds-text-align_center" style="width:6%;">
+                                <input type="checkbox" ng-model="wr.chk" />
+                            </td>
+                            <td role="gridcell">
+                                <div class="slds-truncate">{{wr.tra.Name}}</div>
+                            </td>
+                            <td role="gridcell">
+                                <div class="slds-truncate">{{wr.tra.Price__c}}</div>
+                            </td>
+                            <td role="gridcell">
+                                <div class="slds-form-element " ng-class="(stationaryForm.{{wr.tra.Id}}.$invalid && stationaryForm.{{wr.tra.Id}}.$error.required && stationaryForm.$submitted) ? 'slds-has-error' : '' ">
+                                    <div class="slds-form-element__control">
+                                        <input type="text" name="{{wr.tra.Id}}" ng-required="wr.chk" ng-model="wr.tra.Quantity__c" class="slds-input" onkeypress="return (event.charCode > 47 && event.charCode < 58) "
+                                        />
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <div class="slds-scope" align="center">
+                    <button class="slds-button slds-button_brand" ng-click="my('',stationaryForm)">Add Items</button>
+                    <button class="slds-button slds-button_destructive" ng-click="my('cancel')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </body>
+</apex:page>
