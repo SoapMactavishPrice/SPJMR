@@ -1,7 +1,81 @@
-.header{
- font-family: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-        color: #4b2e83;
-        font-weight: 700;
-        font-size: 24px;
-        margin: 0 0 12px 0;
+.card-title {
+    font-family: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    color: #4b2e83;
+    font-weight: 700;
+    font-size: 22px;
+    margin: 0;
+}
+
+.section-subtitle {
+    font-family: 'Nunito Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    color: #4b2e83;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+/* ── Evaluation status banner (top-right of detail view) ────────────────── */
+.status-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f3f0f9;
+    border: 1px solid #d0c5e8;
+    border-radius: 6px;
+    padding: 6px 14px;
+}
+
+.status-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b2e83;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ── Badge base ─────────────────────────────────────────────────────────── */
+.eval-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Complete  → green */
+.slds-badge_success {
+    background-color: #2e844a;
+    color: #ffffff;
+    border-color: #2e844a;
+}
+
+/* Pending → amber */
+.slds-badge_warning {
+    background-color: #dd7a01;
+    color: #ffffff;
+    border-color: #dd7a01;
+}
+
+/* Not Started → neutral grey */
+.slds-badge_neutral {
+    background-color: #e0e5ee;
+    color: #3e3e3c;
+    border-color: #c9d0dc;
+}
+
+/* ── Active tab highlight ───────────────────────────────────────────────── */
+.slds-tabs_default__item.slds-is-active > a {
+    color: #4b2e83;
+    border-bottom-color: #4b2e83;
+    font-weight: 600;
+}
+
+.tab-link {
+    cursor: pointer;
+    color: #0176d3;
+    text-decoration: none;
+}
+
+.tab-link:hover {
+    text-decoration: underline;
 }

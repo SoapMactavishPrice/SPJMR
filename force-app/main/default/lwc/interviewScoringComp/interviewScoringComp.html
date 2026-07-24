@@ -1,17 +1,53 @@
 <template>
     <div class="slds-p-around_medium">
-   <div class="slds-grid slds-m-bottom_medium">
-        <!-- <lightning-button
-            label="View Application"
-            variant="brand"
-            onclick={handleViewApplication}>
-        </lightning-button> -->
-        <c-ap-preview-pdf record-id={applicationId}></c-ap-preview-pdf>
-   </div>
+
+        <template if:true={bookingsLoading}>
+            <div class="slds-align_absolute-center slds-p-around_large">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:true={bookingsError}>
+            <div class="slds-notify slds-notify_alert slds-theme_error" role="alert">
+                <span class="slds-assistive-text">Error</span>
+                <h2>{bookingsError}</h2>
+            </div>
+        </template>
+
+        <template if:true={isEmpty}>
+            <div class="slds-align_absolute-center slds-p-around_large">
+                <div class="slds-illustration slds-illustration_small">
+                    <p class="slds-text-color_weak slds-text-heading_small">
+                        No bookings found for this slot.
+                    </p>
+                </div>
+            </div>
+        </template>
+
+        <template if:true={isMultiple}>
+            <div class="slds-tabs_default slds-m-bottom_medium">
+                <ul class="slds-tabs_default__nav" role="tablist">
+                    <template for:each={tabItems} for:item="tab">
+                        <li key={tab.id} class={tab.liClass} role="presentation">
+                            <a class="slds-tabs_default__link tab-link"
+                               role="tab"
+                               data-id={tab.id}
+                               onclick={handleTabClick}>
+                                {tab.label}
+                            </a>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+        </template>
+
+        <div class="slds-grid slds-m-bottom_medium">
+            <c-ap-preview-pdf record-id={applicationId}></c-ap-preview-pdf>
+        </div>
+
         <template if:false={isFinished}>
             <template for:each={criteriaResults} for:item="item">
-                <div key={item.Id}
-                     class="slds-box slds-box_x-small slds-m-bottom_small">
+                <div key={item.Id} class="slds-box slds-box_x-small slds-m-bottom_small">
 
                     <lightning-record-view-form
                         object-api-name="ScoringTemplate__c"
@@ -22,21 +58,22 @@
                     </lightning-record-view-form>
 
                     <div class="slds-col slds-size_2-of-12 slds-m-top_small">
-                    <lightning-input
-                        type="number"
-                        label="Score"
-                        value={item.score}
-                        data-crit={item.Id}
-                        min="1"
-                        max="10"
-                        onchange={handleScoreChange}>
-                    </lightning-input>
-                   <lightning-input
-                   type="text"
-                   label="Comment"
-                   data-crit={item.Id}
-                   value={item.comment}
-                   onchange={handleCommentChange}></lightning-input>
+                        <lightning-input
+                            type="number"
+                            label="Score"
+                            value={item.score}
+                            data-crit={item.Id}
+                            min="1"
+                            onchange={handleScoreChange}>
+                        </lightning-input>
+
+                        <lightning-input
+                            type="text"
+                            label="Comment"
+                            data-crit={item.Id}
+                            value={item.comment}
+                            onchange={handleCommentChange}>
+                        </lightning-input>
                     </div>
                 </div>
             </template>
@@ -44,49 +81,48 @@
             <lightning-button
                 label="Save Scores"
                 variant="brand"
-                onclick={handleSave}>
+                onclick={handleSave}
+                class="slds-m-right_small">
             </lightning-button>
         </template>
 
         <template if:true={isFinished}>
             <template for:each={criteriaResults} for:item="item">
-                <div key={item.Id}
-                     class="slds-box slds-box_x-small slds-m-bottom_small">
+                <div key={item.Id} class="slds-box slds-box_x-small slds-m-bottom_small">
 
                     <lightning-record-view-form
                         object-api-name="ScoringTemplate__c"
                         record-id={item.Id}>
-                        <div class="slds-grid">
-                            <div class="slds-col"><span>
-                                <lightning-output-field field-name={criteriaDesc}></lightning-output-field>
-                            </span>
-                            </div>
-                            <div class="slds-col"><span>
-                                <lightning-output-field field-name={criteriaName}></lightning-output-field>
-                            </span>
-                        </div>
-                        <div class="slds-col">
-                            <p>Evaluated Score:</p><strong>{item.score}</strong>
-                            <p>Comment: </p><strong>{item.comment}</strong>
-                        </div>
-                            
-                        </div>
-                        
-                        
-                        
+                        <lightning-output-field field-name={criteriaName}></lightning-output-field>
+                        <lightning-output-field field-name={criteriaDesc}></lightning-output-field>
+                        <lightning-output-field field-name={criteriaMaxScore}></lightning-output-field>
                     </lightning-record-view-form>
 
-                    
+                    <div class="slds-col slds-size_2-of-12 slds-m-top_small">
+                        <lightning-input
+                            type="number"
+                            label="Score"
+                            value={item.score}
+                            disabled>
+                        </lightning-input>
+
+                        <lightning-input
+                            type="text"
+                            label="Comment"
+                            value={item.comment}
+                            disabled>
+                        </lightning-input>
+                    </div>
                 </div>
             </template>
         </template>
 
-    </div>
+        <lightning-button
+            label="Complete Interview"
+            variant="brand"
+            disabled={isDisabled}
+            onclick={handleFinish}>
+        </lightning-button>
 
-    <lightning-button
-        label="Complete Interview"
-        variant="brand"
-        disabled={isDisabled}
-        onclick={handleFinish}>
-    </lightning-button>
+    </div>
 </template>

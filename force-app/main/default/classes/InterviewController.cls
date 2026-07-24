@@ -326,34 +326,53 @@ for (ApplicationSlotBooking__c slot : slots) {
     @AuraEnabled
     public static void upsertIndividualResults(
         Id evaluationId,
-    String payload
+        String payload
     ) {
-        List<ScoreWrapper> wrapper = (List<ScoreWrapper>) JSON.deserialize(
-            payload,
-        List<ScoreWrapper>.class
-            );
-        if (evaluationId == null || wrapper == null || wrapper.isEmpty()) {
+        if (evaluationId == null) {
             return;
         }
-        
+
+        List<Evaluation__c> evalCheck = [
+            SELECT Id, Status__c, EvaluatedUser__c
+            FROM Evaluation__c
+            WHERE Id = :evaluationId
+            LIMIT 1
+        ];
+
+        Id currentAccId = getCurrentEvaluatorAccountId();
+
+        if (evalCheck.isEmpty()
+            || evalCheck[0].EvaluatedUser__c != currentAccId
+            || evalCheck[0].Status__c == 'Complete') {
+            throw new AuraHandledException('This evaluation is already complete and cannot be edited.');
+        }
+
+        List<ScoreWrapper> wrapper = (List<ScoreWrapper>) JSON.deserialize(
+            payload,
+            List<ScoreWrapper>.class
+        );
+        if (wrapper == null || wrapper.isEmpty()) {
+            return;
+        }
+
         Map<Id, Individual_Criteria_Result__c> existingMap =
             new Map<Id, Individual_Criteria_Result__c>();
-        
+
         for (Individual_Criteria_Result__c r : [
-        SELECT Id, Scoring_Template__c
-        FROM Individual_Criteria_Result__c
-        WHERE Evaluation__c = :evaluationId
-    ]) {
+            SELECT Id, Scoring_Template__c
+            FROM Individual_Criteria_Result__c
+            WHERE Evaluation__c = :evaluationId
+        ]) {
             existingMap.put(r.Scoring_Template__c, r);
         }
-        
+
         List<Individual_Criteria_Result__c> toUpsert = new List<Individual_Criteria_Result__c>();
-        
+
         for (ScoreWrapper w : wrapper) {
             if (w.scoringTemplateId == null) continue;
-            
+
             Individual_Criteria_Result__c rec;
-            
+
             if (existingMap.containsKey(w.scoringTemplateId)) {
                 rec = existingMap.get(w.scoringTemplateId);
             } else {
@@ -361,13 +380,13 @@ for (ApplicationSlotBooking__c slot : slots) {
                     Evaluation__c = evaluationId,
                     Comments__c = w.comment,
                     Scoring_Template__c = w.scoringTemplateId
-                    );
+                );
             }
             rec.Comments__c = w.comment;
             rec.Score__c = w.score;
             toUpsert.add(rec);
         }
-        
+
         if (!toUpsert.isEmpty()) {
             upsert toUpsert;
         }
@@ -515,20 +534,27 @@ for (ApplicationSlotBooking__c slot : slots) {
     }
     
     @AuraEnabled
-    public static string checkInterviewStatus(String slotId){
+    public static string checkInterviewStatus(String slotId) {
         try {
-            List<Evaluation__c> listEvalId = [SELECT Id, Status__c
-            FROM Evaluation__c 
-            WHERE EvaluatedUser__r.PersonEmail = :UserInfo.getUserEmail() 
-            AND Application_Slot_Booking__c = :slotId
-            LIMIT 1];
-            if(!listEvalId.isEmpty()){
-                if(listEvalId[0].Status__c == 'Complete'){
-                    return 'Complete';
-                }
+            Id currentAccId = getCurrentEvaluatorAccountId();
+            if (currentAccId == null) {
                 return 'Pending';
             }
-            
+
+            List<Evaluation__c> listEvalId = [
+                SELECT Id, Status__c, EvaluatedUser__c
+                FROM Evaluation__c
+                WHERE Application_Slot_Booking__c = :slotId
+                AND EvaluatedUser__c = :currentAccId
+                LIMIT 1
+            ];
+
+            if (!listEvalId.isEmpty() && listEvalId[0].EvaluatedUser__c == currentAccId) {
+                if (listEvalId[0].Status__c == 'Complete') {
+                    return 'Complete';
+                }
+            }
+
             return 'Pending';
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
@@ -538,18 +564,25 @@ for (ApplicationSlotBooking__c slot : slots) {
     @AuraEnabled
     public static String finishInterview(String evaluationId) {
         try {
-            
-            
             List<Evaluation__c> listEval = [
-                SELECT Id, Application_Slot_Booking__c,Total_Score__c
+                SELECT Id, Application_Slot_Booking__c, Total_Score__c, Status__c, EvaluatedUser__c
                 FROM Evaluation__c
                 WHERE Id = :evaluationId
                 LIMIT 1
             ];
-            
+
+            if (listEval.isEmpty()) {
+                throw new AuraHandledException('Evaluation not found.');
+            }
+
+            Id currentAccId = getCurrentEvaluatorAccountId();
+            if (listEval[0].EvaluatedUser__c != currentAccId) {
+                throw new AuraHandledException('You are not authorized to complete this evaluation.');
+            }
+
             listEval[0].Status__c = 'Complete';
             String appSlotId = listEval[0].Application_Slot_Booking__c;
-            List<ApplicationSlotBooking__c> appSlotData = [SELECT Id,Panel_Master__c FROM ApplicationSlotBooking__c];
+            List<ApplicationSlotBooking__c> appSlotData = [SELECT Id,Panel_Master__c FROM ApplicationSlotBooking__c WHERE Id = :appSlotId];
             String programTeamId = appSlotData[0]?.Panel_Master__c;
             List<PanelInterviewer__c> listInterviewers = [SELECT Id FROM PanelInterviewer__c 
             WHERE PanelMaster__c = :programTeamId];
@@ -558,65 +591,65 @@ for (ApplicationSlotBooking__c slot : slots) {
             try {
                 update listEval;
                 
-                List<Evaluation__c> listRemainingEvals = [
-                    SELECT Id, Status__c,Total_Score__c
-                    FROM Evaluation__c
-                    WHERE Application_Slot_Booking__c = :listEval[0].Application_Slot_Booking__c
-                    ];
+                // List<Evaluation__c> listRemainingEvals = [
+                //     SELECT Id, Status__c,Total_Score__c
+                //     FROM Evaluation__c
+                //     WHERE Application_Slot_Booking__c = :listEval[0].Application_Slot_Booking__c
+                //     ];
                 
                 
-                Set<Id> evalIds = new Set<Id>();
-                Boolean isRoundComplete = true;
-                Decimal totalScoreSum = 0;
-                Integer criteriaCount = 0;
-                Boolean allTeamMembersDone = listRemainingEvals.size() == listInterviewers.size();
-                for (Evaluation__c eval : listRemainingEvals) {
-                    if (eval.Status__c != 'Complete' && isRoundComplete && allTeamMembersDone) {
-                        isRoundComplete = false;
+                // Set<Id> evalIds = new Set<Id>();
+                // Boolean isRoundComplete = true;
+                // Decimal totalScoreSum = 0;
+                // Integer criteriaCount = 0;
+                // Boolean allTeamMembersDone = listRemainingEvals.size() == listInterviewers.size();
+                // for (Evaluation__c eval : listRemainingEvals) {
+                //     if (eval.Status__c != 'Complete' && isRoundComplete && allTeamMembersDone) {
+                //         isRoundComplete = false;
                         
-                    } else {
-                        evalIds.add(eval.Id);
-                    }
-                }
+                //     } else {
+                //         evalIds.add(eval.Id);
+                //     }
+                // }
                 
-                if (isRoundComplete) {
-                    for (Evaluation__c eval : listRemainingEvals) {
-                        totalScoreSum+=eval.Total_Score__c;
-                    }
+                // if (isRoundComplete) {
+                //     for (Evaluation__c eval : listRemainingEvals) {
+                //         totalScoreSum+=eval.Total_Score__c;
+                //     }
                     
                     
                 
                     
-                    List<ApplicationSlotBooking__c> appSlotBooking = [
-                            SELECT Id, Application__c
-                            FROM ApplicationSlotBooking__c
-                            WHERE Id = :listEval[0].Application_Slot_Booking__c
-                        LIMIT 1
-                        ];
+                //     List<ApplicationSlotBooking__c> appSlotBooking = [
+                //             SELECT Id, Application__c
+                //             FROM ApplicationSlotBooking__c
+                //             WHERE Id = :listEval[0].Application_Slot_Booking__c
+                //         LIMIT 1
+                //         ];
                     
-                    Round_Result__c roundResult = new Round_Result__c(
-                        // Application__c = appSlotBooking[0].Application__c,
-                    ApplicationSlotBooking__c = appSlotBooking[0].Id,
-                    Net_Score__c = totalScoreSum);
+                //     Round_Result__c roundResult = new Round_Result__c(
+                //         // Application__c = appSlotBooking[0].Application__c,
+                //     ApplicationSlotBooking__c = appSlotBooking[0].Id,
+                //     Net_Score__c = totalScoreSum);
                     
-                    try {
-                        insert roundResult;
+                //     try {
+                //         insert roundResult;
                         
-                        if (appSlotBooking.size() > 0) {
-                            appSlotBooking[0].Round_Result__c = roundResult.Id;
-                            try {
-                                update appSlotBooking;
-                            } catch (DMLException e) {
-                                System.debug('Could not update Application Slot Booking: ' + e.getMessage());
-                                return e.getMessage();
-                            }
-                        }
+                //         if (appSlotBooking.size() > 0) {
+                //             appSlotBooking[0].Round_Result__c = roundResult.Id;
+                //             try {
+                //                 update appSlotBooking;
+                //             } catch (DMLException e) {
+                //                 System.debug('Could not update Application Slot Booking: ' + e.getMessage());
+                //                 return e.getMessage();
+                //             }
+                //         }
                         
-                    } catch (DMLException e) {
-                        System.debug('Could not Insert Round Result Record ' + e.getMessage());
-                        return e.getMessage();
-                    }
-                }
+                //     } catch (DMLException e) {
+                //         System.debug('Could not Insert Round Result Record ' + e.getMessage());
+                //         return e.getMessage();
+                //     }
+                // }
                 
                 
             } catch (DMLException e) {
@@ -684,6 +717,115 @@ for (ApplicationSlotBooking__c slot : slots) {
         }
     }
     
+    public class SlotBookingWrapper {
+        @AuraEnabled public Id      id;
+        @AuraEnabled public String  name;
+        @AuraEnabled public String  applicantName;
+        @AuraEnabled public String  programName;
+        @AuraEnabled public Id      applicationId;
+        @AuraEnabled public Date    slotDate;
+        @AuraEnabled public Time    slotStartTime;
+        @AuraEnabled public Time    slotEndTime;
+        @AuraEnabled public String  mode;
+        @AuraEnabled public Id      panelMasterId;
+        @AuraEnabled public Id      roundMasterId;
+        @AuraEnabled public String  roundMasterName;
+        @AuraEnabled public String  evalStatus;   // current user's Evaluation Status
+    }
+
+    /**
+     * Returns all ApplicationSlotBooking__c records for a given SlotMaster__c,
+     * filtered to panels the current user belongs to, enriched with that user's
+     * evaluation status per booking.
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<SlotBookingWrapper> getSlotBookingsBySlotMaster(Id slotMasterId) {
+        try {
+            String currentUserEmail = UserInfo.getUserEmail();
+
+            List<Account> accList = [
+                SELECT Id FROM Account
+                WHERE PersonEmail = :currentUserEmail
+                LIMIT 1
+            ];
+
+            if (accList.isEmpty()) {
+                return new List<SlotBookingWrapper>();
+            }
+
+            Account accountEmp = accList[0];
+
+            Set<Id> panelIds = new Set<Id>();
+            for (PanelInterviewer__c ptm : [
+                SELECT Id, Account__c, PanelMaster__c FROM PanelInterviewer__c
+                WHERE Account__c = :accountEmp.Id
+            ]) {
+                if (ptm.PanelMaster__c != null) panelIds.add(ptm.PanelMaster__c);
+            }
+
+            List<ApplicationSlotBooking__c> bookings = [
+                SELECT Id,
+                       Name,
+                       Applicant_Name__c,
+                       Program_Name__c,
+                       Application__c,
+                       Slot_Date__c,
+                       Slot_Start_Time__c,
+                       Slot_End_Time__c,
+                       Mode__c,
+                       Panel_Master__c,
+                       RoundMaster__c,
+                       RoundMaster__r.Name
+                FROM ApplicationSlotBooking__c
+                WHERE SlotMaster__c = :slotMasterId
+                AND Panel_Master__c IN :panelIds
+                ORDER BY Applicant_Name__c ASC
+            ];
+
+            if (bookings.isEmpty()) {
+                return new List<SlotBookingWrapper>();
+            }
+
+            // Fetch current user's evaluations for these bookings in one query
+            Set<Id> bookingIds = new Map<Id, ApplicationSlotBooking__c>(bookings).keySet();
+            Map<Id, String> bookingToEvalStatus = new Map<Id, String>();
+            for (Evaluation__c ev : [
+                SELECT Id, Application_Slot_Booking__c, Status__c
+                FROM Evaluation__c
+                WHERE EvaluatedUser__r.PersonEmail = :currentUserEmail
+                  AND Application_Slot_Booking__c IN :bookingIds
+            ]) {
+                bookingToEvalStatus.put(ev.Application_Slot_Booking__c, ev.Status__c);
+            }
+
+            // Build wrappers
+            List<SlotBookingWrapper> result = new List<SlotBookingWrapper>();
+            for (ApplicationSlotBooking__c b : bookings) {
+                SlotBookingWrapper w  = new SlotBookingWrapper();
+                w.id              = b.Id;
+                w.name            = b.Name;
+                w.applicantName   = b.Applicant_Name__c;
+                w.programName     = b.Program_Name__c;
+                w.applicationId   = b.Application__c;
+                w.slotDate        = b.Slot_Date__c;
+                w.slotStartTime   = b.Slot_Start_Time__c;
+                w.slotEndTime     = b.Slot_End_Time__c;
+                w.mode            = b.Mode__c;
+                w.panelMasterId   = b.Panel_Master__c;
+                w.roundMasterId   = b.RoundMaster__c;
+                w.roundMasterName = b.RoundMaster__r?.Name;
+                w.evalStatus      = bookingToEvalStatus.containsKey(b.Id)
+                                    ? bookingToEvalStatus.get(b.Id)
+                                    : 'Not Started';
+                result.add(w);
+            }
+            return result;
+
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
     @AuraEnabled
     public static Map<String,List<SObject>> getEvaluationCriteria(Id applicationSlotBookingId){
         try {
@@ -696,9 +838,9 @@ for (ApplicationSlotBooking__c slot : slots) {
                 WHERE EvaluatedUser__r.PersonEmail = :UserInfo.getUserEmail() 
                 AND Application_Slot_Booking__c = :applicationSlotBookingId LIMIT 1];
                 
-                criteriaList = [SELECT Id,CriteriaName__c,Name
-                FROM ScoringTemplate__c 
-                WHERE Round__c = :appSlotBookingList[0].RoundMaster__c];
+                criteriaList = [SELECT Id,CriteriaName__c,Name,Maximum_Score__c
+                    FROM ScoringTemplate__c 
+                    WHERE Round__c = :appSlotBookingList[0].RoundMaster__c];
                 
                 
                 
@@ -732,5 +874,20 @@ for (ApplicationSlotBooking__c slot : slots) {
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
+    }
+
+    /**
+     * Resolves the Person Account Id for the current running user.
+     * Centralizes the "who is scoring right now" lookup so every method
+     * compares against Evaluation__c.EvaluatedUser__c by Id, not by email string matching.
+     */
+    private static Id getCurrentEvaluatorAccountId() {
+        List<Account> accList = [
+            SELECT Id
+            FROM Account
+            WHERE PersonEmail = :UserInfo.getUserEmail()
+            LIMIT 1
+        ];
+        return accList.isEmpty() ? null : accList[0].Id;
     }
 }

@@ -29,3 +29,88 @@
     height: 120px; 
     width: 100%;
 }
+
+/* ── Read-only criteria card ────────────────────────────────────────────── */
+.readonly-card {
+    border-left: 4px solid #4b2e83;
+    border-radius: 6px;
+    padding: 14px 16px 12px;
+    background: #ffffff;
+}
+
+.score-divider {
+    height: 1px;
+    background: #e0e5ee;
+    margin: 12px 0 8px;
+}
+
+.score-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.score-block__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #706e6b;
+}
+
+.score-block__value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #4b2e83;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    line-height: 1;
+}
+
+.comment-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 100%;
+}
+
+.comment-block__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #706e6b;
+}
+
+.comment-block__value {
+    font-size: 13px;
+    color: #3e3e3c;
+    background: #f3f0f9;
+    border: 1px solid #d0c5e8;
+    border-radius: 4px;
+    padding: 8px 10px;
+    min-height: 36px;
+    line-height: 1.5;
+}
+
+/* ── Multi-booking tab bar ─────────────────────────────────────────────── */
+.slds-tabs_default__item.slds-is-active > a {
+    color: #4b2e83;
+    border-bottom-color: #4b2e83;
+    font-weight: 600;
+}
+
+.tab-link {
+    cursor: pointer;
+    color: #0176d3;
+    text-decoration: none;
+}
+
+.tab-link:hover {
+    text-decoration: underline;
+}
