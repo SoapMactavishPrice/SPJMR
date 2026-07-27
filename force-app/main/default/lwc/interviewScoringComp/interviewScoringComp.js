@@ -7,26 +7,17 @@ import getEvaluationId from '@salesforce/apex/InterviewController.getEvaluationI
 import getEvaluationCriteria from '@salesforce/apex/InterviewController.getEvaluationCriteria';
 import upsertIndividualResults from '@salesforce/apex/InterviewController.upsertIndividualResults';
 import finishInterview from '@salesforce/apex/InterviewController.finishInterview';
-import getVFPageUrl from '@salesforce/apex/InterviewController.getVFPageUrl';
 import checkInterviewStatus from '@salesforce/apex/InterviewController.checkInterviewStatus';
-import CRITERIA_NAME from '@salesforce/schema/ScoringTemplate__c.Name';
-import CRITERIA_DESC from '@salesforce/schema/ScoringTemplate__c.CriteriaName__c';
-import CRITERIA_MAXSCORE from '@salesforce/schema/ScoringTemplate__c.Maximum_Score__c';
 
 export default class InterviewScoringComp extends NavigationMixin(LightningElement) {
 
-    @track slotMasterId = '';
-
-    @track _bookings = [];
-    @track activeBookingId = '';
+    @track slotMasterId    = '';
+    @track _bookings       = [];
     @track bookingsLoading = true;
-    @track bookingsError = '';
-
-    @track _stateMap = {};
-
-    criteriaName    = CRITERIA_NAME;
-    criteriaDesc    = CRITERIA_DESC;
-    criteriaMaxScore = CRITERIA_MAXSCORE;
+    @track bookingsError   = '';
+    @track _stateMap       = {};
+    @track showModal       = false;
+    @track isSaving        = false;
 
     @wire(CurrentPageReference)
     getPageRef(ref) {
@@ -41,279 +32,219 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
         if (data) {
             this._bookings = data;
             this.bookingsError = '';
-            if (data.length > 0) {
-                this.activeBookingId = data[0].id;
-                
-                data.forEach(b => {
-                    if (!this._stateMap[b.id]) {  
-                        const state = this._emptyState();
-                        state.applicationId = b.applicationId;
-                        this._stateMap[b.id] = state;
-                    }
-                });
-            }
+            data.forEach(b => {
+                if (!this._stateMap[b.id]) {
+                    const s = this._emptyState();
+                    s.applicationId = b.applicationId;
+                    this._stateMap[b.id] = s;
+                }
+            });
         } else if (error) {
             this.bookingsError = error.body?.message || 'Error loading bookings.';
-            this._bookings = [];
         }
     }
 
     _emptyState() {
-        return {
-            criteriaResults : [],
-            indResults      : [],
-            scoreBuffer     : [],
-            evalId          : null,
-            isFinished      : false,
-            finishing       : false,
-            calloutDone     : false,
-            applicationId   : null
-        };
+        return { criteriaResults: [], scoreBuffer: [], evalId: null,
+                 isFinished: false, calloutDone: false, applicationId: null };
     }
 
-    _getActiveState() {
-        if (!this._stateMap[this.activeBookingId]) {
-            this._stateMap[this.activeBookingId] = this._emptyState();
-        }
-        return this._stateMap[this.activeBookingId];
+    _getState(bookingId) {
+        if (!this._stateMap[bookingId]) this._stateMap[bookingId] = this._emptyState();
+        return this._stateMap[bookingId];
     }
 
-    _mutateActiveState(fn) {
-        const current = this._getActiveState();
-        const updated = { ...current };
+    _mutateState(bookingId, fn) {
+        const updated = { ...this._getState(bookingId) };
         fn(updated);
-        this._stateMap = { ...this._stateMap, [this.activeBookingId]: updated };
+        this._stateMap = { ...this._stateMap, [bookingId]: updated };
     }
 
-    get isSingle()   { return this._bookings.length === 1; }
-    get isMultiple() { return this._bookings.length > 1; }
-    get isEmpty()    { return !this.bookingsLoading && this._bookings.length === 0; }
+    get isEmpty()       { return !this.bookingsLoading && this._bookings.length === 0; }
+    get hasContent()    { return !this.bookingsLoading && this._bookings.length > 0; }
+    get applicationId() { return this._bookings.length ? this._getState(this._bookings[0].id).applicationId : null; }
 
-    get criteriaResults() { return this._getActiveState().criteriaResults; }
-    get isFinished()      { return this._getActiveState().isFinished; }
-
-    get isDisabled() {
-        const s = this._getActiveState();
-        if (s.isFinished) return true;
-        if (s.finishing) return true;
-        if (s.scoreBuffer.length > 0) return true;
-        if (!s.criteriaResults.length) return true;
-        return !s.criteriaResults.every(c => c.score !== undefined && c.score !== null && c.score !== '');
+    get allFinished() {
+        return this._bookings.length > 0 && this._bookings.every(b => this._getState(b.id).isFinished);
     }
-    get applicationId()   { return this._getActiveState().applicationId; }
+    get isCompleteDisabled() { return this.isSaving || this.allFinished; }
 
-    get tabItems() {
-        return this._bookings.map((b, idx) => ({
-            id      : b.id,                       
-            label   : b.applicantName || `Applicant ${idx + 1}`,
-            liClass : `slds-tabs_default__item${b.id === this.activeBookingId ? ' slds-is-active' : ''}`
+    get applicantColumns() {
+        return this._bookings.map(b => ({
+            key          : b.id,
+            scoreKey     : `${b.id}-score-hdr`,
+            commentKey   : `${b.id}-comment-hdr`,
+            bookingId    : b.id,
+            applicantName: b.applicantName || 'Applicant',
+            isFinished   : this._getState(b.id).isFinished
         }));
     }
 
-    async handleTabClick(event) {
-        const newId = event.currentTarget.dataset.id;
-        if (newId === this.activeBookingId) return;
-        this.activeBookingId = newId;
-        await this._loadScoringForActiveBooking();
+    get criteriaRows() {
+        let masterCriteria = [];
+        for (const b of this._bookings) {
+            const c = this._getState(b.id).criteriaResults;
+            if (c.length) { masterCriteria = c; break; }
+        }
+
+        return masterCriteria.map(c => ({
+            key         : c.Id,
+            criteriaName: c.CriteriaName__c || c.Name || '',
+            maxScore    : c.Maximum_Score__c,
+            cells: this._bookings.map(b => {
+                const state = this._getState(b.id);
+                const match = state.criteriaResults.find(r => r.Id === c.Id) || {};
+                const baseKey = `${b.id}-${c.Id}`;
+                return {
+                    key        : baseKey,
+                    keyScore   : `${baseKey}-s`,
+                    keyComment : `${baseKey}-c`,
+                    bookingId  : b.id,
+                    critId     : c.Id,
+                    score      : match.score   ?? '',
+                    comment    : match.comment ?? '',
+                    isFinished : state.isFinished,
+                    isLoading  : !state.calloutDone
+                };
+            })
+        }));
     }
 
-    async _loadScoringForActiveBooking() {
-        const state = this._getActiveState();
-        if (state.calloutDone) return;
+    get isDataLoading() {
+        return this._bookings.length > 0 &&
+               this._bookings.some(b => !this._getState(b.id).calloutDone);
+    }
 
-        const bookingId = this.activeBookingId;
-
-        this._stateMap = {
-            ...this._stateMap,
-            [bookingId]: { ...this._stateMap[bookingId], calloutDone: true }
-        };
-
+    async _loadScoringForBooking(bookingId) {
+        if (this._getState(bookingId).calloutDone) return;
+        this._mutateState(bookingId, s => { s.calloutDone = true; });
         try {
             const [status, result] = await Promise.all([
                 checkInterviewStatus({ slotId: bookingId }),
                 getEvaluationCriteria({ applicationSlotBookingId: bookingId })
             ]);
-
             const isFinished = status === 'Complete';
-            let criteria = result.EVAL_REMAINING || result.EVAL_ABSENT || [];
-            const indResults = result.EVAL_COMPLETE || [];
-
+            let criteria     = result.EVAL_REMAINING || result.EVAL_ABSENT || [];
+            const indResults = result.EVAL_COMPLETE  || [];
             criteria = criteria.map(c => {
-                const match = indResults.find(i => i.Scoring_Template__c === c.Id);
-                return { ...c, score: match?.Score__c, comment: match?.Comments__c };
+                const m = indResults.find(i => i.Scoring_Template__c === c.Id);
+                return { ...c, score: m?.Score__c ?? '', comment: m?.Comments__c ?? '' };
             });
-
-            this._stateMap = {
-                ...this._stateMap,
-                [bookingId]: {
-                    ...this._stateMap[bookingId],
-                    isFinished,
-                    criteriaResults: criteria,
-                    indResults
-                }
-            };
-
+            this._mutateState(bookingId, s => { s.isFinished = isFinished; s.criteriaResults = criteria; });
         } catch (err) {
-            console.error('Error loading scoring for booking', bookingId, err);
-            
-            this._stateMap = {
-                ...this._stateMap,
-                [bookingId]: { ...this._stateMap[bookingId], calloutDone: false }
-            };
+            console.error('Error loading scoring', bookingId, err);
+            this._mutateState(bookingId, s => { s.calloutDone = false; });
         }
     }
 
     handleScoreChange(event) {
-        const critId = event.target.dataset.crit;
-        const score  = Number(event.target.value);
-
-        const state = this._getActiveState();
-        const criterion = state.criteriaResults.find(c => c.Id === critId);
-        const maxScore = criterion?.Maximum_Score__c ?? 10;
+        const bookingId = event.target.dataset.booking;
+        const critId    = event.target.dataset.crit;
+        const score     = Number(event.target.value);
+        const maxScore  = this._getState(bookingId).criteriaResults.find(c => c.Id === critId)?.Maximum_Score__c ?? 10;
 
         if (Number.isNaN(score) || score < 1 || score > maxScore) {
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'Invalid Score',
-                message: `Score must be between 1 and ${maxScore}`,
-                variant: 'error'
-            }));
+            this.dispatchEvent(new ShowToastEvent({ title: 'Invalid Score', message: `Score must be between 1 and ${maxScore}`, variant: 'error' }));
             return;
         }
-
-        this._mutateActiveState(s => {
-            const existing = s.scoreBuffer.find(i => i.CriteriaId === critId);
-            if (existing) {
-                existing.Score = score;
-            } else {
-                s.scoreBuffer = [...s.scoreBuffer, { CriteriaId: critId, Score: score }];
-            }
-            s.criteriaResults = s.criteriaResults.map(c =>
-                c.Id === critId ? { ...c, score } : c
-            );
-            s.isDisabled = true;
+        this._mutateState(bookingId, s => {
+            const ex = s.scoreBuffer.find(i => i.CriteriaId === critId);
+            if (ex) { ex.Score = score; } else { s.scoreBuffer = [...s.scoreBuffer, { CriteriaId: critId, Score: score }]; }
+            s.criteriaResults = s.criteriaResults.map(c => c.Id === critId ? { ...c, score } : c);
         });
     }
 
     handleCommentChange(event) {
-        const critId  = event.target.dataset.crit;
-        const comment = event.target.value;
-
-        this._mutateActiveState(s => {
-            const existing = s.scoreBuffer.find(i => i.CriteriaId === critId);
-            if (existing) {
-                existing.Comment = comment;
-            } else {
-                s.scoreBuffer = [...s.scoreBuffer, { CriteriaId: critId, Comment: comment }];
-            }
-            s.criteriaResults = s.criteriaResults.map(c =>
-                c.Id === critId ? { ...c, comment } : c
-            );
-            s.isDisabled = true;
+        const bookingId = event.target.dataset.booking;
+        const critId    = event.target.dataset.crit;
+        const comment   = event.target.value;
+        this._mutateState(bookingId, s => {
+            const ex = s.scoreBuffer.find(i => i.CriteriaId === critId);
+            if (ex) { ex.Comment = comment; } else { s.scoreBuffer = [...s.scoreBuffer, { CriteriaId: critId, Comment: comment }]; }
+            s.criteriaResults = s.criteriaResults.map(c => c.Id === critId ? { ...c, comment } : c);
         });
     }
 
-    async handleSave() {
-        const state     = this._getActiveState();
-        const bookingId = this.activeBookingId;
+    async handleSaveScore(event) {
+        const bookingId = event.target.dataset.booking;
+        const state     = this._getState(bookingId);
+        if (state.isFinished) return;
 
         let evalId = state.evalId;
         if (!evalId) {
             evalId = await getEvaluationId({ slotId: bookingId });
-            this._mutateActiveState(s => { s.evalId = evalId; });
+            this._mutateState(bookingId, s => { s.evalId = evalId; });
         }
 
-        if (!state.scoreBuffer.length) return;
+        const payload = this._getState(bookingId).criteriaResults
+            .filter(c => c.score !== undefined && c.score !== null && c.score !== '')
+            .map(c => ({ scoringTemplateId: c.Id, score: c.score, comment: c.comment || '' }));
 
-        const dirtyIds = new Set(state.scoreBuffer.map(i => i.CriteriaId));
-
-        const payload = state.criteriaResults
-            .filter(c => dirtyIds.has(c.Id))
-            .map(c => ({
-                scoringTemplateId : c.Id,
-                score             : c.score,
-                comment           : c.comment
-            }));
+        if (!payload.length) {
+            this.dispatchEvent(new ShowToastEvent({ title: 'No Scores Entered', message: 'Please enter at least one score.', variant: 'warning' }));
+            return;
+        }
 
         try {
-            await upsertIndividualResults({
-                evaluationId : evalId,
-                payload      : JSON.stringify(payload)
-            });
-
-            this.dispatchEvent(new ShowToastEvent({
-                title   : 'Scores Saved',
-                variant : 'success'
-            }));
-
-            this._mutateActiveState(s => {
-                s.scoreBuffer = [];
-            });
-
+            await upsertIndividualResults({ evaluationId: evalId, payload: JSON.stringify(payload) });
+            this._mutateState(bookingId, s => { s.scoreBuffer = []; });
+            this.dispatchEvent(new ShowToastEvent({ title: 'Scores Saved', variant: 'success' }));
         } catch (err) {
-            console.error('Error saving scores', err);
-            this.dispatchEvent(new ShowToastEvent({
-                title   : 'Error Saving Scores',
-                message : err.body?.message || 'Unexpected error.',
-                variant : 'error'
-            }));
+            this.dispatchEvent(new ShowToastEvent({ title: 'Error Saving Scores', message: err.body?.message || 'Unexpected error.', variant: 'error' }));
         }
     }
 
-    async handleFinish() {
-        this._mutateActiveState(s => { s.isDisabled = true; });
+    handleFinish() {
+        const unsaved = this._bookings.find(b => {
+            const state = this._getState(b.id);
+            return !state.isFinished && state.scoreBuffer.length > 0;
+        });
 
-        let evalId = this._getActiveState().evalId;
-
-        try {
-            
-            if (!evalId) {
-                evalId = await getEvaluationId({ slotId: this.activeBookingId });
-                this._mutateActiveState(s => { s.evalId = evalId; });
-            }
-
-            const result = await finishInterview({ evaluationId: evalId });
-
-            if (result !== 'Success') {
-                this._mutateActiveState(s => { s.isDisabled = false; });
-                this.dispatchEvent(new ShowToastEvent({
-                    title: 'Could Not Complete Interview',
-                    message: result || 'Unexpected error.',
-                    variant: 'error'
-                }));
-                return;
-            }
-
-            this._mutateActiveState(s => { s.isFinished = true; });
+        if (unsaved) {
             this.dispatchEvent(new ShowToastEvent({
-                title: 'Interview Completed',
-                variant: 'success'
+                title  : 'Unsaved Changes',
+                message: `Please save the scores for "${unsaved.applicantName}" before completing the interview.`,
+                variant: 'error',
+                mode   : 'sticky'
             }));
-
-        } catch (err) {
-            console.error('Error finishing interview', err);
-            this._mutateActiveState(s => { s.isDisabled = false; });
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'Error Completing Interview',
-                message: err.body?.message || 'Unexpected error.',
-                variant: 'error'
-            }));
+            return;
         }
+
+        this.showModal = true;
     }
 
-    async connectedCallback() {}
+    handleCancelFinish() { this.showModal = false; }
+
+    async handleConfirmFinish() {
+        this.showModal = false;
+        this.isSaving  = true;
+        try {
+            for (const b of this._bookings) {
+                if (this._getState(b.id).isFinished) continue;
+                let evalId = this._getState(b.id).evalId;
+                if (!evalId) {
+                    evalId = await getEvaluationId({ slotId: b.id });
+                    this._mutateState(b.id, s => { s.evalId = evalId; });
+                }
+                if (!evalId) continue;
+                const result = await finishInterview({ evaluationId: evalId });
+                if (result === 'Success') {
+                    this._mutateState(b.id, s => { s.isFinished = true; });
+                } else {
+                    this.dispatchEvent(new ShowToastEvent({ title: `Could not complete for ${b.applicantName}`, message: result, variant: 'error' }));
+                }
+            }
+            this.dispatchEvent(new ShowToastEvent({ title: 'Interview Completed', variant: 'success' }));
+        } catch (err) {
+            this.dispatchEvent(new ShowToastEvent({ title: 'Error Completing Interview', message: err.body?.message || 'Unexpected error.', variant: 'error' }));
+        } finally {
+            this.isSaving = false;
+        }
+    }
 
     async renderedCallback() {
-        if (!this.activeBookingId) return;
-        await this._loadScoringForActiveBooking();
-    }
-
-    handleViewApplication() {
-        const appId = this.applicationId;
-        if (!appId) return;
-
-        getVFPageUrl({ applicationId: appId })
-            .then(url => {
-                if (url) window.open(url, '_blank');
-            });
+        for (const b of this._bookings) {
+            await this._loadScoringForBooking(b.id);
+        }
     }
 }

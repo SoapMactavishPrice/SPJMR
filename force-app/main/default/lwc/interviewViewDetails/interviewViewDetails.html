@@ -1,7 +1,7 @@
 <template>
     <div class="slds-card slds-m-around_medium">
 
-        <div class="slds-card__header slds-grid slds-grid_align-spread slds-p-horizontal_medium slds-p-top_medium">
+        <div class="slds-card__header slds-p-horizontal_medium slds-p-top_medium slds-p-bottom_small">
             <h2 class="card-title">Interview Details</h2>
         </div>
 
@@ -15,7 +15,6 @@
 
             <template if:true={error}>
                 <div class="slds-notify slds-notify_alert slds-theme_error" role="alert">
-                    <span class="slds-assistive-text">Error</span>
                     <h2>{error}</h2>
                 </div>
             </template>
@@ -28,171 +27,68 @@
                 </div>
             </template>
 
+            <template if:true={headerInfo}>
 
-            <template if:true={isSingle}>
+                <div class="header-band slds-m-bottom_medium">
+                    <div class="header-band__grid">
 
-                <div class="slds-grid slds-grid_align-end slds-m-bottom_small">
-                    <div class="status-banner">
-                        <span class="status-label">My Evaluation Status</span>
-                        <span class={singleEvalBadgeClass}>{singleEvalStatus}</span>
+                        <div class="header-band__item">
+                            <span class="header-band__label">Programme Name</span>
+                            <span class="header-band__value">{headerInfo.programName}</span>
+                        </div>
+
+                        <div class="header-band__divider"></div>
+
+                        <div class="header-band__item">
+                            <span class="header-band__label">Round Name</span>
+                            <span class="header-band__value">{headerInfo.roundMasterName}</span>
+                        </div>
+
+                        <div class="header-band__divider"></div>
+
+                        <div class="header-band__item">
+                            <span class="header-band__label">Panel Master</span>
+                            <span class="header-band__value">
+                                <lightning-record-view-form
+                                    record-id={firstBookingId}
+                                    object-api-name="ApplicationSlotBooking__c">
+                                    <lightning-output-field
+                                        field-name="Panel_Master__c"
+                                        class="panel-field" variant="label-hidden">
+                                    </lightning-output-field>
+                                </lightning-record-view-form>
+                            </span>
+                        </div>
+
                     </div>
                 </div>
 
-                <lightning-record-view-form
-                    record-id={singleBookingId}
-                    object-api-name="ApplicationSlotBooking__c">
-
-                    <div class="slds-grid slds-wrap slds-gutters">
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="Applicant_Name__c"></lightning-output-field>
-                        </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="Program_Name__c"></lightning-output-field>
-                        </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="Application__c"></lightning-output-field>
-                        </div>
-                    </div>
-
-                    <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="Slot_Date__c"></lightning-output-field>
-                        </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="Slot_Start_Time__c"></lightning-output-field>
-                        </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="Slot_End_Time__c"></lightning-output-field>
-                        </div>
-                    </div>
-
-                    <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="Mode__c"></lightning-output-field>
-                        </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="Panel_Master__c"></lightning-output-field>
-                        </div>
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="RoundMaster__c"></lightning-output-field>
-                        </div>
-                    </div>
-
-                    <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
-                        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                            <lightning-output-field field-name="Name"></lightning-output-field>
-                        </div>
-                    </div>
-
-                </lightning-record-view-form>
-            </template>
-
-            <template if:true={isMultiple}>
-
-                <div class="slds-tabs_default">
-                    <ul class="slds-tabs_default__nav" role="tablist">
-                        <template for:each={tabItems} for:item="tab">
-                            <li key={tab.id} class={tab.liClass} role="presentation">
-                                <a class="slds-tabs_default__link tab-link"
-                                   role="tab"
-                                   data-id={tab.id}
-                                   onclick={handleTabClick}>
-                                    {tab.label}
-                                </a>
-                            </li>
-                        </template>
-                    </ul>
-
-                    <template if:true={activeBooking}>
-                        <div class="slds-tabs_default__content slds-show slds-p-top_medium">
-
-                            <div class="slds-grid slds-grid_align-end slds-m-bottom_small">
-                                <div class="status-banner">
-                                    <span class="status-label">My Evaluation Status</span>
-                                    <span class={activeEvalBadgeClass}>{activeBooking.evalStatus}</span>
-                                </div>
-                            </div>
-
-                            <lightning-record-view-form
-                                record-id={activeBooking.id}
-                                object-api-name="ApplicationSlotBooking__c">
-
-                                <div class="slds-grid slds-wrap slds-gutters">
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="Applicant_Name__c"></lightning-output-field>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="Program_Name__c"></lightning-output-field>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="Application__c"></lightning-output-field>
-                                    </div>
-                                </div>
-
-                                <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="Slot_Date__c"></lightning-output-field>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="Slot_Start_Time__c"></lightning-output-field>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="Slot_End_Time__c"></lightning-output-field>
-                                    </div>
-                                </div>
-
-                                <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="Mode__c"></lightning-output-field>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="Panel_Master__c"></lightning-output-field>
-                                    </div>
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="RoundMaster__c"></lightning-output-field>
-                                    </div>
-                                </div>
-
-                                <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
-                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                                        <lightning-output-field field-name="Name"></lightning-output-field>
-                                    </div>
-                                </div>
-
-                            </lightning-record-view-form>
-                        </div>
-                    </template>
-                </div>
-
-                <div class="slds-m-top_large">
-                    <h3 class="section-subtitle slds-m-bottom_small">All Applicants in this Slot</h3>
+                <div class="table-wrapper">
                     <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
                         <thead>
-                            <tr class="slds-line-height_reset">
-                                <th scope="col"><div class="slds-truncate">#</div></th>
-                                <th scope="col"><div class="slds-truncate">Applicant</div></th>
-                                <th scope="col"><div class="slds-truncate">Program</div></th>
-                                <th scope="col"><div class="slds-truncate">Slot Code</div></th>
-                                <th scope="col"><div class="slds-truncate">Round</div></th>
+                            <tr class="slds-line-height_reset table-head-row">
+                                <th scope="col" class="col-sr"><div class="slds-truncate">Sr. No.</div></th>
+                                <th scope="col"><div class="slds-truncate">Applicant Name</div></th>
+                                <th scope="col"><div class="slds-truncate">Slot Date</div></th>
+                                <th scope="col"><div class="slds-truncate">Slot Start Time</div></th>
+                                <th scope="col"><div class="slds-truncate">Slot End Time</div></th>
+                                <th scope="col"><div class="slds-truncate">Mode</div></th>
+                                <th scope="col"><div class="slds-truncate">ASB Code</div></th>
                                 <th scope="col"><div class="slds-truncate">My Eval Status</div></th>
-                                <th scope="col"><div class="slds-truncate">Action</div></th>
                             </tr>
                         </thead>
                         <tbody>
-                            <template for:each={bookings} for:item="b">
+                            <template for:each={tableRows} for:item="b">
                                 <tr key={b.id}>
-                                    <td>{b.rowNum}</td>
-                                    <td>{b.applicantName}</td>
-                                    <td>{b.programName}</td>
+                                    <td class="col-sr slds-text-align_center">{b.rowNum}</td>
+                                    <td class="col-name">{b.applicantName}</td>
+                                    <td>{b.slotDate}</td>
+                                    <td>{b.slotStartTime}</td>
+                                    <td>{b.slotEndTime}</td>
+                                    <td>{b.mode}</td>
                                     <td>{b.name}</td>
-                                    <td>{b.roundMasterName}</td>
                                     <td>
                                         <span class={b.evalBadgeClass}>{b.evalStatus}</span>
-                                    </td>
-                                    <td>
-                                        <a class="tab-link" data-id={b.id} onclick={handleTabClick}>
-                                            View Details
-                                        </a>
                                     </td>
                                 </tr>
                             </template>
@@ -201,7 +97,6 @@
                 </div>
 
             </template>
-
         </div>
     </div>
 </template>

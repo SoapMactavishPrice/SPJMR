@@ -1,5 +1,5 @@
 <template>
-    <div class="slds-p-around_medium">
+    <div class="scoring-page slds-p-around_medium">
 
         <template if:true={bookingsLoading}>
             <div class="slds-align_absolute-center slds-p-around_large">
@@ -9,120 +9,180 @@
 
         <template if:true={bookingsError}>
             <div class="slds-notify slds-notify_alert slds-theme_error" role="alert">
-                <span class="slds-assistive-text">Error</span>
                 <h2>{bookingsError}</h2>
             </div>
         </template>
 
         <template if:true={isEmpty}>
             <div class="slds-align_absolute-center slds-p-around_large">
-                <div class="slds-illustration slds-illustration_small">
-                    <p class="slds-text-color_weak slds-text-heading_small">
-                        No bookings found for this slot.
-                    </p>
-                </div>
+                <p class="slds-text-color_weak slds-text-heading_small">
+                    No bookings found for this slot.
+                </p>
             </div>
         </template>
 
-        <template if:true={isMultiple}>
-            <div class="slds-tabs_default slds-m-bottom_medium">
-                <ul class="slds-tabs_default__nav" role="tablist">
-                    <template for:each={tabItems} for:item="tab">
-                        <li key={tab.id} class={tab.liClass} role="presentation">
-                            <a class="slds-tabs_default__link tab-link"
-                               role="tab"
-                               data-id={tab.id}
-                               onclick={handleTabClick}>
-                                {tab.label}
-                            </a>
-                        </li>
-                    </template>
-                </ul>
+        <template if:true={hasContent}>
+
+            <div class="slds-m-bottom_medium">
+                <c-ap-preview-pdf record-id={applicationId}></c-ap-preview-pdf>
+            </div>
+
+            <div class="table-scroll-wrapper slds-m-bottom_medium">
+                <table class="scoring-table">
+
+                    <thead>
+                        <tr>
+                            <th class="th-criteria-label" rowspan="2"></th>
+                            <template for:each={applicantColumns} for:item="col">
+                                <th key={col.key} class="th-applicant" colspan="2">
+                                    {col.applicantName}
+                                </th>
+                            </template>
+                        </tr>
+                        <tr>
+                            <template for:each={applicantColumns} for:item="col">
+                                <th key={col.scoreKey} class="th-subheader th-score-sub">Score</th>
+                                <th key={col.commentKey} class="th-subheader th-comment-sub">Comment</th>
+                            </template>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <template if:true={isDataLoading}>
+                            <tr>
+                                <td colspan="10" class="td-loading">
+                                    <lightning-spinner alternative-text="Loading criteria" size="small"></lightning-spinner>
+                                    &nbsp; Loading criteria…
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template for:each={criteriaRows} for:item="row">
+                            <tr key={row.key} class="criteria-row">
+
+                                <td class="td-criteria-label">
+                                    <span class="criteria-name">{row.criteriaName}</span>
+                                    <span class="criteria-max">Max: {row.maxScore}</span>
+                                </td>
+
+                                <template for:each={row.cells} for:item="cell">
+                                    <td key={cell.keyScore} class="td-score">
+                                        <template if:false={cell.isFinished}>
+                                            <lightning-input
+                                                type="number"
+                                                label=""
+                                                variant="label-hidden"
+                                                value={cell.score}
+                                                min="1"
+                                                max={row.maxScore}
+                                                data-booking={cell.bookingId}
+                                                data-crit={cell.critId}
+                                                onchange={handleScoreChange}
+                                                class="score-input">
+                                            </lightning-input>
+                                        </template>
+                                        <template if:true={cell.isFinished}>
+                                            <span class="readonly-score">{cell.score}</span>
+                                        </template>
+                                    </td>
+                                    <td key={cell.keyComment} class="td-comment">
+                                        <template if:false={cell.isFinished}>
+                                            <lightning-input
+                                                type="text"
+                                                label=""
+                                                variant="label-hidden"
+                                                value={cell.comment}
+                                                placeholder="Add comment…"
+                                                data-booking={cell.bookingId}
+                                                data-crit={cell.critId}
+                                                onchange={handleCommentChange}
+                                                class="comment-input">
+                                            </lightning-input>
+                                        </template>
+                                        <template if:true={cell.isFinished}>
+                                            <span class="readonly-comment">{cell.comment}</span>
+                                        </template>
+                                    </td>
+                                </template>
+
+                            </tr>
+                        </template>
+
+                        <tr class="save-row">
+                            <td class="td-criteria-label"></td>
+                            <template for:each={applicantColumns} for:item="col">
+                                <td key={col.key} class="td-save" colspan="2">
+                                    <template if:false={col.isFinished}>
+                                        <lightning-button
+                                            label="Save Score"
+                                            variant="brand"
+                                            data-booking={col.bookingId}
+                                            onclick={handleSaveScore}
+                                            class="save-btn">
+                                        </lightning-button>
+                                    </template>
+                                    <template if:true={col.isFinished}>
+                                        <span class="saved-badge">&#10003; Saved</span>
+                                    </template>
+                                </td>
+                            </template>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="slds-grid slds-grid_align-center slds-m-top_medium">
+                <template if:true={isSaving}>
+                    <lightning-spinner alternative-text="Completing…" size="small"></lightning-spinner>
+                </template>
+                <template if:false={isSaving}>
+                    <lightning-button
+                        label="Complete Interview"
+                        variant="brand"
+                        disabled={isCompleteDisabled}
+                        onclick={handleFinish}
+                        class="complete-btn">
+                    </lightning-button>
+                </template>
+            </div>
+
+        </template>
+
+        <template if:true={showModal}>
+            <div class="modal-backdrop">
+                <div class="modal-box" role="dialog" aria-modal="true">
+
+                    <div class="modal-header">
+                        <span class="modal-icon">⚠️</span>
+                        <h2 class="modal-title">Complete Interview?</h2>
+                    </div>
+
+                    <div class="modal-body">
+                        <p>You are about to mark this interview as <strong>Complete</strong>.</p>
+                        <p class="modal-warning">
+                            Once completed, scores and comments become <strong>read-only</strong> and cannot be edited. Make sure all scores are saved before proceeding.
+                        </p>
+                        <p>Are you sure you want to proceed?</p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <lightning-button
+                            label="Cancel"
+                            variant="neutral"
+                            onclick={handleCancelFinish}
+                            class="slds-m-right_small">
+                        </lightning-button>
+                        <lightning-button
+                            label="Yes, Complete Interview"
+                            variant="brand"
+                            onclick={handleConfirmFinish}>
+                        </lightning-button>
+                    </div>
+
+                </div>
             </div>
         </template>
-
-        <div class="slds-grid slds-m-bottom_medium">
-            <c-ap-preview-pdf record-id={applicationId}></c-ap-preview-pdf>
-        </div>
-
-        <template if:false={isFinished}>
-            <template for:each={criteriaResults} for:item="item">
-                <div key={item.Id} class="slds-box slds-box_x-small slds-m-bottom_small">
-
-                    <lightning-record-view-form
-                        object-api-name="ScoringTemplate__c"
-                        record-id={item.Id}>
-                        <lightning-output-field field-name={criteriaName}></lightning-output-field>
-                        <lightning-output-field field-name={criteriaDesc}></lightning-output-field>
-                        <lightning-output-field field-name={criteriaMaxScore}></lightning-output-field>
-                    </lightning-record-view-form>
-
-                    <div class="slds-col slds-size_2-of-12 slds-m-top_small">
-                        <lightning-input
-                            type="number"
-                            label="Score"
-                            value={item.score}
-                            data-crit={item.Id}
-                            min="1"
-                            onchange={handleScoreChange}>
-                        </lightning-input>
-
-                        <lightning-input
-                            type="text"
-                            label="Comment"
-                            data-crit={item.Id}
-                            value={item.comment}
-                            onchange={handleCommentChange}>
-                        </lightning-input>
-                    </div>
-                </div>
-            </template>
-
-            <lightning-button
-                label="Save Scores"
-                variant="brand"
-                onclick={handleSave}
-                class="slds-m-right_small">
-            </lightning-button>
-        </template>
-
-        <template if:true={isFinished}>
-            <template for:each={criteriaResults} for:item="item">
-                <div key={item.Id} class="slds-box slds-box_x-small slds-m-bottom_small">
-
-                    <lightning-record-view-form
-                        object-api-name="ScoringTemplate__c"
-                        record-id={item.Id}>
-                        <lightning-output-field field-name={criteriaName}></lightning-output-field>
-                        <lightning-output-field field-name={criteriaDesc}></lightning-output-field>
-                        <lightning-output-field field-name={criteriaMaxScore}></lightning-output-field>
-                    </lightning-record-view-form>
-
-                    <div class="slds-col slds-size_2-of-12 slds-m-top_small">
-                        <lightning-input
-                            type="number"
-                            label="Score"
-                            value={item.score}
-                            disabled>
-                        </lightning-input>
-
-                        <lightning-input
-                            type="text"
-                            label="Comment"
-                            value={item.comment}
-                            disabled>
-                        </lightning-input>
-                    </div>
-                </div>
-            </template>
-        </template>
-
-        <lightning-button
-            label="Complete Interview"
-            variant="brand"
-            disabled={isDisabled}
-            onclick={handleFinish}>
-        </lightning-button>
 
     </div>
 </template>
