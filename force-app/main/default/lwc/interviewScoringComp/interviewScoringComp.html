@@ -34,15 +34,20 @@
                         <tr>
                             <th class="th-criteria-label" rowspan="2"></th>
                             <template for:each={applicantColumns} for:item="col">
-                                <th key={col.key} class="th-applicant" colspan="2">
-                                    {col.applicantName}
-                                </th>
+                                <template if:true={showCriteriaComment}>
+                                    <th key={col.key} class="th-applicant" colspan="2">{col.applicantName}</th>
+                                </template>
+                                <template if:false={showCriteriaComment}>
+                                    <th key={col.key} class="th-applicant" colspan="1">{col.applicantName}</th>
+                                </template>
                             </template>
                         </tr>
                         <tr>
                             <template for:each={applicantColumns} for:item="col">
                                 <th key={col.scoreKey} class="th-subheader th-score-sub">Score</th>
-                                <th key={col.commentKey} class="th-subheader th-comment-sub">Comment</th>
+                                <template if:true={showCriteriaComment}>
+                                    <th key={col.commentKey} class="th-subheader th-comment-sub">Comment</th>
+                                </template>
                             </template>
                         </tr>
                     </thead>
@@ -85,46 +90,113 @@
                                             <span class="readonly-score">{cell.score}</span>
                                         </template>
                                     </td>
-                                    <td key={cell.keyComment} class="td-comment">
-                                        <template if:false={cell.isFinished}>
-                                            <lightning-input
-                                                type="text"
-                                                label=""
-                                                variant="label-hidden"
-                                                value={cell.comment}
-                                                placeholder="Add comment…"
-                                                data-booking={cell.bookingId}
-                                                data-crit={cell.critId}
-                                                onchange={handleCommentChange}
-                                                class="comment-input">
-                                            </lightning-input>
-                                        </template>
-                                        <template if:true={cell.isFinished}>
-                                            <span class="readonly-comment">{cell.comment}</span>
-                                        </template>
-                                    </td>
+                                    <template if:true={showCriteriaComment}>
+                                        <td key={cell.keyComment} class="td-comment">
+                                            <template if:false={cell.isFinished}>
+                                                <lightning-input
+                                                    type="text"
+                                                    label=""
+                                                    variant="label-hidden"
+                                                    value={cell.comment}
+                                                    placeholder="Add comment…"
+                                                    data-booking={cell.bookingId}
+                                                    data-crit={cell.critId}
+                                                    onchange={handleCommentChange}
+                                                    class="comment-input"
+                                                    max-length="255" >
+                                                </lightning-input>
+                                            </template>
+                                            <template if:true={cell.isFinished}>
+                                                <span class="readonly-comment">{cell.comment}</span>
+                                            </template>
+                                        </td>
+                                    </template>
                                 </template>
 
                             </tr>
                         </template>
 
+                        <tr class="eval-comment-row">
+                            <td class="td-criteria-label eval-comment-label">
+                                <span class="criteria-name">Overall Comment</span>
+                            </td>
+                            <template for:each={applicantColumns} for:item="col">
+                                <template if:true={showCriteriaComment}>
+                                    <td key={col.key} class="td-eval-comment" colspan="2">
+                                        <template if:false={col.isFinished}>
+                                            <lightning-textarea
+                                                label=""
+                                                variant="label-hidden"
+                                                value={col.evalComment}
+                                                placeholder="Enter your overall comment for this applicant…"
+                                                max-length="1000"
+                                                data-booking={col.bookingId}
+                                                onchange={handleEvaluatorCommentChange}
+                                                class="eval-textarea">
+                                            </lightning-textarea>
+                                        </template>
+                                        <template if:true={col.isFinished}>
+                                            <div class="readonly-eval-comment">{col.evalComment}</div>
+                                        </template>
+                                    </td>
+                                </template>
+                                <template if:false={showCriteriaComment}>
+                                    <td key={col.key} class="td-eval-comment" colspan="1">
+                                        <template if:false={col.isFinished}>
+                                            <lightning-textarea
+                                                label=""
+                                                variant="label-hidden"
+                                                value={col.evalComment}
+                                                placeholder="Enter your overall comment for this applicant…"
+                                                max-length="1000"
+                                                data-booking={col.bookingId}
+                                                onchange={handleEvaluatorCommentChange}
+                                                class="eval-textarea">
+                                            </lightning-textarea>
+                                        </template>
+                                        <template if:true={col.isFinished}>
+                                            <div class="readonly-eval-comment">{col.evalComment}</div>
+                                        </template>
+                                    </td>
+                                </template>
+                            </template>
+                        </tr>
+
                         <tr class="save-row">
                             <td class="td-criteria-label"></td>
                             <template for:each={applicantColumns} for:item="col">
-                                <td key={col.key} class="td-save" colspan="2">
-                                    <template if:false={col.isFinished}>
-                                        <lightning-button
-                                            label="Save Score"
-                                            variant="brand"
-                                            data-booking={col.bookingId}
-                                            onclick={handleSaveScore}
-                                            class="save-btn">
-                                        </lightning-button>
-                                    </template>
-                                    <template if:true={col.isFinished}>
-                                        <span class="saved-badge">&#10003; Saved</span>
-                                    </template>
-                                </td>
+                                <template if:true={showCriteriaComment}>
+                                    <td key={col.key} class="td-save" colspan="2">
+                                        <template if:false={col.isFinished}>
+                                            <lightning-button
+                                                label="Save Score"
+                                                variant="brand"
+                                                data-booking={col.bookingId}
+                                                onclick={handleSaveScore}
+                                                class="save-btn">
+                                            </lightning-button>
+                                        </template>
+                                        <template if:true={col.isFinished}>
+                                            <span class="saved-badge">&#10003; Saved</span>
+                                        </template>
+                                    </td>
+                                </template>
+                                <template if:false={showCriteriaComment}>
+                                    <td key={col.key} class="td-save" colspan="1">
+                                        <template if:false={col.isFinished}>
+                                            <lightning-button
+                                                label="Save Score"
+                                                variant="brand"
+                                                data-booking={col.bookingId}
+                                                onclick={handleSaveScore}
+                                                class="save-btn">
+                                            </lightning-button>
+                                        </template>
+                                        <template if:true={col.isFinished}>
+                                            <span class="saved-badge">&#10003; Saved</span>
+                                        </template>
+                                    </td>
+                                </template>
                             </template>
                         </tr>
 
@@ -161,7 +233,7 @@
                     <div class="modal-body">
                         <p>You are about to mark this interview as <strong>Complete</strong>.</p>
                         <p class="modal-warning">
-                            Once completed, scores and comments become <strong>read-only</strong> and cannot be edited. Make sure all scores are saved before proceeding.
+                            Once completed, scores and comments become <strong>read-only</strong> and cannot be edited. Any unsaved scores will be saved automatically.
                         </p>
                         <p>Are you sure you want to proceed?</p>
                     </div>

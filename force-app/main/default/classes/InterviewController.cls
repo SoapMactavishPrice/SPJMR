@@ -1,4 +1,4 @@
-global with sharing class InterviewController {
+global without sharing class InterviewController {
     
     public class CsvEvaluationRow {
         public String applicationNumber;
@@ -10,11 +10,6 @@ global with sharing class InterviewController {
         // Dynamic criteria: <Criteria Name , Score>
         public Map<String, String> criteriaMap = new Map<String, String>();
     }
-    
-    
-    
-    
-    
     
     private static String norm(String s) {
         return s == null ? '' : s.trim().toUpperCase();
@@ -722,6 +717,7 @@ for (ApplicationSlotBooking__c slot : slots) {
         @AuraEnabled public String  name;
         @AuraEnabled public String  applicantName;
         @AuraEnabled public String  programName;
+        @AuraEnabled public String  programCode;
         @AuraEnabled public Id      applicationId;
         @AuraEnabled public Date    slotDate;
         @AuraEnabled public Time    slotStartTime;
@@ -730,14 +726,9 @@ for (ApplicationSlotBooking__c slot : slots) {
         @AuraEnabled public Id      panelMasterId;
         @AuraEnabled public Id      roundMasterId;
         @AuraEnabled public String  roundMasterName;
-        @AuraEnabled public String  evalStatus;   // current user's Evaluation Status
+        @AuraEnabled public String  evalStatus;
     }
 
-    /**
-     * Returns all ApplicationSlotBooking__c records for a given SlotMaster__c,
-     * filtered to panels the current user belongs to, enriched with that user's
-     * evaluation status per booking.
-     */
     @AuraEnabled(cacheable=true)
     public static List<SlotBookingWrapper> getSlotBookingsBySlotMaster(Id slotMasterId) {
         try {
@@ -754,6 +745,19 @@ for (ApplicationSlotBooking__c slot : slots) {
             }
 
             Account accountEmp = accList[0];
+
+            String programCode = '';
+            List<SlotMaster__c> slotMasterList = [
+                SELECT Id, Program_Master__r.Program_Code__c
+                FROM SlotMaster__c
+                WHERE Id = :slotMasterId
+                LIMIT 1
+            ];
+            if (!slotMasterList.isEmpty() && slotMasterList[0].Program_Master__r != null) {
+                programCode = slotMasterList[0].Program_Master__r.Program_Code__c != null
+                              ? slotMasterList[0].Program_Master__r.Program_Code__c
+                              : '';
+            }
 
             Set<Id> panelIds = new Set<Id>();
             for (PanelInterviewer__c ptm : [
@@ -786,7 +790,6 @@ for (ApplicationSlotBooking__c slot : slots) {
                 return new List<SlotBookingWrapper>();
             }
 
-            // Fetch current user's evaluations for these bookings in one query
             Set<Id> bookingIds = new Map<Id, ApplicationSlotBooking__c>(bookings).keySet();
             Map<Id, String> bookingToEvalStatus = new Map<Id, String>();
             for (Evaluation__c ev : [
@@ -798,7 +801,6 @@ for (ApplicationSlotBooking__c slot : slots) {
                 bookingToEvalStatus.put(ev.Application_Slot_Booking__c, ev.Status__c);
             }
 
-            // Build wrappers
             List<SlotBookingWrapper> result = new List<SlotBookingWrapper>();
             for (ApplicationSlotBooking__c b : bookings) {
                 SlotBookingWrapper w  = new SlotBookingWrapper();
@@ -806,6 +808,7 @@ for (ApplicationSlotBooking__c slot : slots) {
                 w.name            = b.Name;
                 w.applicantName   = b.Applicant_Name__c;
                 w.programName     = b.Program_Name__c;
+                w.programCode     = programCode;
                 w.applicationId   = b.Application__c;
                 w.slotDate        = b.Slot_Date__c;
                 w.slotStartTime   = b.Slot_Start_Time__c;
@@ -821,6 +824,85 @@ for (ApplicationSlotBooking__c slot : slots) {
             }
             return result;
 
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    public class ScoringConfigWrapper {
+        @AuraEnabled public Boolean showCriteriaComment;
+        @AuraEnabled public String  evaluatorComment;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static ScoringConfigWrapper getScoringConfig(String programCode) {
+        ScoringConfigWrapper cfg = new ScoringConfigWrapper();
+        cfg.showCriteriaComment = false;
+
+        List<ApplicationProgramBasedConfig__mdt> records = [
+            SELECT Intent__c, Type__c, ProgramCode__c, ConfigValue__c, Active__c
+            FROM ApplicationProgramBasedConfig__mdt
+            WHERE Intent__c      = 'CommentForEachCriteria'
+              AND ProgramCode__c = :programCode
+              AND Active__c      = true
+            LIMIT 1
+        ];
+
+        if (!records.isEmpty()) {
+            ApplicationProgramBasedConfig__mdt rec = records[0];
+            if (rec.Type__c == 'Boolean') {
+                cfg.showCriteriaComment = (Boolean) (rec.ConfigValue__c != null &&
+                                           rec.ConfigValue__c.trim().equalsIgnoreCase('true'));
+            }
+        }
+        return cfg;
+    }
+
+    @AuraEnabled
+    public static void saveEvaluatorComment(Id evaluationId, String comment) {
+        try {
+            if (evaluationId == null) return;
+
+            List<Evaluation__c> evalList = [
+                SELECT Id, Status__c, EvaluatedUser__c, EvaluatorComments__c
+                FROM Evaluation__c
+                WHERE Id = :evaluationId
+                LIMIT 1
+            ];
+
+            if (evalList.isEmpty()) {
+                throw new AuraHandledException('Evaluation not found.');
+            }
+            if (evalList[0].Status__c == 'Complete') {
+                throw new AuraHandledException('Evaluation is already complete and cannot be edited.');
+            }
+
+            evalList[0].EvaluatorComments__c = comment;
+            update evalList;
+
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static String getEvaluatorComment(Id slotId) {
+        try {
+            Id currentAccId = getCurrentEvaluatorAccountId();
+            if (currentAccId == null) return '';
+
+            List<Evaluation__c> evalList = [
+                SELECT Id, EvaluatorComments__c
+                FROM Evaluation__c
+                WHERE Application_Slot_Booking__c = :slotId
+                  AND EvaluatedUser__c = :currentAccId
+                LIMIT 1
+            ];
+
+            if (evalList.isEmpty()) return '';
+            return evalList[0].EvaluatorComments__c != null
+                   ? evalList[0].EvaluatorComments__c
+                   : '';
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -876,11 +958,99 @@ for (ApplicationSlotBooking__c slot : slots) {
         }
     }
 
-    /**
-     * Resolves the Person Account Id for the current running user.
-     * Centralizes the "who is scoring right now" lookup so every method
-     * compares against Evaluation__c.EvaluatedUser__c by Id, not by email string matching.
-     */
+    @AuraEnabled(cacheable=true)
+    public static Boolean getStaticPdfConfig(String programCode) {
+        try {
+            List<ApplicationProgramBasedConfig__mdt> records = [
+                SELECT Intent__c, Type__c, ProgramCode__c, ConfigValue__c, Active__c
+                FROM ApplicationProgramBasedConfig__mdt
+                WHERE Intent__c      = 'StaticApplicationPdf'
+                  AND ProgramCode__c = :programCode
+                  AND Active__c      = true
+                LIMIT 1
+            ];
+            if (!records.isEmpty() && records[0].Type__c == 'Boolean') {
+                return records[0].ConfigValue__c != null &&
+                       records[0].ConfigValue__c.trim().equalsIgnoreCase('true');
+            }
+            return false;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static String getMerittoExtractFileUrl(Id applicationId) {
+        try {
+            List<Document_Details__c> docList = [
+                SELECT Id
+                FROM Document_Details__c
+                WHERE Application_No__c = :applicationId
+                AND Document_Code__c  = 'MerittoExtract'
+                LIMIT 1
+            ];
+            if (docList.isEmpty()) return '';
+
+            List<ContentDocumentLink> links = [
+                SELECT ContentDocumentId
+                FROM ContentDocumentLink
+                WHERE LinkedEntityId = :docList[0].Id
+                LIMIT 1
+            ];
+            if (links.isEmpty()) return '';
+
+            List<ContentVersion> versions = [
+                SELECT Id, ContentDocumentId
+                FROM ContentVersion
+                WHERE ContentDocumentId = :links[0].ContentDocumentId
+                AND IsLatest          = true
+                LIMIT 1
+            ];
+            if (versions.isEmpty()) return '';
+
+            List<ContentDistribution> existingDist = [
+                SELECT Id, DistributionPublicUrl,
+                    PreferencesAllowOriginalDownload,
+                    PreferencesAllowPDFDownload
+                FROM ContentDistribution
+                WHERE ContentVersionId = :versions[0].Id
+                LIMIT 1
+            ];
+
+            ContentDistribution cd;
+            if (!existingDist.isEmpty()) {
+                cd = existingDist[0];
+                if (cd.PreferencesAllowOriginalDownload || cd.PreferencesAllowPDFDownload) {
+                    cd.PreferencesAllowOriginalDownload = false;
+                    cd.PreferencesAllowPDFDownload      = false;
+                    update cd;
+                }
+            } else {
+                cd = new ContentDistribution();
+                cd.Name                             = 'MerittoExtract_' + versions[0].Id;
+                cd.ContentVersionId                  = versions[0].Id;
+                cd.PreferencesAllowViewInBrowser      = true;
+                cd.PreferencesAllowOriginalDownload   = false;
+                cd.PreferencesAllowPDFDownload         = false;
+                cd.PreferencesNotifyOnVisit           = false;
+                cd.PreferencesPasswordRequired        = false;
+                insert cd;
+
+                cd = [
+                    SELECT Id, DistributionPublicUrl
+                    FROM ContentDistribution
+                    WHERE Id = :cd.Id
+                    LIMIT 1
+                ];
+            }
+
+            return cd.DistributionPublicUrl != null ? cd.DistributionPublicUrl : '';
+
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
     private static Id getCurrentEvaluatorAccountId() {
         List<Account> accList = [
             SELECT Id

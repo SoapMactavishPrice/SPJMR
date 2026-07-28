@@ -7,7 +7,7 @@
             <lightning-button label="Generating PDF..." disabled></lightning-button>
         </template>    
         <template lwc:else>
-            <lightning-button onclick={handlePreview} title="View Application" label="Generate PDF preview" disabled={isDisabled}></lightning-button>
+            <lightning-button onclick={handlePreview} title="View Application" label="Preview PDF" disabled={isDisabled}></lightning-button>
         </template>
 
         <template lwc:if={showLoadingToast}>
