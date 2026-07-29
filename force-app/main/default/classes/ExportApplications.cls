@@ -12,6 +12,7 @@ public class ExportApplications implements Database.Batchable<SObject>, Database
     private Integer fileNumber = 1;
     private List<GeneratedFile> generatedFiles = new List<GeneratedFile>();
     private Boolean recordsFound = false;
+    private Id batchJobId;
     
     public class GeneratedFile {
         public String name;
@@ -55,6 +56,8 @@ public class ExportApplications implements Database.Batchable<SObject>, Database
     }
 
     public Database.QueryLocator start(Database.BatchableContext bc){
+
+        batchJobId = bc.getJobId();
 
         Program selectedProgram = [SELECT Id, Name, Program_Code__c FROM Program WHERE Id = :programId LIMIT 1];
 
@@ -182,6 +185,13 @@ public class ExportApplications implements Database.Batchable<SObject>, Database
             FROM ContentVersion
             WHERE Id=:version.Id
         ];
+
+        insert new Export_Job__c(
+            DocumentId__c = version.ContentDocumentId,
+            JobId__c = batchJobId,
+            Name = fileName,
+            Status__c = 'Completed'
+        );
 
         generatedFiles.add(
             new GeneratedFile(
