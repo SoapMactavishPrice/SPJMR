@@ -33,7 +33,8 @@ export default class ApprovalHistory extends LightningElement {
                         }, '')
                     : '',
             
-                approvedBy: r.approvedBy
+                approvedBy: r.approvedBy,
+                remark: r.remark
             }));
             this.error = undefined;
         } else if (error) {

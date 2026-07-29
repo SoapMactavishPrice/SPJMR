@@ -1,3 +1,4 @@
+// Approval actions record per-step remarks into approval history.
 public without sharing class LeaveApprovalActionController {
 
     // ================= GET ROLE =================
@@ -54,7 +55,7 @@ public without sharing class LeaveApprovalActionController {
                 leaveRec.Route_to_Deputy__c = false;
 
                 update leaveRec;
-                LeaveApprovalHistoryController.markStepDecided(leaveId, leaveRec.Current_Role_Name__c + ' Verification', 'Incomplete', UserInfo.getUserId()); // ✅ THIS LINE
+                LeaveApprovalHistoryController.markStepDecided(leaveId, leaveRec.Current_Role_Name__c + ' Verification', 'Incomplete', UserInfo.getUserId(), remarks); // ✅ THIS LINE
                 return;
             }
 
@@ -118,7 +119,7 @@ public without sharing class LeaveApprovalActionController {
                     leaveRec.Status__c                 = 'Submitted - Pending Approval';
                     leaveRec.Route_to_Deputy__c        = false;
 
-                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Programme Office Verification', 'Approved', UserInfo.getUserId());
+                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Programme Office Verification', 'Approved', UserInfo.getUserId(), remarks);
                     LeaveApprovalHistoryController.createPendingStep(leaveId, 'Manager Verification', managerUserIds);
                 } else {
 
@@ -130,7 +131,7 @@ public without sharing class LeaveApprovalActionController {
                     leaveRec.Current_Approver_Ids__c   = null; // ✅ clear on rejection
                     leaveRec.Route_to_Deputy__c        = false;
 
-                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Programme Office Verification', 'Rejected', UserInfo.getUserId());
+                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Programme Office Verification', 'Rejected', UserInfo.getUserId(), remarks);
                 }
             }
 
@@ -148,7 +149,7 @@ public without sharing class LeaveApprovalActionController {
                     leaveRec.Route_to_Deputy__c = false;
 
                     update leaveRec;
-                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', 'Incomplete', UserInfo.getUserId());
+                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', 'Incomplete', UserInfo.getUserId(), remarks);
                     return;
                 }
 
@@ -178,7 +179,7 @@ public without sharing class LeaveApprovalActionController {
                     leaveRec.Current_Approver_Ids__c   = null; // ✅ clear on rejection
                     leaveRec.Route_to_Deputy__c        = false;
 
-                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', leaveRec.Status__c, UserInfo.getUserId());
+                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', leaveRec.Status__c, UserInfo.getUserId(), remarks);
                 }
 
                 // 🟢 APPROVE FLOW
@@ -217,7 +218,7 @@ public without sharing class LeaveApprovalActionController {
                         leaveRec.Current_Role_Name__c      = 'Deputy Chairperson';
                         leaveRec.Status__c                 = 'Submitted - Pending Approval';
                        
-                        LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', 'Approved', UserInfo.getUserId());
+                        LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', 'Approved', UserInfo.getUserId(), remarks);
                         LeaveApprovalHistoryController.createPendingStep(leaveId, 'Deputy Chairperson Verification', deputyUserIds);
                         // ❌ DO NOT SAVE REMARK (NOT FINAL)
                     }
@@ -242,7 +243,7 @@ public without sharing class LeaveApprovalActionController {
                         else{
                             leaveRec.Status__c = 'Approved';
                         }
-                        LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', leaveRec.Status__c, UserInfo.getUserId());
+                        LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', leaveRec.Status__c, UserInfo.getUserId(), remarks);
                     }
                 }
             }
@@ -261,7 +262,7 @@ public without sharing class LeaveApprovalActionController {
                     leaveRec.Route_to_Deputy__c = false;
 
                     update leaveRec;
-                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Deputy Chairperson Verification', 'Incomplete', UserInfo.getUserId());
+                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Deputy Chairperson Verification', 'Incomplete', UserInfo.getUserId(), remarks);
                     return;
                 }
 
@@ -305,7 +306,7 @@ public without sharing class LeaveApprovalActionController {
                         leaveRec.Status__c = 'Approved';
                     }
                 }
-                LeaveApprovalHistoryController.markStepDecided(leaveId, 'Deputy Chairperson Verification', leaveRec.Status__c, UserInfo.getUserId());
+                LeaveApprovalHistoryController.markStepDecided(leaveId, 'Deputy Chairperson Verification', leaveRec.Status__c, UserInfo.getUserId(), remarks);
                 // ✅ FINAL CLEANUP
                 leaveRec.Current_Role_Name__c      = null;
                 leaveRec.Current_Approver_User__c  = null;

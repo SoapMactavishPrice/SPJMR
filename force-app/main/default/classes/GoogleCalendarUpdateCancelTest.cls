@@ -186,6 +186,56 @@ private class GoogleCalendarUpdateCancelTest {
         }
     }
 
+    // ── UPDATE preserves existing attendees' RSVP (no re-invite on publish) ───
+    /** Mock that returns an existing attendee (with an RSVP) on GET, and 200 on PATCH. */
+    private class RsvpPreserveMock implements HttpCalloutMock {
+        public String patchBody;
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            if (req.getEndpoint().contains('oauth2.googleapis.com/token')) {
+                res.setStatusCode(200);
+                res.setBody('{"access_token":"mock_token","expires_in":3600}');
+            } else if (req.getMethod() == 'GET') {
+                res.setStatusCode(200);
+                res.setBody('{"id":"evt_123","attendees":[' +
+                    '{"email":"existing@example.com","responseStatus":"accepted"}]}');
+            } else { // PATCH
+                patchBody = req.getBody();
+                res.setStatusCode(200);
+                res.setBody('{"id":"evt_123","htmlLink":"https://calendar.google.com/event?eid=abc"}');
+            }
+            return res;
+        }
+    }
+
+    @IsTest
+    static void updatePreservesExistingAttendeeRsvp() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            RsvpPreserveMock m = new RsvpPreserveMock();
+            Test.setMock(HttpCalloutMock.class, m);
+
+            GoogleCalendarEvent ev = sampleEvent();
+            // One already-invited attendee (accepted on Google) + one brand-new attendee.
+            ev.attendees = new List<String>{ 'existing@example.com', 'new@example.com' };
+
+            Test.startTest();
+            GoogleCalendarService.GoogleCalendarResponse r =
+                GoogleCalendarHelper.updateEventWithStoredCredentials('evt_123', ev);
+            Test.stopTest();
+
+            System.assert(r.success, 'PATCH should succeed: ' + r.errorMessage);
+            System.assertNotEquals(null, m.patchBody, 'PATCH body should have been captured');
+            // Existing attendee kept WITH their preserved RSVP → not re-invited/reset.
+            System.assert(m.patchBody.contains('existing@example.com'), 'existing attendee kept');
+            System.assert(m.patchBody.contains('accepted'),
+                'existing attendee RSVP (responseStatus) must be preserved on PATCH');
+            // New attendee still added (no responseStatus → gets invited).
+            System.assert(m.patchBody.contains('new@example.com'), 'new attendee added');
+        }
+    }
+
     // ── Helper guard clauses ──────────────────────────────────────────────────
     @IsTest
     static void helperUpdateThrowsWhenUnconfigured() {

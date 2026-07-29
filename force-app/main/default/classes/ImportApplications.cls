@@ -13,11 +13,30 @@ public with sharing class ImportApplications {
       }
    }
 
+
    @AuraEnabled
-   public static string importApplications(String csvString) {
-        Batch_ApplicationStatusUpdate batch = new Batch_ApplicationStatusUpdate(csvString);
-        Database.executeBatch(batch);
-        return 'Success';
+   public static Id uploadChunk(String fileName, String csvChunk, Integer chunkNumber) {
+      ContentVersion cv = new ContentVersion();
+      cv.Title = fileName.replace('.csv','') + '_Part_' + chunkNumber;
+      cv.PathOnClient = fileName.replace('.csv','') + '_Part_' + chunkNumber + '.csv';
+      cv.VersionData = Blob.valueOf(csvChunk);
+      insert cv;
+      return cv.Id;
+   }
+   
+
+   @AuraEnabled
+   public static String startImport( List<Id> contentVersionIds, Boolean notifyShortlistedApplicants, Boolean emailErrorReport) {
+
+      if(contentVersionIds == null || contentVersionIds.isEmpty()) {
+         throw new AuraHandledException(
+               'No CSV chunks were uploaded.'
+         );
+      }
+
+      Batch_ApplicationStatusUpdate batch = new Batch_ApplicationStatusUpdate(contentVersionIds, notifyShortlistedApplicants, emailErrorReport);
+      Database.executeBatch(batch, 1);
+      return 'Success';
    }
 
 }

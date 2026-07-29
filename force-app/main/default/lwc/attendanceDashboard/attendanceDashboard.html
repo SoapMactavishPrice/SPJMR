@@ -1,108 +1,103 @@
 <template>
-    <div class="attendance-wrapper">    
+   <div class="attendance-wrapper">
         <div class="attendance-header">
-            Attendance Report
+            Attendance
         </div>
-        
-     <!-- Filters Row -->
-<div class="filter-row">
+      <div class="top-filter-row">
 
-    <!-- Term -->
-    <div class="term-selector">
-        <label class="filter-label">Term</label>
+    <!-- Course Dropdown -->
+    <div class="course-selector">
 
-        <lightning-combobox
-            name="term"
-            variant="label-hidden"
-            options={termOptions}
-            value={selectedTermValue}
-            onchange={handleTermChange}>
-        </lightning-combobox>
-     <!-- Course dropdown — same style as Term, stacked below -->
-       <div class="course-selector">
-    <label class="filter-label">Course(s) — select one or more</label>
+        <div class="course-picker-box" onclick={toggleCourseDropdown}>
 
-    <div class="course-picker-box" onclick={toggleCourseDropdown}>
+            <template for:each={selectedCourseChips} for:item="course">
+                <span key={course.value} class="course-chip">
+                    {course.label}
+                    <button
+                        class="chip-remove"
+                        data-value={course.label}
+                        onclick={handleRemoveCourse}>
+                        ×
+                    </button>
+                </span>
+            </template>
 
-        <template for:each={selectedCourseChips} for:item="chip">
-            <span class="course-chip" key={chip.value}>
-                {chip.label}
-                <button
-                    type="button"
-                    class="chip-remove"
-                    data-value={chip.value}
-                    onclick={handleRemoveCourse}>
-                    &times;
-                </button>
+            <span class="add-course-link">
+                {courseDropdownLabel}
             </span>
-        </template>
 
-        <span class="add-course-link">+ add course</span>
+        </div>
 
-        <template lwc:if={isCourseDropdownOpen}>
+        <template if:true={isCourseDropdownOpen}>
             <div class="dropdown-panel" onclick={stopPanelClick}>
-                <template for:each={unselectedCourseOptions} for:item="course">
-                    <div
-                        class="dropdown-item"
-                        key={course.value}
-                        data-value={course.value}
-                        onclick={handleAddCourse}>
-                        {course.label}
-                    </div>
+                <template if:true={unselectedCourseOptions.length}>
+                    <template for:each={unselectedCourseOptions} for:item="course">
+                        <div
+                            key={course.value}
+                            class="dropdown-item"
+                            data-value={course.label}
+                            onclick={handleAddCourse}>
+                            {course.label}
+                        </div>
+                    </template>
                 </template>
-                <template lwc:if={noMoreCourses}>
-                    <div class="dropdown-empty">No more courses</div>
+
+                <template if:true={noMoreCourses}>
+                    <div class="dropdown-empty">
+                        No more courses to add
+                    </div>
                 </template>
             </div>
         </template>
 
     </div>
-</div>
-    </div>
+
     <!-- Date Filters -->
     <div class="date-range-row">
-
+        <!-- AC1 — Start Date and End Date filters -->
         <div class="date-field">
+        <label class="date-label">From Date</label>    
             <lightning-input
                 type="date"
                 variant="label-hidden"
-                placeholder="From Date"
                 value={startDate}
+                min={termStartDate}
+                max={termEndDate}
                 onchange={handleStartDateChange}>
             </lightning-input>
         </div>
 
         <div class="date-field">
+        <label class="date-label">To Date</label>   
             <lightning-input
                 type="date"
                 variant="label-hidden"
-                placeholder="To Date"
                 value={endDate}
                 data-id="endDateInput"
+                min={termStartDate}
+                max={termEndDate}
                 onchange={handleEndDateChange}>
             </lightning-input>
         </div>
+        <div class="date-range-actions">
+            <lightning-button
+                label="Search"
+                variant="brand"
+                onclick={handleSearchClick}>
+            </lightning-button>
 
-        <lightning-button
-            label="Search"
-            variant="brand"
-            onclick={handleSearchClick}>
-        </lightning-button>
-
-        <lightning-button
-            label="Clear"
-            variant="base"
-            onclick={handleClearClick}>
-        </lightning-button>
+            <lightning-button
+                label="Clear"
+                variant="base"
+                onclick={handleClearClick}>
+            </lightning-button>
+        </div>
 
     </div>
 
 </div>
-        
-        <!-- Attendance Summary -->
-        <div class="attendance-body slds-grid slds-gutters">
 
-            <!-- Left -->
+        <div class="attendance-body slds-grid slds-gutters">
             <div class="slds-col slds-size_4-of-12 donut-col">
 
                 <div class="slds-align_absolute-center">
@@ -112,30 +107,72 @@
                         </div>
                     </div>
                 </div>
-
+               
                 <div class="slds-text-align_center slds-m-top_medium">
-                    <div class="overall-text">
-                        Overall Attendance
-                    </div>
+                    <div class="overall-text">Overall Attendance</div>
+                    <!--
+                    <template lwc:if={warningMessage}>
+                        <div class="warning-text slds-m-top_x-small">
+                            <span class="warning-icon" aria-hidden="true">?</span>
+                            <span>{warningMessage}</span>
+                        </div>    
+                    </template>
+                    -->
                 </div>
-
+            
             </div>
-
-            <!-- Right -->
             <div class="slds-col slds-size_8-of-12 table-col">
 
-                <div class="tab-container">
-                    <button class={dayClass} onclick={handleDayClick}>Day</button>
-                    <button class={weekClass} onclick={handleWeekClick}>Week</button>
-                    <button class={monthClass} onclick={handleMonthClick}>Month</button>
-                    <button class={yearClass} onclick={handleYearClick}>Year</button>
-                </div>
+<!--    <div class="date-field">
 
+        <lightning-input
+            type="date"
+            label="From Date"
+            variant="label-hidden"
+            placeholder="From Date"
+            value={startDate}
+            min={termStartDate}
+            max={termEndDate}
+            onchange={handleStartDateChange}>
+        </lightning-input>
+    </div>
+    <div class="date-field">
+        <lightning-input
+            type="date"
+            label="To Date"
+            variant="label-hidden"
+            placeholder="To Date"
+            value={endDate}
+            data-id="endDateInput"
+            min={termStartDate}
+            max={termEndDate}
+            onchange={handleEndDateChange}>
+        </lightning-input>
+    </div>
+    <div class="date-range-actions" style="display:flex; align-items:center; gap:0.5rem;">
+        <lightning-button
+            label="Search"
+            variant="brand"
+            onclick={handleSearchClick}>
+        </lightning-button>
+        <lightning-button
+            label="Clear"
+            variant="base"
+            onclick={handleClearClick}>
+        </lightning-button>
+    </div>
+</div>-->
+                <div class="tab-container">
+                    <button class={dayClass}   onclick={handleDayClick}>Day</button>
+                    <button class={weekClass}  onclick={handleWeekClick}>Week</button>
+                    <button class={monthClass} onclick={handleMonthClick}>Month</button>
+                    <button class={yearClass}  onclick={handleYearClick}>Year</button>
+                </div>
+                <!--SE-1174-->
                 <template lwc:if={noRecordsMessage}>
-                    <p class="slds-text-color_weak slds-m-top_small">
-                        {noRecordsMessage}
-                    </p>
+                    <p class="slds-text-color_weak slds-m-top_small">{noRecordsMessage}</p>
                 </template>
+                <!--SE-1174-->
 
                 <div class="table-container slds-m-top_medium">
                     <table class="custom-table">
@@ -183,4 +220,35 @@
             </div>
         </div>
     </div>
+<template lwc:if={showSessionDetail}>
+                    <div class="table-container slds-m-top_medium">
+                        <div class="attendance-header" style="position:static; display:inline-block; margin-bottom:10px;">
+                            Session Detail — {sessionDetailTitle}
+                        </div>
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Course</th>
+                                    <th scope="col">Session Date</th>
+                                    <th scope="col">Timings</th>
+                                    <th scope="col">Faculty</th>
+                                    <th scope="col">Activity Type</th>
+                                    <th scope="col">Attendance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={sessionDetailRecords} for:item="s">
+                                    <tr key={s.id}>
+                                        <td>{s.courseName}</td>
+                                        <td>{s.sessionDate}</td>
+                                        <td>{s.timings}</td>
+                                        <td>{s.faculty}</td>
+                                        <td>{s.activityType}</td>
+                                        <td>{s.attendanceStatus}</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>    
 </template>

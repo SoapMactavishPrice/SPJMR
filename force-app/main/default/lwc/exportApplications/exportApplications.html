@@ -1,15 +1,144 @@
 <template>
-    <lightning-card title="Export Applications - GMP">
+    <lightning-card title="Export Applications">
+
         <div class="slds-m-around_medium">
 
-            <lightning-button 
-                label="Start Export"
-                variant="brand"
-                onclick={startExport}
-                >
-            </lightning-button>
-            
+            <lightning-record-picker
+                label="Program"
+                object-api-name="Program"
+                placeholder="Search programs..."
+                onchange={handleProgramChange}
+                required>
+            </lightning-record-picker>
 
+            <template if:true={showFilters}>
+                <div class="slds-grid slds-wrap slds-gutters slds-m-top_small">
+                    <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+                        <lightning-combobox
+                            label="Program Cohort / Batch"
+                            value={cohortId}
+                            options={cohortOptions}
+                            onchange={handleFilterChange}
+                            data-field="cohortId"
+                            disabled={isCohortDisabled}>
+                        </lightning-combobox>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+                        <lightning-combobox
+                            label="Application Stage"
+                            value={applicationStage}
+                            options={applicationStageOptions}
+                            onchange={handleFilterChange}
+                            data-field="applicationStage">
+                        </lightning-combobox>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+                        <lightning-combobox
+                            label="Application Status"
+                            value={applicationStatus}
+                            options={applicationStatusOptions}
+                            onchange={handleFilterChange}
+                            data-field="applicationStatus">
+                        </lightning-combobox>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+                        <lightning-combobox
+                            label="Applicant State Management"
+                            value={applicantStateManagement}
+                            options={applicantStateOptions}
+                            onchange={handleFilterChange}
+                            data-field="applicantStateManagement">
+                        </lightning-combobox>
+                    </div>
+
+                </div>
+
+                <div class="slds-m-top_medium">
+                    <lightning-input
+                        type="checkbox"
+                        label="Email me the download links when the export completes."
+                        checked={sendEmail}
+                        onchange={handleEmailCheckbox}>
+                    </lightning-input>
+
+                    <div class="slds-text-color_weak slds-text-body_small slds-m-left_large">
+                        If selected, an email containing all generated CSV download links will be sent after the export completes.
+                    </div>
+
+                </div>
+
+                <lightning-button
+                    class="slds-m-top_medium"
+                    variant="brand"
+                    label="Start Export"
+                    onclick={startExport}
+                    disabled={isExportDisabled}>
+                </lightning-button>
+
+                <template if:true={showFiles}>
+                    <div class="slds-m-top_large">
+                        <h3 class="slds-text-heading_small">
+                            Generated Files
+                        </h3>
+                        <template if:true={files.length}>
+                            <template for:each={files} for:item="file">
+                                <div key={file.documentId} class="slds-m-top_x-small">
+                                    <a href={file.downloadUrl} target="_blank">
+                                        {file.name}
+                                    </a>
+                                </div>
+                            </template>
+                        </template>
+
+                        <template if:false={files.length}>
+                            <div class="slds-text-color_weak slds-m-top_small">
+                                No records found.
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+            </template>
         </div>
+
     </lightning-card>
+
+    <template if:true={showConfirmation}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">
+                        Confirm Export
+                    </h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p>
+                        <strong>{recordCount}</strong>
+                        application(s) will be exported.
+                    </p>
+                    <br/>
+                    <p> Do you want to proceed with the export? </p>
+                </div>
+
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        label="Cancel"
+                        onclick={cancelExport}>
+                    </lightning-button>
+
+                    <lightning-button
+                        class="slds-m-left_small"
+                        variant="brand"
+                        label="Proceed"
+                        onclick={confirmExport}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
 </template>

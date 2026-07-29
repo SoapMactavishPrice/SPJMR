@@ -1,8 +1,22 @@
 <template>
     <lightning-card title="CSV Upload - Applicant State Management Update in Bulk">
-        <div class="slds-p-around_medium">
+        <lightning-button
+            slot="actions"
+            label="Download Sample Header"
+            icon-name="utility:download"
+            onclick={downloadSampleHeader}>
+        </lightning-button>
 
-            
+        <div class="slds-p-around_medium">
+            <a class="slds-hide" data-id="sample-header-download"></a>
+
+            <div class="import-guidance slds-text-body_small" role="note">
+                <strong>File requirements:</strong> <code>Application Number</code> is mandatory.
+                <code>Applicant State Management</code>, <code>Application Stage</code>, and
+                <code>Application Status</code> are optional. CSV header names must match exactly;
+                unrecognized columns are ignored.
+            </div>
+
             <lightning-input
                 type="file"
                 label="Upload CSV File"
@@ -11,11 +25,52 @@
                 disabled={isLoading}>
             </lightning-input>
             <p>{warningMessage}</p>
+
+            <lightning-input
+                type="checkbox"
+                label="Email me the Error Report"
+                checked={emailErrorReport}
+                onchange={handleEmailErrorReport}>
+            </lightning-input>
+            
             <!-- FILE NAME -->
             <template if:true={fileName}>
                 <p class="slds-m-top_small">
                     <strong>Selected File:</strong> {fileName}
                 </p>
+            </template>
+
+            <lightning-input
+                class="slds-m-top_medium"
+                type="checkbox"
+                label="Notify Shortlisted Applicants"
+                checked={notifyShortlistedApplicants}
+                onchange={handleNotifyCheckbox}>
+            </lightning-input>
+
+            <lightning-button
+                class="slds-m-top_medium"
+                label="Start Import"
+                variant="brand"
+                onclick={handleStartImport}
+                disabled={disableImportButton}>
+            </lightning-button>
+
+            <template if:true={generatedFiles.length}>
+                <div class="slds-m-top_medium">
+                    <h3 class="slds-text-heading_small">
+                        Generated Files
+                    </h3>
+
+                    <template for:each={generatedFiles} for:item="file">
+                        <div key={file.contentDocumentId} class="slds-m-top_x-small">
+                            <lightning-icon icon-name="doctype:csv" size="x-small"></lightning-icon>
+                            <a href={file.url} target="_blank">
+                                {file.fileName}
+                            </a>
+                        </div>
+                    </template>
+                </div>
             </template>
 
             <!-- SPINNER -->

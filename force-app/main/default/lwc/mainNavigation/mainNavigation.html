@@ -9,11 +9,26 @@
       aria-pressed={isActive}
     >
       <span class="step">
-                <lightning-icon
+               <!-- <lightning-icon
             icon-name={menuIcon}
             size="x-small"
             class="menu-icon">
-        </lightning-icon>
+        </lightning-icon>-->
+        <template if:true={isAttendanceReport}>
+    <img
+        src={attendanceIconUrl}
+        class="custom-menu-icon"
+        alt="Attendance Report" />
+</template>
+
+<template if:false={isAttendanceReport}>
+    <lightning-icon
+        icon-name={menuIcon}
+        size="x-small"
+        class="menu-icon">
+    </lightning-icon>
+</template>
+
         <span class="step-content">
           <span class="step-label">{item.publicLabel}</span>
         </span>

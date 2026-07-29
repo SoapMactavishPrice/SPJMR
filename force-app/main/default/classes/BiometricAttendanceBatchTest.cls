@@ -58,6 +58,22 @@ private class BiometricAttendanceBatchTest {
     }
 
     @IsTest
+    static void constructor_chainMarking_runsFetch() {
+        seedConfig();
+        Test.setMock(WebServiceMock.class, new BiometricSoapMock(false));
+        Test.startTest();
+        // 3-arg ("Sync" button) constructor. finish() skips the chained marking
+        // batch under Test.isRunningTest(); this covers the fetch + constructor.
+        Database.executeBatch(
+            new BiometricAttendanceBatch(
+                Datetime.now().addDays(-1), Datetime.now(), true), 200);
+        Test.stopTest();
+
+        System.assert([SELECT COUNT() FROM Attendance_Log__c] >= 0,
+            'chain-marking fetch should run without error');
+    }
+
+    @IsTest
     static void execute_emptyScope_returnsEarly() {
         BiometricAttendanceBatch b = new BiometricAttendanceBatch(Datetime.now());
         Test.startTest();

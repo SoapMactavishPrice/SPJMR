@@ -2385,6 +2385,7 @@ export default class TimetableCalendar extends LightningElement {
             courseName: session.courseName,
             batchWiseCourseId: session.batchWiseCourseId,
             courseActivity: session.courseActivity,
+            sessionType: session.sessionType,
             facultyNames: facultyNames,
             leadFacultyNames: leadFacultyNames,
             supportFacultyNames: supportFacultyNames,
@@ -2492,6 +2493,11 @@ export default class TimetableCalendar extends LightningElement {
             remark: sourceEvent.remark !== undefined ? sourceEvent.remark : '',
             url: sourceEvent.url !== undefined ? sourceEvent.url : '',
             courseActivity: sourceEvent.courseActivity || null,
+            // Session Type picklist (Joint Session / Combined Session). Prefer the value
+            // carried on the event/row; fall back to the edit-modal selection.
+            sessionType: (sourceEvent.sessionType !== undefined && sourceEvent.sessionType !== null && sourceEvent.sessionType !== '')
+                ? sourceEvent.sessionType
+                : (this.selectedSessionType || null),
             color: (sourceEvent.color && String(sourceEvent.color).startsWith('#')) ? String(sourceEvent.color) : null,
             colorSourceDivisionId,
             isJointSession: this.isJointSession || false,
@@ -4565,6 +4571,7 @@ if (mergedPrograms.length > 0) {
             this.eventRemark = selectedEvent.remark || '';
             this.eventUrl = selectedEvent.url || '';
             this.selectedCourseActivity = selectedEvent.courseActivity || '';
+            this.selectedSessionType = selectedEvent.sessionType || '';
             //SE-502
             // SE-502: Added studentNames, editEnrolledStudentOptions,
             // editEnrolledSelectedIds, editStudentDivisionMap mapping
@@ -5931,6 +5938,7 @@ if (mergedPrograms.length > 0) {
                 divisionIds: [...new Set(divIds)],
                 colorSourceDivisionId: initiatingDivisionIdForColor,
                 courseActivity: session.courseActivity || null,
+                sessionType: session.sessionType || null,
                 selectedStudentIds: session.selectedStudentIds || [], 
                 facultyIds: session.facultyIds || [],
                 leadFacultyId: session.leadFacultyId || null,
@@ -6066,6 +6074,7 @@ if (mergedPrograms.length > 0) {
                 numberOfSessions: 1,
                 colorSourceDivisionId: session.colorSourceDivisionId || null,
                 courseActivity: session.courseActivity,
+                sessionType: session.sessionType || null,
                 selectedFacultyIds: session.facultyIds,
                 leadFacultyId: session.leadFacultyId || null,
                 leadFacultyIds: (session.leadFacultyIds && session.leadFacultyIds.length > 0) ? session.leadFacultyIds : null,
@@ -6129,6 +6138,7 @@ if (mergedPrograms.length > 0) {
         this.eventUrl = '';
         this.selectedCourse = '';
         this.selectedCourseActivity = '';
+        this.selectedSessionType = '';
         this.courseAssignments = [];
         this.selectedAssignments = [];
         this.showCourseAssignments = false;
@@ -6391,6 +6401,7 @@ if (mergedPrograms.length > 0) {
             courseId: this.modalCourse || this.selectedCourse || null,
             batchWiseCourseId: null,
             courseActivity: this.selectedCourseActivity || null,
+            sessionType: this.selectedSessionType || null,
             numberOfSessions: 1
         };
 
@@ -6423,6 +6434,10 @@ if (mergedPrograms.length > 0) {
             payloadSource.courseActivity = (this.selectedCourseActivity !== undefined && this.selectedCourseActivity !== null)
                 ? this.selectedCourseActivity
                 : (editingEvent.courseActivity || null);
+            // Use form value so the user's Session Type change is saved (event value is stale from when modal opened)
+            payloadSource.sessionType = (this.selectedSessionType !== undefined && this.selectedSessionType !== null && this.selectedSessionType !== '')
+                ? this.selectedSessionType
+                : (editingEvent.sessionType || null);
             payloadSource.classRoom = this.eventClassRoom !== undefined ? this.eventClassRoom : (editingEvent.classRoom || '');
             payloadSource.remark = this.eventRemark !== undefined ? this.eventRemark : (editingEvent.remark || '');
             payloadSource.url = this.eventUrl !== undefined ? this.eventUrl : (editingEvent.url || '');

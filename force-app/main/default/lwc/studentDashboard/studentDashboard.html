@@ -30,15 +30,15 @@
 
                     <div class="dashboard-wrapper slds-p-around_medium">
                         <div class={dashboardGridClass}>
-                            <template if:true={showLeaveApplication}>
+                            <template if:true={isLeavePage}>
                                 <div class={leftPanelClass}>
                                     <c-leave-application></c-leave-application>
                                 </div>
                             </template>
 
-                            <template if:true={showAttendance}>
+                            <template if:true={isAttendancePage}>
                                 <div class={rightPanelClass}>
-                                    <c-attendance-dashboard term-id={selectedTermValue}></c-attendance-dashboard>
+                                    <c-attendance-dashboard term-id={selectedTermValue} term-start-date={selectedTermStartDate} term-end-date={selectedTermEndDate}> </c-attendance-dashboard>
                                 </div>
                             </template>
                         </div>

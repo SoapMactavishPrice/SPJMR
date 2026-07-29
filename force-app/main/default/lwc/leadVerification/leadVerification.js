@@ -12,6 +12,7 @@ export default class LeadVerification extends LightningElement {
     @track leadId =''
     @track bool_CalloutFlag = true
     logoUrl = spjimrLogo;
+    displayMessage = '';
     @wire(CurrentPageReference)
     getPageReference(pageRef) {
         if (pageRef && this.bool_CalloutFlag) {
@@ -33,6 +34,7 @@ export default class LeadVerification extends LightningElement {
                         this.boolean_Error = false;
                         this.boolean_LoggedIn = false;
                         this.bool_isLoading = false;
+                        this.displayMessage = result.displayMessage || '';
                     }
                     else if(!isSuccess && result.message ==='Lead is already converted.'){
                             this.boolean_Success = false;

@@ -1,16 +1,16 @@
 global without sharing class LeadImportProcessBatch
 implements Database.Batchable<SObject>, Database.Stateful {
-    
+
     private Id importParentId;
     private String description;
     private String Title;
+
     global LeadImportProcessBatch(Id importParentId){
-        
         this.importParentId = importParentId;
-        
-        Lead_Import_Parent__c lip = [SELECT Title__c,Description__c 
+
+        Lead_Import_Parent__c lip = [SELECT Title__c,Description__c
         FROM Lead_Import_Parent__c WHERE Id =:importParentId LIMIT 1];
-        
+
         if(lip!=null){
             this.description = lip.Description__c;
             this.Title = lip.Title__c;
@@ -19,13 +19,11 @@ implements Database.Batchable<SObject>, Database.Stateful {
             this.description = '';
             this.Title = '';
         }
-        
     }
-    
+
     global Database.QueryLocator start(
         Database.BatchableContext bc
     ){
-        
         return Database.getQueryLocator([
             SELECT Id,
                    Name__c,
@@ -38,699 +36,425 @@ implements Database.Batchable<SObject>, Database.Stateful {
                    City__c,
                    Status__c,
                    Age__c,
-                    Years_of_Work_Experience__c,Do_you_have_Entrance_Exam_Scores__c,
-                    Entrance_Exam_Name__c,SPJIMR_Partner_Company__c,Organization__c,
-                    How_did_you_find_out_about_us__c,Current_Designation__c
+                   Years_of_Work_Experience__c,Do_you_have_Entrance_Exam_Scores__c,
+                   Entrance_Exam_Name__c,SPJIMR_Partner_Company__c,Organization__c,
+                   How_did_you_find_out_about_us__c,Current_Designation__c,College__c,
+                   Graduation_Year__c
             FROM Lead_Import__c
             WHERE Lead_Import_Parent__c = :importParentId
             AND Status__c = 'New'
         ]);
     }
-    
+
     global void execute(
         Database.BatchableContext bc,
-    List<Lead_Import__c> scope
+        List<Lead_Import__c> scope
     ){
-        processScope(scope,this.description,this.Title);
+        processScope(scope, this.description, this.Title);
     }
-    
+
     global void finish(
         Database.BatchableContext bc
     ){
-        
         update new Lead_Import_Parent__c(
             Id = importParentId,
-        Status__c = 'Completed'
-            );
+            Status__c = 'Completed'
+        );
     }
 
+    private static final String RAW_DATA_SOURCE = 'Raw Data';
 
     private static Map<String, Program> buildProgramMap(Set<String> programCodes){
-    
-    Map<String, Program> programMap = new Map<String, Program>();
-    
-    List<Program> programs = [
-        SELECT Id,
-               Program_Code__c
-        FROM Program
-        WHERE Program_Code__c IN :programCodes
-    ];
-    
-    for(Program p : programs){
-        programMap.put(p.Program_Code__c, p);
+        Map<String, Program> programMap = new Map<String, Program>();
+        List<Program> programs = [
+            SELECT Id, Program_Code__c
+            FROM Program
+            WHERE Program_Code__c IN :programCodes
+        ];
+        for(Program p : programs){
+            programMap.put(p.Program_Code__c, p);
+        }
+        return programMap;
     }
-    
-    return programMap;
-}
 
-private static Map<String, Country_Master__c> buildCountryMap(Set<String> countries){
-    
-    Map<String, Country_Master__c> countryMap = new Map<String, Country_Master__c>();
-    
-    List<Country_Master__c> countryRecords = [
-        SELECT Id,
-               Name
-        FROM Country_Master__c
-        WHERE Name IN :countries
-    ];
-    
-    for(Country_Master__c c : countryRecords){
-        countryMap.put(c.Name.toLowerCase(), c);
+    private static Map<String, Country_Master__c> buildCountryMap(Set<String> countries){
+        Map<String, Country_Master__c> countryMap = new Map<String, Country_Master__c>();
+        List<Country_Master__c> countryRecords = [
+            SELECT Id, Name
+            FROM Country_Master__c
+            WHERE Name IN :countries
+        ];
+        for(Country_Master__c c : countryRecords){
+            countryMap.put(c.Name.toLowerCase(), c);
+        }
+        return countryMap;
     }
-    
-    return countryMap;
-}
 
-private static Map<String, State__c> buildStateMap(Set<String> states){
-    
-    Map<String, State__c> stateMap = new Map<String, State__c>();
-    
-    List<State__c> stateRecords = [
-        SELECT Id,
-               Name,
-               Country_Master__c
-        FROM State__c
-        WHERE Name IN :states
-    ];
-    
-    for(State__c s : stateRecords){
-        String key = s.Country_Master__c + '|' + s.Name.toLowerCase();
-        stateMap.put(key, s);
+    private static Map<String, State__c> buildStateMap(Set<String> states){
+        Map<String, State__c> stateMap = new Map<String, State__c>();
+        List<State__c> stateRecords = [
+            SELECT Id, Name, Country_Master__c
+            FROM State__c
+            WHERE Name IN :states
+        ];
+        for(State__c s : stateRecords){
+            String key = s.Country_Master__c + '|' + s.Name.toLowerCase();
+            stateMap.put(key, s);
+        }
+        return stateMap;
     }
-    
-    return stateMap;
-}
 
-private static Map<String, City__c> buildCityMap(Set<String> cities){
-    
-    Map<String, City__c> cityMap = new Map<String, City__c>();
-    
-    List<City__c> cityRecords = [
-        SELECT Id,
-               Name,
-               State__c
-        FROM City__c
-        WHERE Name IN :cities
-    ];
-    
-    for(City__c city : cityRecords){
-        String key = city.State__c + '|' + city.Name.toLowerCase();
-        cityMap.put(key, city);
+    private static Map<String, City__c> buildCityMap(Set<String> cities){
+        Map<String, City__c> cityMap = new Map<String, City__c>();
+        List<City__c> cityRecords = [
+            SELECT Id, Name, State__c
+            FROM City__c
+            WHERE Name IN :cities
+        ];
+        for(City__c city : cityRecords){
+            String key = city.State__c + '|' + city.Name.toLowerCase();
+            cityMap.put(key, city);
+        }
+        return cityMap;
     }
-    
-    return cityMap;
-}
-    
-    private static void processScope(List<Lead_Import__c> scope,String description,String title){
-        
+
+    private static void processScope(List<Lead_Import__c> scope, String description, String title){
+
+        Id b2cRecordTypeId = Schema.SObjectType.Lead.getRecordTypeInfosByName().get('B2C').getRecordTypeId();
+
         Set<String> emails = new Set<String>();
         Set<String> phones = new Set<String>();
-        Map<Id, Lead_Import__c> importUpdateMap =
-            new Map<Id, Lead_Import__c>();
-        Map<String, List<Lead_Import__c>> pendingPrograms =
-            new Map<String, List<Lead_Import__c>>();
         Set<String> programCodes = new Set<String>();
         Set<String> countries = new Set<String>();
         Set<String> states = new Set<String>();
         Set<String> cities = new Set<String>();
+
         for(Lead_Import__c row : scope){
-            
-            if(String.isNotBlank(row.Programme__c)){
-                programCodes.add(row.Programme__c.trim());
-            }
-            
-            if(String.isNotBlank(row.Country__c)){
-                countries.add(row.Country__c.trim());
-            }
-            
-            if(String.isNotBlank(row.State__c)){
-                states.add(row.State__c.trim());
-            }
-            
-            if(String.isNotBlank(row.City__c)){
-                cities.add(row.City__c.trim());
-            }
-            
-            if(String.isNotBlank(row.Email__c)){
-                emails.add(
-                    row.Email__c.trim().toLowerCase()
-                    );
-            }
-            
-            if(String.isNotBlank(row.Phone__c)){
-                phones.add(
-                    row.Phone__c.trim()
-                    );
-            }
-            
-            String key;
-            
-            if(String.isNotBlank(row.Email__c)){
-                key = 'EMAIL|' + row.Email__c.trim().toLowerCase();
-            }
-            else{
-                key = 'PHONE|' + row.Phone__c.trim();
-            }
+            if(String.isNotBlank(row.Programme__c))   programCodes.add(row.Programme__c.trim());
+            if(String.isNotBlank(row.Country__c))     countries.add(row.Country__c.trim());
+            if(String.isNotBlank(row.State__c))        states.add(row.State__c.trim());
+            if(String.isNotBlank(row.City__c))         cities.add(row.City__c.trim());
+            if(String.isNotBlank(row.Email__c))        emails.add(row.Email__c.trim().toLowerCase());
+            if(String.isNotBlank(row.Phone__c))         phones.add(row.Phone__c.trim());
         }
-        
+
         Map<String, Program> programMap = buildProgramMap(programCodes);
         Map<String, Country_Master__c> countryMap = buildCountryMap(countries);
         Map<String, State__c> stateMap = buildStateMap(states);
         Map<String, City__c> cityMap = buildCityMap(cities);
-                
-        
-        Map<String, Lead> scopeLeadMap = new Map<String, Lead>();
-        
-        Map<String, Lead> emailMap =
-            new Map<String, Lead>();
-        
-        Map<String, Lead> phoneMap =
-            new Map<String, Lead>();
-        
+
+        // Existing leads, scoped to B2C record type (mirrors B2CImportBatch)
+        Map<String, Lead> mapEmailToLead = new Map<String, Lead>();
+        Map<String, Lead> mapPhoneToLead = new Map<String, Lead>();
+        Map<String, Lead> pendingEmailToLead = new Map<String, Lead>();
+        Map<String, Lead> pendingPhoneToLead = new Map<String, Lead>();
+        Map<Id, Set<String>> leadProgramKeys = new Map<Id, Set<String>>();
         for(Lead l : [
-            
-                SELECT Id,
-                       Email,
-                       Phone
-                FROM Lead
-                WHERE Email IN :emails
-                   OR Phone IN :phones
+            SELECT Id, Email, Phone
+            FROM Lead
+            WHERE (Email IN :emails OR Phone IN :phones)
+            AND RecordTypeId = :b2cRecordTypeId
+        ]){
+            if(String.isNotBlank(l.Email)) mapEmailToLead.put(l.Email.trim().toLowerCase(), l);
+            if(String.isNotBlank(l.Phone)) mapPhoneToLead.put(l.Phone.trim(), l);
+        }
+
+        // Existing Lead_Program__c links, so we don't create duplicate program links
+        Set<Id> existingLeadIds = new Set<Id>();
+        for(Lead l : mapEmailToLead.values()) existingLeadIds.add(l.Id);
+        for(Lead l : mapPhoneToLead.values()) existingLeadIds.add(l.Id);
+        if(!existingLeadIds.isEmpty()){
+            for(Lead_Program__c lp : [
+                SELECT Lead__c, Program__c,Email__c,Phone__c
+                FROM Lead_Program__c
+                WHERE Lead__c IN :existingLeadIds
             ]){
-            
-            if(String.isNotBlank(l.Email)){
-                emailMap.put(
-                    l.Email.toLowerCase(),
-                l
-                    );
-            }
-            
-            if(String.isNotBlank(l.Phone)){
-                phoneMap.put(
-                    l.Phone,
-                l
-                    );
-            }
-            if(String.isNotBlank(l.Email)){
-                scopeLeadMap.put(
-                    'EMAIL|' + l.Email.toLowerCase(),
-                l
-                    );
-            }
-            
-            if(String.isNotBlank(l.Phone)){
-                scopeLeadMap.put(
-                    'PHONE|' + l.Phone,
-                l
-                    );
+                String lpEmail = String.isBlank(lp.Email__c) ? '' : lp.Email__c.trim().toLowerCase();
+                String lpPhone = String.isBlank(lp.Phone__c) ? '' : lp.Phone__c.trim();
+                String key = lp.Program__c + '|' + lpEmail + '|' + lpPhone;
+                if(!leadProgramKeys.containsKey(lp.Lead__c)){
+                    leadProgramKeys.put(lp.Lead__c, new Set<String>());
+                }
+                leadProgramKeys.get(lp.Lead__c).add(key);
             }
         }
-        List<Lead> leadsToInsert =
-            new List<Lead>();
-        
-        Map<Integer, Lead_Import__c> leadIndexMap =
-            new Map<Integer, Lead_Import__c>();
-        Map<Integer, Lead_Import__c> lpIndexMap =
-            new Map<Integer, Lead_Import__c>();
-        Integer lpIndex = 0;
-        Integer index = 0;
-        Map<String, Integer> pendingLeadIndexByKey = new Map<String, Integer>();
-        List<Lead_Program__c> leadProgramsToInsert = new List<Lead_Program__c>();
+
+        List<Lead> leadsToInsert = new List<Lead>();
+        List<Lead_Program__c> lpToInsert = new List<Lead_Program__c>();
+        Map<Id, Lead_Import__c> importUpdateMap = new Map<Id, Lead_Import__c>();
+        List<Lead_Import__c> lpImportRows = new List<Lead_Import__c>();
         for(Lead_Import__c row : scope){
-            String key;
-            
-            if(String.isNotBlank(row.Email__c)){
-                key = 'EMAIL|' + row.Email__c.trim().toLowerCase();
-            }
-            else{
-                key = 'PHONE|' + row.Phone__c.trim();
-            }
-            Program programRecord =
-                programMap.get(row.Programme__c);
-            
-            if(programRecord == null){
-                
-                row.Status__c = 'Failed';
-                row.Error_Message__c =
-                    'Programme not found';
-                importUpdateMap.put(
-                    row.Id,
-                row);
-                
-                continue;
-            }
-            if(String.isBlank(row.Email__c)){
-                row.Error_Message__c = 'Email not found';
-                row.Status__c = 'Failed';
-                importUpdateMap.put(
-                    row.Id,
-                row
-                    );
-                continue;
-            }
-            if(String.isBlank(row.Phone__c)){
-                row.Error_Message__c = 'Phone not found';
-                row.Status__c = 'Failed';
-                importUpdateMap.put(
-                    row.Id,
-                row
-                    );
-                continue;
-            }
-            if(String.isBlank(row.LeadSource__c)){
-                row.Error_Message__c = 'Lead Source not found';
-                row.Status__c = 'Failed';
-                importUpdateMap.put(
-                    row.Id,
-                row
-                    );
-                continue;
-            }
-            if(String.isBlank(row.Country__c)){
-                row.Status__c = 'Failed';
-                row.Error_Message__c = 'Country not found';
-                importUpdateMap.put(
-                    row.Id,
-                row
-                    );
-                continue;
-            }
-            if(String.isBlank(row.State__c)){
-                row.Status__c = 'Failed';
-                row.Error_Message__c = 'State not found';
-                importUpdateMap.put(
-                    row.Id,
-                row
-                    );
-                continue;
-            }
-            if(String.isBlank(row.City__c)){
-                row.Status__c = 'Failed';
-                row.Error_Message__c = 'City not found';
-                importUpdateMap.put(
-                    row.Id,
-                row
-                    );
-                continue;
-            }
-            Lead existingLead;
-            
-            if(String.isNotBlank(row.Email__c)){
-                existingLead =
-                    scopeLeadMap.get(
-                    'EMAIL|' +
-                    row.Email__c.trim().toLowerCase()
-                    );
-            }
-            
-            if(
-                existingLead == null &&
-                String.isNotBlank(row.Phone__c)
-            ){
-                existingLead =
-                    scopeLeadMap.get(
-                    'PHONE|' +
-                    row.Phone__c
-                    );
-            }
-            if(existingLead == null){
-                
-                Lead l = new Lead();
-                l.Description = description;
-                l.Title = title;
-                l.Send_Welcome_and_Verification_Email__c = false;
-                l.RecordTypeId = Schema.SObjectType.Lead.getRecordTypeInfosByName().get('B2C').getRecordTypeId();
-                String fullName =
-                    String.isBlank(row.Name__c)
-                    ? ''
-                    : row.Name__c.trim();
-                
-                if(String.isBlank(fullName)){
-                    row.Status__c = 'Failed';
-                    row.Error_Message__c = 'Name not found';
-                    importUpdateMap.put(
-                        row.Id,
-                    row
-                        );
+
+            try {
+                // --- Validation (unchanged business rules, still recorded per-row) ---
+                Program prog = programMap.get(row.Programme__c);
+                if(prog == null){
+                    markFailed(row, 'Programme not found', importUpdateMap);
                     continue;
                 }
-                
-                List<String> parts =
-                    fullName.split('\\s+');
-                
-                if(parts.size() == 1){
-                    
-                    l.First_Name__c = parts[0];
-                    l.LastName = '.';
-                    
+                if(String.isBlank(row.Email__c)){
+                    markFailed(row, 'Email not found', importUpdateMap);
+                    continue;
                 }
-                else if(parts.size() > 1){
-                    
-                    l.First_Name__c = parts[0];
-                    
-                    String lastName = '';
-                    
-                    for(Integer i = 1; i < parts.size(); i++){
-                        
-                        if(i > 1){
-                            lastName += ' ';
+                if(String.isBlank(row.Phone__c)){
+                    markFailed(row, 'Phone not found', importUpdateMap);
+                    continue;
+                }
+                if(String.isBlank(row.Country__c)){
+                    markFailed(row, 'Country not found', importUpdateMap);
+                    continue;
+                }
+                if(String.isBlank(row.State__c)){
+                    markFailed(row, 'State not found', importUpdateMap);
+                    continue;
+                }
+                if(String.isBlank(row.City__c)){
+                    markFailed(row, 'City not found', importUpdateMap);
+                    continue;
+                }
+                // Note: LeadSource__c from the import row is intentionally ignored -
+                // every Lead/Lead_Program__c created here is stamped 'Raw Data'.
+
+                String email = row.Email__c.trim().toLowerCase();
+                String phone = row.Phone__c.trim();
+
+                Lead existingLead;
+                if(mapEmailToLead.containsKey(email)) existingLead = mapEmailToLead.get(email);
+                else if(mapPhoneToLead.containsKey(phone)) existingLead = mapPhoneToLead.get(phone);
+                else if(pendingEmailToLead.containsKey(email)) existingLead = pendingEmailToLead.get(email);
+                else if(pendingPhoneToLead.containsKey(phone)) existingLead = pendingPhoneToLead.get(phone);
+
+                if(existingLead != null){
+                    String duplicateKey = prog.Id + '|'+email+'|'+phone;
+                    // Existing lead -> just link a new program if not already linked
+                    Set<String> existingKeys = leadProgramKeys.get(existingLead.Id);
+                    if(existingKeys == null || !existingKeys.contains(duplicateKey)){
+                        lpImportRows.add(row);
+                        lpToInsert.add(new Lead_Program__c(
+                            Lead__c = existingLead.Id,
+                            Program__c = prog.Id,
+                            Email__c = row.Email__c,
+                            Phone__c = row.Phone__c,
+                            Lead_Source__c = RAW_DATA_SOURCE
+                        ));
+                        if(existingKeys == null){
+                                existingKeys = new Set<String>();
+                                leadProgramKeys.put(existingLead.Id, existingKeys);
                         }
-                        
-                        lastName += parts[i];
+
+                        existingKeys.add(duplicateKey);
                     }
-                    
-                    l.LastName = lastName;
-                }
-                else{
-                    
-                    l.LastName = '.';
-                }
-                
-                Country_Master__c country =
-                    countryMap.get(
-                    row.Country__c.toLowerCase()
-                    );
-                
-                if(country == null){
-                    
-                    row.Status__c = 'Failed';
-                    importUpdateMap.put(
-                        row.Id,
-                    row
-                        );
-                    row.Error_Message__c =
-                        'Country not found in System';
-                    
-                    continue;
-                }
-                
-                l.Country_Master_backend__c =
-                    country.Id;
-                
-                String stateKey =
-                    country.Id +
-                    '|' +
-                    row.State__c.toLowerCase();
-                
-                State__c state =
-                    stateMap.get(stateKey);
-                
-                if(state == null){
-                    
-                    row.Status__c = 'Failed';
-                    importUpdateMap.put(
-                        row.Id,
-                    row
-                        );
-                    row.Error_Message__c =
-                        'State not found in System';
-                    
-                    continue;
-                }
-                
-                l.State_Master__c =
-                    state.Id;
-                
-                String cityKey =
-                    state.Id +
-                    '|' +
-                    row.City__c.toLowerCase();
-                
-                City__c city =
-                    cityMap.get(cityKey);
-                
-                // if(city == null){
-                    
-                    //     row.Status__c = 'Failed';
-                    //     importUpdates.add(row);
-                    //     row.Error_Message__c =
-                    //         'City not found';
-                    
-                    //     continue;
-                // }
-                
-                l.District_City__c =
-                    city!=null?city.Id:null;
-                
-                
-                l.Email = row.Email__c;
-                
-                l.Phone = row.Phone__c;
-                l.LeadSource = 'Raw Data';
-                l.Status = 'Raw Data';
-                l.Country = row.Country__c;
-                l.State = row.State__c;
-                l.City = row.City__c;
-                l.XS_Age__c = String.valueOf(row.Age__c);
-                l.XS_YearsOfWorkExperience__c = row.Years_of_Work_Experience__c;
-                l.XS_DoYouHaveEntranceExamScore__c = row.Do_you_have_Entrance_Exam_Scores__c;
-                l.XS_EntranceExamName__c = row.Entrance_Exam_Name__c;
-                l.XS_SPJIMR_PartnerCompany__c = row.SPJIMR_Partner_Company__c;
-                l.XS_EnterOrganisation__c = row.Organization__c;
-                l.XS_HowDidYouFindOutAboutUs__c = row.How_did_you_find_out_about_us__c;
-                l.XS_CurrentDesigination__c = row.Current_Designation__c;
-                scopeLeadMap.put(key, l);
-                leadsToInsert.add(l);
-                
-                leadIndexMap.put(index,row);
-                if(String.isNotBlank(l.Email)){
-                    scopeLeadMap.put(
-                        'EMAIL|' + l.Email.toLowerCase(),
-                    l
-                        );
-                }
-                
-                if(String.isNotBlank(l.Phone)){
-                    scopeLeadMap.put(
-                        'PHONE|' + l.Phone,
-                    l
-                        );
-                }
-                
-                index++;
-            }
-            else{
-                if(existingLead.Id == null){
-                    
-                    if(!pendingPrograms.containsKey(key)){
-                        pendingPrograms.put(
-                            key,
-                        new List<Lead_Import__c>()
-                            );
-                    }
-                    
-                    pendingPrograms.get(key).add(row);
+
+                    row.Status__c = 'Complete';
+                    row.Error_Message__c = null;
+                    importUpdateMap.put(row.Id, row);
+
                 } else {
-                    
-                    Lead_Program__c lp = new Lead_Program__c();
-                    
-                    lp.Lead_Source__c = 'Raw Data';
-                    lp.Program__c =
-                        programMap.get(row.Programme__c).Id;
-                    lp.Email__c = row.Email__c;
-                    lp.Phone__c = row.Phone__c;
-                    lp.Lead__c = existingLead.Id;
-                    
-                    leadProgramsToInsert.add(lp);
-                    
-                    lpIndexMap.put(lpIndex,row);
-                    lpIndex++;
-                }
-            }
-        }
-        Database.SaveResult[] leadInsertresults = new List<Database.SaveResult>();
-        if(!leadsToInsert.isEmpty()){
-            leadInsertresults =
-                Database.insert(
-                leadsToInsert,
-            false
-                );
-            
-            
-            for(Integer i=0;i<leadInsertresults.size();i++){
-                
-                Lead_Import__c row =
-                    leadIndexMap.get(i);
-                
-                if(leadInsertresults[i].isSuccess()){
-                    
-                    Id leadId =
-                        leadInsertresults[i].getId();
-                    Lead insertedLead = leadsToInsert[i];
-                    
-                    String key;
-                    
-                    if(String.isNotBlank(insertedLead.Email)){
-                        key = 'EMAIL|' + insertedLead.Email.toLowerCase();
+                    // New lead
+                    String fullName = String.isBlank(row.Name__c) ? '' : row.Name__c.trim();
+                    if(String.isBlank(fullName)){
+                        markFailed(row, 'Name not found', importUpdateMap);
+                        continue;
                     }
-                    else{
-                        key = 'PHONE|' + insertedLead.Phone;
+
+                    Country_Master__c country = countryMap.get(row.Country__c.toLowerCase());
+                    if(country == null){
+                        markFailed(row, 'Country not found in System', importUpdateMap);
+                        continue;
                     }
-                    
-                    if(pendingPrograms.containsKey(key)){
-                        
-                        for(
-                            Lead_Import__c pendingRow :
-                            pendingPrograms.get(key)
-                        ){
-                            
-                            Lead_Program__c extraLp =
-                                new Lead_Program__c();
-                            
-                            extraLp.Lead__c = leadId;
-                            
-                            extraLp.Program__c =
-                                programMap.get(
-                                pendingRow.Programme__c
-                                ).Id;
-                            
-                            extraLp.Lead_Source__c =
-                                'Raw Data';
-                            
-                            extraLp.Email__c =
-                                pendingRow.Email__c;
-                            
-                            extraLp.Phone__c =
-                                pendingRow.Phone__c;
-                            
-                            leadProgramsToInsert.add(extraLp);
-                            
-                            lpIndexMap.put(
-                                lpIndex,
-                            pendingRow
-                                );
-                            
-                            lpIndex++;
+
+                    String stateKey = country.Id + '|' + row.State__c.toLowerCase();
+                    State__c state = stateMap.get(stateKey);
+                    if(state == null){
+                        markFailed(row, 'State not found in System', importUpdateMap);
+                        continue;
+                    }
+
+                    String cityKey = state.Id + '|' + row.City__c.toLowerCase();
+                    City__c city = cityMap.get(cityKey);
+                    // City is optional, same as original (no hard fail on missing city)
+
+                    List<String> parts = fullName.split('\\s+');
+                    String firstName, lastName;
+                    if(parts.size() == 1){
+                        firstName = parts[0];
+                        lastName = '.';
+                    } else {
+                        firstName = parts[0];
+                        lastName = '';
+                        for(Integer i = 1; i < parts.size(); i++){
+                            if(i > 1) lastName += ' ';
+                            lastName += parts[i];
                         }
                     }
-                    
-                    Lead_Program__c lp =
-                        new Lead_Program__c();
-                    
-                    lp.Lead__c = leadId;
-                    
-                    lp.Program__c =
-                        programMap.get(
-                        row.Programme__c
-                        ).Id;
-                    
-                    lp.Lead_Source__c =
-                        'Raw Data';
-                    
-                    lp.Email__c =
-                        row.Email__c;
-                    
-                    lp.Phone__c =
-                        row.Phone__c;
-                    
-                    leadProgramsToInsert.add(lp);
-                    
-                    lpIndexMap.put(
-                        lpIndex,
-                    row
-                        );
-                    
-                    lpIndex++;
-                    row.Status__c =
-                        'Lead Created';
-                    
-                }else{
-                    
-                    row.Status__c =
-                        'Failed';
-                    
-                    row.Error_Message__c =
-                        leadInsertresults[i]
-                        .getErrors()[0]
-                        .getMessage()+ ' Status Code: '+leadInsertresults[i]
-                        .getErrors()[0]
-                        .getStatusCode()
-                        + ' Fields : '+leadInsertresults[i]
-                        .getErrors()[0]
-                        .getFields();
+
+                    Lead newLead = new Lead();
+                    newLead.Description = description;
+                    newLead.Title = title;
+                    newLead.Send_Welcome_and_Verification_Email__c = false;
+                    newLead.RecordTypeId = b2cRecordTypeId;
+                    newLead.FirstName = firstName;
+                    newLead.LastName = lastName;
+                    newLead.Country_Master_backend__c = country.Id;
+                    newLead.State_Master__c = state.Id;
+                    newLead.District_City__c = city != null ? city.Id : null;
+                    newLead.Email = row.Email__c;
+                    newLead.Phone = row.Phone__c;
+                    newLead.LeadSource = RAW_DATA_SOURCE;
+                    newLead.Status = RAW_DATA_SOURCE;
+                    newLead.Country = row.Country__c;
+                    newLead.State = row.State__c;
+                    newLead.City = row.City__c;
+                    newLead.XS_Age__c = String.valueOf(row.Age__c);
+                    newLead.XS_YearsOfWorkExperience__c = row.Years_of_Work_Experience__c;
+                    newLead.XS_DoYouHaveEntranceExamScore__c = row.Do_you_have_Entrance_Exam_Scores__c;
+                    newLead.XS_EntranceExamName__c = row.Entrance_Exam_Name__c;
+                    newLead.XS_SPJIMR_PartnerCompany__c = row.SPJIMR_Partner_Company__c;
+                    newLead.XS_EnterOrganisation__c = row.Organization__c;
+                    newLead.XS_HowDidYouFindOutAboutUs__c = row.How_did_you_find_out_about_us__c;
+                    newLead.XS_CurrentDesigination__c = row.Current_Designation__c;
+                    newLead.XS_College__c = row.College__c;
+                    newLead.XS_Year__c = row.Graduation_Year__c;
+                    leadsToInsert.add(newLead);
+                    pendingEmailToLead.put(email, newLead);
+                    pendingPhoneToLead.put(phone, newLead);
+
+                    // Track which program(s) this pending new lead needs once inserted
+                    row.Status__c = 'Pending Insert'; // internal marker, overwritten below
+                    importUpdateMap.put(row.Id, row);
                 }
-                
-                importUpdateMap.put(
-                    row.Id,
-                row
-                    );
+
+            } catch(Exception e){
+                markFailed(row, 'Unexpected error: ' + e.getMessage(), importUpdateMap);
             }
-            
         }
-        if(!leadProgramsToInsert.isEmpty()){
-            Database.SaveResult[] lpResults = Database.insert(
-                leadProgramsToInsert,
-            false
-                );
-            
+
+        // --- Insert new Leads ---
+        Map<Id, List<Lead_Import__c>> newLeadIdToRows = new Map<Id, List<Lead_Import__c>>();
+        if(!leadsToInsert.isEmpty()){
+            Database.SaveResult[] leadInsertResults = Database.insert(leadsToInsert, false);
+            system.debug('Inserting Leads '+leadsToInsert);
+            Set<Id> newlyInsertedLeadIds = new Set<Id>();
+            for(Database.SaveResult sr : leadInsertResults){
+                 system.debug('Result is  '+sr.isSuccess());
+                if(sr.isSuccess()) newlyInsertedLeadIds.add(sr.getId());
+            }
+          
+
+            for(Integer i = 0; i < leadInsertResults.size(); i++){
+                Lead insertedLead = leadsToInsert[i];
+
+                // Find the import row(s) that produced this lead (matched on email/phone)
+                for(Lead_Import__c row : scope){
+                    if(row.Status__c != 'Pending Insert') continue;
+                    Boolean matches =
+                        (String.isNotBlank(row.Email__c) && insertedLead.Email != null
+                            && row.Email__c.trim().equalsIgnoreCase(insertedLead.Email))
+                        || (String.isNotBlank(row.Phone__c) && insertedLead.Phone != null
+                            && row.Phone__c.trim() == insertedLead.Phone);
+                    if(!matches) continue;
+
+                    if(leadInsertResults[i].isSuccess()){
+                        Id leadId = leadInsertResults[i].getId();
+                        Program prog = programMap.get(row.Programme__c);
+                        system.debug('Creating Lead Program record for '+leadId);
+                        lpImportRows.add(row);
+                        lpToInsert.add(new Lead_Program__c(
+                            Lead__c = leadId,
+                            Program__c = prog.Id,
+                            Email__c = row.Email__c,
+                            Phone__c = row.Phone__c,
+                            Lead_Source__c = RAW_DATA_SOURCE
+                        ));
+
+                        row.Status__c = 'Lead Created';
+                        row.Error_Message__c = null;
+                    } else {
+                        row.Status__c = 'Failed';
+                        row.Error_Message__c =
+                            leadInsertResults[i].getErrors()[0].getMessage()
+                            + ' Status Code: ' + leadInsertResults[i].getErrors()[0].getStatusCode()
+                            + ' Fields : ' + leadInsertResults[i].getErrors()[0].getFields();
+                    }
+                    importUpdateMap.put(row.Id, row);
+                }
+            }
+        }
+
+        // --- Insert Lead_Program__c rows (both existing-lead links and new-lead links) ---
+        if(!lpToInsert.isEmpty()){
+            Database.SaveResult[] lpResults = Database.insert(lpToInsert, false);
+
             Id defaultOwnerId = LeadRoutingService.resolveB2cDefaultOwnerUserId();
-            
-            List<Lead> leadsToUpdate = new List<Lead>();
-            List<Lead_Program__c> leadProgramsToUpdate = new List<Lead_Program__c>();
-            
-            for (Integer i = 0; i < leadInsertresults.size(); i++) {
-                if (leadInsertresults[i].isSuccess()) {
-                    leadsToUpdate.add(new Lead(
-                        Id = leadInsertresults[i].getId(),
-                    OwnerId = defaultOwnerId
-                        ));
-                }
-            }
-            
-            for (Integer i = 0; i < lpResults.size(); i++) {
-                if (lpResults[i].isSuccess()) {
-                    leadProgramsToUpdate.add(new Lead_Program__c(
-                        Id = lpResults[i].getId(),
-                    OwnerId = defaultOwnerId
-                        ));
-                }
-            }
-            
-            if (!leadsToUpdate.isEmpty()) {
-                update leadsToUpdate;
-            }
-            
-            if (!leadProgramsToUpdate.isEmpty()) {
-                update leadProgramsToUpdate;
-            }
-            
+
+            List<Lead> leadsToUpdateOwner = new List<Lead>();
+            List<Lead_Program__c> lpToUpdateOwner = new List<Lead_Program__c>();
+
+            Set<Id> ownedLeadIds = new Set<Id>();
             for(Integer i = 0; i < lpResults.size(); i++){
-                
-                Lead_Import__c row =
-                    lpIndexMap.get(i);
-                
-                if(row == null){
-                    continue;
-                }
-                
+                Lead_Import__c row = lpImportRows[i];
                 if(lpResults[i].isSuccess()){
-                    
-                    row.Status__c =
-                        'Complete';
-                    
+                    row.Status__c = 'Complete';
                     row.Error_Message__c = null;
                 }
                 else{
-                    
-                    row.Status__c =
-                        'Failed';
-                    
-                    row.Error_Message__c =
-                        lpResults[i]
-                        .getErrors()[0]
-                        .getMessage();
+                    row.Status__c = 'Failed';
+                    row.Error_Message__c = lpResults[i].getErrors()[0].getMessage();
                 }
-                
-                importUpdateMap.put(
-                    row.Id,
-                row
-                    );
+                importUpdateMap.put(row.Id, row);
+            }
+
+           // if(!leadsToUpdateOwner.isEmpty()) update leadsToUpdateOwner;
+           // if(!lpToUpdateOwner.isEmpty()) update lpToUpdateOwner;
+        }
+
+        if(!importUpdateMap.isEmpty()){
+            // Clean up any stray "Pending Insert" markers that somehow weren't matched
+            List<Lead_Import__c> finalUpdates = new List<Lead_Import__c>();
+            for(Lead_Import__c row : importUpdateMap.values()){
+                if(row.Status__c == 'Pending Insert'){
+                    row.Status__c = 'Failed';
+                    row.Error_Message__c = 'Lead insert result could not be matched back to this row';
+                }
+                finalUpdates.add(row);
+            }
+            update finalUpdates;
+        }
+    }
+
+    private static void markFailed(Lead_Import__c row, String message, Map<Id, Lead_Import__c> importUpdateMap){
+        row.Status__c = 'Failed';
+        row.Error_Message__c = message;
+        importUpdateMap.put(row.Id, row);
+    }
+
+    private static void insertLeadSharesForRunningUser(Set<Id> leadIds){
+        Id runningUserId = UserInfo.getUserId();
+
+        Set<Id> existingShareLeadIds = new Set<Id>();
+        for(LeadShare ls : [
+            SELECT LeadId
+            FROM LeadShare
+            WHERE LeadId IN :leadIds
+            AND UserOrGroupId = :runningUserId
+        ]){
+            existingShareLeadIds.add(ls.LeadId);
+        }
+
+        List<LeadShare> sharesToInsert = new List<LeadShare>();
+        for(Id leadId : leadIds){
+            if(!existingShareLeadIds.contains(leadId)){
+                sharesToInsert.add(new LeadShare(
+                    LeadId = leadId,
+                    UserOrGroupId = runningUserId,
+                    LeadAccessLevel = 'Edit',
+                    RowCause = Schema.LeadShare.RowCause.Manual
+                ));
             }
         }
-        if(!importUpdateMap.isEmpty()){
-            
-            update importUpdateMap.values();
+
+        if(!sharesToInsert.isEmpty()){
+            Database.insert(sharesToInsert, false);
         }
-        
-        
     }
 }

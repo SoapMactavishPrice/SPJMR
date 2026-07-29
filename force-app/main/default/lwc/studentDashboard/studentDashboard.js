@@ -1,4 +1,4 @@
-import { LightningElement, track, wire } from 'lwc';
+import { LightningElement, track, wire ,api } from 'lwc';
 import getUserInfo from '@salesforce/apex/StudentProfileDashboardController.getUserInfo';
 import isStudentPortalLeaveModuleEnabled from '@salesforce/apex/StudentProfileDashboardController.isStudentPortalLeaveModuleEnabled';
 
@@ -13,6 +13,7 @@ export default class StudentDashboard extends LightningElement {
     @track currentTerm = '';
     @track termOptions = [];
     @track selectedTermValue = '';
+    @api pageType = 'leave';
     @wire(isStudentPortalLeaveModuleEnabled)
     wiredLeaveModuleEnabled({ data }) {
         if (data !== undefined && data !== null) {
@@ -22,6 +23,13 @@ export default class StudentDashboard extends LightningElement {
 
     connectedCallback() {
         this.loadUserName();
+        const path = window.location.pathname.toLowerCase();
+
+    if (path.includes('attendance-report')) {
+        this.pageType = 'Attendance Report';
+    } else if (path.includes('leave-and-attendance')){
+        this.pageType = 'leave';
+     }
     }
     loadUserName() {
         getUserInfo()
@@ -55,8 +63,15 @@ export default class StudentDashboard extends LightningElement {
     }
 
     get pageTitle() {
-        return this.leaveModuleEnabled ? 'Leave' : 'Attendance';
+        if (this.pageType === 'Attendance Report') {
+        return 'Attendance Report';
     }
+        return this.leaveModuleEnabled ? 'Leave Application' : 'Attendance Report';
+    } 
+
+   /* get pageTitle() {
+    return this.isAttendancePage ? 'Attendance Report' : 'Leave';
+    }*/
 
     get showLeaveApplication() {
         return this.leaveModuleEnabled === true;
@@ -80,4 +95,21 @@ export default class StudentDashboard extends LightningElement {
             ? 'slds-col slds-size_2-of-3 right-panel'
             : 'slds-col slds-size_1-of-1 right-panel right-panel--full';
     }
+    get isAttendancePage() {
+    return this.pageType === 'Attendance Report';
+    }
+
+    get isLeavePage() {
+    return this.pageType === 'leave';
+    }
+
+    get selectedTermStartDate() {
+    const match = this.termOptions.find(o => o.value === this.selectedTermValue);
+    return match?.startDate || '';
+}
+
+get selectedTermEndDate() {
+    const match = this.termOptions.find(o => o.value === this.selectedTermValue);
+    return match?.endDate || '';
+}
 }

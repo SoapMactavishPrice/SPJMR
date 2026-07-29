@@ -1,3 +1,4 @@
+// Approval history with per-step remark support.
 public without sharing class LeaveApprovalHistoryController {
 
     // =========================================================
@@ -10,6 +11,7 @@ public without sharing class LeaveApprovalHistoryController {
         @AuraEnabled public String status;
         @AuraEnabled public String assignedTo;
         @AuraEnabled public String approvedBy;
+        @AuraEnabled public String remark;
     }
 
     @AuraEnabled(cacheable=true)
@@ -22,7 +24,7 @@ public without sharing class LeaveApprovalHistoryController {
         }
 
         for (Approval_History__c h : [
-            SELECT Step_Name__c, Date__c, Status__c, Assigned_To__c, Approved_By__c
+            SELECT Step_Name__c, Date__c, Status__c, Assigned_To__c, Approved_By__c, Remark__c
             FROM Approval_History__c
             WHERE Leave_Application__c = :leaveId
             ORDER BY Date__c DESC, CreatedDate DESC
@@ -33,6 +35,7 @@ public without sharing class LeaveApprovalHistoryController {
             row.status     = h.Status__c;
             row.assignedTo = h.Assigned_To__c;
             row.approvedBy = h.Approved_By__c;
+            row.remark     = h.Remark__c;
             rows.add(row);
         }
 
@@ -66,9 +69,14 @@ public without sharing class LeaveApprovalHistoryController {
         insert rec;
     }
 
+    // Backward-compatible overload (no remark)
     public static void markStepDecided(Id leaveId, String stepName, String status, Id approverId){
+        markStepDecided(leaveId, stepName, status, approverId, null);
+    }
+
+    public static void markStepDecided(Id leaveId, String stepName, String status, Id approverId, String remark){
         List<Approval_History__c> recs = [
-            SELECT Id, Approved_By__c
+            SELECT Id, Approved_By__c, Remark__c
             FROM Approval_History__c
             WHERE Leave_Application__c = :leaveId
             AND Step_Name__c = :stepName
@@ -84,6 +92,9 @@ public without sharing class LeaveApprovalHistoryController {
         rec.Date__c   = System.now();
         if(approverId != null){
             rec.Approved_By__c = getUserNames(new List<Id>{ approverId });
+        }
+        if(String.isNotBlank(remark)){
+            rec.Remark__c = remark;
         }
         update rec;
     }

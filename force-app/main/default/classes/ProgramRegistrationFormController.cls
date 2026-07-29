@@ -502,10 +502,41 @@ public without sharing class ProgramRegistrationFormController {
         @AuraEnabled public String message;
         @AuraEnabled public Boolean alreadyRegistered;
     }
+ 
+
+    @AuraEnabled
+    public static Boolean isReCaptchaValid(String token) {
+
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('callout:Recaptcha_NC');
+        request.setMethod('POST');
+        request.setHeader(
+            'Content-Type',
+            'application/x-www-form-urlencoded'
+        );
+
+        request.setBody(
+            'response=' + EncodingUtil.urlEncode(token, 'UTF-8')
+        );
+
+        Http http = new Http();
+        HttpResponse response = http.send(request);
+
+        if (response.getStatusCode() != 200) {
+            return false;
+        }
+
+        Map<String, Object> body =
+            (Map<String, Object>)
+            JSON.deserializeUntyped(response.getBody());
+
+        return (Boolean) body.get('success');
+    }
 
     @AuraEnabled
     public static Map<String, Object> verifyToken(String token) {
         String SECRET_KEY = '6LdIAJgsAAAAAO3G-4x0C7kGXHl9ojW2St51pgdq';
+        String newSecret = '6LdCQ2ktAAAAAOiOYZS21nQ0cTNG3w2DkqqMUVLT';
         String RECAPTCHA_SERVICE_URL = 'https://www.google.com/recaptcha/api/siteverify';
         Map<String, Object> result = new Map<String, Object>();
 
@@ -514,7 +545,7 @@ public without sharing class ProgramRegistrationFormController {
         request.setMethod('POST');
         request.setBody(
             'secret=' +
-            EncodingUtil.urlEncode(SECRET_KEY, 'UTF-8') +
+            EncodingUtil.urlEncode(newSecret, 'UTF-8') +
             '&response=' +
             EncodingUtil.urlEncode(token, 'UTF-8')
         );
@@ -525,7 +556,7 @@ public without sharing class ProgramRegistrationFormController {
             HttpResponse httpResponse = http.send(request);
             String response = httpResponse.getBody();
             result = (Map<String, Object>) JSON.deserializeUntyped(response);
-
+            system.debug('Respnse is '+result);
             if (result.containsKey('success') && (Boolean) result.get('success')) {
                 Double score = (result.get('score') != null) ? (Double) result.get('score') : null;
                 if (score == null) {

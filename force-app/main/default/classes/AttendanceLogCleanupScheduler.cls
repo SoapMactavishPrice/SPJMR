@@ -1,17 +1,21 @@
 /**
  * @description Schedulable that runs the Attendance_Log__c cleanup batch every
- *              Sunday at 11:59:59 PM, plus helpers to (re)schedule, abort and
+ *              other day at 11:59:59 PM, plus helpers to (re)schedule, abort and
  *              inspect the job. CronTrigger queries run against system metadata,
  *              so CRUD/FLS checks are intentionally bypassed.
  */
 @SuppressWarnings('PMD.ApexCRUDViolation')
 public without sharing class AttendanceLogCleanupScheduler implements Schedulable {
 
-    /** Cron expression: every Sunday at 11:59:59 PM (1 = Sunday). */
-    private static final String CRON_WEEKLY_SUNDAY = '59 59 23 ? * 1';
+    /**
+     * Cron expression: every 2 days at 11:59:59 PM. The day-of-month increment
+     * (1/2) fires on days 1, 3, 5 ... 31 of each month.
+     */
+    // private static final String CRON_WEEKLY_SUNDAY = '59 59 23 ? * 1'; // old: every Sunday
+    private static final String CRON_EVERY_2_DAYS = '59 59 23 1/2 * ?';
 
     /** Display name of the scheduled cleanup job. */
-    private static final String JOB_NAME = 'Attendance_Cleanup_Weekly';
+    private static final String JOB_NAME = 'Attendance_Cleanup_Every2Days';
 
     /**
      * @description Scheduler entry point; enqueues the cleanup batch.
@@ -22,11 +26,11 @@ public without sharing class AttendanceLogCleanupScheduler implements Schedulabl
     }
 
     /**
-     * @description Aborts any existing cleanup jobs, then schedules the weekly job.
+     * @description Aborts any existing cleanup jobs, then schedules the every-2-days job.
      */
     public static void scheduleAll() {
         abortAll();
-        System.schedule(JOB_NAME, CRON_WEEKLY_SUNDAY, new AttendanceLogCleanupScheduler());
+        System.schedule(JOB_NAME, CRON_EVERY_2_DAYS, new AttendanceLogCleanupScheduler());
     }
 
     /**

@@ -26,8 +26,10 @@ public class SessionCalendarInviteHandler {
     private static final Set<String> UPDATE_ONLY      = new Set<String>{ 'Rescheduled' };
     private static final String STATUS_CANCELLED      = 'Cancelled';
 
-    // Google Calendar allows ~100 callouts per queueable; chunk below that.
-    private static final Integer MAX_CALLOUTS_PER_JOB = 90;
+    // Apex allows 100 callouts per transaction. Each synced session can cost up to
+    // three callouts: auth token + (on PATCH) a GET to read existing attendee RSVPs +
+    // the POST/PATCH itself. Chunk well below the limit so a busy publish can't exceed it.
+    private static final Integer MAX_CALLOUTS_PER_JOB = 30;
 
     /** Set by the queueable around its write-back DML to prevent trigger re-entry. */
     public static Boolean suppressInvites = false;
@@ -123,6 +125,8 @@ public class SessionCalendarInviteHandler {
             || s.URL__c            != oldRec.URL__c
             || s.Description__c     != oldRec.Description__c
             || s.Course_Activity__c != oldRec.Course_Activity__c
+            || s.Session_Type__c   != oldRec.Session_Type__c
+            || s.Remark__c         != oldRec.Remark__c
             || s.Course__c         != oldRec.Course__c;
     }
 

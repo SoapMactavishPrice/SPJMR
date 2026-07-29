@@ -75,6 +75,19 @@ export default class ProgramRegistrationForm extends LightningElement {
     }
 
     connectedCallback() {
+         window.addEventListener("message", (event) => {
+
+    switch(event.data?.name){
+
+        case "recaptchaToken":
+            this.recaptchaToken = event.data.payload;
+            break;
+
+        case "register":
+            this.handleRegisterFromVF();
+            break;
+    }
+});
         this.resolveProgramIds();
         this.resolveBrochureMode();
         this.loadConfiguration();
@@ -86,7 +99,6 @@ export default class ProgramRegistrationForm extends LightningElement {
     }
 
     renderedCallback() {
-        console.log('renderedCallback');
         if (this.loading || !this.formModel || !this.showRecaptcha) {
             return;
         }
@@ -97,7 +109,6 @@ export default class ProgramRegistrationForm extends LightningElement {
             return;
         }
         const host = this.template.querySelector('[data-recaptcha-host]');
-        console.log('Host is ',JSON.stringify(host))
         if (!host) {
             return;
         }
@@ -105,6 +116,108 @@ export default class ProgramRegistrationForm extends LightningElement {
         void this.initGoogleRecaptcha(host);
     }
 
+    async handleRegisterFromVF(){
+        if (this.isSaving) {
+        return;
+    }
+    await this.submitRegistration();
+}
+
+async submitRegistration(){
+    if (this.isSaving) {
+    return;
+}
+        const errors = this.validate();
+        if (errors.length) {
+            this.showToast('Check your entries', errors[0], 'error');
+            return;
+        }
+        const programsToSave = this.programsToSaveOnSubmit();
+        if (programsToSave.length === 0) {
+            this.showToast('Select a program', 'Choose at least one program you want to register for.', 'error');
+            return;
+        }
+        const recaptchaResponse = '';
+        const formValuesJson = this.buildPayloadForSave();
+
+        this.isSaving = true;
+        try {
+            let leadIdOut = '';
+             let lastMessage = '';
+            for (let i = 0; i < programsToSave.length; i++) {
+                const programId = programsToSave[i];
+                const res = await saveRegistrationLead({
+                    programId,
+                    formValuesJson,
+                    recaptchaToken: this.recaptchaToken ||  '',
+                    registrationConfigProgramId: this.configProgramId,
+                    brochureMode: this.isBrochureFlow
+                });
+                if (res.alreadyRegistered) {
+                    this.showToast(
+                        'Already Registered',
+                        res.message,
+                        'warning',
+                        'sticky'
+                    );
+                    return;
+                }
+                if (!res.success) {
+                    this.showToast(
+                        'Could not save',
+                        res.message ||
+                            (programsToSave.length > 1
+                                ? `Registration failed for program ${programId}.`
+                                : 'Registration failed.'),
+                        'error',
+                                ''
+                    );
+                    return;
+                }
+                
+                if (res.leadId) {
+                    leadIdOut = res.leadId;
+                }
+                if (res.message) {
+                lastMessage = res.message;
+            }
+            }
+            this.showToast('Registration Successful', lastMessage  || 'Registration Successful .Please check your email inbox.', 'success','sticky');
+            const detail = {
+                programId: programsToSave.join(','),
+                programIds: [...programsToSave],
+                values: { ...this.formPayload },
+                leadId: leadIdOut,
+                ...(this.showRecaptcha && recaptchaResponse ? { recaptchaResponse } : {})
+            };
+            this.dispatchEvent(new CustomEvent('registered', { detail, bubbles: true, composed: true }));
+            if (this.isBrochureFlow) {
+                const brochureUrl = (this.formModel?.config?.brochureUrl || '').trim();
+                if (brochureUrl) {
+                    this.navigateToUrlOrPath(brochureUrl);
+                    return;
+                }
+            }
+            let thankYouUrl = '';
+            try {
+                thankYouUrl = (await getRegistrationThankYouRedirectUrl({ programIds: programsToSave })) || '';
+            } catch (redirectErr) {
+                // Non-blocking: stay on form if lookup fails
+            }
+            if (thankYouUrl) {
+                this.navigateToUrlOrPath(thankYouUrl);
+                return;
+            }
+            if (this.showRecaptcha) {
+                this.resetGoogleRecaptcha();
+            }
+        } catch (e) {
+            this.showToast('Error', e?.body?.message || e?.message || 'Registration failed.', 'error');
+        } finally {
+            this.isSaving = false;
+        }
+    
+}
     parseProgramIdsFromRaw(raw) {
         if (!raw || typeof raw !== 'string') {
             return [];
@@ -869,36 +982,20 @@ get consentRows() {
         }
         const id = this._recaptchaWidgetId;
         if (typeof id === 'number' && window.grecaptcha && typeof window.grecaptcha.getResponse === 'function') {
-            try{
-                const fromApi = window.grecaptcha.getResponse(id);
+            const fromApi = window.grecaptcha.getResponse(id);
             if (fromApi) {
                 return fromApi;
             }
-        }   catch(e){
-            console.error('grecaptcha.getResponse failed — widget likely detached, resetting state', e);
-            this._recaptchaWidgetId = undefined;
-            this.recaptchaToken = '';
         }
-            
-        }
-        console.log('Token is ',this.recaptchaToken)
-        console.log('Widget Id:', this._recaptchaWidgetId);
-        console.log('Host:', this.template.querySelector('[data-recaptcha-host]'));
-        console.log('grecaptcha:', window.grecaptcha);
         return this.recaptchaToken || '';
     }
 
     resetGoogleRecaptcha() {
         const id = this._recaptchaWidgetId;
         if (typeof id === 'number' && window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
-            try {
             window.grecaptcha.reset(id);
-        } catch (e) {
-            console.error('grecaptcha.reset failed — widget likely detached', e);
         }
-        }
-         this._recaptchaWidgetId = undefined; // force re-render on next renderedCallback
-    this.recaptchaToken = '';
+        this.recaptchaToken = '';
     }
     handleProgramRadioChange(event) {
     this.selectedProgramIds = [event.detail.value];
@@ -986,95 +1083,7 @@ get consentRows() {
 
     async handleRegister(event) {
         event.preventDefault();
-        const errors = this.validate();
-        if (errors.length) {
-            this.showToast('Check your entries', errors[0], 'error');
-            return;
-        }
-        const programsToSave = this.programsToSaveOnSubmit();
-        if (programsToSave.length === 0) {
-            this.showToast('Select a program', 'Choose at least one program you want to register for.', 'error');
-            return;
-        }
-        let recaptchaResponse = '';
-
-try {
-    recaptchaResponse = this.getRecaptchaResponse();
-} catch (e) {
-    console.error('getRecaptchaResponse failed', e);
-}
-        const formValuesJson = this.buildPayloadForSave();
-
-        this.isSaving = true;
-        try {
-            let leadIdOut = '';
-            for (let i = 0; i < programsToSave.length; i++) {
-                const programId = programsToSave[i];
-                const res = await saveRegistrationLead({
-                    programId,
-                    formValuesJson,
-                    recaptchaToken: recaptchaResponse || '',
-                    registrationConfigProgramId: this.configProgramId,
-                    brochureMode: this.isBrochureFlow
-                });
-                if (res.alreadyRegistered) {
-                    this.showToast(
-                        'Already Registered',
-                        res.message,
-                        'success'
-                    );
-                    return;
-                }
-                if (!res.success) {
-                    this.showToast(
-                        'Could not save',
-                        res.message ||
-                            (programsToSave.length > 1
-                                ? `Registration failed for program ${programId}.`
-                                : 'Registration failed.'),
-                        'error'
-                    );
-                    return;
-                }
-                
-                if (res.leadId) {
-                    leadIdOut = res.leadId;
-                }
-            }
-            this.showToast('Success', 'Your registration was saved.', 'success');
-            const detail = {
-                programId: programsToSave.join(','),
-                programIds: [...programsToSave],
-                values: { ...this.formPayload },
-                leadId: leadIdOut,
-                ...(this.showRecaptcha && recaptchaResponse ? { recaptchaResponse } : {})
-            };
-            this.dispatchEvent(new CustomEvent('registered', { detail, bubbles: true, composed: true }));
-            if (this.isBrochureFlow) {
-                const brochureUrl = (this.formModel?.config?.brochureUrl || '').trim();
-                if (brochureUrl) {
-                    this.navigateToUrlOrPath(brochureUrl);
-                    return;
-                }
-            }
-            let thankYouUrl = '';
-            try {
-                thankYouUrl = (await getRegistrationThankYouRedirectUrl({ programIds: programsToSave })) || '';
-            } catch (redirectErr) {
-                // Non-blocking: stay on form if lookup fails
-            }
-            if (thankYouUrl) {
-                this.navigateToUrlOrPath(thankYouUrl);
-                return;
-            }
-            if (this.showRecaptcha) {
-                this.resetGoogleRecaptcha();
-            }
-        } catch (e) {
-            this.showToast('Error', e?.body?.message || e?.message || 'Registration failed.', 'error');
-        } finally {
-            this.isSaving = false;
-        }
+        await this.submitRegistration();
     }
 
     validate() {
@@ -1113,7 +1122,7 @@ try {
                 }
             });
         });
-       if (this.showRecaptcha && !this.getRecaptchaResponse()) {
+        if (!this.recaptchaToken) {
             msgs.push('Please complete the I\'m not a robot verification');
         }
         return msgs;
@@ -1138,12 +1147,13 @@ try {
         window.location.assign(path);
     }
 
-    showToast(title, message, variant) {
+    showToast(title, message, variant,mode) {
         this.dispatchEvent(
             new ShowToastEvent({
                 title,
                 message,
-                variant
+                variant,
+                mode
             })
         );
     }

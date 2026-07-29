@@ -1,4 +1,44 @@
-public with sharing class GmpHeapDataGenerator {
+public with sharing class GmpHeapDataGenerator implements Queueable {
+
+    private Integer remainingApplications;
+    private Integer chunkSize;
+    private Integer startIndex;
+
+    private Boolean isCleanup;
+    private Datetime cleanupCutoff;
+
+    public GmpHeapDataGenerator(Integer remainingApplications, Integer chunkSize, Integer startIndex) {
+        this.remainingApplications = remainingApplications;
+        this.chunkSize = chunkSize;
+        this.startIndex = startIndex;
+    }
+
+    public GmpHeapDataGenerator(Datetime cleanupCutoff, Integer chunkSize) {
+        this.cleanupCutoff = cleanupCutoff;
+        this.chunkSize = chunkSize;
+        this.isCleanup = true;
+    }
+
+
+    public void execute(QueueableContext qc) {
+
+        if (isCleanup) {
+            cleanupChunk();
+            return;
+        }
+
+        Integer currentChunk = Math.min(chunkSize, remainingApplications);
+
+        generate(startIndex, currentChunk);
+
+        remainingApplications -= currentChunk;
+        startIndex += currentChunk;
+
+        if (remainingApplications > 0) {
+            System.enqueueJob(new GmpHeapDataGenerator(remainingApplications, chunkSize, startIndex));
+        }
+    }
+
 
     private static final List<String> FIRST_NAMES = new List<String>{'Arjun','Meera','Rahul','Devika','Kiran','Ananya','Rohan','Priya','Aman','Neha'};
     private static final List<String> LAST_NAMES = new List<String>{'Nair','Sharma','Iyer','Rao','Patel','Menon','Singh','Das','Khan','Joseph'};
@@ -12,11 +52,11 @@ public with sharing class GmpHeapDataGenerator {
         'Knowledge Park Institutional Zone', 'Metro Business Hub', 'Corporate Avenue Block C'
     };
 
-    public static void generate(Integer applicationCount) {
+    public static void generate(Integer startIndex, Integer applicationCount) {
         LookupBag bag = loadLookups();
         List<Application__c> apps = new List<Application__c>();
 
-        for (Integer i = 0; i < applicationCount; i++) {
+        for (Integer i = startIndex; i < startIndex + applicationCount; i++) {
             apps.add(buildApplication(i, bag));
         }
         insert apps;
@@ -55,13 +95,15 @@ public with sharing class GmpHeapDataGenerator {
     private static Application__c buildApplication(Integer i, LookupBag bag) {
         return new Application__c(
             Name = 'GMP-STRESS-' + i,
-            Application_Status__c = 'In Progress',
+            Application_Status__c = 'Initiated',
             Application_Stage__c = 'Application Submitted',
             HasExamScores__c = 'Yes',
             PlannedExamDate__c = Date.today().addDays(30 + i),
             PlannedEntranceExams__c = 'GMAT GRE CAT XAT NMAT IELTS TOEFL PTE',
             CompetitiveExams__c = 'GMAT;GRE;CAT;XAT;NMAT',
-            Batch__c = bag.batchId
+            Batch__c = bag.batchId,
+            Program__c = '11WC1000000HWptMAG',
+            RecordTypeId = '012C1000001lQWLIA2'
         );
     }
 
@@ -244,4 +286,94 @@ public with sharing class GmpHeapDataGenerator {
             ));
         }
     }
+    
+    private void cleanupChunk() {
+
+        List<Application__c> apps = [
+            SELECT Id
+            FROM Application__c
+            WHERE CreatedDate >= :cleanupCutoff
+            AND Name LIKE 'GMP-STRESS-%'
+            LIMIT :chunkSize
+        ];
+
+        if (apps.isEmpty()) {
+            System.debug('Cleanup completed. No more generated records found.');
+            return;
+        }
+
+        Set<Id> appIds = new Set<Id>();
+
+        for(Application__c app : apps){
+            appIds.add(app.Id);
+        }
+
+        delete [
+            SELECT Id
+            FROM Professional_Qualification__c
+            WHERE Application__c IN :appIds
+        ];
+
+        delete [
+            SELECT Id
+            FROM CareerBreak__c
+            WHERE Application__c IN :appIds
+        ];
+
+        delete [
+            SELECT Id
+            FROM Work_Experience__c
+            WHERE Application__c IN :appIds
+        ];
+
+        delete [
+            SELECT Id
+            FROM Competitive_Exam_Details__c
+            WHERE Application__c IN :appIds
+        ];
+
+        delete [
+            SELECT Id
+            FROM Academic_Detail__c
+            WHERE Application__c IN :appIds
+        ];
+
+        delete [
+            SELECT Id
+            FROM BasicAcademicDetail__c
+            WHERE Application__c IN :appIds
+        ];
+
+        delete [
+            SELECT Id
+            FROM Personal_Detail__c
+            WHERE Application__c IN :appIds
+        ];
+
+        delete [
+            SELECT Id
+            FROM Program_Detail__c
+            WHERE Application__c IN :appIds
+        ];
+
+        delete apps;
+
+        System.debug(
+            'Deleted cleanup batch: ' + apps.size() + ' applications'
+        );
+
+        // Check if more records exist
+        Integer remaining = [
+            SELECT COUNT()
+            FROM Application__c
+            WHERE CreatedDate >= :cleanupCutoff
+            AND Name LIKE 'GMP-STRESS-%'
+        ];
+
+        if(remaining > 0){
+            System.enqueueJob(new GmpHeapDataGenerator(cleanupCutoff, chunkSize));
+        } else {
+            System.debug('All GMP stress records deleted.');
+        }
+    }   
 }

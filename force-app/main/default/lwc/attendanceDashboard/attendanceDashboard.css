@@ -40,16 +40,26 @@
     justify-content: center;
     font-weight: bold;
     box-sizing: border-box;
+    margin-top: 0;
 }
 
 /* Narrower donut column so table column can use ~2/3 width */
 .donut-col {
     min-width: 0;
+    margin-top: 10px;  
 }
 
+/*.donut {
+    margin-top: 0;
+}*/
+
+/* SE-1254 — small top padding added so the table content doesn't sit flush
+   against the tab-container above it, now that date-range-row no longer
+   lives inside .table-col */
 .table-col {
     min-width: 0;
     overflow: visible;
+    padding-top: 10px;  /*SE-1254*/
 }
 
 /* Tabs */
@@ -100,45 +110,29 @@
     min-width: 0;
     min-height: 2.75rem;
     overflow: visible;
+    margin-top: 16px;  
     margin-bottom: 1rem;
 } */
-.date-range-row {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    align-items: flex-start !important;  
-    justify-content: flex-start;
-    gap: 0.4rem;
-    width: auto;
-    max-width: 100%;
-    min-width: 0;
-    min-height: 2.75rem;
-    overflow: visible;
-    margin-bottom: 1rem;
-    margin-top: 20px; 
-}
 
-.date-field {
+/*.date-field {
     flex: 1 1 110px;
     min-width: 90px;
     max-width: 130px;
-}
-
-.course-selector {
-    margin-top: 12px;
-    position: relative;
-}
-
+}*/
+/* course picker box restyled: fixed to full width of its column
+   (was auto-width before), min-height added for consistent chip wrapping,
+   border-radius increased 20px → 22px to match updated design */
 .course-picker-box {
+    width: 100%;
+    min-height: 42px;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
+    flex-wrap: wrap;
     gap: 6px;
-    min-height: 38px;
-    background: white;
-    border: 1px solid #c9c9c9;
-    border-radius: 20px;
     padding: 6px 14px;
-    cursor: pointer;
+    border: 1px solid #c9c9c9;
+    border-radius: 22px;
+    background: #fff;
 }
 
 .course-picker-box:hover {
@@ -220,10 +214,21 @@
     min-width: 0;
 }
 
-.date-range-actions {
+/*.date-range-actions {
     flex: 0 0 auto;
     min-width: 0;
     white-space: nowrap;
+}*/
+
+/* date-range-actions (Search/Clear buttons) changed from a
+   non-flex flex-item (flex: 0 0 auto only) to an actual flex container,
+   so Search/Clear align to the bottom edge of the date input boxes
+   instead of floating at their own height */
+.date-range-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding-top: 18px;   /* Align with date input boxes */
 }
 
 .date-range-actions lightning-button {
@@ -341,4 +346,53 @@
     line-height: 1;
     flex-shrink: 0;
     margin-top: -23px;
+}
+/* NEW: wraps course-selector and date-range-row side by side
+   in a single row above the attendance summary card, per updated layout
+   requirement (previously these lived in separate rows/sections) */
+.top-filter-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+/* course-selector width constrained (previously unconstrained
+   width, just margin-top + position:relative) so it shares row space
+   properly with the date-range-row next to it */
+.course-selector {
+    flex: 1;
+    min-width: 350px;
+    max-width: 450px;
+    position: relative;
+}
+
+/* NEW date-range-row definition (replaces the commented-out
+   version above). Pushed to the right edge of .top-filter-row via
+   margin-left: auto, sized to content instead of stretching full width */
+.date-range-row {
+    display: flex;
+    align-items: flex-start;   /* was center */
+    gap: 10px;
+    flex: 0 0 auto;
+    width: auto;
+    margin-left: auto;
+    margin-top: -12px;   /* Increase from 0 to -10px or -12px */
+}
+
+/* NEW: labels above each date input ("From Date" / "To Date"),
+   added since the inputs now use variant="label-hidden" with a custom
+   label element instead of the built-in lightning-input label */
+.date-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+  /*  line-height: 1.1;*/
+    margin-bottom: 4px;
+}
+/* date-field resized to a fixed 150px (was flexible 110–130px
+   range) to fit cleanly in the new side-by-side top-filter-row layout */
+.date-field {
+    width: 150px;
+    flex: 0 0 150px;
 }

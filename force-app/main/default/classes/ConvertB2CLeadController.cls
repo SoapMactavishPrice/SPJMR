@@ -3,6 +3,7 @@ public without sharing class ConvertB2CLeadController {
     public class ConversionResult {
         @AuraEnabled public Boolean isSuccess;
         @AuraEnabled public String message;
+        @AuraEnabled public String displayMessage;
         @AuraEnabled public Id accountId;
         @AuraEnabled public Id contactId;
         @AuraEnabled public List<Id> opportunityIds;
@@ -186,6 +187,8 @@ public without sharing class ConvertB2CLeadController {
             if (leadRecord.IsConverted) {
                 result.isSuccess = false;
                 result.message = 'Lead is already converted.';
+                result.displayMessage = 'You have already verified, '+
+                'please log into the application portal';
                 return result;
             }
             
@@ -495,6 +498,9 @@ String formattedProgrammeNames =
                 result.message = 'Lead converted successfully! Created: 1 Account (Applicant), ' +
                     opportunitiesToInsert.size() + ' Opportunity(ies), and ' +
                     createdApplicationCount + ' Application(s). All linked together.';
+                result.displayMessage = 'Your email has been verified successfully.'+
+                 'Please check your inbox for your login credentials to begin your' +
+                 ' application for the ' + formattedProgrammeNames+ ' at SPJIMR.';
             } else {
                 result.message = 'Lead converted successfully! Created: 1 Account (Applicant) and ' +
                     opportunitiesToInsert.size() + ' Opportunity(ies). Application creation is set to manual.';

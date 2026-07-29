@@ -1,3 +1,4 @@
+// On final approval, syncs leave type and approver remark to session enrollments.
 public class LeaveApplicationTriggerHandler {
 
     /** Final approval outcomes that should sync leave type to related session enrollments. */
@@ -61,6 +62,7 @@ public class LeaveApplicationTriggerHandler {
 
         Set<Id> qualifyingLeaveIds       = new Set<Id>();
         Map<Id, String> leaveIdToLeaveType = new Map<Id, String>();
+        Map<Id, String> leaveIdToRemark    = new Map<Id, String>();
 
         for (Leave_Application__c rec : newList) {
 
@@ -90,6 +92,10 @@ public class LeaveApplicationTriggerHandler {
             if (String.isNotBlank(rec.Leave_Type__c)) {
                 leaveIdToLeaveType.put(rec.Id, rec.Leave_Type__c);
             }
+
+            if (String.isNotBlank(rec.Approver_Remarks__c)) {
+                leaveIdToRemark.put(rec.Id, rec.Approver_Remarks__c);
+            }
         }
 
         if (qualifyingLeaveIds.isEmpty()) {
@@ -108,6 +114,7 @@ public class LeaveApplicationTriggerHandler {
         }
 
         Map<Id, String> enrollmentIdToLeaveType = new Map<Id, String>();
+        Map<Id, String> enrollmentIdToRemark    = new Map<Id, String>();
 
         for (Missed_Sessions__c ms : missedRows) {
 
@@ -117,18 +124,24 @@ public class LeaveApplicationTriggerHandler {
 
             String leaveType = leaveIdToLeaveType.get(ms.Leave_Application__c);
 
-            if (String.isBlank(leaveType)) {
-                continue;
+            if (String.isNotBlank(leaveType)) {
+                enrollmentIdToLeaveType.put(ms.Session_Enrollment__c, leaveType);
             }
 
-            enrollmentIdToLeaveType.put(ms.Session_Enrollment__c, leaveType);
+            String remark = leaveIdToRemark.get(ms.Leave_Application__c);
+
+            if (String.isNotBlank(remark)) {
+                enrollmentIdToRemark.put(ms.Session_Enrollment__c, remark);
+            }
         }
 
-        if (enrollmentIdToLeaveType.isEmpty()) {
+        if (enrollmentIdToLeaveType.isEmpty() && enrollmentIdToRemark.isEmpty()) {
             return;
         }
 
-        Set<Id> enrollmentIds = enrollmentIdToLeaveType.keySet();
+        Set<Id> enrollmentIds = new Set<Id>();
+        enrollmentIds.addAll(enrollmentIdToLeaveType.keySet());
+        enrollmentIds.addAll(enrollmentIdToRemark.keySet());
 
         Map<Id, Session_Enrollment__c> existingEnrollments = new Map<Id, Session_Enrollment__c>([
             SELECT Id
@@ -140,17 +153,25 @@ public class LeaveApplicationTriggerHandler {
 
         for (Id seId : existingEnrollments.keySet()) {
 
-            String lt = enrollmentIdToLeaveType.get(seId);
+            String lt  = enrollmentIdToLeaveType.get(seId);
+            String rmk = enrollmentIdToRemark.get(seId);
 
-            if (String.isBlank(lt)) {
+            if (String.isBlank(lt) && String.isBlank(rmk)) {
                 continue;
             }
 
-            toUpdate.add(new Session_Enrollment__c(
-                Id           = seId,
-                Leave_Type__c = lt,
-                Attendance__c = 'Sanctioned Leave'
-            ));
+            Session_Enrollment__c se = new Session_Enrollment__c(Id = seId);
+
+            if (String.isNotBlank(lt)) {
+                se.Leave_Type__c = lt;
+                se.Attendance__c = 'Sanctioned Leave';
+            }
+
+            if (String.isNotBlank(rmk)) {
+                se.Remark__c = rmk;
+            }
+
+            toUpdate.add(se);
         }
 
         if (toUpdate.isEmpty()) {

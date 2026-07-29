@@ -21,11 +21,9 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
     @track isLoading          = true;
     @track error              = '';
 
-    // Static PDF column visibility
     @track showStaticPdfCol   = false;
     @track _pdfConfigLoaded   = false;
 
-    // ── Page reference ──────────────────────────────────────────────────────
     @wire(CurrentPageReference)
     getStateParameters(currentPageReference) {
         if (currentPageReference) {
@@ -33,14 +31,12 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
         }
     }
 
-    // ── Bookings wire ───────────────────────────────────────────────────────
     @wire(getSlotBookingsBySlotMaster, { slotMasterId: '$slotMasterId' })
     wiredBookings({ data, error }) {
         this.isLoading = false;
         if (data) {
             this._bookings = data;
             this.error = '';
-            // Load static PDF config once using the program code from SlotMaster
             if (!this._pdfConfigLoaded && data.length > 0) {
                 this._pdfConfigLoaded = true;
                 this._loadStaticPdfConfig(data[0].programCode || '');
@@ -61,7 +57,6 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
         }
     }
 
-    // ── Derived getters ─────────────────────────────────────────────────────
     get isEmpty() { return !this.isLoading && this._bookings.length === 0; }
 
     get headerInfo() {
@@ -99,7 +94,6 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
         });
     }
 
-    // ── Preview static PDF (MerittoExtract) ─────────────────────────────────
     async handlePreviewStaticPdf(event) {
         const applicationId = event.currentTarget.dataset.appid;
         if (!applicationId) return;

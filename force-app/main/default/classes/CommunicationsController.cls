@@ -1,5 +1,108 @@
 public with sharing class CommunicationsController {
 
+    //communication service
+    
+    public enum CommunicationScenario {
+
+        PROFILE_SHORTLISTED,
+
+        INTERVIEW_SCHEDULED,
+
+        PANEL_ASSIGNED,
+
+        OFFER_AVAILABLE,
+
+        OFFER_RESPONSE,
+
+        APPLICATION_REJECTED
+    }
+
+    public class CommunicationRequest {
+
+        public CommunicationScenario scenario { get; set; }
+
+        public Id programId { get; set; }
+
+        public Id applicationId { get; set; }
+
+        public List<Id> applicationIds { get; set; }
+
+        public Id referenceRecordId { get; set; }
+
+        public CommunicationOptions options { get; set; }
+
+    }
+
+    public class CommunicationOptions {
+
+        public Boolean sendEmail { get; set; }
+
+        public Boolean sendNotification { get; set; }
+
+        public String documentIdentifier { get; set; }
+
+    }
+
+    public class DashboardAnnouncement {
+        public CommunicationScenario scenario { get; set; }
+        public String htmlContent { get; set; }
+        public Integer priority { get; set; }
+        public Id applicationId { get; set; }
+        public Id programId { get; set; }
+    }
+
+
+    //reusebale methods
+        public static String renderTemplate(
+        String template,
+        Map<String, Object> templateData
+    ) {
+        String rendered = template == null ? '' : template;
+
+        if (templateData == null) {
+            return rendered;
+        }
+
+        for (String key : templateData.keySet()) {
+            String replacementValue = formatTemplateValue(
+                templateData.get(key)
+            );
+            rendered = rendered.replace(
+                '{{' + key + '}}',
+                replacementValue
+            );
+            rendered = rendered.replace(
+                '{' + key + '}',
+                replacementValue
+            );
+        }
+
+        return rendered;
+    }
+
+    private static String formatTemplateValue(Object value) {
+        if (value == null) {
+            return '';
+        }
+
+        if (value instanceof Date) {
+            return ((Date) value).format();
+        }
+
+        if (value instanceof Datetime) {
+            return ((Datetime) value).format();
+        }
+
+        if (value instanceof Time) {
+            return String.valueOf(value);
+        }
+
+        return String.valueOf(value);
+    }
+
+
+    //notifications
+
     @AuraEnabled
     public static string createNotifications(String message,String subject, String medium,List<Id> listApplicationIds){
         try {

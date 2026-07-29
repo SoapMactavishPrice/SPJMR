@@ -12,10 +12,44 @@
  * @see LeadProgramQueueSharingService
  * @see SPJIMRUtility
  */
-public without sharing class LeadRoutingService {
+public without sharing class LeadRoutingService implements Queueable {
     private static final String B2C_RECORD_TYPE_DEVELOPER_NAME = 'B2C';
     private static final String DEFAULT_ROUTING_ROW = 'Default';
-    private static final String excludeStatus = 'Raw Data';
+   private Set<Id> leadIds;
+
+public LeadRoutingService(List<Lead> leads){
+    Set<Id> leadIds = new Set<Id>();
+    if(!leads.isEmpty()){
+        for(Lead l:leads){
+            if(l.Id !=null){
+                leadIds.add(l.Id);
+            }
+        }
+    }
+    this.leadIds = leadIds;
+}
+    public void execute(QueueableContext context) {
+        Id ownerId = resolveB2cDefaultOwnerUserId();
+    if(ownerId == null) return;
+
+    List<Lead> leadsToUpdate = [
+        SELECT Id, OwnerId, RecordTypeId
+        FROM Lead
+        WHERE Id IN :leadIds
+    ];
+
+    for(Lead l : leadsToUpdate){
+        if(isB2cRecordType(l.RecordTypeId) && l.OwnerId != ownerId){
+            l.OwnerId = ownerId;
+        }
+    }
+
+    if(!leadsToUpdate.isEmpty()){
+        update leadsToUpdate;
+    }
+        //applyB2cDefaultOwnerIfConfigured(leads);
+    }
+
     @TestVisible
     private static Id testB2cDefaultOwnerUserIdOverride;
 
@@ -25,8 +59,7 @@ public without sharing class LeadRoutingService {
      * @param leadRecord In-memory lead before insert; mutated when applicable.
      */
     public static void applyB2cDefaultOwnerIfConfigured(Lead leadRecord) {
-        if (leadRecord != null && leadRecord.Id == null && isB2cRecordType(leadRecord.RecordTypeId)
-            && leadRecord.Status !=excludeStatus) {
+        if (leadRecord != null && leadRecord.Id == null && isB2cRecordType(leadRecord.RecordTypeId)) {
             Id ownerUserId = resolveB2cDefaultOwnerUserId();
             if (ownerUserId != null) {
                 leadRecord.OwnerId = ownerUserId;
@@ -44,8 +77,7 @@ public without sharing class LeadRoutingService {
             Id ownerUserId = resolveB2cDefaultOwnerUserId();
             if (ownerUserId != null) {
                 for (Lead l : leads) {
-                    if (l != null && l.Id == null && isB2cRecordType(l.RecordTypeId) 
-                    && l.Status!=excludeStatus) {
+                    if (l != null && l.Id == null && isB2cRecordType(l.RecordTypeId)) {
                         l.OwnerId = ownerUserId;
                     }
                 }

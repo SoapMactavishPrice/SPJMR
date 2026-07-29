@@ -1,0 +1,240 @@
+<template>
+    <lightning-card title="Consolidated Attendance Report" icon-name="standard:report">
+
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </template>
+
+        <div class="filters-top-section">
+            <div class="filters-top-grid">
+
+                <div class="filter-item">
+                    <lightning-combobox
+                        label="Programme"
+                        value={selectedProgram}
+                        placeholder="Select Programme"
+                        options={programOptions}
+                        onchange={handleProgramChange}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="filter-item">
+                    <lightning-combobox
+                        label="Batch"
+                        value={selectedBatch}
+                        placeholder="Select Batch"
+                        options={batchOptions}
+                        onchange={handleBatchChange}
+                        disabled={isProgramNotSelected}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="filter-item">
+                    <lightning-combobox
+                        label="Batch Group"
+                        value={selectedBatchGroup}
+                        placeholder="Select Batch Group"
+                        options={batchGroupOptions}
+                        onchange={handleBatchGroupChange}
+                        disabled={isBatchNotSelected}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="filter-item">
+                    <lightning-combobox
+                        label="Term"
+                        value={selectedTerm}
+                        placeholder="Select Term"
+                        options={termOptions}
+                        onchange={handleTermChange}
+                        disabled={isBatchGroupNotSelected}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="filter-item">
+                    <lightning-combobox
+                        label="Division"
+                        value={selectedDivision}
+                        placeholder="Select Division"
+                        options={divisionOptions}
+                        onchange={handleDivisionChange}
+                        disabled={isTermNotSelected}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="filter-item">
+                    <lightning-combobox
+                        label="Course"
+                        value={selectedCourse}
+                        placeholder="Select Course"
+                        options={courseOptions}
+                        onchange={handleCourseChange}
+                        disabled={isDivisionNotSelected}>
+                    </lightning-combobox>
+                </div>
+
+                <div class="filter-item">
+    <lightning-input
+        type="date"
+        label="Start Date"
+        class="start-date-input"
+        value={startDate}
+        max={todayDate}
+        onchange={handleStartDateChange}
+        disabled={isCourseNotSelected}>
+    </lightning-input>
+</div>
+
+<div class="filter-item">
+    <lightning-input
+        type="date"
+        label="End Date"
+        class="end-date-input"
+        value={endDate}
+        min={startDate}
+        max={todayDate}
+        onchange={handleEndDateChange}
+        disabled={isStartDateNotSelected}>
+    </lightning-input>
+</div>
+            </div>
+
+            <div class="button-section">
+                <lightning-button
+                    label="Reset"
+                    variant="neutral"
+                    onclick={handleReset}>
+                </lightning-button>
+
+                <template if:true={isReportButtonVisible}>
+                    <lightning-button
+                        class="generate-btn"
+                        label="Show Report"
+                        variant="brand"
+                        onclick={handleShowReport}>
+                    </lightning-button>
+                </template>
+            </div>
+        </div>
+
+        <!-- ---------- Preview ---------- -->
+        <template if:true={showPreview}>
+            <div class="preview-wrapper">
+                <template if:true={hasNoData}>
+                    <p class="no-data-msg">No sessions/attendance found for the selected filters.</p>
+                </template>
+
+                <template if:false={hasNoData}>
+                    <div class="preview-scroll">
+                        <table class="preview-table">
+                            <thead>
+                                <!-- Row 1: "Session" spanning Attendance+Remark for each session -->
+                                <!-- NEW -->
+<tr>
+    <th class="label-col"></th>
+    <th class="label-col"></th>
+    <template for:each={sessionColumns} for:item="s">
+        <th key={s.sessionId} colspan="2" class="session-header">Session</th>
+    </template>
+    <th rowspan="8" class="summary-header">Total Sessions Covered</th>
+    <th rowspan="8" class="summary-header">Present</th>
+    <th rowspan="8" class="summary-header">Absent</th>
+    <th rowspan="8" class="summary-header">Late</th>
+    <th rowspan="8" class="summary-header">Sanctioned Leave</th>
+    <th rowspan="8" class="summary-header">% of Absent</th>
+</tr>
+                                <!-- Row 2: Roll Number / Date + session date -->
+                                <tr>
+                                    <th class="label-col">Roll Number</th>
+                                    <th class="label-col">Date</th>
+                                    <template for:each={sessionColumns} for:item="s">
+                                        <th key={s.sessionId} colspan="2">{s.sessionDateStr}</th>
+                                    </template>
+                                </tr>
+                                <!-- Row 3: label + time range, then Remarks label -->
+                                <tr>
+                                    <th class="label-col"></th>
+                                    <th class="label-col">Session Start and End Time</th>
+                                    <template for:each={sessionColumns} for:item="s">
+                                        <th key={s.sessionId}>{s.timeRangeStr}</th>
+                                        <th key={s.remarkHeaderKey}>Remarks</th>
+                                    </template>
+                                </tr>
+                                <!-- Row 4: Session Name -->
+                                <tr>
+                                    <th class="label-col"></th>
+                                    <th class="label-col">Session Name</th>
+                                    <template for:each={sessionColumns} for:item="s">
+                                        <th key={s.sessionId} colspan="2">{s.sessionName}</th>
+                                    </template>
+                                </tr>
+                                <!-- Row 5: Division -->
+                                <tr>
+                                    <th class="label-col"></th>
+                                    <th class="label-col">Division</th>
+                                    <template for:each={sessionColumns} for:item="s">
+                                        <th key={s.sessionId} colspan="2">{s.divisionNames}</th>
+                                    </template>
+                                </tr>
+                                <!-- Row 6: Course -->
+                                <tr>
+                                    <th class="label-col"></th>
+                                    <th class="label-col">Course</th>
+                                    <template for:each={sessionColumns} for:item="s">
+                                        <th key={s.sessionId} colspan="2">{s.courseName}</th>
+                                    </template>
+                                </tr>
+                                <!-- Row 7: Faculty -->
+                                <tr>
+                                    <th class="label-col"></th>
+                                    <th class="label-col">Faculty</th>
+                                    <template for:each={sessionColumns} for:item="s">
+                                        <th key={s.sessionId} colspan="2">{s.facultyNames}</th>
+                                    </template>
+                                </tr>
+                                <!-- Row 8: column headers for data -->
+                                <tr>
+                                    <th class="label-col">Student Roll Number</th>
+                                    <th class="label-col">Student Name</th>
+                                    <template for:each={sessionColumns} for:item="s">
+                                        <th key={s.sessionId}>Session Attendance</th>
+                                        <th key={s.attHeaderKey}>Session Attendance Remarks</th>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- NEW -->
+<template for:each={previewStudents} for:item="stu">
+    <tr key={stu.key}>
+        <td class="label-col">{stu.rollNumber}</td>
+        <td class="label-col">{stu.studentName}</td>
+        <template for:each={stu.cells} for:item="cell">
+            <td key={cell.key}>{cell.attendance}</td>
+            <td key={cell.remarkKey}>{cell.remark}</td>
+        </template>
+        <td class="summary-col">{stu.totalSessionsCovered}</td>
+        <td class="summary-col">{stu.presentCount}</td>
+        <td class="summary-col">{stu.absentCount}</td>
+        <td class="summary-col">{stu.lateCount}</td>
+        <td class="summary-col">{stu.sanctionedLeaveCount}</td>
+        <td class="summary-col">{stu.absentPercent}%</td>
+    </tr>
+</template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="button-section">
+                        <lightning-button
+                            class="generate-btn"
+                            label="Download Excel"
+                            variant="brand"
+                            onclick={handleDownloadExcel}>
+                        </lightning-button>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+    </lightning-card>
+</template>

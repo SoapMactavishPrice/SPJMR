@@ -208,7 +208,17 @@ public class GoogleCalendarService {
                 return response;
             }
 
-            Map<String, Object> eventMap = buildEventMap(eventData, userEmail);
+            // On PATCH (update/publish), read the existing event's attendees so we can
+            // preserve each one's RSVP (responseStatus). Without this, re-sending an
+            // attendee as {email} only resets them to "needsAction" — which re-invites
+            // already-invited faculty and wipes their response. Genuinely new attendees
+            // (e.g. students added at publish) are still sent without a status, so they
+            // receive the invitation as expected.
+            Map<String, String> existingResponseByEmail = (method == 'PATCH')
+                ? readExistingAttendeeResponses(calendarId, eventId, token)
+                : null;
+
+            Map<String, Object> eventMap = buildEventMap(eventData, userEmail, existingResponseByEmail);
 
             String endpoint = (method == 'PATCH')
                 ? eventEndpoint(calendarId, eventId) + '?sendUpdates=all'
@@ -247,7 +257,11 @@ public class GoogleCalendarService {
      * @param userEmail The email of the user to impersonate (domain-wide delegation)
      * @return Map representing the Google event JSON body
      */
-    private static Map<String, Object> buildEventMap(GoogleCalendarEvent eventData, String userEmail) {
+    private static Map<String, Object> buildEventMap(
+        GoogleCalendarEvent eventData,
+        String userEmail,
+        Map<String, String> existingResponseByEmail
+    ) {
         Map<String, Object> eventMap = new Map<String, Object>{
             'summary' => eventData.summary
         };
@@ -270,9 +284,18 @@ public class GoogleCalendarService {
                 if (String.isBlank(attendeeEmail)) {
                     continue;
                 }
-                if (!attendeeEmail.toLowerCase().trim().equals(userEmailLower)) {
-                    attendeeList.add(new Map<String, Object>{ 'email' => attendeeEmail });
+                String emailLower = attendeeEmail.toLowerCase().trim();
+                if (emailLower.equals(userEmailLower)) {
+                    continue;
                 }
+                Map<String, Object> attendee = new Map<String, Object>{ 'email' => attendeeEmail };
+                // Preserve the RSVP of anyone already on the event so a PATCH does not
+                // reset them (which would re-invite them and wipe their response).
+                if (existingResponseByEmail != null
+                        && existingResponseByEmail.containsKey(emailLower)) {
+                    attendee.put('responseStatus', existingResponseByEmail.get(emailLower));
+                }
+                attendeeList.add(attendee);
             }
             // On PATCH this replaces the attendee list, so removals propagate too.
             eventMap.put('attendees', attendeeList);
@@ -282,6 +305,54 @@ public class GoogleCalendarService {
         }
 
         return eventMap;
+    }
+
+    /**
+     * @description Reads the current attendees of an existing event so their RSVP
+     *              (responseStatus) can be preserved on a PATCH. Reuses the already
+     *              obtained access token to avoid an extra auth callout. Best-effort:
+     *              on any failure it returns an empty map (no preservation).
+     * @param calendarId The calendar ID (e.g., 'primary')
+     * @param eventId    The Google event id being updated
+     * @param token      A valid OAuth access token for the impersonated user
+     * @return Map of lower-cased attendee email → responseStatus
+     */
+    private static Map<String, String> readExistingAttendeeResponses(
+        String calendarId,
+        String eventId,
+        String token
+    ) {
+        Map<String, String> byEmail = new Map<String, String>();
+        try {
+            if (String.isBlank(eventId) || String.isBlank(token)) {
+                return byEmail;
+            }
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(eventEndpoint(calendarId, eventId));
+            req.setMethod('GET');
+            req.setHeader('Authorization', 'Bearer ' + token);
+
+            HttpResponse res = new Http().send(req);
+            if (res.getStatusCode() != 200) {
+                return byEmail;
+            }
+            Map<String, Object> ev = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+            Object attObj = ev.get('attendees');
+            if (attObj instanceof List<Object>) {
+                for (Object o : (List<Object>) attObj) {
+                    Map<String, Object> att = (Map<String, Object>) o;
+                    String email  = (String) att.get('email');
+                    String status = (String) att.get('responseStatus');
+                    if (String.isNotBlank(email) && String.isNotBlank(status)) {
+                        byEmail.put(email.toLowerCase().trim(), status);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Best-effort: if we can't read existing responses, fall back to no preservation.
+            String ignored = e.getMessage();
+        }
+        return byEmail;
     }
 
     /**

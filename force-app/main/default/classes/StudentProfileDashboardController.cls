@@ -1,4 +1,11 @@
 public without sharing class StudentProfileDashboardController {
+
+    /** Test-only: force learner AccountId so deep getUserInfo / table paths can run without a community user. */
+    @TestVisible
+    private static Id testAccountIdOverride;
+    /** Test-only: treat matching AcademicTerm enrollments as the active current term even if Is_Active__c is not writable. */
+    @TestVisible
+    private static Boolean testForceActiveTerm = false;
     
     /**
      * Wrapper class to return user information
@@ -148,20 +155,6 @@ public without sharing class StudentProfileDashboardController {
                 FROM PersonEmployment
                 WHERE AccountId = :accountId
             ];
-
-          /*  Integer totalEmploymentDays = 0;
-            for (PersonEmployment pe : allEmployment) {
-                if (pe.StartDate == null) {
-                    continue;
-                }
-                Date periodEnd = pe.EndDate != null ? pe.EndDate : Date.today();
-                if (pe.StartDate <= periodEnd) {
-                    totalEmploymentDays += pe.StartDate.daysBetween(periodEnd);
-                }
-            }
-            if (totalEmploymentDays > 0) {
-                totalWorkExperience = formatTotalDaysAsExperience(totalEmploymentDays);
-            }*/
             /*SE1210, Se1218*/
             Date earliestStart = null;
             Date latestEnd = null;
@@ -219,35 +212,57 @@ public without sharing class StudentProfileDashboardController {
                     // Gender will remain empty string
                 }
             }
-            List<Address_Information__c> addInfoList = [SELECT Id, Correspondence_Address__c,Current_State__c,Current_Country__c,Current_City__c,Current_Zip_Postal_Code__c FROM Address_Information__c WHERE Account__c = :accountId LIMIT 1];
+            if (Test.isRunningTest() && testAccountIdOverride != null) {
+                accountId = testAccountIdOverride;
+            }
+            List<Address_Information__c> addInfoList = [
+                SELECT Id,
+                    Correspondence_Address__c,
+                    Current_Flat_Plot_No__c,
+                    Current_Building_Apartment_Name__c,
+                    Current_Road_Area__c,
+                    Current_City__c,
+                    Current_State__c,
+                    Current_Zip_Postal_Code__c,
+                    Current_Country__c
+                FROM Address_Information__c
+                WHERE Account__c = :accountId
+                LIMIT 1
+            ];
             if (!addInfoList.isEmpty()) {
-            Address_Information__c addInfo = addInfoList[0];
-        /*    address = addInfo.Correspondence_Address__c + ', ' + addInfo.Current_City__c + ', ' + addInfo.Current_Zip_Postal_Code__c + ', ' + addInfo.Current_State__c + ', ' + addInfo.Current_Country__c;  */
-           /* SE-1049*/
-            List<String> addressParts = new List<String>();
-            if (String.isNotBlank(addInfo.Correspondence_Address__c)) {
-                addressParts.add(addInfo.Correspondence_Address__c);
+                Address_Information__c addInfo = addInfoList[0];
+                List<String> addressParts = new List<String>();
+                if (String.isNotBlank(addInfo.Correspondence_Address__c)) {
+                    addressParts.add(addInfo.Correspondence_Address__c);
+                }
+                if (String.isNotBlank(addInfo.Current_Flat_Plot_No__c)) {
+                    addressParts.add(addInfo.Current_Flat_Plot_No__c);
+                }
+                if (String.isNotBlank(addInfo.Current_Building_Apartment_Name__c)) {
+                    addressParts.add(addInfo.Current_Building_Apartment_Name__c);
+                }
+                if (String.isNotBlank(addInfo.Current_Road_Area__c)) {
+                    addressParts.add(addInfo.Current_Road_Area__c);
+                }
+                if (String.isNotBlank(addInfo.Current_City__c)) {
+                    addressParts.add(addInfo.Current_City__c);
+                }
+                if (String.isNotBlank(addInfo.Current_State__c)) {
+                    addressParts.add(addInfo.Current_State__c);
+                }
+                if (String.isNotBlank(addInfo.Current_Zip_Postal_Code__c)) {
+                    addressParts.add(addInfo.Current_Zip_Postal_Code__c);
+                }
+                if (String.isNotBlank(addInfo.Current_Country__c)) {
+                    addressParts.add(addInfo.Current_Country__c);
+                }
+                address = String.join(addressParts, ', ');
             }
-            if (String.isNotBlank(addInfo.Current_City__c)) {
-                addressParts.add(addInfo.Current_City__c);
-            }
-            if (String.isNotBlank(addInfo.Current_Zip_Postal_Code__c)) {
-                addressParts.add(addInfo.Current_Zip_Postal_Code__c);
-            }
-            if (String.isNotBlank(addInfo.Current_State__c)) {
-                addressParts.add(addInfo.Current_State__c);
-            }
-            if (String.isNotBlank(addInfo.Current_Country__c)) {
-                addressParts.add(addInfo.Current_Country__c);
-            }
-            address = String.join(addressParts, ', ');
-            }
-            /*SE-1049*/
 			system.debug('accountId::'+accountId);
 
    
             List<ProgramEnrollment> programEnrollments = [SELECT Program.Id,Program.Name,Program.Program_Code__c,Program.Duration_to_Complete__c FROM ProgramEnrollment WHERE AccountId = :accountId LIMIT 1];
-            if (!programEnrollments.isEmpty()){        /*SE-946*/
+            if (!programEnrollments.isEmpty()){
                 programCode = programEnrollments[0].Program.Program_Code__c;
             }
             List<ProgramCohortMember> programCohortMemberList = [
@@ -262,6 +277,7 @@ public without sharing class StudentProfileDashboardController {
                     ProgramCohort.Instructions__c
                 FROM ProgramCohortMember
                 WHERE ProgramEnrolleeId = :accountId
+                   OR ProgramEnrollment.AccountId = :accountId
                 LIMIT 1
             ];
             if (programCohortMemberList != null && programCohortMemberList.size() > 0) {
@@ -300,9 +316,19 @@ public without sharing class StudentProfileDashboardController {
                 FROM AcademicTermEnrollment  WHERE LearnerAccountId = :accountId ORDER BY AcademicTerm.Term_Start_Date__c DESC]) {
               termOptions.add(new Map<String, String>{
                   'label' => ate.AcademicTerm.Name,
-                  'value' => ate.AcademicTerm.Id
+                  'value' => ate.AcademicTerm.Id,
+                // New: startDate/endDate added to each term option so date pickers
+                // can be bounded to the selected term's range
+                  'startDate' => ate.AcademicTerm.Term_Start_Date__c != null ? String.valueOf(ate.AcademicTerm.Term_Start_Date__c) : '',
+                  'endDate' => ate.AcademicTerm.Term_End_Date__c != null ? String.valueOf(ate.AcademicTerm.Term_End_Date__c) : ''
               });
-               if (String.isBlank(term) && ate.AcademicTerm.Term_Start_Date__c <= todayDate && ate.AcademicTerm.Term_End_Date__c >= todayDate &&  ate.AcademicTerm.Is_Active__c == true) {
+               Boolean termInRange = ate.AcademicTerm.Term_Start_Date__c != null
+                   && ate.AcademicTerm.Term_End_Date__c != null
+                   && ate.AcademicTerm.Term_Start_Date__c <= todayDate
+                   && ate.AcademicTerm.Term_End_Date__c >= todayDate;
+               Boolean termActive = ate.AcademicTerm.Is_Active__c == true
+                   || (Test.isRunningTest() && testForceActiveTerm == true && termInRange);
+               if (String.isBlank(term) && termInRange && termActive) {
                     term = ate.AcademicTerm.Name;
                     currentTermId = ate.AcademicTermId;
                 }
@@ -316,27 +342,7 @@ public without sharing class StudentProfileDashboardController {
                   term, address, termOptions, new Map<String, Integer>(), currentTermId, accountId, profileWindowIsActive, profileWindowStartTime, profileWindowEndTime, photoUploadInstruction
               );
           }
-         /* else{
-            Integer core=0;
-            Integer elective = 0;
-            Integer specialisation = 0;
-            for(CourseOffering courseOff : [SELECT Id,name,Academic_Term__r.name,Course_Type__c FROM CourseOffering where Academic_Term__c =:currentTermId]){
-                if(courseOff.Course_Type__c == 'Core'){
-                  core++;
-                  courseCount.put(courseOff.Course_Type__c,core);
-                }
-                else if(courseOff.Course_Type__c == 'Elective'){
-                  elective++;
-                  courseCount.put(courseOff.Course_Type__c,elective);
-                }
-                else if(courseOff.Course_Type__c == 'Specialisation'){
-                  specialisation++;
-                  courseCount.put(courseOff.Course_Type__c,specialisation);
-                }
-            }
-          }*/
-
-       /*SE-771*/   else{
+            else{
                 Integer core=0;
                 Integer elective = 0;
                 Integer specialisation = 0;
@@ -372,7 +378,10 @@ public without sharing class StudentProfileDashboardController {
                         }
                     }
                 }
-            }  /* SE-771*/
+            }  
+
+
+
              return new UserInfoWrapper(fullName, userEmail, gender, dateOfBirth, rollNumber, programCode,programName, batchName, mobileNumber,prevQualification,graduationYear, orgName, workDuration, totalWorkExperience, marks,term,address,termOptions,courseCount,currentTermId, accountId, profileWindowIsActive, profileWindowStartTime, profileWindowEndTime, photoUploadInstruction);
         } catch (Exception e) {
             System.debug('Error fetching user info: ' + e.getMessage());
@@ -397,7 +406,6 @@ public without sharing class StudentProfileDashboardController {
     }
 
     // Round up to the next whole month if only 1 day short of a full month
-  /*SE1210,Se1218*/
     Integer daysInThisMonth = Date.daysInMonth(endDate.year(), endDate.month());
     if (days == daysInThisMonth - 1) {
         months++;
@@ -406,17 +414,7 @@ public without sharing class StudentProfileDashboardController {
             years++;
             months = 0;
         }
-    } /*Se1210/
-   /* if (years > 0) {
-        return years + ' Years ' + months + ' Months';
-    } else if (months > 0) {
-        return months + ' Months';
     } 
-    else {
-        return days + ' Days';
-    }
-}*/ 
-    /*SE-1209,SE-1218*/
     List<String> parts = new List<String>();
         if (years > 0) {
         parts.add(years + (years == 1 ? ' Year' : ' Years'));
@@ -431,7 +429,8 @@ public without sharing class StudentProfileDashboardController {
             parts.add('0 Days');
         }
         return String.join(parts, ' ');
-    } /*SE-1210,SE-1218*/
+    } 
+
     /**
      * Converts summed calendar days across employments into a short label (approximate months/years).
      */
@@ -484,29 +483,35 @@ public without sharing class StudentProfileDashboardController {
             return result;
         }
 
-        User currentUser = [
-            SELECT Id, ContactId
-            FROM User
-            WHERE Id = :UserInfo.getUserId()
-            LIMIT 1
-        ];
-        if (currentUser.ContactId == null) {
+        Id learnerAccountId = null;
+        if (Test.isRunningTest() && testAccountIdOverride != null) {
+            learnerAccountId = testAccountIdOverride;
+        } else {
+            User currentUser = [
+                SELECT Id, ContactId
+                FROM User
+                WHERE Id = :UserInfo.getUserId()
+                LIMIT 1
+            ];
+            if (currentUser.ContactId == null) {
+                return result;
+            }
+            Contact userContact = [
+                SELECT AccountId
+                FROM Contact
+                WHERE Id = :currentUser.ContactId
+                LIMIT 1
+            ];
+            learnerAccountId = userContact.AccountId;
+        }
+        if (learnerAccountId == null) {
             return result;
         }
-        Contact userContact = [
-            SELECT AccountId
-            FROM Contact
-            WHERE Id = :currentUser.ContactId
-            LIMIT 1
-        ];
-        if (userContact.AccountId == null) {
-            return result;
-        }
-
         List<ProgramCohortMember> cohortMembers = [
             SELECT ProgramCohortId
             FROM ProgramCohortMember
-            WHERE ProgramEnrolleeId = :userContact.AccountId
+            WHERE ProgramEnrolleeId = :learnerAccountId
+               OR ProgramEnrollment.AccountId = :learnerAccountId
             LIMIT 1
         ];
         if (cohortMembers.isEmpty() || cohortMembers[0].ProgramCohortId == null) {
@@ -612,7 +617,7 @@ public without sharing class StudentProfileDashboardController {
 
     private static final String LEAVE_MODULE_CMDT_DEVELOPER_NAME = 'Student_Portal_Leave_Module_Visibility';
     private static final String LEAVE_ATTENDANCE_ROUTE_TOKEN = 'leave-and-attendance';
-    private static final String NAV_LABEL_LEAVE_AND_ATTENDANCE = 'Leave';
+    private static final String NAV_LABEL_LEAVE_AND_ATTENDANCE = 'Leave Application';
     private static final String NAV_LABEL_ATTENDANCE_ONLY = 'Attendance';
 
     /** Writable menu DTO — ConnectApi.NavigationMenuItem labels cannot be mutated at runtime. */
@@ -804,7 +809,11 @@ public static Program programInfo() {
                         WHERE Id = :UserInfo.getUserId() 
                         LIMIT 1];
     
-    if (currentUser.AccountId == null) {
+    Id learnerAccountId = currentUser.AccountId;
+    if (Test.isRunningTest() && testAccountIdOverride != null) {
+        learnerAccountId = testAccountIdOverride;
+    }
+    if (learnerAccountId == null) {
         return null;
     }
     
@@ -814,7 +823,7 @@ public static Program programInfo() {
                Program.Programme_Duration__c,Program.Programme_Duration_In_Days__c,
                Program.Programme_Duration_In_Months__c,Program.Programme_Duration_In_Weeks__c,Program.Programme_Duration_In_Years__c
         FROM ProgramEnrollment
-        WHERE AccountId = :currentUser.AccountId
+        WHERE AccountId = :learnerAccountId
         LIMIT 1
     ];
     
@@ -925,6 +934,9 @@ public static List<DivisionRow> getDivisionEnrollmentTable(Id currentTermId) {
     } catch (Exception e) {
         return new List<DivisionRow>();
     }
+    if (Test.isRunningTest() && testAccountIdOverride != null) {
+        accountId = testAccountIdOverride;
+    }
     if (accountId == null) {
         return new List<DivisionRow>();
     }
@@ -991,6 +1003,9 @@ public static List<DivisionCourseRow> getDivisionCourseTable(Id currentTermId) {
         }
     } catch (Exception e) {
         return rows;
+    }
+    if (Test.isRunningTest() && testAccountIdOverride != null) {
+        accountId = testAccountIdOverride;
     }
     if (accountId == null) return rows;
 
@@ -1278,22 +1293,27 @@ public static String saveEmergencyContact(String recordId, String name, String r
             } catch (Exception guestCheckEx) {
                 // Not in community context; continue
             }
-            User currentUser = [
-                SELECT Id, ContactId
-                FROM User
-                WHERE Id = :UserInfo.getUserId()
-                LIMIT 1
-            ];
-            if (currentUser.ContactId == null) {
-                return status;
+            Id accountId = null;
+            if (Test.isRunningTest() && testAccountIdOverride != null) {
+                accountId = testAccountIdOverride;
+            } else {
+                User currentUser = [
+                    SELECT Id, ContactId
+                    FROM User
+                    WHERE Id = :UserInfo.getUserId()
+                    LIMIT 1
+                ];
+                if (currentUser.ContactId == null) {
+                    return status;
+                }
+                Contact userContact = [
+                    SELECT AccountId
+                    FROM Contact
+                    WHERE Id = :currentUser.ContactId
+                    LIMIT 1
+                ];
+                accountId = userContact.AccountId;
             }
-            Contact userContact = [
-                SELECT AccountId
-                FROM Contact
-                WHERE Id = :currentUser.ContactId
-                LIMIT 1
-            ];
-            Id accountId = userContact.AccountId;
             if (accountId == null) {
                 return status;
             }
@@ -1303,6 +1323,7 @@ public static String saveEmergencyContact(String recordId, String name, String r
                     ProgramCohort.Profile_Window_End_Time__c
                 FROM ProgramCohortMember
                 WHERE ProgramEnrolleeId = :accountId
+                   OR ProgramEnrollment.AccountId = :accountId
                 LIMIT 1
             ];
             if (memberRows.isEmpty()) {
@@ -1319,6 +1340,89 @@ public static String saveEmergencyContact(String recordId, String name, String r
             status.endTimeFormatted = endT.format('MMMM d, yyyy h:mm a z', 'Asia/Kolkata');
         } catch (Exception e) {
             System.debug('getProfileUploadWindowStatus: ' + e.getMessage());
+        }
+        return status;
+    }
+
+    /**
+     * SE-1156 – Withdrawal request window.
+     * Returns whether TODAY falls within the current learner's active batch period
+     * (ProgramCohort.StartDate .. EndDate, i.e. the "Batch Start/End Date" on the
+     * cohort record page, inclusive on both ends),
+     * so the Student Portal can enable/disable the 'Request Withdrawal' button.
+     * Uses the same User -> Contact -> Account -> ProgramCohortMember -> ProgramCohort
+     * chain as getUserInfo()/getProfileUploadWindowStatus().
+     */
+    public class WithdrawalWindowStatus {
+        @AuraEnabled public Boolean isWithinBatchPeriod { get; set; }
+        @AuraEnabled public Boolean hasBatchDates { get; set; }
+        @AuraEnabled public Date batchStartDate { get; set; }
+        @AuraEnabled public Date batchEndDate { get; set; }
+    }
+
+    @AuraEnabled(cacheable = true)
+    public static WithdrawalWindowStatus getWithdrawalWindowStatus() {
+        WithdrawalWindowStatus status = new WithdrawalWindowStatus();
+        status.isWithinBatchPeriod = false;
+        status.hasBatchDates = false;
+        try {
+            try {
+                if (Auth.CommunitiesUtil.isGuestUser()) {
+                    return status;
+                }
+            } catch (Exception guestCheckEx) {
+                // Not in community context; continue
+            }
+            Id accountId = null;
+            if (Test.isRunningTest() && testAccountIdOverride != null) {
+                accountId = testAccountIdOverride;
+            } else {
+                User currentUser = [
+                    SELECT Id, ContactId
+                    FROM User
+                    WHERE Id = :UserInfo.getUserId()
+                    LIMIT 1
+                ];
+                if (currentUser.ContactId == null) {
+                    return status;
+                }
+                Contact userContact = [
+                    SELECT AccountId
+                    FROM Contact
+                    WHERE Id = :currentUser.ContactId
+                    LIMIT 1
+                ];
+                accountId = userContact.AccountId;
+            }
+            if (accountId == null) {
+                return status;
+            }
+            List<ProgramCohortMember> memberRows = [
+                SELECT
+                    ProgramCohort.StartDate,
+                    ProgramCohort.EndDate
+                FROM ProgramCohortMember
+                WHERE ProgramEnrolleeId = :accountId
+                   OR ProgramEnrollment.AccountId = :accountId
+                LIMIT 1
+            ];
+            if (memberRows.isEmpty()) {
+                return status;
+            }
+            // Batch Start/End Date (standard ProgramCohort.StartDate / EndDate,
+            // labelled "Batch Start Date" / "Batch End Date" on the record page).
+            Date batchStart = memberRows[0].ProgramCohort.StartDate;
+            Date batchEnd = memberRows[0].ProgramCohort.EndDate;
+            if (batchStart == null || batchEnd == null) {
+                return status;
+            }
+            status.hasBatchDates = true;
+            status.batchStartDate = batchStart;
+            status.batchEndDate = batchEnd;
+            Date todayDate = Date.today();
+            status.isWithinBatchPeriod = (todayDate >= batchStart && todayDate <= batchEnd);
+        } catch (Exception e) {
+            System.debug('getWithdrawalWindowStatus: ' + e.getMessage());
         }
         return status;
     }

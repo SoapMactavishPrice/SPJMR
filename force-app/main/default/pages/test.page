@@ -1,0 +1,50 @@
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false" applyHtmlTag="false" applyBodyTag="false" docType="html-5.0" controller="VFC_DomainsController">
+<html lang="en"> 
+<head>
+    <meta charset="UTF-8"/>
+    <script src="https://www.google.com/recaptcha/api.js" async="async" defer="defer"></script>
+</head>
+<body>
+    <div id="recaptcha-container"></div>
+    <script>
+        
+        window.addEventListener('unhandledrejection', function (e) {
+    console.log(e.reason);
+    console.log(JSON.stringify(e.reason));
+});
+        var parentOrigin = 'https://platform-energy-10--devorg.sandbox.my.site.com';
+
+        function onCaptchaSuccess(token) {
+            // console.log("Parent origin configured:", parentOrigin);
+            // console.log("Current VF origin:", window.location.origin);
+            // console.log("Parent window:", parent);
+            // console.log('Token received, sending to parent:', token, 'origin:', parentOrigin)
+            // var message = {
+            //     action: 'getCAPTCHA',
+            //     token: token
+            // };
+            
+            var message = {
+                name:'recaptchaToken',
+                payload:token
+            }
+            
+           
+           parent.postMessage(message, parentOrigin);
+        }
+
+         
+
+        window.onload = function () {
+            if (!window.recaptchaRendered) {
+        window.recaptchaRendered = true;
+            grecaptcha.render('recaptcha-container', {
+                sitekey: '6LdCQ2ktAAAAAID_bM0EuhE16wmPFyFcZ0oKRpAo',
+                callback: onCaptchaSuccess
+            });
+                }
+        };
+    </script>
+</body>
+</html>
+</apex:page>

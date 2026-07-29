@@ -1,0 +1,108 @@
+<apex:page controller="DaySyncController" docType="html-5.0"
+           showHeader="false" sidebar="false" lightningStylesheets="true" title="Sync">
+    <apex:slds />
+    <div class="slds-scope slds-p-around_medium">
+
+        <!-- ─────────────── SUCCESS: toast + auto-redirect ─────────────── -->
+        <apex:outputPanel rendered="{!isSuccess}" layout="none">
+            <div class="slds-notify_container slds-is-relative">
+                <div class="slds-notify slds-notify_toast slds-theme_success" role="status">
+                    <span class="slds-assistive-text">Success</span>
+                    <span class="slds-icon_container slds-icon-utility-success slds-m-right_small slds-no-flex slds-align-top">
+                        <svg class="slds-icon slds-icon_small" aria-hidden="true" xmlns:xlink="http://www.w3.org/1999/xlink">
+                            <use xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#success')}"></use>
+                        </svg>
+                    </span>
+                    <div class="slds-notify__content">
+                        <h2 class="slds-text-heading_small">{!resultMessage}</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="slds-text-align_center slds-text-body_small slds-text-color_weak slds-p-top_small">
+                Returning to Attendance Logs&hellip;&nbsp;
+                <apex:outputLink value="/lightning/o/Attendance_Log__c/list">click here if not redirected</apex:outputLink>
+            </div>
+            <script type="text/javascript">
+                (function () {
+                    window.setTimeout(function () { navigateToList(); }, 2500);
+                })();
+            </script>
+        </apex:outputPanel>
+
+        <!-- ─────────────── FORM (until a successful submit) ─────────────── -->
+        <apex:outputPanel rendered="{!NOT(isSuccess)}" layout="none">
+            <apex:form >
+                <div class="slds-box slds-theme_default" style="max-width:460px;margin:0 auto;">
+
+                    <h1 class="slds-text-heading_medium slds-m-bottom_medium">Sync Attendance for a Day</h1>
+
+                    <!-- Inline error from a failed submit -->
+                    <apex:outputPanel rendered="{!NOT(ISBLANK(resultMessage))}" layout="none">
+                        <div class="slds-notify slds-notify_toast slds-theme_error slds-m-bottom_medium" role="alert">
+                            <span class="slds-assistive-text">Error</span>
+                            <span class="slds-icon_container slds-icon-utility-error slds-m-right_small slds-no-flex slds-align-top">
+                                <svg class="slds-icon slds-icon_small" aria-hidden="true" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                    <use xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#error')}"></use>
+                                </svg>
+                            </span>
+                            <div class="slds-notify__content">
+                                <h2 class="slds-text-heading_small">{!resultMessage}</h2>
+                            </div>
+                        </div>
+                    </apex:outputPanel>
+
+                    <div class="slds-form-element slds-m-bottom_medium">
+                        <label class="slds-form-element__label" for="dateInput">
+                            Date <abbr class="slds-required" title="required">*</abbr>
+                        </label>
+                        <div class="slds-form-element__control">
+                            <apex:input type="date" value="{!selectedDate}" id="dateInput"
+                                        styleClass="slds-input"
+                                        html-min="{!minDateStr}" html-max="{!maxDateStr}" />
+                        </div>
+                        <div class="slds-form-element__help">
+                            Pick a past date only (within the last 90 days). Today and future dates are not allowed.
+                        </div>
+                    </div>
+
+                    <div class="slds-grid slds-grid_align-end">
+                        <button type="button" class="slds-button slds-button_neutral"
+                                onclick="navigateToList(); return false;">Cancel</button>
+                        <apex:commandButton value="Submit" action="{!submit}" id="submitBtn"
+                                            styleClass="slds-button slds-button_brand" />
+                    </div>
+                </div>
+            </apex:form>
+        </apex:outputPanel>
+    </div>
+
+    <script type="text/javascript">
+        // Cancel / redirect target — works inside Lightning and Classic.
+        function navigateToList() {
+            var listUrl = '/lightning/o/Attendance_Log__c/list';
+            if (typeof sforce !== 'undefined' && sforce && sforce.one) {
+                sforce.one.navigateToURL(listUrl);
+            } else {
+                window.top.location.href = listUrl;
+            }
+        }
+
+        // Disable Submit while the date input is empty (server-side still validates).
+        (function () {
+            function wire() {
+                var input = document.querySelector('input[type=date]');
+                var btn   = document.querySelector('[id$="submitBtn"]');
+                if (!input || !btn) { return; }
+                function sync() { btn.disabled = !input.value; }
+                input.addEventListener('input', sync);
+                input.addEventListener('change', sync);
+                sync();
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', wire);
+            } else {
+                wire();
+            }
+        })();
+    </script>
+</apex:page>

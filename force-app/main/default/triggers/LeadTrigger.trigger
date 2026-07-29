@@ -15,8 +15,9 @@ trigger LeadTrigger on Lead (after insert, after update,before insert, before up
     if(Trigger.isAfter && Trigger.isUpdate){
         LeadTriggerHelper.sendVerificationEmailOnUpdate(Trigger.newMap, Trigger.oldMap);
     }
-    if (Trigger.isBefore && Trigger.isInsert) {
-        LeadRoutingService.applyB2cDefaultOwnerIfConfigured(Trigger.new);
+    if (Trigger.isAfter && Trigger.isInsert) {
+       //LeadRoutingService.applyB2cDefaultOwnerIfConfigured(Trigger.new);
+       System.enqueueJob(new LeadRoutingService(Trigger.new));
        // LeadTriggerHelper.updateStudentOwnerRole(Trigger.new);
     }
     

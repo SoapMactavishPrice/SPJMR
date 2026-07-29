@@ -1,19 +1,3 @@
-/**
- * @class   BiometricAttendanceScheduler
- * @purpose Triggers BiometricAttendanceBatch (Transaction Log sync from ESSL)
- *          at fixed times.
- *
- *          Two modes:
- *            DAYTIME  — fires every 2 hours from 08:00 to 20:00 IST. Each
- *                       run uses an anchored 2-hour window so it is immune
- *                       to early/late execution drift.
- *            FINAL    — fires once at 23:39 IST. Pulls everything from the
- *                       last daytime sync (20:00 IST) up to now() so no late
- *                       evening punch is missed. Window is dynamic, not 2h.
- *
- * Schedule: 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00  +  23:39 final.
- *           All 7 days (Monday to Sunday).
- */
 public class BiometricAttendanceScheduler implements Schedulable {
 
     private static final String  IST_TZ          = 'Asia/Kolkata';
@@ -25,6 +9,11 @@ public class BiometricAttendanceScheduler implements Schedulable {
     private static final Integer LAST_DAYTIME_HOUR = 20;
     private static final Integer FINAL_HOUR        = 23;
     private static final Integer FINAL_MINUTE      = 39;
+
+    // IST clock hour at which the FINAL sweep's dynamic window begins.
+    // Changed from 20:00 (LAST_DAYTIME_HOUR) to 06:00 so the final run
+    // re-pulls the entire day's punches, not just those after 20:00.
+    private static final Integer FINAL_WINDOW_START_HOUR = 6;
 
     // Records are returned from BiometricAttendanceBatch.start() and inserted in
     // chunks of this size, keeping each insert within DML row limits.
@@ -44,9 +33,10 @@ public class BiometricAttendanceScheduler implements Schedulable {
     public void execute(SchedulableContext ctx) {
         if (isFinalSweep) {
             Datetime windowEnd   = Datetime.now();
-            Datetime windowStart = istHourAsUtc(todayIst(), LAST_DAYTIME_HOUR);
-            // Safety net: if the cron somehow fires before 20:00 IST, or drifts
-            // across midnight, fall back to a 2-hour window so we never request
+            // Datetime windowStart = istHourAsUtc(todayIst(), LAST_DAYTIME_HOUR); // old: 20:00 IST
+            Datetime windowStart = istHourAsUtc(todayIst(), FINAL_WINDOW_START_HOUR); // 06:00 IST
+            // Safety net: if the cron somehow fires before the window start IST, or
+            // drifts across midnight, fall back to a 2-hour window so we never request
             // a non-positive or future-spanning range.
             if (windowEnd <= windowStart) {
                 windowStart = windowEnd.addHours(-2);

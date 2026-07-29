@@ -97,7 +97,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
                             List<Lead_Program__c> leadProgramOwnerUpdates = new List<Lead_Program__c>();
                             List<Program_Team_Members__c> ptmTimestampUpdates = new List<Program_Team_Members__c>();
                             Datetime nowTs = System.now();
-
+                            
                             for (Id leadId : b2cLeadIds) {
                                 Id programId = leadIdToProgramId.get(leadId);
                                 Id firstLpId = firstLpIdByLead.get(leadId);

@@ -661,14 +661,16 @@ public without sharing class B2CLeadController {
             
             // Get existing Lead_Program__c records for this lead
             List<Lead_Program__c> existingLeadPrograms = [
-                SELECT Id, Program__c
+                SELECT Id, Program__c,Email__c,Phone__c
                 FROM Lead_Program__c
                 WHERE Lead__c = :leadToUpsert.Id
             ];
-            
+            Set<String> existingKeys = new Set<String>();
+
             Set<String> existingProgramIds = new Set<String>();
             for (Lead_Program__c lp : existingLeadPrograms) {
                 existingProgramIds.add(lp.Program__c);
+                existingKeys.add(buildLeadProgramKey(lp.Email__c, lp.Phone__c, lp.Program__c));
             }
             
 
@@ -676,7 +678,8 @@ public without sharing class B2CLeadController {
             if (selectedProgramIds != null && !selectedProgramIds.isEmpty()) {
                 List<Lead_Program__c> leadProgramsToInsert = new List<Lead_Program__c>();
                 for (String programId : selectedProgramIds) {
-                    if (!existingProgramIds.contains(programId)) {
+                     String key = buildLeadProgramKey(email, phone, programId);
+                    if (!existingKeys.contains(key)) {
                         Lead_Program__c lp = new Lead_Program__c();
                         lp.Lead__c = leadToUpsert.Id;
                         lp.Program__c = programId;
@@ -684,6 +687,7 @@ public without sharing class B2CLeadController {
                         lp.Email__c = email;
                         lp.Phone__c = phone;
                         leadProgramsToInsert.add(lp);
+                        existingKeys.add(key);
                     }
                 }
                 
@@ -721,6 +725,17 @@ public without sharing class B2CLeadController {
         }
         return result;
     }
+
+    /**
+ * Normalized composite key for Lead_Program__c dedup: same email + phone + program
+ * means "already registered"; any change to email or phone creates a new row.
+ */
+private static String buildLeadProgramKey(String emailVal, String phoneVal, String programIdVal) {
+    String e = emailVal != null ? emailVal.trim().toLowerCase() : '';
+    String p = phoneVal != null ? phoneVal.trim() : '';
+    String prog = programIdVal != null ? String.valueOf(programIdVal).trim() : '';
+    return e + '|' + p + '|' + prog;
+}
 
     private static String resolveCampaignMemberStatus() {
         Schema.SObjectField statusField = Schema.SObjectType.CampaignMember.fields.getMap().get('Status');

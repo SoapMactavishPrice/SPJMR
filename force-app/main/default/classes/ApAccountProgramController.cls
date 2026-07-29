@@ -316,6 +316,22 @@ public static String getApplicationStage(Id applicationId) {
         
         return getApplicationApbsList(accountId);
     }
+
+    @AuraEnabled(cacheable=true)
+    public static Object getDashboardAnnouncementsForApplication(
+        Id applicationId
+    ) {
+        try {
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(applicationId);
+
+            return JSON.deserializeUntyped(
+                JSON.serialize(announcements)
+            );
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
     
     public class AccountProgramApplicationWrapper {
         @AuraEnabled public Id applicationId;

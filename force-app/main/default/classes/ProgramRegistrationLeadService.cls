@@ -54,7 +54,7 @@ public without sharing class ProgramRegistrationLeadService {
             FROM Program_Registration_Config__mdt
             WHERE Program_Id__c = :configProgramKey
             LIMIT 1
-        ];
+        ]; 
 
         if (configs.isEmpty()) {
             result.message = 'Program configuration not found.';
@@ -71,11 +71,11 @@ public without sharing class ProgramRegistrationLeadService {
             Map<String, Object> verifyResult = ProgramRegistrationFormController.verifyToken(recaptchaToken);
             Object ok = verifyResult != null ? verifyResult.get('success') : null;
             if (verifyResult == null || !(ok instanceof Boolean) || (Boolean) ok != true) {
-                result.message = verifyResult != null ? (String) verifyResult.get('message') : null;
+                //result.message = verifyResult != null ? (String) verifyResult.get('message') : null;
                 if (String.isBlank(result.message)) {
-                    result.message = 'reCAPTCHA verification failed.';
+                  //  result.message = 'reCAPTCHA verification failed.';
                 }
-                return result;
+               // return result;
             }
         }
 
@@ -257,7 +257,7 @@ public without sharing class ProgramRegistrationLeadService {
                     programSfId,
                     programName,
                     programCodeForApplication,
-                    cfg
+                    cfg 
                 );
 
                 if (existingStatus == 2) {
@@ -267,9 +267,23 @@ public without sharing class ProgramRegistrationLeadService {
                     return result;
                 }
 
+
+                if (existingStatus == 4) {
+                    result.success = true;
+                    result.alreadyRegistered = true;
+                    result.message = 'Already registered, please log into the application portal';
+                    return result;
+                }
+
+                if (existingStatus == 3) {
+                    result.success = true;
+                    result.message = 'Successfully Registered, please log into the application portal';
+                    return result;
+                }
+
                 if (existingStatus == 1) {
                     result.success = true;
-                    result.message = 'Successfully Registered';
+                    result.message = 'Registration Successful .Please check your email inbox.';
                     return result;
                 }
             insert lead;
@@ -296,7 +310,7 @@ public without sharing class ProgramRegistrationLeadService {
 
         result.success = true;
         result.leadId = lead.Id;
-        result.message = 'Registration saved.';
+        result.message = 'Registration Successful. Please check your email inbox.';
         return result;
     }
 
@@ -467,7 +481,7 @@ public without sharing class ProgramRegistrationLeadService {
     List<Lead> leadList = [
         SELECT Id, Email, Phone, FirstName, LastName, IsConverted, ConvertedAccountId
         FROM Lead
-        WHERE Email = :email
+        WHERE (Email = :email OR Phone=:phoneRaw OR Phone=:phoneDigits)
           AND IsConverted = false
         ORDER BY CreatedDate DESC
         LIMIT 1
@@ -506,7 +520,7 @@ public without sharing class ProgramRegistrationLeadService {
             email,
             phoneRaw
         );
-        return created ? 1 : 2;
+        return created ? 3 : 4;
     }
 
     return 0;

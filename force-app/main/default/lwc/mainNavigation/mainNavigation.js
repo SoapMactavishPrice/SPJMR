@@ -1,6 +1,7 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import basePath from '@salesforce/community/basePath';
+import attendanceIcon from '@salesforce/resourceUrl/IconAttendence';
 
 export default class MainNavigation extends NavigationMixin(
     LightningElement
@@ -37,6 +38,7 @@ normalizeLabel(label) {
         term_deatil:'utility:chevronright',
         academic_scheduler: 'utility:checkin',
         leave_and_attendance: 'utility:event',
+        leave_application: 'utility:event',
         attendance: 'utility:event',
         logout: 'utility:logout'
         // exams_and_evaluation: 'utility:note',
@@ -62,6 +64,18 @@ normalizeLabel(label) {
 
     get expandIcon() {
         return this.isExpanded ? 'utility:chevrondown' : 'utility:chevronright';
+    }
+
+    get attendanceIconUrl() {  //SE-1254
+    return attendanceIcon;
+    }
+
+    get isAttendanceReport() {
+    const label = this.normalizeLabel(
+        this.item?.publicLabel || this.item?.label
+    );
+
+    return label === 'attendance_report';
     }
 
     get displayIndex() {

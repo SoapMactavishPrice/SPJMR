@@ -4,7 +4,8 @@
     border-radius: 12px;
     font-size: 0.75rem;
     font-weight: 600;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .status-approved {
@@ -36,4 +37,64 @@
     word-break: break-word;
     overflow-wrap: break-word;
     max-width: 250px;
+}
+
+/* ---- Proper table layout ---- */
+.approval-history-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.approval-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.approval-history-table th,
+.approval-history-table td {
+    border: 1px solid #dddbda;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+.approval-history-table thead th {
+    background-color: #f3f2f2;
+    font-weight: 700;
+    color: #080707;
+}
+
+.approval-history-table tbody tr:nth-child(even) {
+    background-color: #fafaf9;
+}
+
+/* Column widths */
+.approval-history-table th:nth-child(1),
+.approval-history-table td:nth-child(1) { width: 16%; }
+.approval-history-table th:nth-child(2),
+.approval-history-table td:nth-child(2) { width: 13%; }
+.approval-history-table th:nth-child(3),
+.approval-history-table td:nth-child(3) { width: 19%; }
+.approval-history-table th:nth-child(4),
+.approval-history-table td:nth-child(4) { width: 20%; }
+.approval-history-table th:nth-child(5),
+.approval-history-table td:nth-child(5) { width: 14%; }
+.approval-history-table th:nth-child(6),
+.approval-history-table td:nth-child(6) { width: 18%; }
+
+/* Allow the Step Name / Approved By cells to wrap instead of hard-truncating */
+.approval-history-table td:nth-child(1) .slds-truncate,
+.approval-history-table td:nth-child(5) .slds-truncate {
+    white-space: normal;
+    word-break: break-word;
+}
+
+.remark-cell {
+    white-space: pre-line;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }

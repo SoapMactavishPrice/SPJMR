@@ -1,0 +1,180 @@
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false" applyHtmlTag="false" applyBodyTag="false" docType="html-5.0" controller="VFC_DomainsController">
+    <style type="text/css">
+        body {
+    margin: 0;
+    font-family: "Salesforce Sans", Arial, sans-serif;
+    background: #fff;
+}
+
+.prf-root {
+    max-width: 28rem;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.prf-recaptcha-heading {
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.prf-recaptcha-hint {
+    color: #3e3e3c;
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    text-align: center;
+}
+
+.prf-recaptcha-wrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.prf-submit-btn {
+    width: 100%;
+    min-height: 2.75rem;
+    border: none;
+    border-radius: 0.25rem;
+    background: #D4A017;
+    color: #1a1a1a;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.prf-submit-btn:hover {
+    filter: brightness(0.95);
+}
+
+.prf-submit-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.prf-login {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.prf-login-link {
+    color: #0176d3;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    letter-spacing: .02em;
+}
+
+.prf-login-link:hover {
+    text-decoration: underline;
+}
+    </style>
+<html lang="en"> 
+<head>
+    <meta charset="UTF-8"/>
+    <script src="https://www.google.com/recaptcha/api.js" async="async" defer="defer"></script>
+</head>
+<body>
+    <div class="prf-root">
+
+    <p class="prf-recaptcha-heading">
+        Security check
+    </p>
+
+    <p class="prf-recaptcha-hint">
+        Tick the I'm not a robot box below to continue.
+    </p>
+
+    <div class="prf-recaptcha-wrap">
+        <div id="recaptcha-container"></div>
+    </div>
+
+    <button class="prf-submit-btn" id="registerBtn">
+        Register
+    </button>
+
+    <div class="prf-login">
+        <a href="{!loginLink}"
+           class="prf-login-link">
+            ALREADY REGISTERED? LOGIN
+        </a>
+    </div>
+
+</div>
+    
+    <script>
+        
+        window.addEventListener('unhandledrejection', function (e) {
+    console.log(e.reason);
+    console.log(JSON.stringify(e.reason));
+});
+        var parentOrigin = "{!JSENCODE(parentOrigin)}";
+        window.submitRegistration = function (){
+            var message = {
+                name:'register'
+            }
+            
+           
+           parent.postMessage(message, parentOrigin);
+        }
+        
+        function hasProgramId() {
+    const params = new URLSearchParams(window.location.search);
+    console.log('Params are',params)
+    return (
+        params.has('programId') &&
+        params.get('programId').trim() !== ''
+    );
+}
+
+
+
+        function onCaptchaSuccess(token) {
+             console.log("Parent origin configured:", parentOrigin);
+            // console.log("Current VF origin:", window.location.origin);
+            // console.log("Parent window:", parent);
+            // console.log('Token received, sending to parent:', token, 'origin:', parentOrigin)
+            // var message = {
+            //     action: 'getCAPTCHA',
+            //     token: token
+            // };
+            
+            var message = {
+                name:'recaptchaToken',
+                payload:token
+            }
+            
+           
+           postToParent(message);
+        }
+
+function postToParent(message) {
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage(message, parentOrigin);
+    } else {
+        console.log('No parent window. Message not sent:', message);
+    }
+}
+         
+
+        window.onload = function () {
+        
+         
+                 
+         document.getElementById('registerBtn')
+        .addEventListener('click', submitRegistration);
+        
+            if (!window.recaptchaRendered) {
+        window.recaptchaRendered = true;
+         grecaptcha.render('recaptcha-container', {
+            sitekey: '6LdCQ2ktAAAAAID_bM0EuhE16wmPFyFcZ0oKRpAo',
+            callback: onCaptchaSuccess
+        });
+                }
+        };
+    </script>
+</body>
+</html>
+</apex:page>

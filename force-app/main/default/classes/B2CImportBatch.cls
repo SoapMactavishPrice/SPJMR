@@ -104,7 +104,21 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
         List<Lead> leadsToInsert = new List<Lead>();
         List<Lead_Program__c> lpToInsert = new List<Lead_Program__c>();
         Set<Id> newLeadIds = new Set<Id>();
-        
+        Set<string> setEntranceExamNames = new Set<string>();
+        Set<string> setLeadSourceNames = new Set<string>();
+        Schema.DescribeFieldResult fieldResultEntranceExam = Lead.Entrance_Exam__c.getDescribe();
+List<Schema.PicklistEntry> entries = fieldResultEntranceExam.getPicklistValues();
+for (Schema.PicklistEntry entry : entries) {
+    System.debug(entry.getLabel() + ' : ' + entry.getValue());
+    setEntranceExamNames.add(entry.getValue());
+}
+
+Schema.DescribeFieldResult fieldResultLeadSource = Lead.LeadSource.getDescribe();
+ entries = fieldResultLeadSource.getPicklistValues();
+for (Schema.PicklistEntry entry : entries) {
+    System.debug(entry.getLabel() + ' : ' + entry.getValue());
+    setLeadSourceNames.add(entry.getValue());
+}
         for (Lead_Import__c ld : scope) {
             
             Boolean isSuccess = false;
@@ -188,7 +202,16 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
                     
                     String fname;
                     String lname;
-                    
+                    String entranceExam = ld.Entrance_Exam_Name__c;
+                    String workExp = ld.Years_of_Work_Experience__c;
+                    String partnerComp = ld.SPJIMR_Partner_Company__c;
+                    String entranceExamScores = ld.Do_you_have_Entrance_Exam_Scores__c;
+                    String organization = ld.Organization__c;
+                    String designation = ld.Current_Designation__c;
+                    String college = ld.College__c;
+                    String gradYear = ld.Graduation_Year__c;
+                    Integer age = ld.Age__c!=null?Integer.valueOf(ld.Age__c):null;
+                    String howDidyouFind = ld.How_did_you_find_out_about_us__c;
                     if (formatName.size() == 1) {
                         fname = formatName[0];
                         lname = '.';
@@ -206,9 +229,20 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
                     Email = email,
                     Phone = phone,
                     RecordTypeId = b2cRecordTypeId,
+                    LeadSource = setLeadSourceNames.contains(ld.LeadSource__c)?ld.LeadSource__c:null,
                     Country_Master_backend__c = countryId,
                     State_Master__c = stateId,
                     District_City__c = cityId,
+                    XS_DoYouHaveEntranceExamScore__c = String.isNotBlank(ld.Do_you_have_Entrance_Exam_Scores__c)?'Yes':'No',
+                    XS_YearsOfWorkExperience__c=String.isNotBlank(workExp)?workExp:'',
+                    XS_SPJIMR_PartnerCompany__c = String.isNotBlank(partnerComp)?partnerComp:'',
+                    XS_EnterOrganisation__c = String.isNotBlank(organization)?organization:'',
+                    XS_EntranceExamName__c = setEntranceExamNames.contains(entranceExam)?entranceExam:'',
+                    XS_Year__c = String.isNotBlank(gradYear)?gradYear:'', 
+                    XS_College__c = String.isNotBlank(college)?college:'',
+                    XS_Age__c=age!=null?String.valueOf(age):'',
+                    XS_HowDidYouFindOutAboutUs__c = String.isNotBlank(howDidyouFind)?howDidyouFind:'',
+                    XS_CurrentDesigination__c = String.isNotBlank(designation)?designation:'',
                     Send_Welcome_and_Verification_Email__c=sendEmail
                         );
                     

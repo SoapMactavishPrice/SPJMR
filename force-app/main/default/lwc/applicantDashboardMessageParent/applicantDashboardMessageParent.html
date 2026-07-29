@@ -1,5 +1,14 @@
 <template>
-    <template lwc:if={isGMPPresent}>
+    <!--<template lwc:if={isGMPPresent}>
         <c-applicant-dashboard-message-gmp prgmdata={gmpData}></c-applicant-dashboard-message-gmp>
+    </template>-->
+    <template lwc:if={hasApplications}>
+        <template for:each={applications} for:item="application">
+            <c-dashboard-announcements
+                key={application.applicationId}
+                application-id={application.applicationId}
+                program-name={application.programName}>
+            </c-dashboard-announcements>
+        </template>
     </template>
 </template>

@@ -1,0 +1,14 @@
+<template>
+    <template lwc:if={hasAnnouncements}>
+        <section class="slds-m-bottom_medium">
+            <h3 class="slds-text-heading_small slds-m-bottom_x-small">{sectionLabel}</h3>
+            <template for:each={announcements} for:item="announcement">
+                <section
+                    key={announcement.scenario}
+                    class="slds-box slds-m-bottom_small">
+                    <lightning-formatted-rich-text value={announcement.htmlContent}></lightning-formatted-rich-text>
+                </section>
+            </template>
+        </section>
+    </template>
+</template>

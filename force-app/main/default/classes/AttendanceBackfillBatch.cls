@@ -48,8 +48,47 @@ public class AttendanceBackfillBatch implements Database.Batchable<SObject>,
     private Integer logsSynced            = 0;
     private Integer failed                = 0;
 
-    // ── start: every Pending log within the lookback window ───────────────────
+    // Optional explicit window. When BOTH are set, start() scopes to
+    // [windowStart, windowEnd) instead of the rolling LOOKBACK_DAYS window.
+    // Used by the single-day "Sync" button so a date older than LOOKBACK_DAYS
+    // still gets marked. Null → Past Sync's original 15-day behaviour.
+    private final Datetime windowStartOverride;
+    private final Datetime windowEndOverride;
+
+    /** Default: rolling last-LOOKBACK_DAYS window (the "Past Sync" button). */
+    public AttendanceBackfillBatch() {
+        this.windowStartOverride = null;
+        this.windowEndOverride   = null;
+    }
+
+    /**
+     * Explicit-window variant used by the single-day "Sync" button so a date
+     * older than LOOKBACK_DAYS still gets its enrollments marked.
+     *
+     * @param windowStart inclusive lower bound on Log_Date_Time__c
+     * @param windowEnd   exclusive upper bound on Log_Date_Time__c
+     */
+    public AttendanceBackfillBatch(Datetime windowStart, Datetime windowEnd) {
+        this.windowStartOverride = windowStart;
+        this.windowEndOverride   = windowEnd;
+    }
+
+    // ── start: Pending logs within the window (explicit day, else 15 days) ─────
     public Database.QueryLocator start(Database.BatchableContext bc) {
+        if (windowStartOverride != null && windowEndOverride != null) {
+            Datetime ws = windowStartOverride;
+            Datetime we = windowEndOverride;
+            return Database.getQueryLocator([
+                SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c
+                FROM   Attendance_Log__c
+                WHERE  Status__c        = 'Pending'
+                  AND  Log_Date_Time__c >= :ws
+                  AND  Log_Date_Time__c <  :we
+                  AND  Roll_Number__c   != NULL
+                ORDER BY Log_Date_Time__c ASC
+            ]);
+        }
+
         Datetime windowStart = System.now().addDays(-LOOKBACK_DAYS);
 
         return Database.getQueryLocator([

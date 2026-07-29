@@ -49,6 +49,12 @@ public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
     private final Datetime windowStart;
     private final Datetime windowEnd;
 
+    // When true, finish() chains a day-scoped AttendanceBackfillBatch over the
+    // window just fetched, so a manual fetch is immediately followed by
+    // Present/Absent marking. Used ONLY by the "Sync" button. Scheduled runs
+    // leave this false — their marking is handled by AttendanceMarkingBatch.
+    private final Boolean chainMarking;
+
     // ── Stateful Counters (accumulated across execute() chunks) ───────────────
     private Integer totalParsed  = 0;
     private Integer totalSuccess = 0;
@@ -66,13 +72,25 @@ public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
     //       a span wider than 2 hours.
     // ─────────────────────────────────────────────────────────────────────────
     public BiometricAttendanceBatch(Datetime anchorTime) {
-        this.windowEnd   = anchorTime;
-        this.windowStart = anchorTime.addHours(-2);
+        this.windowEnd    = anchorTime;
+        this.windowStart  = anchorTime.addHours(-2);
+        this.chainMarking = false;
     }
 
     public BiometricAttendanceBatch(Datetime windowStart, Datetime windowEnd) {
-        this.windowStart = windowStart;
-        this.windowEnd   = windowEnd;
+        this.windowStart  = windowStart;
+        this.windowEnd    = windowEnd;
+        this.chainMarking = false;
+    }
+
+    //   BiometricAttendanceBatch(windowStart, windowEnd, chainMarking)
+    //       "Sync" button use. Fetches the window, then (when chainMarking) runs
+    //       a day-scoped AttendanceBackfillBatch over the SAME window to mark
+    //       Present/Absent from the punches just inserted.
+    public BiometricAttendanceBatch(Datetime windowStart, Datetime windowEnd, Boolean chainMarking) {
+        this.windowStart  = windowStart;
+        this.windowEnd    = windowEnd;
+        this.chainMarking = chainMarking == true;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -181,6 +199,16 @@ public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
         System.debug('Inserted : ' + totalSuccess);
         System.debug('Failed   : ' + totalFailed);
         System.debug('========================================');
+
+        // "Sync" button: mark Present/Absent for the day just fetched. Chained
+        // here (not in the scheduler) so marking only runs after the punches are
+        // committed. Guarded by !Test.isRunningTest() ONLY to avoid the platform
+        // limit on chaining a second batch from a test context; the marking path
+        // itself is covered directly by AttendanceBackfillBatchTest.
+        if (chainMarking && !Test.isRunningTest()) {
+            Database.executeBatch(
+                new AttendanceBackfillBatch(windowStart, windowEnd), 200);
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

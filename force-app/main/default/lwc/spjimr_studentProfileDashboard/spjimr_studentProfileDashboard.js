@@ -2,14 +2,11 @@ import { LightningElement, track, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getUserInfo from '@salesforce/apex/StudentProfileDashboardController.getUserInfo';
+import getWithdrawalWindowStatus from '@salesforce/apex/StudentProfileDashboardController.getWithdrawalWindowStatus';
 import fetchEmergencyDetails from '@salesforce/apex/StudentProfileDashboardController.fetchEmergencyDetails';
 import saveEmergencyContact from '@salesforce/apex/StudentProfileDashboardController.saveEmergencyContact';
 import uploadProfilePhoto from '@salesforce/apex/StudentProfileDashboardController.uploadProfilePhoto';
 import getProfilePhotoBase64 from '@salesforce/apex/StudentProfileDashboardController.getProfilePhotoBase64';
-import getAvailableSpecializations from '@salesforce/apex/StudentProfileDashboardController.getAvailableSpecializations'; //491
-import saveSpecializationChange from '@salesforce/apex/StudentProfileDashboardController.saveSpecializationChange'; //491
-import createSpecializationRequest from '@salesforce/apex/StudentProfileDashboardController.createSpecializationRequest'; //493
-import getSpecializationRequests from '@salesforce/apex/StudentProfileDashboardController.getSpecializationRequests'; //493
 import logo from '@salesforce/resourceUrl/Site_Logo';
 import programDetailsIcon from '@salesforce/resourceUrl/Program_Details';
 import financeIcon from '@salesforce/resourceUrl/Finance_Icon';
@@ -40,13 +37,16 @@ export default class Spjimr_studentProfileDashboard extends LightningElement {
     _profileWindowIsActive = false;
     _profileWindowStartMs = null;
     _profileWindowEndMs = null;
+    // SE-1156: Request Withdrawal button window state
+    @track isWithinBatchPeriod = false;
+    @track hasBatchDates = false;
+    withdrawalBatchStartDate = null;
+    withdrawalBatchEndDate = null;
     // _profileWindowRefreshTimer = null;   // commented out: polling replaced by trigger-based notifications
     // _profileWindowEvaluateTimer = null;  // commented out: polling replaced by trigger-based notifications
     // Navigation state
      @track selectedMenuItem = 'studentDetails';
     @track isSidebarOpen = true; // Sidebar open by default
-    @track specializationStartDate; //490
-    @track specializationEndDate; //490
     siteLogoIcon = logo;
     navbarIcon = navbarIcon;
     profileDummyIcon = profileDummy;
@@ -121,16 +121,6 @@ export default class Spjimr_studentProfileDashboard extends LightningElement {
         address: ''
     };
     @track isLoading = false;
-    /*491 start*/
-    @track isSpecializationModalOpen = false;
-    @track specializationOptions = [];
-    @track selectedSpecializationId;
-    @track currentSpecializationId;
-    @track specializationChangeReason = '';
-    showBanner = false;
-    bannerMessage = '';
-    bannerVariant = 'success';
-    /*491 end*/
    
     
     
@@ -163,31 +153,6 @@ export default class Spjimr_studentProfileDashboard extends LightningElement {
    
      @track isVisible = false;
 
-    /*496 start */
-    requestHistory = [];
-    hasPendingRequest = false;
-    latestRequest;
-
-    requestColumns = [
-        {
-            label: 'Current Specialization',
-            fieldName: 'currentSpecialization'
-        },
-        {
-            label: 'Requested Specialization',
-            fieldName: 'requestedSpecialization'
-        },
-        {
-            label: 'Status',
-            fieldName: 'status'
-        },
-        {
-            label: 'Requested On',
-            fieldName: 'createdDate',
-            type: 'date'
-        }
-    ];
-    /*496 end */
     showTooltip() {
         this.isVisible = true;
     }
@@ -644,122 +609,70 @@ export default class Spjimr_studentProfileDashboard extends LightningElement {
         console.log('Pay Academic Fee clicked');
         // Add your logic here
     }
-    // 491 start
-    get bannerClass() {
-        return `custom-banner ${this.bannerVariant}`;
-    }
-    showNotification(message, variant) {
-        this.bannerMessage = message;
-        this.bannerVariant = variant;
-        this.showBanner = true;
-        setTimeout(() => {
-            this.showBanner = false;
-        }, 5000);
-    }
-
-    closeBanner() {
-        this.showBanner = false;
-    }
-
+    
     handleChangeSpecialization() {
-        console.log('Change of Specialization clicked'); 
-        getAvailableSpecializations()
+        // Handle change of specialization button click
+        console.log('Change of Specialization clicked');
+        // Add your logic here
+    }
+
+    // SE-1156: load the withdrawal batch window for the current student
+    loadWithdrawalWindow() {
+        getWithdrawalWindowStatus()
             .then(result => {
                 if (result) {
-                    console.log('result::', result);
-                    this.specializationOptions = result || [];
+                    this.isWithinBatchPeriod = result.isWithinBatchPeriod === true;
+                    this.hasBatchDates = result.hasBatchDates === true;
+                    this.withdrawalBatchStartDate = result.batchStartDate || null;
+                    this.withdrawalBatchEndDate = result.batchEndDate || null;
                 } else {
-                    console.error('no result');
+                    this.isWithinBatchPeriod = false;
+                    this.hasBatchDates = false;
                 }
             })
             .catch(error => {
-                console.error('Error fetching user info:', error);
+                // eslint-disable-next-line no-console
+                console.error('getWithdrawalWindowStatus error', error);
+                this.isWithinBatchPeriod = false;
+                this.hasBatchDates = false;
             });
-        this.loadRequests();
-        this.isSpecializationModalOpen = true; //491
-        
     }
 
-    handleSpecializationSelection(event) {
-        const selectedId = event.target.dataset.id;
-        console.log('selectedId', selectedId);
-
-        this.specializationOptions =
-            this.specializationOptions.map(item => {
-
-                return {
-                    ...item,
-                    selected:
-                        item.specializationId === selectedId
-                };
-            });
-        
-        console.log(
-            'updated options',
-            JSON.stringify(this.specializationOptions)
-        );
+    // SE-1156: button is enabled only inside the batch period
+    get isWithdrawalDisabled() {
+        return !this.isWithinBatchPeriod;
     }
 
-    handleReasonChange(event) {
-        this.specializationChangeReason = event.target.value;
-    }
-    
-    closeSpecializationModal() {
-        this.isSpecializationModalOpen = false;
-    }
-
-    handleSubmitSpecialization() {
-        console.log('specializationOptions',JSON.stringify(this.specializationOptions));
-        const selectedRows = this.specializationOptions.filter(
-            item => item.selected
-        );
-        console.log('selectedRow::',JSON.stringify(selectedRows));
-        if (selectedRows.length !== 1) {
-            console.log('length more than 1');
-            this.showNotification(
-                'Please provide a reason for the change.',
-                'error'
-            );
-            return;
+    // SE-1156: contextual tooltip explaining button state
+    get withdrawalTooltip() {
+        if (this.isWithinBatchPeriod) {
+            return 'Raise a request to withdraw from your programme.';
         }
-
-        if (!this.specializationChangeReason?.trim()) {
-            console.log('trim reason');
-            this.showNotification(
-                'Please provide a reason for the change.',
-                'error'
-            );
-            return;
+        if (this.hasBatchDates) {
+            return `Withdrawal requests can only be raised during your batch period (${this.formatWithdrawalDate(this.withdrawalBatchStartDate)} - ${this.formatWithdrawalDate(this.withdrawalBatchEndDate)}).`;
         }
-
-        createSpecializationRequest({
-            specializationId: selectedRows[0].specializationId,
-            reason: this.specializationChangeReason
-        })
-        .then(() => {
-            console.log('success');
-            this.showNotification(
-                'Specialization updated successfully',
-                'success'
-            );
-            this.isSpecializationModalOpen = false;
-            console.log('this.isSpecializationModalOpen::',this.isSpecializationModalOpen);
-        })
-        .catch(error => {
-            console.log('error:::',error);
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error',
-                    message:
-                        error.body.message,
-                    variant: 'error'
-                })
-            );
-
-        });
+        return 'Withdrawal requests are not available for your batch.';
     }
 
-    // 491 end
+    formatWithdrawalDate(dateStr) {
+        if (!dateStr) {
+            return '';
+        }
+        const parsed = new Date(dateStr);
+        if (isNaN(parsed.getTime())) {
+            return dateStr;
+        }
+        return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    // SE-1156: entry point only; the withdrawal request form is delivered in a later ticket
+    handleRequestWithdrawal() {
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'Request Withdrawal',
+            message: 'The withdrawal request form will be available soon.',
+            variant: 'info'
+        }));
+    }
     
     // Toggle sidebar visibility
     handleToggleSidebar() {
@@ -783,55 +696,12 @@ export default class Spjimr_studentProfileDashboard extends LightningElement {
     get isAttendanceSection() {
         return this.selectedMenuItem === 'attendance';
     }
-    /*490 start*/
-    get isSpecializationButtonDisabled() {
-        if (!this.specializationStartDate || !this.specializationEndDate) {
-            return true;
-        }
 
-        const now = new Date().getTime();
-        const start = new Date(this.specializationStartDate).getTime();
-        const end = new Date(this.specializationEndDate).getTime();
-
-        return !(now >= start && now < end);
-    }
-    /*490 end*/
-    /*496 start */
-    get statusClass() {
-        if(!this.latestRequest){
-            return '';
-        }
-        switch(this.latestRequest.status){
-            case 'Approved':
-                return 'status-approved';
-            case 'Rejected':
-                return 'status-rejected';
-            case 'Pending Approval':
-                return 'status-pending';
-            default:
-                return '';
-        }
-    }
-    loadRequests() {
-        getSpecializationRequests()
-            .then(result => {
-                this.requestHistory = result;
-                if(this.requestHistory.length > 0){
-                    this.latestRequest = this.requestHistory[0];
-                    this.hasPendingRequest = this.latestRequest.status === 'Pending Approval';
-                }
-                //this.isSpecializationModalOpen = true;
-            })
-            .catch(error => {
-                console.error(error);
-            });
-    }
-    /*496 end */
     // Fetch current user's name when component loads
     connectedCallback() {
         console.log('connectcallback of dashboard');
-        console.log('NEW VERSION LOADED');
         this.loadUserName();
+        this.loadWithdrawalWindow();
         // this.startProfileWindowTimers(); // commented out: SPJIMR_ProgramCohortTrigger now notifies users; initial window state is evaluated once via loadUserName()
     }
 
@@ -849,8 +719,6 @@ export default class Spjimr_studentProfileDashboard extends LightningElement {
             .then(result => {
                 if (result) {
                     console.log('result::', result);
-                    console.log('result.specializationStartDate::',result.specializationStartDate);
-                    console.log('result.specializationEndDate::',result.specializationEndDate);
                     this.studentName = result.fullName;
                     this.studentEmail = result.email || '';
                     this.studentGender = result.gender || '';
@@ -875,8 +743,6 @@ export default class Spjimr_studentProfileDashboard extends LightningElement {
                     if (this.accountId) {
                         this.loadProfilePhoto();
                     }
-                    this.specializationStartDate = result.specializationStartDate; //490
-                    this.specializationEndDate = result.specializationEndDate; //490
                 } else {
                     this.photoUploadInstructionText = '';
                     this.updateProfileWindowState(null);
@@ -1166,5 +1032,4 @@ export default class Spjimr_studentProfileDashboard extends LightningElement {
     get guardianDisplayAddress() {
         return this.formatNA(this.guardianRecord?.Address__c);
     }
-
 }

@@ -1,31 +1,50 @@
 import { LightningElement, track, api } from 'lwc';
 import getData from '@salesforce/apex/StudentAttendanceService.getData';
 import getUserInfo from '@salesforce/apex/StudentProfileDashboardController.getUserInfo';
+//import courseEnrolled from '@salesforce/apex/StudentProfileDashboardController.courseEnrolled';
+import getFacultyBySession from '@salesforce/apex/StudentAttendanceService.getFacultyBySession';
+// change this import
+import getDivisionCourseTable from '@salesforce/apex/StudentProfileDashboardController.getDivisionCourseTable';
 
 const DONUT_OUTER_PX = 140;
 const DONUT_INNER_PX = 90;
 const DONUT_FONT_PX = 22;
 
+// New: today's date as YYYY-MM-DD, used for defaults and future-date validation
+function getTodayDateString() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 export default class AttendanceDashboard extends LightningElement {
     @track records = [];
     @track accountId = null;
     @track warningMessage = '';
-    @track filter = 'year';
-    @track startDate = '';//SE-1174
-    @track endDate = '';//SE-1174
+    @track filter = 'day';
+  //  @track filter = 'day';
+    @track startDate = getTodayDateString();//SE-1174
+    @track endDate = getTodayDateString();//SE-1174
     @track noRecordsMessage = '';//SE-1174
 
 
     _rawData = []; // cache raw Apex records for tab re-filtering without re-fetching
     _termId = '';
-/*SE-1254*/    @track termOptions = [];
+    _facultyBySession = {};
+    @track termOptions = [];  /*SE-1254*/ 
     @track selectedTermValue = '';
     @track courseOptions = [];
     @track selectedCourseIds = []; // empty = show all courses
     @track isCourseDropdownOpen = false;
+    @track hasSearchedSessionDetail = false;
+ // New @api props receiving term boundaries from parent   
+    @api termStartDate = '';
+    @api termEndDate = '';
 
     @api
-    get termId() {
+  /*  get termId() {
         return this._termId;
     }
     set termId(value) {
@@ -35,6 +54,22 @@ export default class AttendanceDashboard extends LightningElement {
         }
         this._termId = next;
         if (this.accountId) {
+            this.fetchData();
+        }
+    }*/
+    get termId() {
+        return this._termId;
+    }
+
+    set termId(value) {
+        const next = value == null || value === '' ? '' : String(value);
+        if (next === this._termId) {
+            return;
+        }
+        this._termId = next;
+        this.selectedCourseIds = [];
+        if (this.accountId) {
+            this.loadCourseOptions();
             this.fetchData();
         }
     }
@@ -47,8 +82,37 @@ export default class AttendanceDashboard extends LightningElement {
             console.warn('AttendanceDashboard: accountId missing, skipping getData call.');
             return;
         }
+         await this.loadCourseOptions();  
         await this.fetchData();
     }
+
+    async loadCourseOptions() {
+    try {
+        if (!this._termId) {
+            this.courseOptions = [];
+            return;
+        }
+        const result = await getDivisionCourseTable({ currentTermId: this._termId });
+
+        // dedupe course names — a division can have multiple rows if course also has other attrs
+        const seen = new Set();
+        const options = [];
+        (result || []).forEach(row => {
+            const name = row.courseName;
+            if (name && !seen.has(name)) {
+                seen.add(name);
+                options.push({ label: name, value: row.id });
+            }
+        });
+
+        this.courseOptions = options.sort((a, b) =>
+            (a.label || '').localeCompare(b.label || '', undefined, { numeric: true })
+        );
+    } catch (error) {
+        console.error('Error loading course options', error);
+        this.courseOptions = [];
+    }
+}
 
     async fetchData() {
         try {
@@ -63,6 +127,15 @@ export default class AttendanceDashboard extends LightningElement {
             });
             console.log('Raw Apex result::', result);
             this._rawData = result || [];
+
+            const sessionIds = [...new Set(
+                this._rawData.map(rec => rec.Session__c).filter(Boolean)
+            )];
+
+            this._facultyBySession = sessionIds.length
+                ? await getFacultyBySession({ sessionIds })
+                : {};
+
             this.processAndSetData(this._rawData, this.filter);
         } catch (error) {
             console.error('Error fetching data', error);
@@ -74,6 +147,7 @@ export default class AttendanceDashboard extends LightningElement {
      * Weights: Present=1, Late=0.5, Sanctioned Leave=1, Absent=0.
      * Donut uses this getter so it matches the footer "Attendance %" column.
      */
+    
     get overallAttendancePercent() {
         const r = this.totalsRow;
         return this.computeAttendancePercent(r.weightedPoints || 0, r.totalSessions || 0);
@@ -88,6 +162,18 @@ export default class AttendanceDashboard extends LightningElement {
     get donutTextStyle() {
         return `width:${DONUT_INNER_PX}px;height:${DONUT_INNER_PX}px;
                 font-size:${DONUT_FONT_PX}px;`;
+    }
+
+    get courseDropdownLabel() {
+    return this.selectedCourseIds.length ? '+ Add Course' : 'Select Course';
+    }
+
+    get showSessionDetail() {
+     // Session Detail table only renders once: Search clicked AND at least
+    // one course selected AND matching records exist.
+   return this.hasSearchedSessionDetail
+        && this.selectedCourseIds.length > 0
+        && this.sessionDetailRecords.length > 0;
     }
 
     handleDayClick()   { this.filter = 'day';   this.processAndSetData(this._rawData, this.filter); }
@@ -137,20 +223,37 @@ stopPanelClick(event) {
 }
 
 handleAddCourse(event) {
+
     event.stopPropagation();
+
     const value = event.currentTarget.dataset.value;
-    if (!this.selectedCourseIds.includes(value)) {
-        this.selectedCourseIds = [...this.selectedCourseIds, value];
+
+    if(!this.selectedCourseIds.includes(value)){
+        this.selectedCourseIds = [
+            ...this.selectedCourseIds,
+            value
+        ];
     }
-    this.isCourseDropdownOpen = false;
-    this.processAndSetData(this._rawData, this.filter);
+
+    this.processAndSetData(
+        this._rawData,
+        this.filter
+    );
 }
 
-handleRemoveCourse(event) {
-    event.stopPropagation();
+handleRemoveCourse(event){
+    event.stopPropagation();   // <-- add this line
     const value = event.currentTarget.dataset.value;
-    this.selectedCourseIds = this.selectedCourseIds.filter(id => id !== value);
-    this.processAndSetData(this._rawData, this.filter);
+
+    this.selectedCourseIds =
+        this.selectedCourseIds.filter(
+            id => id !== value
+        );
+
+    this.processAndSetData(
+        this._rawData,
+        this.filter
+    );
 }
 
     handleSearchClick() {
@@ -163,6 +266,7 @@ handleRemoveCourse(event) {
         const start = new Date(`${this.startDate}T00:00:00`);
         const end = new Date(`${this.endDate}T00:00:00`);
 
+     // Start Date must not be greater than End Date
         if (start > end) {
             if (endDateInput) {
                 endDateInput.setCustomValidity('End Date cannot be earlier than Start Date.');
@@ -170,11 +274,37 @@ handleRemoveCourse(event) {
             }
             return;
         }
-
+        
+        // NEW — block future date ranges (no attendance data can exist beyond today)
+        // since getData() already excludes sessions with End_Time__c > now
+        const today = new Date(`${getTodayDateString()}T00:00:00`);
+        if (end > today) {
+        this.hasSearchedSessionDetail = false;
+        this.records = [];
+        this.warningMessage = '';
+        this.noRecordsMessage = 'Attendance records are not available for future dates.';
+        return;
+        }
+        // Term-boundary validation
+        // NEW — enforce dates fall within the selected term
+        if (this.termStartDate && this.termEndDate) {
+        const termStart = new Date(`${this.termStartDate}T00:00:00`);
+        const termEnd = new Date(`${this.termEndDate}T00:00:00`);
+        if (start < termStart || end > termEnd) {
+        if (endDateInput) {
+            endDateInput.setCustomValidity('Selected dates must fall within the current term.');
+            endDateInput.reportValidity();
+        }
+        return;
+        }
+        }
+        
         if (endDateInput) {
             endDateInput.setCustomValidity('');
             endDateInput.reportValidity();
         }
+
+        this.hasSearchedSessionDetail = true; 
         
         this.noRecordsMessage = '';
 
@@ -202,8 +332,11 @@ handleRemoveCourse(event) {
     }
 
     handleClearClick() {
+        // clear/reset date filter, return to default view
         this.startDate = '';
         this.endDate = '';
+        this.selectedCourseIds = [];
+        this.hasSearchedSessionDetail = false;  
 
         const endDateInput = this.template.querySelector('[data-id="endDateInput"]');
         if (endDateInput) {
@@ -344,16 +477,111 @@ handleRemoveCourse(event) {
         });
     }
 
-    get selectedCourseChips() {
-    return this.courseOptions.filter(c => this.selectedCourseIds.includes(c.value));
+   get selectedCourseChips() {
+    return this.courseOptions.filter(c => this.selectedCourseIds.includes(c.label));
 }
 
 get unselectedCourseOptions() {
-    return this.courseOptions.filter(c => !this.selectedCourseIds.includes(c.value));
+    return this.courseOptions.filter(c => !this.selectedCourseIds.includes(c.label));
 }
 
 get noMoreCourses() {
     return this.unselectedCourseOptions.length === 0;
+}
+
+get sessionDetailRecords() {
+    // Builds session rows: course, date, timings, faculty, activity type,
+    // attendance status. Filters by selected courses + date range.
+    const source = this._rawData || [];
+
+    const start = this.startDate ? new Date(`${this.startDate}T00:00:00`) : null;
+    const end = this.endDate ? new Date(`${this.endDate}T00:00:00`) : null;
+
+    return source
+        .filter((rec) => {
+            const courseName =
+                rec.Session__r?.Course__r?.Name ||
+                rec.courseName ||
+                'Unassigned Course';
+
+            if (this.selectedCourseIds.length && !this.selectedCourseIds.includes(courseName)) {
+                return false;
+            }
+
+            if (start && end) {
+                const sessionDateStr = rec.Session__r?.Session_Date__c;
+                if (!sessionDateStr) return false;
+                const recordDate = new Date(`${sessionDateStr}T00:00:00`);
+                if (recordDate < start || recordDate > end) return false;
+            }
+
+            return true;
+        })
+        .map((rec, index) => {
+            const courseName =
+                rec.Session__r?.Course__r?.Name ||
+                rec.courseName ||
+                'Unassigned Course';
+            const sessionDate = rec.Session__r?.Session_Date__c || '';
+            const startTime = rec.Session__r?.Start_Time__c || '';
+            const endTime = rec.Session__r?.End_Time__c || '';
+            const activityType = rec.Session__r?.Course_Activity__c || '';
+            const facultyList = this._facultyBySession?.[rec.Session__c] || [];
+            const faculty = facultyList.join(', ');
+
+            return {
+                id: `session-${index}`,
+                courseName,
+                sessionDate: this.formatDisplayDate(sessionDate),
+                timings: (startTime && endTime) ? `${this.formatTime(startTime)} – ${this.formatTime(endTime)}` : '',
+                faculty,
+                activityType,
+                attendanceStatus: this.formatAttendanceLabel(rec.Attendance__c)
+            };
+        })
+        .sort((a, b) => new Date(a.sessionDate) - new Date(b.sessionDate));
+}
+
+get sessionDetailTitle() {
+    const chips = this.selectedCourseChips || [];
+    return chips.length ? chips.map(c => c.label).join(', ') : 'All Courses';
+}
+
+formatDisplayDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/*formatTime(timeVal) {
+    const match = String(timeVal).match(/(\d{2}):(\d{2})/);
+    if (!match) return String(timeVal);
+    return `${match[1]}:${match[2]}`;
+}*/
+
+formatTime(timeVal) {
+    // Converts UTC Start_Time__c/End_Time__c (DateTime fields) to IST for
+    // display. Previously extracted raw UTC digits directly, causing a
+    // ~5:30 display offset from actual local session time.
+    if (!timeVal) return '';
+    const d = new Date(timeVal);
+    if (Number.isNaN(d.getTime())) return String(timeVal);
+    return d.toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Kolkata'
+    });
+}
+
+formatAttendanceLabel(raw) {
+    const s = ((raw || '') + '').trim().toLowerCase();
+    if (s === 'present' || s === 'p') return 'Present';
+    if (s === 'absent' || s === 'a') return 'Absent';
+    if (['sanctioned leave', 'sanctioned', 'sl', 'leave', 'l', 'on leave'].includes(s)) return 'Sanctioned';
+    if (s === 'late') return 'Late';
+    return raw || '';
 }
 
     async loadUserName() {
@@ -370,9 +598,6 @@ get noMoreCourses() {
 
         console.log('accountId::', this.accountId);
         // NEW — courses the student is enrolled in
-        this.courseOptions = [...(result.courseOptions || [])].sort((a, b) =>
-            (a.label || '').localeCompare(b.label || '', undefined, { numeric: true })
-        );
         } catch (error) {
             console.error(error);
         }

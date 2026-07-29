@@ -120,3 +120,11 @@
 .step-label{
     margin-left: -5px;
 }
+
+.custom-menu-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    object-fit: contain;
+    flex-shrink: 0;
+}

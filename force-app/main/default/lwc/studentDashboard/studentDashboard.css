@@ -122,3 +122,22 @@
 .term-pill:focus-within {
     --slds-c-input-color-border: #ffffff;
 }
+
+/*.filter-line {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.filter-line .course-selector {
+    flex: 1 1 300px;
+    margin-top: 0;
+}
+
+.filter-line .date-range-row {
+    flex: 0 0 auto;
+    margin-top: 0;
+}*/

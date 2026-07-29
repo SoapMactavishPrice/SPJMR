@@ -13,13 +13,24 @@
                         src={logoUrl}
                         alt="SPJIMR"
                     />
-                    <p class="brand-subtitle">Lead Verification</p>
+                    
                 </div>
 
                 <div class="status-section">
                     <template lwc:if={boolean_Success}>
-                        <lightning-icon icon-name="action:approval" alternative-text="Approved" title="Approved"></lightning-icon>
-                        <div class="status-text">Thank you for Verifying!</div>
+                        <div class="success-container">
+                            <lightning-icon
+                                icon-name="action:approval"
+                                alternative-text="Approved"
+                                title="Approved">
+                            </lightning-icon>
+
+                            <p class="brand-subtitle">Email Verified Successfully</p>
+
+                            <p class="success-message">
+                                {displayMessage}
+                            </p>
+                        </div>
                     </template>
 
                     <template lwc:if={boolean_Error}>

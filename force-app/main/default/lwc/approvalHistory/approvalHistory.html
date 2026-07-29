@@ -12,7 +12,8 @@
             </template>
 
             <template if:true={hasRows}>
-                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                <div class="approval-history-table-wrapper">
+                <table class="approval-history-table slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped slds-table_fixed-layout">
                     <thead>
                         <tr class="slds-line-height_reset">
                             <th scope="col"><div class="slds-truncate" title="Step Name">Step Name</div></th>
@@ -20,6 +21,7 @@
                             <th scope="col"><div class="slds-truncate" title="Status">Status</div></th>
                             <th scope="col"><div class="slds-truncate" title="Assigned To">Assigned To</div></th>
                             <th scope="col"><div class="slds-truncate" title="Approved By">Approved By</div></th>
+                            <th scope="col"><div class="slds-truncate" title="Remark">Remark</div></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -51,10 +53,14 @@
                                 <td>
                                     <div class="slds-truncate" title={row.approvedBy}>{row.approvedBy}</div>
                                 </td>
+                                <td>
+                                    <div class="remark-cell" title={row.remark}>{row.remark}</div>
+                                </td>
                             </tr>
                         </template>
                     </tbody>
                 </table>
+                </div>
             </template>
 
             <template if:false={hasRows}>

@@ -1,0 +1,103 @@
+<template>
+    <lightning-card title="CSV Upload - Slot Master Bulk Import">
+        <lightning-button
+            slot="actions"
+            label="Download Sample Header"
+            icon-name="utility:download"
+            onclick={downloadSampleHeader}>
+        </lightning-button>
+
+        <div class="container">
+            <a class="slds-hide" data-id="sample-header-download"></a>
+
+            <div class="import-guidance slds-text-body_small" role="note">
+                <strong>File requirements:</strong> <code>SlotCode</code>, <code>Program Master</code>,
+                <code>SlotDate</code>, <code>Slot Start Time</code>, and <code>Capacity</code> are mandatory.
+                <code> Slot End Time</code> and <code>Location Master</code> are optional. The CSV header names
+                must match exactly; additional columns are ignored.
+            </div>
+
+            <!-- File Upload -->
+            <lightning-input
+                type="file"
+                label="Upload CSV File"
+                accept=".csv"
+                onchange={handleFileUpload}
+                disabled={isLoading}>
+            </lightning-input>
+
+            <p class="warning-text">
+                {warningMessage}
+            </p>
+
+            <!-- Selected File -->
+            <template if:true={fileName}>
+                <div class="selected-file">
+                    <lightning-icon
+                        icon-name="doctype:csv"
+                        size="x-small">
+                    </lightning-icon>
+
+                    <span>
+                        <strong>Selected File :</strong>
+                        {fileName}
+                    </span>
+                </div>
+            </template>
+
+            <!-- Email Error Report -->
+            <div class="checkbox-section">
+                <lightning-input
+                    type="checkbox"
+                    label="Email me the Error Report"
+                    checked={emailErrorReport}
+                    onchange={handleEmailErrorReport}>
+                </lightning-input>
+            </div>
+
+            <!-- Start Import Button -->
+            <div class="button-section">
+                <lightning-button
+                    variant="brand"
+                    label="Start Import"
+                    onclick={handleStartImport}
+                    disabled={disableImportButton}>
+                </lightning-button>
+            </div>
+
+            <!-- Spinner -->
+            <template if:true={isLoading}>
+                <div class="spinner-section">
+                    <lightning-spinner
+                        alternative-text="Importing Slot Master..."
+                        size="medium">
+                    </lightning-spinner>
+
+                    <div class="spinner-text">
+                        Import in progress...
+                        Please wait until processing completes.
+                    </div>
+                </div>
+            </template>
+
+            <!-- Generated Files -->
+            <template if:true={generatedFiles.length}>
+                <div class="generated-files">
+                    <div class="generated-title">
+                        Generated Files
+                    </div>
+
+                    <template for:each={generatedFiles} for:item="file">
+                        <div key={file.contentDocumentId} class="generated-row">
+                            <lightning-icon icon-name="doctype:csv" size="small">
+                            </lightning-icon>
+                            <a href={file.url} target="_blank">
+                                {file.fileName}
+                            </a>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

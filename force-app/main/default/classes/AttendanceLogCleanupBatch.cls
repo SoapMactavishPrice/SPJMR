@@ -1,7 +1,7 @@
 /**
  * @description Batch job that purges old, already-synced attendance logs.
  *              Deletes every Attendance_Log__c with Status__c = 'Synced' whose
- *              Log_Date_Time__c is older than the retention window (7 days).
+ *              Log_Date_Time__c is older than the retention window (2 days).
  *              Runs in system mode as a scheduled cleanup, so CRUD/FLS checks
  *              are intentionally bypassed.
  */
@@ -9,7 +9,8 @@
 public without sharing class AttendanceLogCleanupBatch implements Database.Batchable<SObject> {
 
     /** Number of days of Synced logs to retain before they are eligible for deletion. */
-    private static final Integer RETENTION_DAYS = 7;
+    // private static final Integer RETENTION_DAYS = 7; // old retention window
+    private static final Integer RETENTION_DAYS = 2;
 
     /**
      * @description Selects Synced logs older than the retention window.

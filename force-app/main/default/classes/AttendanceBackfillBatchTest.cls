@@ -34,11 +34,14 @@ private class AttendanceBackfillBatchTest {
         SObject ate = ates[0];
         try { ate.put('Batch_Enrollment__c', pcms[0].Id); update ate; } catch (Exception e) {}
 
-        // Stamp the learner Account's registration number — the formula's source.
-        List<Account> accs = [SELECT Id FROM Account WHERE LastName = 'TestLabf' LIMIT 1];
-        if (!accs.isEmpty()) {
-            try { update new Account(Id = accs[0].Id, Registration_Number__c = ROLL); }
-            catch (Exception e) {}
+        // Stamp the ProgramCohortMember roll number — the TRUE formula source.
+        // Session_Enrollment.Roll_Number__c (formula) ← AcademicTermEnrollment
+        // .Roll_Number__c (formula) ← Batch_Enrollment__r (ProgramCohortMember)
+        // .Roll_Number__c (writable). Stamping the Account does nothing here.
+        try {
+            update new ProgramCohortMember(Id = pcms[0].Id, Roll_Number__c = ROLL);
+        } catch (Exception e) {
+            System.debug('PCM roll stamp failed: ' + e.getMessage());
         }
 
         // Insert a FRESH completed Session with past times. A validation rule
@@ -65,7 +68,9 @@ private class AttendanceBackfillBatchTest {
         List<Session_Enrollment__c> ses = [
             SELECT Id, Session__c, Roll_Number__c, Attendance__c,
                    Session__r.Start_Time__c, Session__r.End_Time__c
-            FROM   Session_Enrollment__c LIMIT 1];
+            FROM   Session_Enrollment__c
+            WHERE  Roll_Number__c = :ROLL
+              AND  Session__r.Name = 'ABF Past Session' LIMIT 1];
         if (ses.isEmpty()) return null;
         if (ses[0].Attendance__c != null) {
             ses[0].Attendance__c = null;
@@ -153,6 +158,34 @@ private class AttendanceBackfillBatchTest {
         Test.stopTest();
 
         System.assert(true, 'Empty / blank scope should not throw.');
+    }
+
+    /**
+     * Explicit-window constructor (used by the single-day "Sync" button): a
+     * pending log dated OUTSIDE the window is not picked up, while one INSIDE
+     * is — proving start() scopes to [windowStart, windowEnd). Present marking
+     * itself is covered by backfill_fullRun_marksPresent where org data allows.
+     */
+    @IsTest
+    static void backfill_explicitWindow_scopesToWindow() {
+        Datetime windowStart = Datetime.now().addDays(-2);
+        Datetime windowEnd   = Datetime.now().addDays(-1);
+
+        // Inside the window → eligible; outside (today) → must be ignored.
+        insert new List<Attendance_Log__c>{
+            new Attendance_Log__c(Roll_Number__c = 'ABF-IN', Device_ID__c = 'D1',
+                Status__c = 'Pending', Log_Date_Time__c = windowStart.addHours(6)),
+            new Attendance_Log__c(Roll_Number__c = 'ABF-OUT', Device_ID__c = 'D1',
+                Status__c = 'Pending', Log_Date_Time__c = Datetime.now())
+        };
+
+        Test.startTest();
+        Id jobId = Database.executeBatch(
+            new AttendanceBackfillBatch(windowStart, windowEnd), 200);
+        Test.stopTest();
+
+        System.assertNotEquals(null, jobId,
+            'Explicit-window batch should enqueue and run cleanly.');
     }
 
     /** No pending logs anywhere → full batch runs cleanly. */

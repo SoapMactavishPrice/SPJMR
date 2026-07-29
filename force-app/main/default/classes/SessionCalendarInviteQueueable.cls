@@ -4,7 +4,7 @@
  *          Session and invite the right participants.
  *
  *          SE-1057 (event mapping): Session__c fields → GoogleCalendarEvent
- *            summary     ← Programme | Batch | Academic Year | Term | Division | Course - Session Name
+ *            summary     ← Programme | Batch | Batch Group | Term | Division | Course - Session Name
  *            start/end   ← Start_Time__c / End_Time__c (Asia/Kolkata)
  *            location    ← Class_Room__c (+ URL__c meeting link)
  *            description ← same context as labelled lines, then Description__c + join link
@@ -132,7 +132,9 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         Map<Id, Session__c> sessions = new Map<Id, Session__c>([
             SELECT Id, Name, Schedule_Type__c, Start_Time__c, End_Time__c,
                    Description__c, Class_Room__c, URL__c, Google_Event_Id__c,
-                   Course__r.Name, Program__r.Program_Code__c, Batch__r.Name,
+                   Course_Activity__c, Session_Type__c, Remark__c,
+                   Course__r.Name, Course__r.Course_Department__r.Name,
+                   Program__r.Program_Code__c, Batch__r.Name,
                    Academic_Year__r.Name, Term__r.Name
             FROM   Session__c
             WHERE  Id IN :allSessionIds
@@ -244,18 +246,24 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
 
         String programmeCode = (s.Program__r != null) ? s.Program__r.Program_Code__c : null;
         String batchName     = (s.Batch__r != null) ? s.Batch__r.Name : null;
-        String academicYear  = (s.Academic_Year__r != null) ? s.Academic_Year__r.Name : null;
+        // Field API name is Academic_Year__c, but its org label is "Batch Group";
+        // the value (e.g. "Year 1") is the batch group shown to faculty.
+        String batchGroup    = (s.Academic_Year__r != null) ? s.Academic_Year__r.Name : null;
         String termName      = (s.Term__r != null) ? s.Term__r.Name : null;
         String divisionText  = (divisionNames != null && !divisionNames.isEmpty())
             ? String.join(new List<String>(divisionNames), ', ')
             : null;
+        // Department comes from the selected course (Course__c → LearningCourse → Course_Department__c).
+        String departmentName = (s.Course__r != null && s.Course__r.Course_Department__r != null)
+            ? s.Course__r.Course_Department__r.Name
+            : null;
 
         // Summary format (blank tokens omitted):
-        //   Programme | Batch | Academic Year | Term | Division | Course - Session Name
+        //   Programme | Batch | Batch Group | Term | Division | Course - Session Name
         List<String> summaryParts = new List<String>();
         if (String.isNotBlank(programmeCode)) { summaryParts.add(programmeCode); }
         if (String.isNotBlank(batchName))     { summaryParts.add(batchName); }
-        if (String.isNotBlank(academicYear))  { summaryParts.add(academicYear); }
+        if (String.isNotBlank(batchGroup))    { summaryParts.add(batchGroup); }
         if (String.isNotBlank(termName))      { summaryParts.add(termName); }
         if (String.isNotBlank(divisionText))  { summaryParts.add(divisionText); }
         if (String.isNotBlank(courseSession)) { summaryParts.add(courseSession); }
@@ -284,8 +292,8 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         if (String.isNotBlank(batchName)) {
             detailLines.add('Batch: ' + batchName);
         }
-        if (String.isNotBlank(academicYear)) {
-            detailLines.add('Academic Year: ' + academicYear);
+        if (String.isNotBlank(batchGroup)) {
+            detailLines.add('Batch Group: ' + batchGroup);
         }
         if (String.isNotBlank(termName)) {
             detailLines.add('Term: ' + termName);
@@ -293,11 +301,23 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         if (String.isNotBlank(divisionText)) {
             detailLines.add('Division: ' + divisionText);
         }
+        if (String.isNotBlank(departmentName)) {
+            detailLines.add('Department: ' + departmentName);
+        }
         if (String.isNotBlank(courseSession)) {
             detailLines.add('Course: ' + courseSession);
         }
+        if (String.isNotBlank(s.Course_Activity__c)) {
+            detailLines.add('Course Activity: ' + s.Course_Activity__c);
+        }
+        if (String.isNotBlank(s.Session_Type__c)) {
+            detailLines.add('Session Type: ' + s.Session_Type__c);
+        }
         if (String.isNotBlank(s.Class_Room__c)) {
             detailLines.add('Room: ' + s.Class_Room__c);
+        }
+        if (String.isNotBlank(s.Remark__c)) {
+            detailLines.add('Remark: ' + s.Remark__c);
         }
 
         String descText = String.join(detailLines, '\n');

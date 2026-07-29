@@ -3,7 +3,7 @@
 private class AttendanceLogCleanupSchedulerTest {
 
     @IsTest
-    static void schedulesWeeklyCleanupJob() {
+    static void schedulesEvery2DaysCleanupJob() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             Test.startTest();
             AttendanceLogCleanupScheduler.scheduleAll();
@@ -13,12 +13,12 @@ private class AttendanceLogCleanupSchedulerTest {
         List<CronTrigger> jobs = [
             SELECT CronExpression
             FROM CronTrigger
-            WHERE CronJobDetail.Name = 'Attendance_Cleanup_Weekly'
+            WHERE CronJobDetail.Name = 'Attendance_Cleanup_Every2Days'
         ];
         System.assertEquals(1, jobs.size(),
-            'Weekly cleanup job should be scheduled');
-        System.assertEquals('59 59 23 ? * 1', jobs[0].CronExpression,
-            'Cron should fire every Sunday at 11:59:59 PM');
+            'Every-2-days cleanup job should be scheduled');
+        System.assertEquals('59 59 23 1/2 * ?', jobs[0].CronExpression,
+            'Cron should fire every 2 days at 11:59:59 PM');
     }
 
     @IsTest

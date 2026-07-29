@@ -6,21 +6,6 @@
   @last modified by  : 
 -->
 <template>
-    <!-- 491 start-->
-    <!-- Custom Notification Banner -->
-    <template if:true={showBanner}>
-        <div class={bannerClass}>
-            <span>{bannerMessage}</span>
-            <lightning-button-icon
-                class="banner-close-btn"
-                icon-name="utility:close"
-                alternative-text="Close"
-                onclick={closeBanner}
-                variant="bare-inverse">
-            </lightning-button-icon>
-        </div>
-    </template>
-    <!-- 491 end-->
     <div class="dashboard-container">
         <!-- Dashboard Body -->
         <div class="dashboard-body">
@@ -54,12 +39,15 @@
                             ></lightning-button-icon>
                         </div>
                     </template>
+
                     <div class="student-details-header-bar">
                         <h2 class="student-details-header-text dxp-text-heading-xxsmall">Student Details</h2>
                     </div>
+
                     <div class="slds-m-top--large studentDetailsCard">
                         <article class="slds-card article-card">
                             <!-- Student Details Header -->
+
                             <div class="slds-card__body slds-card__body_inner slds-m-top--x-large">
                                 <div class="slds-grid slds-gutters">
                                     <!-- Left: Profile Placeholder + Upload Photo -->
@@ -93,6 +81,7 @@
                                             </div>
                                         </template>
                                     </div>
+
                                     <!-- Middle: User Details -->
                                     <div class="slds-col slds-m-left--large slds-size_7-of-12">
                                         <div class="slds-grid slds-gutters slds-size--2-of-4">
@@ -112,14 +101,23 @@
                                             </div> -->
                                         </div>
                                     </div>
+
                                     <!-- Right: Action Button -->
                                     <div class="slds-col slds-size_3-of-12 slds-text-align_right slds-m-left--xx-large">
-                                        <lightning-button label="Change of Specialization" variant="brand" disabled={isSpecializationButtonDisabled}
-                                            class="specialization-button" onclick={handleChangeSpecialization}>
-                                        </lightning-button>
+                                        <div class="action-button-stack">
+                                            <lightning-button label="Change of Specialization" variant="brand" disabled
+                                                class="specialization-button" onclick={handleChangeSpecialization}>
+                                            </lightning-button>
+                                            <!-- SE-1156: enabled only within the student's batch period -->
+                                            <lightning-button label="Request Withdrawal" variant="destructive"
+                                                class="withdrawal-button" disabled={isWithdrawalDisabled}
+                                                title={withdrawalTooltip} onclick={handleRequestWithdrawal}>
+                                            </lightning-button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
                             <!-- Three Column Sections -->
                             <div class="slds-card__body slds-card__body_inner slds-m-top--x-large">
                                 <div class="slds-grid slds-gutters">
@@ -143,6 +141,7 @@
                                             </dd>
                                         </dl>
                                             </div>
+
                                         <h3 class="slds-section-title dxp-text-heading-xsmall section-title slds-m-top_medium">
                                             Contact info</h3>
                                             <div  style="margin-left:5px">
@@ -177,6 +176,7 @@
                                         </div>
                                             </div>
                                     </div>
+
                                     <!-- Middle Column: Academic Background -->
                                     <div class="slds-col slds-size_1-of-3">
                                         <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Academic
@@ -214,6 +214,7 @@
                                         Download certificate</button>
                                         </div> -->
                                     </div>
+
                                     <div class="slds-col slds-size_1-of-3">
                                         <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Work Experience
                                         </h3>
@@ -249,6 +250,7 @@
                                         Download certificate</button>
                                         </div> -->
                                     </div>
+
                                     <!-- Right Column: Fees Section -->
                                     <!-- <div class="slds-col slds-size_1-of-3">
                                         <h3 class="slds-section-title dxp-text-heading-xsmall section-title">Fees
@@ -307,6 +309,7 @@
                             &times;
                         </button>
                     </header>
+
                     <div class="slds-modal__content emergency-modal__content" id="emergency-modal-content">
                         <!-- Parent Contact Details -->
                         <div class="emergency-section">
@@ -323,6 +326,7 @@
                                     </button>
                                 </template>
                             </div>
+
                             <template if:true={hasParentRecord}>
                                 <div class="emergency-card">
                                     <div class="emergency-row">
@@ -357,6 +361,7 @@
                                 </div>
                             </template>
                         </div>
+
                         <!-- Local Guardian Contact Details -->
                         <div class="emergency-section">
                             <div class="emergency-section__header">
@@ -372,6 +377,7 @@
                                     </button>
                                 </template>
                             </div>
+
                             <template if:true={hasGuardianRecord}>
                                 <div class="emergency-card">
                                     <div class="emergency-row">
@@ -411,6 +417,7 @@
             </section>
             <div class="slds-backdrop slds-backdrop_open"></div>
         </template>
+
         <!-- Edit Emergency Contact Modal -->
         <template if:true={isEditModalOpen}>
             <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open emergency-modal">
@@ -421,6 +428,7 @@
                             &times;
                         </button>
                     </header>
+
                     <div class="slds-modal__content emergency-modal__content">
                         <div class="emergency-section">
                             <h3 class="dxp-text-heading-xsmall emergency-section__title slds-m-bottom_medium">Emergency Contact Details</h3>
@@ -453,6 +461,7 @@
                                     </lightning-combobox>
                                 </div>
                             </div>
+
                             <div class="slds-grid slds-gutters slds-m-bottom_medium">
                                 <div class="slds-col slds-size_1-of-2">
                                     <lightning-input 
@@ -480,6 +489,7 @@
                                     </lightning-input>
                                 </div>
                             </div>
+
                             <div class="slds-grid slds-gutters slds-m-bottom_medium">
                                 <div class="slds-col">
                                     <lightning-textarea
@@ -494,6 +504,7 @@
                                     </lightning-textarea>
                                 </div>
                             </div>
+
                             <div class="slds-text-align_center slds-m-top_large">
                                 <lightning-button 
                                     label="Save & Submit" 
@@ -509,6 +520,7 @@
             </section>
             <div class="slds-backdrop slds-backdrop_open"></div>
         </template>
+
         <!-- Profile photo: batch instructions before file picker -->
         <template if:true={isPhotoUploadInstructionModalOpen}>
             <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="photo-upload-instruction-title"
@@ -550,148 +562,6 @@
             </section>
             <div class="slds-backdrop slds-backdrop_open"></div>
         </template>
-        <!--491 start -->
-        <template if:true={isSpecializationModalOpen}>
-            <section
-                role="dialog"
-                tabindex="-1"
-                class="slds-modal slds-fade-in-open custom-modal">
-                <div class="slds-modal__container">
-                    <!-- Header -->
-                    <div class="modal-header">
-                        <h2 class="modal-title">
-                            Change Specialization
-                        </h2>
-
-                        <lightning-button-icon
-                            icon-name="utility:close"
-                            variant="bare"
-                            alternative-text="Close"
-                            onclick={closeSpecializationModal}
-                            class="close-btn">
-                        </lightning-button-icon>
-                    </div>
-                    <!-- Body -->
-                    <div class="modal-body">
-                        <!-- Latest Request Card -->
-                        <template if:true={latestRequest}>
-                            <div class="request-status-card">
-                                <div class="status-header">
-                                    Latest Request
-                                </div>
-                                <div class="status-row">
-                                    <span class="label">
-                                        Requested Specialization:
-                                    </span>
-                                    <span>
-                                        {latestRequest.requestedSpecialization}
-                                    </span>
-                                </div>
-                                <div class="status-row">
-                                    <span class="label">
-                                        Status:
-                                    </span>
-                                    <span class={statusClass}>
-                                        {latestRequest.status}
-                                    </span>
-                                </div>
-                                <div class="status-row">
-                                    <span class="label">
-                                        Requested On:
-                                    </span>
-                                    <span>
-                                        {latestRequest.createdDate}
-                                    </span>
-                                </div>
-                            </div>
-                        </template>
-                        <!-- History Table -->
-                        <template if:true={requestHistory.length}>
-                            <div class="slds-m-top_medium">
-                                <h3 class="section-heading">
-                                    Request History
-                                </h3>
-                                <div class="history-table-wrapper">
-                                    <lightning-datatable
-                                        key-field="id"
-                                        data={requestHistory}
-                                        columns={requestColumns}
-                                        hide-checkbox-column>
-                                    </lightning-datatable>
-                                </div>
-                            </div>
-                        </template>
-                        <!-- Pending Request Banner -->
-                        <template if:true={hasPendingRequest}>
-                            <div class="pending-banner">
-                                A specialization change request is
-                                already under review.
-
-                                You cannot submit another request
-                                until the current request is processed.
-
-                            </div>
-                        </template>
-                        <!-- New Request Form -->
-                        <template if:false={hasPendingRequest}>
-                            <div class="slds-m-top_large">
-                                <h3 class="section-heading">
-                                    Create New Request
-                                </h3>
-                                <!-- Your existing specialization table -->
-                                <div class="specialization-table-wrapper">
-                                    <table class="slds-table slds-table_bordered">
-                                        <thead>
-                                            <tr>
-                                                <th>Specialization</th>
-                                                <th>Select</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <template for:each={specializationOptions} for:item="option">
-                                                <tr key={option.specializationId}>
-                                                    <td>
-                                                        {option.specializationName}
-                                                    </td>
-                                                    <td>
-                                                        <lightning-input
-                                                            type="radio"
-                                                            name="specialization"
-                                                            data-id={option.specializationId}
-                                                            checked={option.selected}
-                                                            onchange={handleSpecializationSelection}>
-                                                        </lightning-input>
-                                                    </td>
-                                                </tr>
-                                            </template>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <lightning-textarea
-                                    label="Reason"
-                                    value={specializationChangeReason}
-                                    onchange={handleReasonChange}
-                                    class="slds-m-top_medium">
-                                </lightning-textarea>
-                            </div>
-                        </template>
-                    </div>
-                    <!-- Footer -->
-                    <div class="modal-footer">
-                        <lightning-button
-                            label="Cancel"
-                            onclick={closeSpecializationModal}>
-                        </lightning-button>
-                        <lightning-button
-                            variant="brand"
-                            label="Submit"
-                            onclick={handleSubmitSpecialization}>
-                        </lightning-button>
-                    </div>
-                </div>
-            </section>
-            <div class="slds-backdrop slds-backdrop_open"></div>
-        </template>
-        <!--491 end -->
     </div>
+
 </template>

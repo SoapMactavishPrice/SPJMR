@@ -1,0 +1,119 @@
+.filters-top-section {
+    padding: 1rem;
+    background: #ffffff;
+}
+
+.filters-top-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-item {
+    width: 100%;
+}
+
+.button-section {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.generate-btn {
+    margin-left: .75rem;
+}
+
+@media only screen and (max-width:768px) {
+    .filters-top-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .button-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .generate-btn {
+        margin-left: 0;
+        margin-top: .75rem;
+    }
+}
+
+/* ---------- Preview / report table ---------- */
+
+.preview-wrapper {
+    margin-top: 1.5rem;
+    padding: 0 1rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* keep the whole preview block inside the card */
+}
+
+.preview-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 500px;
+    border: 1px solid #dddbda;
+    box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
+}
+
+.preview-table {
+    border-collapse: collapse;
+    width: max-content;   /* let the table grow as wide as it needs, scroll container handles overflow */
+    min-width: 100%;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.preview-table th,
+.preview-table td {
+    border: 1px solid #dddbda;
+    padding: 6px 8px;
+    text-align: center;
+}
+
+.preview-table thead th {
+    background: #f3f2f2;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.preview-table .session-header {
+    background: #eef4ff;
+}
+
+/* Roll Number / Student Name / label columns pinned so they stay visible while scrolling horizontally */
+.preview-table th.label-col,
+.preview-table td.label-col {
+    position: sticky;
+    left: 0;
+    background: #ffffff;
+    z-index: 2;
+}
+
+.preview-table thead th.label-col {
+    z-index: 3; /* stays above both sticky header row and sticky column */
+    background: #f3f2f2;
+}
+
+.no-data-msg {
+    text-align: center;
+    padding: 2rem;
+    color: #706e6b;
+}
+.preview-table .summary-header {
+    background: #fef3e2;
+    white-space: normal;
+    min-width: 90px;
+}
+
+.preview-table .summary-col {
+    font-weight: 600;
+}
