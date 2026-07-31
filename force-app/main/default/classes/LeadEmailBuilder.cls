@@ -82,14 +82,14 @@ public without sharing class LeadEmailBuilder {
         '<table border="0" style="width: 100%; text-align: center; border-collapse: collapse;">' +
             '<tr>' +
                     '<td style="width: 50%; text-align: center; padding: 10px;">' +
-                    '<img src="https://platform-energy-10.file.force.com/sfc/dist/version/download/?oid=00DdN00000UKZDF&ids=068OS00000HhGpW&d=%2Fa%2FOS000004pTP4%2FHGj69FkH73m3IykmWhrnPeOUC1sVTbBGMN1KV9Z0RHI&asPdf=false"/>' +
+                    '<img src="https://platform-energy-10.file.force.com/sfc/dist/version/download/?oid=00DdN00000UKZDF&ids=068OS00000HhGpW&d=%2Fa%2FOS000004pTP4%2FHGj69FkH73m3IykmWhrnPeOUC1sVTbBGMN1KV9Z0RHI&asPdf=false" style="width:20%; max-width:180px; height:auto; display:block; margin:0 auto;"/>' +
                 '</td>' +
             '</tr>' +
         '</table>' +
 
         '<p>Dear ' + (l.FirstName != null ? l.FirstName : 'Applicant') + ' ' + (l.LastName != null ? l.LastName : '') + ',</p>' +
 
-        '<p>Thank you for expressing your interest in the</p><b> ' + programText + ' </b></p> <p>at S.P. Jain Institute of Management and Research (SPJIMR).</p>' +
+        '<p>Thank you for expressing your interest in the<b> ' + programText + ' </b>at S.P. Jain Institute of Management and Research (SPJIMR).' +
         '<p>To proceed, please verify your email address by clicking the button below. </p>'+
 
         '<div style="text-align:center; margin:20px 0;">' +
@@ -122,14 +122,14 @@ public without sharing class LeadEmailBuilder {
         '<table border="0" style="width: 100%; text-align: center; border-collapse: collapse;">' +
             '<tr>' +
                     '<td style="width: 50%; text-align: center; padding: 10px;">' +
-                    '<img src="https://platform-energy-10.file.force.com/sfc/dist/version/download/?oid=00DdN00000UKZDF&ids=068OS00000HhGpW&d=%2Fa%2FOS000004pTP4%2FHGj69FkH73m3IykmWhrnPeOUC1sVTbBGMN1KV9Z0RHI&asPdf=false" style="width:50%;"/>' +
+                    '<img src="https://platform-energy-10.file.force.com/sfc/dist/version/download/?oid=00DdN00000UKZDF&ids=068OS00000HhGpW&d=%2Fa%2FOS000004pTP4%2FHGj69FkH73m3IykmWhrnPeOUC1sVTbBGMN1KV9Z0RHI&asPdf=false" style="width:20%; max-width:180px; height:auto; display:block; margin:0 auto;"/>' +
                 '</td>' +
             '</tr>' +
         '</table>'
         +
         '<p>Dear ' + l.FirstName + ',</p>' +
 
-        '<p>Thank you for expressing your interest in the </p>' +'<b> ' + programText + ' </b></p> <p>at S.P. Jain Institute of Management and Research (SPJIMR).</p>' +
+        '<p>Thank you for expressing your interest in the ' +'<b>' + programText + '</b> at S.P. Jain Institute of Management and Research (SPJIMR).' +
         '<p>To proceed, please sign in to the application Portal. </p>'+
         '<p>Username: <b>' + username + '</b></p>' +
         '<p><a href="' + communityUrl + '/applicationportal">Go to Portal</a></p>' +

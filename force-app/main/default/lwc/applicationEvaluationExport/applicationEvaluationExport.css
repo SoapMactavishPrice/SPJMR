@@ -1,0 +1,82 @@
+.export-shell {
+    background-color: #ffffff;
+    padding: 1.5rem;
+}
+
+.export-panel {
+    border: 1px solid #080707;
+    min-height: 420px;
+    padding: 2.5rem 4rem;
+}
+
+.export-title {
+    border: 1px solid #080707;
+    color: #080707;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 2.5rem;
+    margin: 0 auto 3.5rem;
+    max-width: 660px;
+    text-align: center;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
+    gap: 1rem 5.5rem;
+    max-width: 660px;
+    margin: 0 auto;
+}
+
+.field-cell {
+    min-width: 0;
+}
+
+.action-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 2.5rem;
+}
+
+.email-row {
+    max-width: 660px;
+    margin: 1.5rem auto 0;
+}
+
+.email-help {
+    color: #706e6b;
+    font-size: 0.75rem;
+    margin-left: 1.5rem;
+    margin-top: 0.25rem;
+}
+
+.files-block {
+    max-width: 660px;
+    margin: 2.5rem auto 0;
+    color: #080707;
+}
+
+.files-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.file-link,
+.no-files {
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 700px) {
+    .export-panel {
+        padding: 1.5rem;
+    }
+
+    .export-title {
+        margin-bottom: 2rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}

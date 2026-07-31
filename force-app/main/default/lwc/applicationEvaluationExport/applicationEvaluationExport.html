@@ -1,0 +1,117 @@
+<template>
+    <div class="export-shell">
+        <div class="export-panel">
+            <div class="export-title">APPLICATION EVALUATION EXPORT</div>
+
+            <div class="form-grid">
+                <div class="field-cell">
+                    <lightning-record-picker
+                        label="Program"
+                        object-api-name="Program"
+                        placeholder="Search programs..."
+                        onchange={handleProgramChange}
+                        required>
+                    </lightning-record-picker>
+                </div>
+
+                <div class="field-cell">
+                    <lightning-record-picker
+                        label="Round"
+                        object-api-name="RoundMaster__c"
+                        placeholder="Search rounds..."
+                        value={roundId}
+                        filter={roundFilter}
+                        onchange={handleRoundChange}
+                        disabled={isRoundDisabled}
+                        required>
+                    </lightning-record-picker>
+                </div>
+
+                <div class="field-cell">
+                    <lightning-input
+                        type="date"
+                        label="Slot Start Date"
+                        value={slotStartDate}
+                        max={today}
+                        onchange={handleStartDateChange}>
+                    </lightning-input>
+                </div>
+
+                <div class="field-cell">
+                    <lightning-input
+                        type="date"
+                        label="Slot End Date"
+                        value={slotEndDate}
+                        min={slotStartDate}
+                        max={today}
+                        disabled={isEndDateDisabled}
+                        onchange={handleEndDateChange}>
+                    </lightning-input>
+                </div>
+            </div>
+
+            <div class="email-row">
+                <lightning-input
+                    type="checkbox"
+                    label="Email me the download links when the export completes."
+                    checked={sendEmail}
+                    onchange={handleEmailCheckbox}>
+                </lightning-input>
+                <div class="email-help">
+                    If selected, an email containing all generated CSV download links will be sent after the export completes.
+                </div>
+            </div>
+
+            <div class="action-row">
+                <lightning-button
+                    label="Start Export"
+                    variant="brand"
+                    onclick={startExport}
+                    disabled={isExportDisabled}>
+                </lightning-button>
+            </div>
+
+            <template if:true={showFiles}>
+                <div class="files-block">
+                    <div class="files-title">Generated Files:</div>
+
+                    <template if:true={files.length}>
+                        <template for:each={files} for:item="file">
+                            <div key={file.documentId} class="file-link">
+                                <a href={file.downloadUrl} target="_blank">{file.name}</a>
+                            </div>
+                        </template>
+                    </template>
+
+                    <template if:false={files.length}>
+                        <div class="no-files">No records found.</div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <template if:true={showConfirmation}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Confirm Export</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p><strong>{recordCount}</strong> evaluation(s) will be exported.</p>
+                    <p class="slds-m-top_small">Do you want to proceed with the export?</p>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={cancelExport}></lightning-button>
+                    <lightning-button
+                        class="slds-m-left_small"
+                        label="Proceed"
+                        variant="brand"
+                        onclick={confirmExport}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

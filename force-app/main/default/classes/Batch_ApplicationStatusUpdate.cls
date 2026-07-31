@@ -271,12 +271,20 @@ public with sharing class Batch_ApplicationStatusUpdate
             payload.fileName = cv.Title + '.csv';
             payload.contentDocumentId = cv.ContentDocumentId;
             payload.downloadUrl = downloadLink;
+
+            insert new Export_Job__c(
+                DocumentId__c = cv.ContentDocumentId,
+                JobId__c = bc.getJobId(),
+                Name = cv.Title,
+                Status__c = 'Completed'
+            );
         }else{
             payload.status = 'Completed';
             payload.hasErrors = false;
             payload.errorCount = 0;
         }
 
+        try {
         AdmissionConsoleEvent__e appEvent = new AdmissionConsoleEvent__e();
         appEvent.UserId__c = UserInfo.getUserId();
         appEvent.Intent__c = 'ApplicationImport';
@@ -317,11 +325,34 @@ public with sharing class Batch_ApplicationStatusUpdate
             mail.setPlainTextBody(body);
             Messaging.sendEmail(new Messaging.SingleEmailMessage[]{ mail });
         }
+        } finally {
+            deleteUploadedFiles();
+        }
     }
 
     private void logError(String msg) {
         if (errorMessages.size() < MAX_ERROR_LOGS) {
             errorMessages.add(msg);
+        }
+    }
+
+    private void deleteUploadedFiles() {
+        if (contentVersionIds == null || contentVersionIds.isEmpty()) {
+            return;
+        }
+
+        List<ContentDocument> documentsToDelete = [
+            SELECT Id
+            FROM ContentDocument
+            WHERE Id IN (
+                SELECT ContentDocumentId
+                FROM ContentVersion
+                WHERE Id IN :contentVersionIds
+            )
+        ];
+
+        if (!documentsToDelete.isEmpty()) {
+            delete documentsToDelete;
         }
     }
 

@@ -6,7 +6,7 @@ import getSlotBookingsBySlotMaster from '@salesforce/apex/InterviewController.ge
 import getEvaluationId from '@salesforce/apex/InterviewController.getEvaluationId';
 import getEvaluationCriteria from '@salesforce/apex/InterviewController.getEvaluationCriteria';
 import upsertIndividualResults from '@salesforce/apex/InterviewController.upsertIndividualResults';
-import finishInterview from '@salesforce/apex/InterviewController.finishInterview';
+import completeInterviewsBulk from '@salesforce/apex/InterviewController.completeInterviewsBulk';
 import checkInterviewStatus from '@salesforce/apex/InterviewController.checkInterviewStatus';
 import getScoringConfig from '@salesforce/apex/InterviewController.getScoringConfig';
 import saveEvaluatorComment from '@salesforce/apex/InterviewController.saveEvaluatorComment';
@@ -286,24 +286,39 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
         this.showModal = false;
         this.isSaving  = true;
         try {
-            for (const b of this._bookings) {
-                if (this._getState(b.id).isFinished) continue;
-
-                const evalId = await this._saveBookingData(b.id);
-                if (!evalId) continue;
-
-                const result = await finishInterview({ evaluationId: evalId });
-                if (result === 'Success') {
-                    this._mutateState(b.id, s => { s.isFinished = true; });
-                } else {
-                    this.dispatchEvent(new ShowToastEvent({
-                        title  : `Could not complete for ${b.applicantName}`,
-                        message: result || 'Unexpected error.',
-                        variant: 'error'
-                    }));
-                }
+            const requests = this._buildBulkCompleteRequests();
+            if (!requests.length) {
+                this.dispatchEvent(new ShowToastEvent({ title: 'Interview Completed', variant: 'success' }));
+                return;
             }
-            this.dispatchEvent(new ShowToastEvent({ title: 'Interview Completed', variant: 'success' }));
+
+            const results = await completeInterviewsBulk({
+                payload: JSON.stringify(requests)
+            });
+
+            const failures = [];
+            this._bookings.forEach(b => {
+                const result = results?.[b.id];
+                if (result === 'Success' || result === 'Already Complete') {
+                    this._mutateState(b.id, s => {
+                        s.isFinished = true;
+                        s.scoreBuffer = [];
+                        s.commentDirty = false;
+                    });
+                } else if (result) {
+                    failures.push(`${b.applicantName || 'Applicant'}: ${result}`);
+                }
+            });
+
+            if (failures.length) {
+                this.dispatchEvent(new ShowToastEvent({
+                    title  : 'Some Interviews Could Not Be Completed',
+                    message: failures.join(' | '),
+                    variant: 'error'
+                }));
+            } else {
+                this.dispatchEvent(new ShowToastEvent({ title: 'Interview Completed', variant: 'success' }));
+            }
         } catch (err) {
             this.dispatchEvent(new ShowToastEvent({
                 title  : 'Error Completing Interview',
@@ -313,6 +328,28 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
         } finally {
             this.isSaving = false;
         }
+    }
+
+    _buildBulkCompleteRequests() {
+        return this._bookings
+            .filter(b => !this._getState(b.id).isFinished)
+            .map(b => {
+                const state = this._getState(b.id);
+                const scores = state.criteriaResults
+                    .filter(c => c.score !== undefined && c.score !== null && c.score !== '')
+                    .map(c => ({
+                        scoringTemplateId: c.Id,
+                        score            : c.score,
+                        comment          : c.comment || ''
+                    }));
+
+                return {
+                    bookingId       : b.id,
+                    evaluationId    : state.evalId,
+                    evaluatorComment: state.evaluatorComment || '',
+                    scores
+                };
+            });
     }
 
     async renderedCallback() {

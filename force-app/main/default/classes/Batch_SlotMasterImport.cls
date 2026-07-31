@@ -59,13 +59,18 @@ global without sharing class Batch_SlotMasterImport implements Database.Batchabl
             'hasErrors' => failedCount > 0
         };
         if (failedCount > 0) {
-            createErrorReport(payload);
+            createErrorReport(payload, bc.getJobId());
         }
 
-        publishCompletionEvent(payload);
-        if (emailErrorReport) {
-            sendCompletionEmail();
+        try{
+            publishCompletionEvent(payload);
+            if (emailErrorReport) {
+                sendCompletionEmail();
+            }
+        }finally{
+            deleteUploadedFiles();
         }
+        
     }
 
     private void initialiseErrorReport() {
@@ -346,7 +351,7 @@ global without sharing class Batch_SlotMasterImport implements Database.Batchabl
         return '"' + (value == null ? '' : value.replace('"', '""')) + '"';
     }
 
-    private void createErrorReport(Map<String, Object> payload) {
+    private void createErrorReport(Map<String, Object> payload, Id batchJobId) {
         ContentVersion version = new ContentVersion(
             Title = 'SlotMaster_Import_Error_Report',
             PathOnClient = 'SlotMaster_Import_Error_Report.csv',
@@ -355,6 +360,12 @@ global without sharing class Batch_SlotMasterImport implements Database.Batchabl
         insert version;
         version = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :version.Id LIMIT 1];
         errorContentDocumentId = version.ContentDocumentId;
+        insert new Export_Job__c(
+            DocumentId__c = errorContentDocumentId,
+            JobId__c = batchJobId,
+            Name = 'SlotMaster_Import_Error_Report',
+            Status__c = 'Completed'
+        );
         payload.put('fileName', 'SlotMaster_Import_Error_Report.csv');
         payload.put('contentDocumentId', errorContentDocumentId);
         payload.put('downloadUrl', URL.getOrgDomainUrl().toExternalForm() +
@@ -383,5 +394,26 @@ global without sharing class Batch_SlotMasterImport implements Database.Batchabl
         email.setSubject('Slot Master Import Completed');
         email.setHtmlBody(body);
         Messaging.sendEmail(new Messaging.SingleEmailMessage[]{ email });
+    }
+
+
+    private void deleteUploadedFiles() {
+        if (contentVersionIds == null || contentVersionIds.isEmpty()) {
+            return;
+        }
+
+        List<ContentDocument> documentsToDelete = [
+            SELECT Id
+            FROM ContentDocument
+            WHERE Id IN (
+                SELECT ContentDocumentId
+                FROM ContentVersion
+                WHERE Id IN :contentVersionIds
+            )
+        ];
+
+        if (!documentsToDelete.isEmpty()) {
+            delete documentsToDelete;
+        }
     }
 }

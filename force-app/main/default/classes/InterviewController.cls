@@ -317,6 +317,13 @@ for (ApplicationSlotBooking__c slot : slots) {
         @AuraEnabled public Decimal score;
         @AuraEnabled public String comment;
     }
+
+    public class BulkCompleteRequest {
+        @AuraEnabled public Id bookingId;
+        @AuraEnabled public Id evaluationId;
+        @AuraEnabled public String evaluatorComment;
+        @AuraEnabled public List<ScoreWrapper> scores;
+    }
     
     @AuraEnabled
     public static void upsertIndividualResults(
@@ -385,6 +392,206 @@ for (ApplicationSlotBooking__c slot : slots) {
         if (!toUpsert.isEmpty()) {
             upsert toUpsert;
         }
+    }
+
+    @AuraEnabled
+    public static Map<String, String> completeInterviewsBulk(String payload) {
+        if (String.isBlank(payload)) {
+            return new Map<String, String>();
+        }
+
+        List<BulkCompleteRequest> requests = (List<BulkCompleteRequest>) JSON.deserialize(
+            payload,
+            List<BulkCompleteRequest>.class
+        );
+
+        if (requests == null || requests.isEmpty()) {
+            return new Map<String, String>();
+        }
+
+        Id currentAccId = getCurrentEvaluatorAccountId();
+        if (currentAccId == null) {
+            throw new AuraHandledException('Evaluator account was not found for the current user.');
+        }
+
+        Account currentEvaluator = [
+            SELECT Id, Name
+            FROM Account
+            WHERE Id = :currentAccId
+            LIMIT 1
+        ];
+
+        Set<Id> bookingIds = new Set<Id>();
+        Set<Id> evaluationIds = new Set<Id>();
+        for (BulkCompleteRequest request : requests) {
+            if (request == null) continue;
+            if (request.bookingId != null) bookingIds.add(request.bookingId);
+            if (request.evaluationId != null) evaluationIds.add(request.evaluationId);
+        }
+
+        Map<Id, Evaluation__c> evaluationById = new Map<Id, Evaluation__c>();
+        Map<Id, Evaluation__c> evaluationByBookingId = new Map<Id, Evaluation__c>();
+
+        if (!evaluationIds.isEmpty()) {
+            for (Evaluation__c evaluation : [
+                SELECT Id, Application_Slot_Booking__c, Status__c, EvaluatedUser__c, EvaluatorComments__c
+                FROM Evaluation__c
+                WHERE Id IN :evaluationIds
+            ]) {
+                evaluationById.put(evaluation.Id, evaluation);
+                if (evaluation.Application_Slot_Booking__c != null) {
+                    evaluationByBookingId.put(evaluation.Application_Slot_Booking__c, evaluation);
+                }
+            }
+        }
+
+        if (!bookingIds.isEmpty()) {
+            for (Evaluation__c evaluation : [
+                SELECT Id, Application_Slot_Booking__c, Status__c, EvaluatedUser__c, EvaluatorComments__c
+                FROM Evaluation__c
+                WHERE Application_Slot_Booking__c IN :bookingIds
+                AND EvaluatedUser__c = :currentAccId
+            ]) {
+                evaluationById.put(evaluation.Id, evaluation);
+                evaluationByBookingId.put(evaluation.Application_Slot_Booking__c, evaluation);
+            }
+        }
+
+        Map<String, String> results = new Map<String, String>();
+        List<Evaluation__c> evaluationsToInsert = new List<Evaluation__c>();
+        Map<Integer, BulkCompleteRequest> insertIndexToRequest = new Map<Integer, BulkCompleteRequest>();
+
+        for (BulkCompleteRequest request : requests) {
+            if (request == null || request.bookingId == null) {
+                continue;
+            }
+
+            Evaluation__c evaluation = request.evaluationId == null
+                ? null
+                : evaluationById.get(request.evaluationId);
+
+            if (evaluation == null) {
+                evaluation = evaluationByBookingId.get(request.bookingId);
+            }
+
+            if (evaluation == null) {
+                Evaluation__c newEvaluation = new Evaluation__c(
+                    Application_Slot_Booking__c = request.bookingId,
+                    EvaluatedUser__c = currentAccId,
+                    EvaluatedBy__c = currentEvaluator.Name,
+                    Status__c = 'Pending'
+                );
+                insertIndexToRequest.put(evaluationsToInsert.size(), request);
+                evaluationsToInsert.add(newEvaluation);
+            } else if (evaluation.EvaluatedUser__c != currentAccId) {
+                results.put((String) request.bookingId, 'You are not authorized to complete this evaluation.');
+            } else if (evaluation.Status__c == 'Complete') {
+                results.put((String) request.bookingId, 'Already Complete');
+            }
+        }
+
+        if (!evaluationsToInsert.isEmpty()) {
+            insert evaluationsToInsert;
+
+            for (Integer i = 0; i < evaluationsToInsert.size(); i++) {
+                BulkCompleteRequest request = insertIndexToRequest.get(i);
+                Evaluation__c evaluation = evaluationsToInsert[i];
+                evaluationById.put(evaluation.Id, evaluation);
+                evaluationByBookingId.put(request.bookingId, evaluation);
+                request.evaluationId = evaluation.Id;
+            }
+        }
+
+        Set<Id> targetEvaluationIds = new Set<Id>();
+        for (BulkCompleteRequest request : requests) {
+            if (request == null || request.bookingId == null || results.containsKey((String) request.bookingId)) {
+                continue;
+            }
+
+            Evaluation__c evaluation = request.evaluationId == null
+                ? null
+                : evaluationById.get(request.evaluationId);
+
+            if (evaluation == null) {
+                evaluation = evaluationByBookingId.get(request.bookingId);
+            }
+
+            if (evaluation != null && evaluation.Status__c != 'Complete' && evaluation.EvaluatedUser__c == currentAccId) {
+                targetEvaluationIds.add(evaluation.Id);
+            }
+        }
+
+        Map<String, Individual_Criteria_Result__c> existingResultByKey = new Map<String, Individual_Criteria_Result__c>();
+        if (!targetEvaluationIds.isEmpty()) {
+            for (Individual_Criteria_Result__c result : [
+                SELECT Id, Evaluation__c, Scoring_Template__c
+                FROM Individual_Criteria_Result__c
+                WHERE Evaluation__c IN :targetEvaluationIds
+            ]) {
+                existingResultByKey.put(criteriaResultKey(result.Evaluation__c, result.Scoring_Template__c), result);
+            }
+        }
+
+        List<Individual_Criteria_Result__c> criteriaResultsToUpsert = new List<Individual_Criteria_Result__c>();
+        Map<Id, Evaluation__c> evaluationsToCompleteById = new Map<Id, Evaluation__c>();
+
+        for (BulkCompleteRequest request : requests) {
+            if (request == null || request.bookingId == null || results.containsKey((String) request.bookingId)) {
+                continue;
+            }
+
+            Evaluation__c evaluation = request.evaluationId == null
+                ? null
+                : evaluationById.get(request.evaluationId);
+
+            if (evaluation == null) {
+                evaluation = evaluationByBookingId.get(request.bookingId);
+            }
+
+            if (evaluation == null) {
+                results.put((String) request.bookingId, 'Evaluation not found.');
+                continue;
+            }
+
+            if (request.scores != null) {
+                for (ScoreWrapper score : request.scores) {
+                    if (score == null || score.scoringTemplateId == null) continue;
+
+                    String key = criteriaResultKey(evaluation.Id, score.scoringTemplateId);
+                    Individual_Criteria_Result__c result = existingResultByKey.get(key);
+                    if (result == null) {
+                        result = new Individual_Criteria_Result__c(
+                            Evaluation__c = evaluation.Id,
+                            Scoring_Template__c = score.scoringTemplateId
+                        );
+                        existingResultByKey.put(key, result);
+                    }
+
+                    result.Score__c = score.score;
+                    result.Comments__c = score.comment;
+                    criteriaResultsToUpsert.add(result);
+                }
+            }
+
+            evaluation.EvaluatorComments__c = request.evaluatorComment;
+            evaluation.Status__c = 'Complete';
+            evaluationsToCompleteById.put(evaluation.Id, evaluation);
+            results.put((String) request.bookingId, 'Success');
+        }
+
+        if (!criteriaResultsToUpsert.isEmpty()) {
+            upsert criteriaResultsToUpsert;
+        }
+
+        if (!evaluationsToCompleteById.isEmpty()) {
+            update evaluationsToCompleteById.values();
+        }
+
+        return results;
+    }
+
+    private static String criteriaResultKey(Id evaluationId, Id scoringTemplateId) {
+        return String.valueOf(evaluationId) + '-' + String.valueOf(scoringTemplateId);
     }
     
     
