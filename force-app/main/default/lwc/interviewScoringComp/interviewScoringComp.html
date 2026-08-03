@@ -7,9 +7,9 @@
             </div>
         </template>
 
-        <template if:true={bookingsError}>
+        <template if:true={hasFatalError}>
             <div class="slds-notify slds-notify_alert slds-theme_error" role="alert">
-                <h2>{bookingsError}</h2>
+                <h2>{displayErrorMessage}</h2>
             </div>
         </template>
 

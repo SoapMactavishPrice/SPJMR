@@ -612,13 +612,13 @@ for (ApplicationSlotBooking__c slot : slots) {
             Map<String,Individual_Criteria_Result__c> mapRoundToCriteria = new Map<String,Individual_Criteria_Result__c>();
             Integer i=0;
             Map<String,String> resultMap = new Map<String,String>();
-            for(Evaluation__c eval :listEvals){
-                if(eval?.Individual_Criteria_Results__r!=null){
-                    for(Individual_Criteria_Result__c crit:eval?.Individual_Criteria_Results__r ){
-                        if(!mapRoundToCriteria.containsKey(crit.Id)){
-                            mapRoundToCriteria.put(crit.Id,crit);
-                            resultMap.put('criteria'+i+' '+crit.Scoring_Template__r.Round__r.Name+' '+String.valueOf(crit.Scoring_Template__r.Round__r.RoundNumber__c),crit.Criteria_Description__c);
-                            i+=1;
+            for (Evaluation__c eval : listEvals) {
+                if (eval != null && eval.Individual_Criteria_Results__r != null) {
+                    for (Individual_Criteria_Result__c crit : eval.Individual_Criteria_Results__r) {
+                        if (!mapRoundToCriteria.containsKey(crit.Id)) {
+                            mapRoundToCriteria.put(crit.Id, crit);
+                            resultMap.put('criteria' + i + ' ' + crit.Scoring_Template__r.Round__r.Name + ' ' + String.valueOf(crit.Scoring_Template__r.Round__r.RoundNumber__c), crit.Criteria_Description__c);
+                            i += 1;
                         }
                     }
                 }
@@ -785,7 +785,7 @@ for (ApplicationSlotBooking__c slot : slots) {
             listEval[0].Status__c = 'Complete';
             String appSlotId = listEval[0].Application_Slot_Booking__c;
             List<ApplicationSlotBooking__c> appSlotData = [SELECT Id,Panel_Master__c FROM ApplicationSlotBooking__c WHERE Id = :appSlotId];
-            String programTeamId = appSlotData[0]?.Panel_Master__c;
+            String programTeamId = appSlotData.isEmpty() ? null : appSlotData[0].Panel_Master__c;
             List<PanelInterviewer__c> listInterviewers = [SELECT Id FROM PanelInterviewer__c 
             WHERE PanelMaster__c = :programTeamId];
            // List<Program_Team_Members__c> listProgramTeamMembers= [SELECT Id FROM Program_Team_Members__c WHERE Program_Team__c = :programTeamId];
@@ -974,6 +974,36 @@ for (ApplicationSlotBooking__c slot : slots) {
                 if (ptm.PanelMaster__c != null) panelIds.add(ptm.PanelMaster__c);
             }
 
+            List<ApplicationSlotBooking__c> latestBooking = [
+                SELECT Id,
+                       Name,
+                       Applicant_Name__c,
+                       Program_Name__c,
+                       Application__c,
+                       Slot_Date__c,
+                       Slot_Start_Time__c,
+                       Slot_End_Time__c,
+                       Mode__c,
+                       Panel_Master__c,
+                       RoundMaster__c,
+                       RoundMaster__r.Name
+                FROM ApplicationSlotBooking__c
+                WHERE SlotMaster__c = :slotMasterId
+                AND Panel_Master__c IN :panelIds
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+
+            if (latestBooking.isEmpty()) {
+                return new List<SlotBookingWrapper>();
+            }
+
+            Id roundId = latestBooking[0].RoundMaster__c;
+
+            if (roundId == null) {
+                throw new AuraHandledException('RoundMaster__c is not available for a booking. Cannot proceed.');
+            }
+
             List<ApplicationSlotBooking__c> bookings = [
                 SELECT Id,
                        Name,
@@ -990,6 +1020,7 @@ for (ApplicationSlotBooking__c slot : slots) {
                 FROM ApplicationSlotBooking__c
                 WHERE SlotMaster__c = :slotMasterId
                 AND Panel_Master__c IN :panelIds
+                AND RoundMaster__c = :roundId
                 ORDER BY Applicant_Name__c ASC
             ];
 
@@ -1023,7 +1054,7 @@ for (ApplicationSlotBooking__c slot : slots) {
                 w.mode            = b.Mode__c;
                 w.panelMasterId   = b.Panel_Master__c;
                 w.roundMasterId   = b.RoundMaster__c;
-                w.roundMasterName = b.RoundMaster__r?.Name;
+                w.roundMasterName = b.RoundMaster__r != null ? b.RoundMaster__r.Name : null;
                 w.evalStatus      = bookingToEvalStatus.containsKey(b.Id)
                                     ? bookingToEvalStatus.get(b.Id)
                                     : 'Not Started';
@@ -1117,52 +1148,50 @@ for (ApplicationSlotBooking__c slot : slots) {
 
     @AuraEnabled
     public static Map<String,List<SObject>> getEvaluationCriteria(Id applicationSlotBookingId){
-        try {
-            List<ScoringTemplate__c> criteriaList = new List<ScoringTemplate__c>();
-            List<ApplicationSlotBooking__c> appSlotBookingList = [SELECT RoundMaster__c,Panel_Master__r.ProgramTeam__c 
-            FROM ApplicationSlotBooking__c WHERE RoundMaster__c<>NULL AND Id=:applicationSlotBookingId LIMIT 1];
-            if(!appSlotBookingList.isEmpty()){
+        List<ScoringTemplate__c> criteriaList = new List<ScoringTemplate__c>();
+        List<ApplicationSlotBooking__c> appSlotBookingList = [SELECT RoundMaster__c,Panel_Master__r.ProgramTeam__c 
+        FROM ApplicationSlotBooking__c WHERE RoundMaster__c<>NULL AND Id=:applicationSlotBookingId LIMIT 1];
+        if(!appSlotBookingList.isEmpty()){
+            
+            List<Evaluation__c> listEvaluation = [SELECT Id FROM Evaluation__c 
+            WHERE EvaluatedUser__r.PersonEmail = :UserInfo.getUserEmail() 
+            AND Application_Slot_Booking__c = :applicationSlotBookingId LIMIT 1];
+            
+            criteriaList = [SELECT Id,CriteriaName__c,Name,Maximum_Score__c
+                FROM ScoringTemplate__c 
+                WHERE Round__c = :appSlotBookingList[0].RoundMaster__c];
+
+            if (criteriaList.isEmpty()) {
+                throw new AuraHandledException('No scoring templates are configured for this slot\'s round.');
+            }
+            
+            if(listEvaluation.isEmpty()){
+                return new Map<String,List<SObject>>{'EVAL_ABSENT'=>criteriaList};
+            }
+            else{
+                Boolean isCompleted = false;
+                List<Individual_Criteria_Result__c> indiResults = [SELECT Id,Evaluation__c,
+                Scoring_Template__c,Score__c,Comments__c,
+                Scoring_Template__r.CriteriaName__c 
+                FROM Individual_Criteria_Result__c 
+                WHERE Evaluation__c = :listEvaluation[0].Id];
                 
-                List<Evaluation__c> listEvaluation = [SELECT Id FROM Evaluation__c 
-                WHERE EvaluatedUser__r.PersonEmail = :UserInfo.getUserEmail() 
-                AND Application_Slot_Booking__c = :applicationSlotBookingId LIMIT 1];
+                // List<Program_Team_Members__c> listProgramTeam = [SELECT Id FROM Program_Team_Members__c 
+                // WHERE Program_Team__c  = :appSlotBookingList[0].Panel_Master__r.ProgramTeam__c];
                 
-                criteriaList = [SELECT Id,CriteriaName__c,Name,Maximum_Score__c
-                    FROM ScoringTemplate__c 
-                    WHERE Round__c = :appSlotBookingList[0].RoundMaster__c];
-                
-                
-                
-                if(listEvaluation.isEmpty()){
-                    return new Map<String,List<SObject>>{'EVAL_ABSENT'=>criteriaList};
+                isCompleted = criteriaList.size() == indiResults.size();
+                if(isCompleted){
+                    // return new Map<String,List<SObject>>{'INTERVIEW_COMPLETE'=>indiResults};
                 }
-                else{
-                    Boolean isCompleted = false;
-                    List<Individual_Criteria_Result__c> indiResults = [SELECT Id,Evaluation__c,
-                    Scoring_Template__c,Score__c,Comments__c,
-                    Scoring_Template__r.CriteriaName__c 
-                    FROM Individual_Criteria_Result__c 
-                    WHERE Evaluation__c = :listEvaluation[0].Id];
-                    
-                    // List<Program_Team_Members__c> listProgramTeam = [SELECT Id FROM Program_Team_Members__c 
-                    // WHERE Program_Team__c  = :appSlotBookingList[0].Panel_Master__r.ProgramTeam__c];
-                    
-                    isCompleted = criteriaList.size() == indiResults.size();
-                    if(isCompleted){
-                        // return new Map<String,List<SObject>>{'INTERVIEW_COMPLETE'=>indiResults};
-                    }
-                    return new Map<String,List<SObject>>{'EVAL_REMAINING'=>criteriaList,'EVAL_COMPLETE'=>indiResults,
-                    'VALUE='+String.valueOf(criteriaList.size() - indiResults.size())=>new List<SObject>()};
-                    
-                }
-                
+                return new Map<String,List<SObject>>{'EVAL_REMAINING'=>criteriaList,'EVAL_COMPLETE'=>indiResults,
+                'VALUE='+String.valueOf(criteriaList.size() - indiResults.size())=>new List<SObject>()};
                 
             }
-            return new Map<String,List<Sobject>>{'EMPTY'=>new List<SObject>()};
             
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            
         }
+        return new Map<String,List<Sobject>>{'EMPTY'=>new List<SObject>()};
+        
     }
 
     @AuraEnabled(cacheable=true)

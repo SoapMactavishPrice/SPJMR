@@ -24,6 +24,7 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
 
     @track showCriteriaComment = false;
     @track _configLoaded       = false;
+    @track componentError      = '';
 
     @wire(CurrentPageReference)
     getPageRef(ref) {
@@ -35,6 +36,7 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
     @wire(getSlotBookingsBySlotMaster, { slotMasterId: '$slotMasterId' })
     wiredBookings({ data, error }) {
         this.bookingsLoading = false;
+        this.componentError = '';
         if (data) {
             this._bookings = data;
             this.bookingsError = '';
@@ -83,15 +85,50 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
         return this._stateMap[bookingId];
     }
 
+    _getErrorMessage(err) {
+        if (!err) return 'Unable to load scoring criteria.';
+        const body = err.body || {};
+
+        // Prefer explicit Apex exception message when present (AuraHandledException)
+        if (body.exceptionMessage) return body.exceptionMessage;
+
+        // Sometimes body.message is generic 'Script-thrown exception' while exceptionMessage contains the real text
+        if (body.message && body.message !== 'Script-thrown exception') return body.message;
+
+        // Support error.body.output.pageErrors (Lightning server-side shape)
+        if (body.output && Array.isArray(body.output.pageErrors) && body.output.pageErrors.length) {
+            return body.output.pageErrors.map(p => p.message).join('; ');
+        }
+
+        // If body is an array of errors
+        if (Array.isArray(body) && body.length) {
+            return body.map(b => b?.message || String(b)).join('; ');
+        }
+
+        // Fallback to top-level message
+        if (err.message && err.message !== 'Script-thrown exception') return err.message;
+
+        // Last resort: try to extract trailing part after colon
+        if (typeof body.message === 'string' && body.message.includes(':')) {
+            const parts = body.message.split(':');
+            const tail = parts.slice(1).join(':').trim();
+            if (tail) return tail;
+        }
+
+        return 'Unable to load scoring criteria.';
+    }
+
     _mutateState(bookingId, fn) {
         const updated = { ...this._getState(bookingId) };
         fn(updated);
         this._stateMap = { ...this._stateMap, [bookingId]: updated };
     }
 
-    get isEmpty()       { return !this.bookingsLoading && this._bookings.length === 0; }
-    get hasContent()    { return !this.bookingsLoading && this._bookings.length > 0; }
+    get hasFatalError() { return Boolean(this.bookingsError || this.componentError); }
+    get isEmpty()       { return !this.bookingsLoading && !this.hasFatalError && this._bookings.length === 0; }
+    get hasContent()    { return !this.bookingsLoading && !this.hasFatalError && this._bookings.length > 0; }
     get applicationId() { return this._bookings.length ? this._getState(this._bookings[0].id).applicationId : null; }
+    get displayErrorMessage() { return this.bookingsError || this.componentError || ''; }
 
     get allFinished() {
         return this._bookings.length > 0 &&
@@ -158,13 +195,24 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
             ]);
 
             const isFinished = status === 'Complete';
-            let criteria     = result.EVAL_REMAINING || result.EVAL_ABSENT || [];
-            const indResults = result.EVAL_COMPLETE  || [];
+            let criteria     = result?.EVAL_REMAINING || result?.EVAL_ABSENT || [];
+            const indResults = result?.EVAL_COMPLETE  || [];
 
             criteria = criteria.map(c => {
                 const m = indResults.find(i => i.Scoring_Template__c === c.Id);
                 return { ...c, score: m?.Score__c ?? '', comment: m?.Comments__c ?? '' };
             });
+
+            if (!criteria.length) {
+                this.componentError = 'No scoring templates are configured for this round. Scoring is unavailable.';
+                this._mutateState(bookingId, s => {
+                    s.isFinished       = isFinished;
+                    s.criteriaResults  = [];
+                    s.evaluatorComment = existingComment || '';
+                    s.commentDirty     = false;
+                });
+                return;
+            }
 
             this._mutateState(bookingId, s => {
                 s.isFinished       = isFinished;
@@ -175,7 +223,8 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
 
         } catch (err) {
             console.error('Error loading scoring', bookingId, err);
-            this._mutateState(bookingId, s => { s.calloutDone = false; });
+            this.componentError = this._getErrorMessage(err);
+            this._mutateState(bookingId, s => { s.calloutDone = true; });
         }
     }
 
