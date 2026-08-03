@@ -11,6 +11,8 @@ import checkInterviewStatus from '@salesforce/apex/InterviewController.checkInte
 import getScoringConfig from '@salesforce/apex/InterviewController.getScoringConfig';
 import saveEvaluatorComment from '@salesforce/apex/InterviewController.saveEvaluatorComment';
 import getEvaluatorComment from '@salesforce/apex/InterviewController.getEvaluatorComment';
+import { publish, MessageContext } from 'lightning/messageService';
+import INTERVIEW_MESSAGE_CHANNEL from '@salesforce/messageChannel/InterviewMessageChannel__c';
 
 export default class InterviewScoringComp extends NavigationMixin(LightningElement) {
 
@@ -25,6 +27,9 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
     @track showCriteriaComment = false;
     @track _configLoaded       = false;
     @track componentError      = '';
+
+    @wire(MessageContext)
+    messageContext;
 
     @wire(CurrentPageReference)
     getPageRef(ref) {
@@ -325,6 +330,9 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
             this.dispatchEvent(new ShowToastEvent({
                 title: 'Error Saving Scores', message: err.body?.message || 'Unexpected error.', variant: 'error'
             }));
+        } finally {
+            let payload = { action: 'refresh' };
+            publish(this.messageContext, INTERVIEW_MESSAGE_CHANNEL, payload);
         }
     }
 
@@ -376,6 +384,8 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
             }));
         } finally {
             this.isSaving = false;
+            let payload = { action: 'refresh' };
+            publish(this.messageContext, INTERVIEW_MESSAGE_CHANNEL, payload);
         }
     }
 

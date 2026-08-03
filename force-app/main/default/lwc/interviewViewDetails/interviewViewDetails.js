@@ -1,11 +1,13 @@
 import { LightningElement, track, wire } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
+import { refreshApex } from '@salesforce/apex';
 import getSlotBookingsBySlotMaster from '@salesforce/apex/InterviewController.getSlotBookingsBySlotMaster';
 import getStaticPdfConfig from '@salesforce/apex/InterviewController.getStaticPdfConfig';
 import getMerittoExtractFileUrl from '@salesforce/apex/InterviewController.getMerittoExtractFileUrl';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
-
+import { subscribe, MessageContext } from 'lightning/messageService';
+import INTERVIEW_MESSAGE_CHANNEL from '@salesforce/messageChannel/InterviewMessageChannel__c';
 
 
 const STATUS_VARIANT = {
@@ -23,6 +25,33 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
 
     @track showStaticPdfCol   = false;
     @track _pdfConfigLoaded   = false;
+    _wiredBookingsResult      = null;
+
+    @wire(MessageContext)
+    messageContext;
+
+    subscription = null;
+
+    connectedCallback() {
+        this.subscribeToInterviewMessageChannel();
+    }
+
+    subscribeToInterviewMessageChannel() {
+        if (!this.subscription) {
+            this.subscription = subscribe(this.messageContext, INTERVIEW_MESSAGE_CHANNEL, (message) => {this.handleSubscriptionMessage(message);});
+        }
+    }
+
+    handleSubscriptionMessage(message) {
+        if (message && message.action === 'refresh') {
+            if (this._wiredBookingsResult) {
+                refreshApex(this._wiredBookingsResult)
+                    .catch(err => {
+                        console.error('Failed to refresh bookings after message', err);
+                    });
+            }
+        }
+    }
 
     @wire(CurrentPageReference)
     getStateParameters(currentPageReference) {
@@ -32,7 +61,9 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
     }
 
     @wire(getSlotBookingsBySlotMaster, { slotMasterId: '$slotMasterId' })
-    wiredBookings({ data, error }) {
+    wiredBookings(result) {
+        this._wiredBookingsResult = result;
+        const { data, error } = result;
         this.isLoading = false;
         if (data) {
             this._bookings = data;
