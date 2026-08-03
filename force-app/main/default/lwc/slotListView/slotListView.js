@@ -7,9 +7,28 @@ export default class SlotListView extends NavigationMixin(LightningElement) {
     data = [];
 
     formatSalesforceTime(sfTimeValue) {
-        if (!sfTimeValue) return '';
+        if (sfTimeValue === null || sfTimeValue === undefined || sfTimeValue === '') return '';
         try {
-            const dateObj = new Date(sfTimeValue);
+            let dateObj;
+
+            if (typeof sfTimeValue === 'number') {
+                const base = new Date(1970, 0, 1, 0, 0, 0, 0);
+                dateObj = new Date(base.getTime() + sfTimeValue);
+            } else if (typeof sfTimeValue === 'string') {
+                const match = sfTimeValue.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d{3})?Z?$/);
+                if (match) {
+                    dateObj = new Date(1970, 0, 1, Number(match[1]), Number(match[2]), Number(match[3] || 0), 0);
+                } else {
+                    dateObj = new Date(sfTimeValue);
+                }
+            } else {
+                dateObj = new Date(sfTimeValue);
+            }
+
+            if (Number.isNaN(dateObj.getTime())) {
+                return String(sfTimeValue);
+            }
+
             return dateObj.toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
