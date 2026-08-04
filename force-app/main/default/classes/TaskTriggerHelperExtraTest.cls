@@ -11,6 +11,17 @@ private class TaskTriggerHelperExtraTest {
         Schema.RecordTypeInfo rt = Schema.SObjectType.Lead.getRecordTypeInfosByDeveloperName().get(dev);
         return rt == null ? null : rt.getRecordTypeId();
     }
+    
+    @isTest
+    static void testEmptyHandlers(){
+        List<Task> emptyList = new List<Task>();
+        Map<Id,Task> emptyMap = new Map<Id,Task>();
+        TaskTriggerHandler a = new TaskTriggerHandler();
+       	a.afterDelete(emptyList, emptyMap);
+       	a.afterInsert(emptyList, emptyMap);
+        a.afterUndelete(emptyList, emptyMap);
+        a.beforeUpdate(emptyList, emptyMap, emptyList, emptyMap);
+    }
 
     @IsTest
     static void createFollowUpTaskB2C_spawnsFollowUpForCallTask() {

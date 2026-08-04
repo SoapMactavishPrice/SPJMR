@@ -14,7 +14,7 @@ public without sharing class LeaveApprovalHistoryController {
         @AuraEnabled public String remark;
     }
 
-    @AuraEnabled(cacheable=true)
+  /*  @AuraEnabled(cacheable=true)
     public static List<ApprovalHistoryRow> getApprovalHistory(Id leaveId) {
 
         List<ApprovalHistoryRow> rows = new List<ApprovalHistoryRow>();
@@ -40,8 +40,158 @@ public without sharing class LeaveApprovalHistoryController {
         }
 
         return rows;
+    }*/
+
+   @AuraEnabled(cacheable=true)
+public static List<ApprovalHistoryRow> getApprovalHistory(Id leaveId) {
+
+    List<ApprovalHistoryRow> rows = new List<ApprovalHistoryRow>();
+
+    if (leaveId == null) {
+        return rows;
     }
 
+    // Current leave
+    Leave_Application__c leave = [
+        SELECT Current_Role_Name__c
+        FROM Leave_Application__c
+        WHERE Id = :leaveId
+        LIMIT 1
+    ];
+
+    // Submitted Row
+    ApprovalHistoryRow submittedRow = new ApprovalHistoryRow();
+    submittedRow.stepName = 'Approval Request Submitted';
+    submittedRow.status = 'Submitted';
+    submittedRow.approvedBy = '';
+    submittedRow.remark = '';
+
+    User createdBy = [
+        SELECT Name
+        FROM User
+        WHERE Id IN (
+            SELECT CreatedById
+            FROM Leave_Application__c
+            WHERE Id=:leaveId
+        )
+    ];
+
+    submittedRow.assignedTo = createdBy.Name;
+
+    rows.add(submittedRow);
+
+    // Completed Approval Steps
+    List<ProcessInstanceStep> steps = [
+        SELECT Id,
+               StepStatus,
+               Comments,
+               Actor.Name,
+               CreatedDate,
+               StepNodeId
+        FROM ProcessInstanceStep
+        WHERE ProcessInstance.TargetObjectId = :leaveId
+        ORDER BY CreatedDate ASC
+    ];
+
+    Set<Id> nodeIds = new Set<Id>();
+
+    for(ProcessInstanceStep s : steps){
+        if(s.StepNodeId != null){
+            nodeIds.add(s.StepNodeId);
+        }
+    }
+
+    Map<Id,ProcessNode> nodeMap = new Map<Id,ProcessNode>();
+
+    if(!nodeIds.isEmpty()){
+        nodeMap = new Map<Id,ProcessNode>([
+            SELECT Id,Name
+            FROM ProcessNode
+            WHERE Id IN :nodeIds
+        ]);
+    }
+
+    for(ProcessInstanceStep step : steps){
+        if(step.StepStatus == 'Started' &&
+   step.Comments != null &&
+   step.Comments.contains('Auto submitted')){
+    continue;
+}
+
+        ApprovalHistoryRow row = new ApprovalHistoryRow();
+
+        row.stepName =
+            nodeMap.containsKey(step.StepNodeId)
+            ? nodeMap.get(step.StepNodeId).Name
+            : '';
+
+
+        List<Id> userIds = new List<Id>();
+
+String roleName = '';
+
+if(row.stepName.contains('Programme Office')){
+    roleName = 'Programme Office';
+}
+else if(row.stepName.contains('Manager')){
+    roleName = 'Manager';
+}
+else if(row.stepName.contains('Deputy')){
+    roleName = 'Deputy Chairperson';
+}
+
+if(roleName != ''){
+
+    for(Program_Team_Members__c ptm : [
+        SELECT User__c
+        FROM Program_Team_Members__c
+        WHERE Role__c = :roleName
+        AND User__c != null
+    ]){
+        userIds.add(ptm.User__c);
+    }
+
+    row.assignedTo = getUserNames(userIds);
+}    
+
+       row.stepDate = step.CreatedDate;
+row.status = step.StepStatus;
+row.approvedBy = step.Actor != null ? step.Actor.Name : '';
+row.remark = step.Comments;
+
+// Don't overwrite assignedTo here
+
+rows.add(row);
+    }
+
+    // Current Pending Step
+    if(String.isNotBlank(leave.Current_Role_Name__c)){
+
+        ApprovalHistoryRow pendingRow = new ApprovalHistoryRow();
+
+        pendingRow.stepName = leave.Current_Role_Name__c + ' Verification';
+        pendingRow.status = 'Pending';
+        pendingRow.approvedBy = '';
+        pendingRow.remark = '';
+
+        List<Id> userIds = new List<Id>();
+
+        for(Program_Team_Members__c ptm : [
+            SELECT User__c
+            FROM Program_Team_Members__c
+            WHERE Role__c = :leave.Current_Role_Name__c
+            AND User__c != null
+        ]){
+            userIds.add(ptm.User__c);
+        }
+
+        pendingRow.assignedTo = getUserNames(userIds);
+
+        rows.add(pendingRow);
+    }
+
+    return rows;
+}
     // =========================================================
     // WRITE — called from LeaveSubmissionController
     //         and LeaveApprovalActionController
@@ -76,11 +226,11 @@ public without sharing class LeaveApprovalHistoryController {
 
     public static void markStepDecided(Id leaveId, String stepName, String status, Id approverId, String remark){
         List<Approval_History__c> recs = [
-            SELECT Id, Approved_By__c, Remark__c
+            SELECT Id,Status__c, Approved_By__c, Remark__c
             FROM Approval_History__c
             WHERE Leave_Application__c = :leaveId
             AND Step_Name__c = :stepName
-            AND Status__c = 'Pending'
+            AND Status__c IN ('Pending', 'Incomplete')
             ORDER BY CreatedDate DESC
             LIMIT 1
         ];

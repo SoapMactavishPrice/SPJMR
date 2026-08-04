@@ -336,7 +336,7 @@ public without sharing class B2CLeadController {
         String entranceExamName,
         String studyingIn,
         String organizationName,
-        List<String> selectedProgramIds,
+        List<String> selectedProgramIds, 
         String leadSource,
         Boolean areYouNri,
         String leadSourceOther,
@@ -584,7 +584,7 @@ public without sharing class B2CLeadController {
                 leadToUpsert.Status = 'Untouched';
                 LeadRoutingService.applyB2cDefaultOwnerIfConfigured(leadToUpsert);
             }
-            
+            system.debug('Upserting lead: '+leadToUpsert);
             leadToUpsert.FirstName = firstName;
             leadToUpsert.LastName = String.isNotBlank(lastName) ? lastName : '.';
             leadToUpsert.Email = email;

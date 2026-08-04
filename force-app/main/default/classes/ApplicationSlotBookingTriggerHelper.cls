@@ -48,19 +48,22 @@ public without sharing class ApplicationSlotBookingTriggerHelper {
                 }
                
             }
-            List<ApplicationSlotBooking__c> list_ApplicationSlots = [SELECT Id,Application__c FROM ApplicationSlotBooking__c WHERE Id IN:mapSlotToApplication.keySet()];
+            List<ApplicationSlotBooking__c> list_ApplicationSlots = [SELECT Id,Application__c, RoundMaster__r.ApplicantStateToSetOnBooking__c FROM ApplicationSlotBooking__c WHERE Id IN:mapSlotToApplication.keySet()];
             List<Evaluation__c> list_Evaluations = [SELECT Id,Application_Slot_Booking__c FROM Evaluation__c WHERE Application_Slot_Booking__c IN:mapSlotToApplication.keySet()];
             if(list_Evaluations.size()>0){
                 for(Evaluation__c eval:list_Evaluations){
                 	mapSlotToEval.put(eval.Application_Slot_Booking__c,true);
             	}
             }
+
+            Map<Id,String> suggestedStateWithApplication = new Map<Id,String>();
             
             if(list_ApplicationSlots.size()>0){
                 	for(ApplicationSlotBooking__c appSlot:list_ApplicationSlots){
                         if(mapSlotToApplication.containsKey(appSlot.Id) && mapSlotToEval.containsKey(appSlot.Id)){
 						mapApplicationToSlotSize.put(mapSlotToApplication.get(appSlot.Id),mapApplicationToSlotSize.get(appSlot.Application__c)+1);
                 	}
+                    suggestedStateWithApplication.put(appSlot.Application__c,appSlot?.RoundMaster__r?.ApplicantStateToSetOnBooking__c);
             	}
                 
                List<Application__c> list_Applications = [SELECT Id FROM Application__c WHERE Id IN :mapApplicationToSlotSize.keySet()];
@@ -77,7 +80,7 @@ public without sharing class ApplicationSlotBookingTriggerHelper {
                              	 newStateManagement = 'Interview Round 2';   
                             }
                         }
-                        application.Applicant_State_Management__c = newStateManagement;
+                        application.Applicant_State_Management__c = suggestedStateWithApplication.get(application.Id) == null ? 'Interview Round 1' : suggestedStateWithApplication.get(application.Id);
                         updateList.add(application);
                     }
                     

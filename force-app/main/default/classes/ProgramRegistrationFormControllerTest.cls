@@ -1,5 +1,32 @@
 @IsTest
 private class ProgramRegistrationFormControllerTest {
+   private class IsRecaptchaValidMock implements HttpCalloutMock {
+    public HttpResponse respond(HttpRequest req) {
+        HttpResponse res = new HttpResponse();
+        res.setStatusCode(200);
+        res.setBody('{"success":true}');
+        return res;
+    }
+}
+        
+private class RecaptchaNamedCredentialSuccessMock implements HttpCalloutMock {
+    public HttpResponse respond(HttpRequest req) {
+        HttpResponse res = new HttpResponse();
+        res.setStatusCode(200);
+        res.setBody('{"success":true}');
+        return res;
+    }
+}
+
+
+private class RecaptchaNamedCredentialFailureMock implements HttpCalloutMock {
+    public HttpResponse respond(HttpRequest req) {
+        HttpResponse res = new HttpResponse();
+        res.setStatusCode(500);
+        res.setBody('{}');
+        return res;
+    }
+}
     
     private class RecaptchaFailureMock implements HttpCalloutMock {
 	
@@ -15,14 +42,31 @@ private class ProgramRegistrationFormControllerTest {
     }
 }
     
-    private class RecaptchaSuccessMock implements HttpCalloutMock {
-        public HttpResponse respond(HttpRequest req) {
-            HttpResponse res = new HttpResponse();
-            res.setStatusCode(200);
-            res.setBody('{"success":true,"score":0.9}');
-            return res;
-        }
-    }
+    
+    
+
+
+@IsTest
+static void isReCaptchaValidReturnsTrue() {
+    Test.setMock(HttpCalloutMock.class, new RecaptchaNamedCredentialSuccessMock());
+
+    Test.startTest();
+    Boolean result = ProgramRegistrationFormController.isReCaptchaValid('dummy');
+    Test.stopTest();
+
+    System.assertEquals(true, result);
+}
+
+@IsTest
+static void isReCaptchaValidReturnsFalseOnHttpError() {
+    Test.setMock(HttpCalloutMock.class, new RecaptchaNamedCredentialFailureMock());
+
+    Test.startTest();
+    Boolean result = ProgramRegistrationFormController.isReCaptchaValid('dummy');
+    Test.stopTest();
+
+    System.assertEquals(false, result);
+}
     
     @IsTest
 static void getProgramDisplayLabelsUsesProgramName() {
@@ -67,7 +111,7 @@ static void getProgramDisplayLabelsUsesProgramName() {
         System.assertNotEquals(null, wrap, 'Wrapper should not be null');
         System.assertEquals(config.Program_Id__c, wrap.programId,'Ids are equal');
         if (wrap.config != null) {
-            System.assertEquals('Admissions Open for 2026 Cohort', wrap.config.formTitle,'Title Matches');
+            System.assertEquals('AI in Human Resource Management Programme Registration', wrap.config.formTitle,'Title Matches');
         }
         if (wrap.fieldRows != null && !wrap.fieldRows.isEmpty()) {
             System.assert(!wrap.fieldRows[0].fields.isEmpty(), 'First row should contain fields when metadata is deployed');
@@ -177,14 +221,12 @@ static void getProgramDisplayLabelsUsesProgramName() {
         System.assertEquals('/s/registration-thank-you-gmp', url,'redirect url');
     }
     
+    
+    
     @IsTest
 static void verifyTokenSuccess() {
 
-    Test.setMock(
-        HttpCalloutMock.class,
-        new RecaptchaSuccessMock()
-    );
-
+    Test.setMock(HttpCalloutMock.class, new IsRecaptchaValidMock());
     Test.startTest();
 
     Map<String, Object> result =
@@ -228,6 +270,113 @@ static void verifyTokenFailure() {
         String.valueOf(result.get('message'))
             .contains('Verification failed'),
         'Failure message should be returned'
+    );
+}
+    
+    @IsTest
+static void toFieldDtoCoverage() {
+
+    // Salesforce picklist
+    Program_Registration_Field__mdt picklistField = new Program_Registration_Field__mdt(
+        Field_Key__c = 'LeadSource',
+        Field_Type__c = 'Picklist',
+        Label__c = 'Lead Source',
+        Picklist_Source__c = 'Salesforce_Field',
+        Lead_Field_API_Name__c = 'LeadSource'
+    );
+
+    ProgramRegistrationFormController.FieldDTO dto1 =
+        ProgramRegistrationFormController.toFieldDto(picklistField);
+
+    System.assertEquals('leadsource', dto1.fieldKey.toLowerCase());
+    System.assert(dto1.optionsJson.contains('label'));
+
+    // Country Master telephone
+    Program_Registration_Field__mdt telField = new Program_Registration_Field__mdt(
+        Field_Key__c = 'Phone',
+        Field_Type__c = 'Tel',
+        Phone_Options_Source__c = 'country_master'
+    );
+
+    ProgramRegistrationFormController.FieldDTO dto2 =
+        ProgramRegistrationFormController.toFieldDto(telField);
+
+    System.assertEquals('{}', dto2.optionsJson);
+
+    // Dynamic country picklist
+    Program_Registration_Field__mdt countryField = new Program_Registration_Field__mdt(
+        Field_Key__c = 'Country',
+        Field_Type__c = 'Picklist',
+        Picklist_Source__c = 'Country_Master'
+    );
+
+    ProgramRegistrationFormController.FieldDTO dto3 =
+        ProgramRegistrationFormController.toFieldDto(countryField);
+
+    System.assertEquals('[]', dto3.optionsJson);
+
+    // Static JSON
+    Program_Registration_Field__mdt staticField = new Program_Registration_Field__mdt(
+        Field_Key__c = 'Gender',
+        Field_Type__c = 'Picklist',
+        Options_JSON__c = '[{"label":"Male","value":"Male"}]'
+    );
+
+    ProgramRegistrationFormController.FieldDTO dto4 =
+        ProgramRegistrationFormController.toFieldDto(staticField);
+
+    System.assertEquals('[{"label":"Male","value":"Male"}]', dto4.optionsJson);
+}
+    
+    @IsTest
+static void tryParseProgramSfdcIdTest() {
+
+    // Valid Program record
+    Program p = new Program(
+        Name = 'Test Program',
+        Status = 'Active',
+        StartDate = Date.today(),
+        Program_Code__c = 'TP',
+        Programme_Type__c = 'Full-time',
+        Programme_Intake__c = 100,
+        Short_Programme_Code__c = 'TP',
+        Programme_Sub_Type__c = 'Class Room'
+    );
+    insert p;
+
+    // Valid Program Id
+    Id result = ProgramRegistrationFormController.tryParseProgramSfdcId(
+        String.valueOf(p.Id)
+    );
+    System.assertEquals(p.Id, result);
+
+    // Blank
+    System.assertEquals(
+        null,
+        ProgramRegistrationFormController.tryParseProgramSfdcId('')
+    );
+
+    // Null
+    System.assertEquals(
+        null,
+        ProgramRegistrationFormController.tryParseProgramSfdcId(null)
+    );
+
+    // Invalid Id
+    System.assertEquals(
+        null,
+        ProgramRegistrationFormController.tryParseProgramSfdcId('NotAnId')
+    );
+
+    // Valid Salesforce Id but NOT a Program Id
+    Account a = new Account(Name = 'Test');
+    insert a;
+
+    System.assertEquals(
+        null,
+        ProgramRegistrationFormController.tryParseProgramSfdcId(
+            String.valueOf(a.Id)
+        )
     );
 }
 }

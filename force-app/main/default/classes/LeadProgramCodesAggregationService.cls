@@ -1,4 +1,4 @@
-/**
+/** 
  * Maintains {@code Lead.All_Program_Codes__c} for B2C leads only from {@code Lead_Program__c} rows
  * (distinct {@code Program.Program_Code__c}, sorted alphabetically, semicolon-separated, with a trailing semicolon when non-empty).
  * Non-B2C leads are never updated. The field is Text(255); longer joined strings are truncated to fit.

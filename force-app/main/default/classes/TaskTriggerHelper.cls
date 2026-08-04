@@ -1,5 +1,5 @@
 public class TaskTriggerHelper {
-    
+     
         private static Set<Id> processedTaskIds = new Set<Id>();
 
 

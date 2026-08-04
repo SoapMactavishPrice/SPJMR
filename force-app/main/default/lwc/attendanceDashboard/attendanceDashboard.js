@@ -144,7 +144,8 @@ export default class AttendanceDashboard extends LightningElement {
 
     /**
      * Overall attendance: (sum of weighted session scores) / (total sessions).
-     * Weights: Present=1, Late=0.5, Sanctioned Leave=1, Absent=0.
+     * Weights: Present=1, Late=0.5, Absent=0. Sanctioned Leave is excluded entirely
+     * (recorded via leaveCount, but not counted in either the numerator or denominator).
      * Donut uses this getter so it matches the footer "Attendance %" column.
      */
     
@@ -376,7 +377,6 @@ handleRemoveCourse(event){
         const weightForStatus = (status) => {
             if (status === 'present') return 1;
             if (status === 'late') return 0.5;
-            if (status === 'sanctioned_leave') return 1;
             if (status === 'absent') return 0;
             return 0;
         };
@@ -410,18 +410,23 @@ handleRemoveCourse(event){
             }
 
             const course = courseMap[courseName];
-            course.totalSessions++;
 
             const status = normalizeAttendance(rec.Attendance__c);
-            if (status === 'present') course.presentCount++;
-            else if (status === 'absent') {
-                course.absentCount++;
-                course.hasAbsent = true;
-            }
-            else if (status === 'sanctioned_leave') course.leaveCount++;
-            else if (status === 'late') course.lateCount++;
+            if (status === 'sanctioned_leave') {
+                // Recorded, but excluded from both the numerator and denominator —
+                // an approved leave must not move the percentage either way.
+                course.leaveCount++;
+            } else {
+                course.totalSessions++;
+                if (status === 'present') course.presentCount++;
+                else if (status === 'absent') {
+                    course.absentCount++;
+                    course.hasAbsent = true;
+                }
+                else if (status === 'late') course.lateCount++;
 
-            course.weightedPoints += weightForStatus(status);
+                course.weightedPoints += weightForStatus(status);
+            }
         });
 
         this.records = Object.values(courseMap).map((item, index) => {
@@ -631,7 +636,6 @@ formatAttendanceLabel(raw) {
         const weightForStatus = (status) => {
             if (status === 'present') return 1;
             if (status === 'late') return 0.5;
-            if (status === 'sanctioned_leave') return 1;
             if (status === 'absent') return 0;
             return 0;
         };
@@ -716,30 +720,35 @@ formatAttendanceLabel(raw) {
             }
 
             const course = courseMap[courseName];
-            course.totalSessions++;
 
             const status = normalizeAttendance(rec.Attendance__c);
-            if (status === 'present') course.presentCount++;
-            else if (status === 'absent') {
-                course.absentCount++;
-                course.hasAbsent = true;
-            }
-            else if (status === 'sanctioned_leave') course.leaveCount++;
-            else if (status === 'late') course.lateCount++;
+            if (status === 'sanctioned_leave') {
+                // Recorded, but excluded from both the numerator and denominator —
+                // an approved leave must not move the percentage either way.
+                course.leaveCount++;
+            } else {
+                course.totalSessions++;
+                if (status === 'present') course.presentCount++;
+                else if (status === 'absent') {
+                    course.absentCount++;
+                    course.hasAbsent = true;
+                }
+                else if (status === 'late') course.lateCount++;
 
-            course.weightedPoints += weightForStatus(status);
+                course.weightedPoints += weightForStatus(status);
+            }
         });
 
         this.records = Object.values(courseMap).map((item, index) => {
             const total = item.totalSessions;
             const sanctioned = item.leaveCount;
             let weighted = item.weightedPoints;
-            
+
             // If there is any absent session mixed with sanctioned leave, set attendance to 0
             if (item.hasAbsent && item.leaveCount > 0) {
                 weighted = 0;
             }
-            
+
             const coursePercentage = this.computeAttendancePercent(weighted, total);
 
             if (coursePercentage < 75 && !lowAttendanceCourse) {

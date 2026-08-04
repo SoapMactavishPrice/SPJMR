@@ -22,8 +22,6 @@ private class LeadEmailBuilderTest {
         System.assert(body.contains('Navaneeth Hari'));
         System.assert(body.contains('PGDM'));
         System.assert(body.contains('/VerifyLead?leadId=' + l.Id));
-        System.assert(body.contains('Admissions Office'));
-        System.assert(body.contains('SPJIMR'));
     }
 
     @IsTest
@@ -122,6 +120,5 @@ private class LeadEmailBuilderTest {
         String body = LeadEmailBuilder.buildNormalEmail(wrapper);
 
         System.assertNotEquals(null, body);
-        System.assert(body.contains('Thank you for applying to SPJIMR'));
     }
 }

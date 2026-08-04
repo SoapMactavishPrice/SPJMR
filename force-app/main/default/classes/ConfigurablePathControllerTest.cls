@@ -4,7 +4,27 @@
  */
 @IsTest(SeeAllData=true)
 private class ConfigurablePathControllerTest {
+	
+  @IsTest
+static void dependencyErrorResultTest() {
 
+    ConfigurablePathDependencyOptionsResult result =
+        ConfigurablePathController.dependencyErrorResult('Dependency Error');
+
+    System.assertEquals(false, result.loadOk);
+    System.assertEquals('Dependency Error', result.loadErrorMessage);
+    System.assertEquals(0, result.options.size());
+}
+
+@IsTest
+static void saveErrorResultTest() {
+
+    ConfigurablePathSaveResult result =
+        ConfigurablePathController.saveErrorResult('Save Error');
+
+    System.assertEquals(false, result.success);
+    System.assertEquals('Save Error', result.message);
+}
     @IsTest
     static void getPathUiModel_unknownConfigThrowsAuraHandledException() {
         Id fake = UserInfo.getOrganizationId();

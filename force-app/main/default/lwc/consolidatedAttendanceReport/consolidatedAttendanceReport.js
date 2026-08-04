@@ -68,9 +68,9 @@ export default class ConsolidatedAttendanceReport extends LightningElement {
         return !this.selectedTerm;
     }
     get isDivisionNotSelected() {
-    // Course should be selectable whether a specific division OR "All Divisions" is chosen —
-    // it should only stay disabled when NOTHING has been picked yet.
-    return !this.selectedDivision;
+        // Course should be selectable whether a specific division OR "All Divisions" is chosen —
+        // it should only stay disabled when NOTHING has been picked yet.
+        return !this.selectedDivision;
     }
     get isCourseNotSelected() {
         return !this.selectedCourse;
@@ -78,34 +78,34 @@ export default class ConsolidatedAttendanceReport extends LightningElement {
     get isStartDateNotSelected() {
         return !this.startDate;
     }
-   get isReportButtonVisible() {
-    const datesAreValid =
-        !!this.startDate &&
-        !!this.endDate &&
-        this.startDate <= this.todayDate &&
-        this.endDate <= this.todayDate;
+    get isReportButtonVisible() {
+        const datesAreValid =
+            !!this.startDate &&
+            !!this.endDate &&
+            this.startDate <= this.todayDate &&
+            this.endDate <= this.todayDate;
 
-    return !!(
-        this.selectedProgram &&
-        this.selectedBatch &&
-        this.selectedBatchGroup &&
-        this.selectedTerm &&
-        this.selectedDivision &&
-        this.selectedCourse &&
-        datesAreValid
-    );
-}
+        return !!(
+            this.selectedProgram &&
+            this.selectedBatch &&
+            this.selectedBatchGroup &&
+            this.selectedTerm &&
+            this.selectedDivision &&
+            this.selectedCourse &&
+            datesAreValid
+        );
+    }
     get hasNoData() {
         return !this.sessionColumns || this.sessionColumns.length === 0;
     }
     //--------Date Validation------
     get todayDate() {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-}
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
 
     // ---------- Load Programs ----------
     loadPrograms() {
@@ -216,53 +216,53 @@ export default class ConsolidatedAttendanceReport extends LightningElement {
 
     // ---------- Division → Course ----------
     handleDivisionChange(event) {
-    this.selectedDivision = event.detail.value;
-    this.resetFrom('course');
+        this.selectedDivision = event.detail.value;
+        this.resetFrom('course');
 
-    if (this.selectedDivision === this.constructor.ALL_DIVISIONS_VALUE) {
-        this.loadCoursesForAllDivisions();
-    } else if (this.selectedDivision) {
-        this.loadCourses(this.selectedDivision);
-    }
-}
-
-// NEW: merge courses from every division under the currently selected term
-loadCoursesForAllDivisions() {
-    const divisions = (this.divisionOptions || []).filter(
-        d => d.value !== this.constructor.ALL_DIVISIONS_VALUE
-    );
-    if (divisions.length === 0) {
-        this.courseOptions = [];
-        return;
+        if (this.selectedDivision === this.constructor.ALL_DIVISIONS_VALUE) {
+            this.loadCoursesForAllDivisions();
+        } else if (this.selectedDivision) {
+            this.loadCourses(this.selectedDivision);
+        }
     }
 
-    const promises = divisions.map(d =>
-        getCoursesForDivision({ divisionId: d.value }).catch(() => [])
-    );
-
-    Promise.all(promises)
-        .then(resultsArr => {
-            const merged = new Map();
-            resultsArr.forEach(list => {
-                (list || []).forEach(o => {
-                    // dedupe by combobox value ("courseName|learningCourseId") so the same
-                    // course offered in multiple divisions only shows once
-                    if (!merged.has(o.value)) {
-                        merged.set(o.value, {
-                            label: o.label,
-                            value: o.value,
-                            departmentName: o.departmentName || null
-                        });
-                    }
-                });
-            });
-            this.courseOptions = Array.from(merged.values());
-        })
-        .catch(error => {
-            console.error('Error loading courses for all divisions:', error);
+    // merge courses from every division under the currently selected term
+    loadCoursesForAllDivisions() {
+        const divisions = (this.divisionOptions || []).filter(
+            d => d.value !== this.constructor.ALL_DIVISIONS_VALUE
+        );
+        if (divisions.length === 0) {
             this.courseOptions = [];
-        });
-}
+            return;
+        }
+
+        const promises = divisions.map(d =>
+            getCoursesForDivision({ divisionId: d.value }).catch(() => [])
+        );
+
+        Promise.all(promises)
+            .then(resultsArr => {
+                const merged = new Map();
+                resultsArr.forEach(list => {
+                    (list || []).forEach(o => {
+                        // dedupe by combobox value ("courseName|learningCourseId") so the same
+                        // course offered in multiple divisions only shows once
+                        if (!merged.has(o.value)) {
+                            merged.set(o.value, {
+                                label: o.label,
+                                value: o.value,
+                                departmentName: o.departmentName || null
+                            });
+                        }
+                    });
+                });
+                this.courseOptions = Array.from(merged.values());
+            })
+            .catch(error => {
+                console.error('Error loading courses for all divisions:', error);
+                this.courseOptions = [];
+            });
+    }
 
     loadCourses(divisionId) {
         getCoursesForDivision({ divisionId })
@@ -287,52 +287,52 @@ loadCoursesForAllDivisions() {
 
     // ---------- Dates ----------
     handleStartDateChange(event) {
-    const inputEl = event.target;
-    if (!this.selectedCourse) {
-        inputEl.setCustomValidity('Please select a Course first.');
+        const inputEl = event.target;
+        if (!this.selectedCourse) {
+            inputEl.setCustomValidity('Please select a Course first.');
+            inputEl.reportValidity();
+            return;
+        }
+        const newStartDate = event.detail.value;
+        if (newStartDate && newStartDate > this.todayDate) {
+            inputEl.setCustomValidity('Future dates are not allowed. Please select today\'s date or an earlier date.');
+            inputEl.reportValidity();
+            return;
+        }
+        inputEl.setCustomValidity('');
         inputEl.reportValidity();
-        return;
-    }
-    const newStartDate = event.detail.value;
-    if (newStartDate && newStartDate > this.todayDate) {
-        inputEl.setCustomValidity('Future dates are not allowed. Please select today\'s date or an earlier date.');
-        inputEl.reportValidity();
-        return;
-    }
-    inputEl.setCustomValidity('');
-    inputEl.reportValidity();
-    this.startDate = newStartDate;
+        this.startDate = newStartDate;
 
-    // If existing end date is now before the new start date, clear it
-    if (this.endDate && this.startDate && this.endDate < this.startDate) {
-        this.endDate = null;
+        // If existing end date is now before the new start date, clear it
+        if (this.endDate && this.startDate && this.endDate < this.startDate) {
+            this.endDate = null;
+        }
+        this.hidePreview();
     }
-    this.hidePreview();
-}
 
-handleEndDateChange(event) {
-    const inputEl = event.target;
-    if (!this.startDate) {
-        inputEl.setCustomValidity('Please select Start Date before selecting End Date.');
+    handleEndDateChange(event) {
+        const inputEl = event.target;
+        if (!this.startDate) {
+            inputEl.setCustomValidity('Please select Start Date before selecting End Date.');
+            inputEl.reportValidity();
+            return;
+        }
+        const newEndDate = event.detail.value;
+        if (newEndDate && newEndDate > this.todayDate) {
+            inputEl.setCustomValidity('Future dates are not allowed. Please select today\'s date or an earlier date.');
+            inputEl.reportValidity();
+            return;
+        }
+        if (newEndDate && newEndDate < this.startDate) {
+            inputEl.setCustomValidity('End Date cannot be earlier than Start Date.');
+            inputEl.reportValidity();
+            return;
+        }
+        inputEl.setCustomValidity('');
         inputEl.reportValidity();
-        return;
+        this.endDate = newEndDate;
+        this.hidePreview();
     }
-    const newEndDate = event.detail.value;
-    if (newEndDate && newEndDate > this.todayDate) {
-        inputEl.setCustomValidity('Future dates are not allowed. Please select today\'s date or an earlier date.');
-        inputEl.reportValidity();
-        return;
-    }
-    if (newEndDate && newEndDate < this.startDate) {
-        inputEl.setCustomValidity('End Date cannot be earlier than Start Date.');
-        inputEl.reportValidity();
-        return;
-    }
-    inputEl.setCustomValidity('');
-    inputEl.reportValidity();
-    this.endDate = newEndDate;
-    this.hidePreview();
-}
 
     // ---------- Helpers ----------
     resetFrom(level) {
@@ -384,82 +384,88 @@ handleEndDateChange(event) {
     }
 
     handleReset() {
-    this.selectedProgram = null;
-    this.selectedBatch = null;
-    this.selectedBatchGroup = null;
-    this.selectedTerm = null;
-    this.selectedDivision = null;
-    this.selectedCourse = null;
-    this.startDate = null;
-    this.endDate = null;
+        this.selectedProgram = null;
+        this.selectedBatch = null;
+        this.selectedBatchGroup = null;
+        this.selectedTerm = null;
+        this.selectedDivision = null;
+        this.selectedCourse = null;
+        this.startDate = null;
+        this.endDate = null;
 
-    this.batchOptions = [];
-    this.batchGroupOptions = [];
-    this.termOptions = [];
-    this.divisionOptions = [];
-    this.courseOptions = [];
+        this.batchOptions = [];
+        this.batchGroupOptions = [];
+        this.termOptions = [];
+        this.divisionOptions = [];
+        this.courseOptions = [];
 
-    this.hidePreview();
-    this.clearDateValidationErrors();
-    this.loadPrograms();
-}
-
-// Clears any lingering "future date" / "end before start" custom validity
-// messages left on the date inputs from before Reset was clicked.
-// NOTE: querying by [label="..."] does not work reliably in LWC because
-// `label` is a component property, not a plain HTML attribute — that's why
-// the error messages were surviving Reset before. Query by class instead.
-clearDateValidationErrors() {
-    const startInput = this.template.querySelector('.start-date-input');
-    const endInput = this.template.querySelector('.end-date-input');
-    if (startInput) {
-        startInput.setCustomValidity('');
-        startInput.reportValidity();
+        this.hidePreview();
+        this.clearDateValidationErrors();
+        this.loadPrograms();
     }
-    if (endInput) {
-        endInput.setCustomValidity('');
-        endInput.reportValidity();
+
+    // Clears any lingering "future date" / "end before start" custom validity
+    // messages left on the date inputs from before Reset was clicked.
+    // NOTE: querying by [label="..."] does not work reliably in LWC because
+    // `label` is a component property, not a plain HTML attribute — that's why
+    // the error messages were surviving Reset before. Query by class instead.
+    clearDateValidationErrors() {
+        const startInput = this.template.querySelector('.start-date-input');
+        const endInput = this.template.querySelector('.end-date-input');
+        if (startInput) {
+            startInput.setCustomValidity('');
+            startInput.reportValidity();
+        }
+        if (endInput) {
+            endInput.setCustomValidity('');
+            endInput.reportValidity();
+        }
     }
-}
 
     // ---------- Show Report (preview) ----------
     async handleShowReport() {
-    if (!this.isReportButtonVisible) {
-        this.showToast('Missing filters', 'Please select all filters and both dates before generating the report.', 'error');
-        return;
+        if (!this.isReportButtonVisible) {
+            this.showToast('Missing filters', 'Please select all filters and both dates before generating the report.', 'error');
+            return;
+        }
+
+        this.isLoading = true;
+        try {
+            const isAllDivisions = this.selectedDivision === this.constructor.ALL_DIVISIONS_VALUE;
+
+            // FIX: the Apex controller no longer accepts a separate
+            // `divisionId` parameter — it only accepts `divisionIds`, a list
+            // that carries EITHER a single division (as a one-item array) OR
+            // multiple divisions (when "All Divisions" was picked). This
+            // builds that single list either way, instead of sending a
+            // separate divisionId key that the Apex method would reject.
+            const divisionIdsParam = isAllDivisions
+                ? (this.divisionOptions || [])
+                      .filter(d => d.value !== this.constructor.ALL_DIVISIONS_VALUE)
+                      .map(d => d.value)
+                : (this.selectedDivision ? [this.selectedDivision] : []);
+
+            const result = await generateAttendanceReport({
+                programId: this.selectedProgram,
+                batchId: this.selectedBatch,
+                batchGroupId: this.selectedBatchGroup,
+                termId: this.selectedTerm,
+                divisionIds: divisionIdsParam,
+                courseId: this.selectedCourse,
+                startDateStr: this.startDate,
+                endDateStr: this.endDate
+            });
+
+            this.reportResult = result;
+            this.buildPreviewModel(result);
+            this.showPreview = true;
+        } catch (error) {
+            console.error('Error generating report', error);
+            this.showToast('Error', this.extractErrorMessage(error), 'error');
+        } finally {
+            this.isLoading = false;
+        }
     }
-
-    this.isLoading = true;
-    try {
-        const isAllDivisions = this.selectedDivision === this.constructor.ALL_DIVISIONS_VALUE;
-        const divisionIdsParam = isAllDivisions
-            ? (this.divisionOptions || [])
-                  .filter(d => d.value !== this.constructor.ALL_DIVISIONS_VALUE)
-                  .map(d => d.value)
-            : null;
-
-        const result = await generateAttendanceReport({
-            programId: this.selectedProgram,
-            batchId: this.selectedBatch,
-            batchGroupId: this.selectedBatchGroup,
-            termId: this.selectedTerm,
-            divisionId: this.selectedDivision,
-            divisionIds: divisionIdsParam,
-            courseId: this.selectedCourse,
-            startDateStr: this.startDate,
-            endDateStr: this.endDate
-        });
-
-        this.reportResult = result;
-        this.buildPreviewModel(result);
-        this.showPreview = true;
-    } catch (error) {
-        console.error('Error generating report', error);
-        this.showToast('Error', this.extractErrorMessage(error), 'error');
-    } finally {
-        this.isLoading = false;
-    }
-}
 
     buildPreviewModel(result) {
         const sessions = result.sessions || [];
@@ -481,21 +487,21 @@ clearDateValidationErrors() {
                     remark: cell ? (cell.remark || '') : ''
                 };
             });
-            // NEW
-return {
-    key: stu.rollNumber || stu.studentName,
-    rollNumber: stu.rollNumber,
-    studentName: stu.studentName,
-    cells,
-    totalSessionsCovered: stu.totalSessionsCovered,
-    presentCount: stu.presentCount,
-    absentCount: stu.absentCount,
-    lateCount: stu.lateCount,
-    sanctionedLeaveCount: stu.sanctionedLeaveCount,
-    absentPercent: stu.absentPercent != null
-    ? Number(stu.absentPercent).toFixed(2)
-    : '0.00'
-};
+
+            return {
+                key: stu.rollNumber || stu.studentName,
+                rollNumber: stu.rollNumber,
+                studentName: stu.studentName,
+                cells,
+                totalSessionsCovered: stu.totalSessionsCovered,
+                presentCount: stu.presentCount,
+                absentCount: stu.absentCount,
+                lateCount: stu.lateCount,
+                sanctionedLeaveCount: stu.sanctionedLeaveCount,
+                absentPercent: stu.absentPercent != null
+                    ? Number(stu.absentPercent).toFixed(2)
+                    : '0.00'
+            };
         });
     }
 
@@ -505,111 +511,108 @@ return {
         this.buildAndDownloadExcel(this.reportResult);
     }
 
-   buildAndDownloadExcel(result) {
-    const sessions = result.sessions || [];
-    const students = result.students || [];
+    buildAndDownloadExcel(result) {
+        const sessions = result.sessions || [];
+        const students = result.students || [];
 
-    const FIXED_COLS = 2;
-    const COLS_PER_SESSION = 2;
+        const FIXED_COLS = 2;
+        const COLS_PER_SESSION = 2;
 
-    const aoa = [];
+        const aoa = [];
 
-    const row0 = ['', ''];
-    sessions.forEach(() => row0.push('Session', ''));
-    aoa.push(row0);
+        const row0 = ['', ''];
+        sessions.forEach(() => row0.push('Session', ''));
+        aoa.push(row0);
 
-    const row1 = ['Roll Number', 'Date'];
-    sessions.forEach(s => row1.push(s.sessionDateStr, ''));
-    aoa.push(row1);
+        const row1 = ['Roll Number', 'Date'];
+        sessions.forEach(s => row1.push(s.sessionDateStr, ''));
+        aoa.push(row1);
 
-    const row2 = ['', 'Session Start and End Time'];
-    sessions.forEach(s => row2.push(s.timeRangeStr, 'Remarks'));
-    aoa.push(row2);
+        const row2 = ['', 'Session Start and End Time'];
+        sessions.forEach(s => row2.push(s.timeRangeStr, 'Remarks'));
+        aoa.push(row2);
 
-    const row3 = ['', 'Session Name'];
-    sessions.forEach(s => row3.push(s.sessionName || '', ''));
-    aoa.push(row3);
+        const row3 = ['', 'Session Name'];
+        sessions.forEach(s => row3.push(s.sessionName || '', ''));
+        aoa.push(row3);
 
-    const rowDiv = ['', 'Division'];
-    sessions.forEach(s => rowDiv.push(s.divisionNames || '', ''));
-    aoa.push(rowDiv);
+        const rowDiv = ['', 'Division'];
+        sessions.forEach(s => rowDiv.push(s.divisionNames || '', ''));
+        aoa.push(rowDiv);
 
-    const row4 = ['', 'Course'];
-    sessions.forEach(s => row4.push(s.courseName || '', ''));
-    aoa.push(row4);
+        const row4 = ['', 'Course'];
+        sessions.forEach(s => row4.push(s.courseName || '', ''));
+        aoa.push(row4);
 
-    const row5 = ['', 'Faculty'];
-    sessions.forEach(s => row5.push(s.facultyNames || '', ''));
-    aoa.push(row5);
+        const row5 = ['', 'Faculty'];
+        sessions.forEach(s => row5.push(s.facultyNames || '', ''));
+        aoa.push(row5);
 
-    // NEW
-const row6 = ['Student Roll Number', 'Student Name'];
-sessions.forEach(() => row6.push('Session Attendance', 'Session Attendance Remarks'));
-// NEW
-row6.push(
-    'Total Sessions Covered',
-    'Present',
-    'Absent',
-    'Late',
-    'Sanctioned Leave',
-    'Absent %'
-);
-aoa.push(row6);
+        const row6 = ['Student Roll Number', 'Student Name'];
+        sessions.forEach(() => row6.push('Session Attendance', 'Session Attendance Remarks'));
+        row6.push(
+            'Total Sessions Covered',
+            'Present',
+            'Absent',
+            'Late',
+            'Sanctioned Leave',
+            'Absent %'
+        );
+        aoa.push(row6);
 
-students.forEach(stu => {
-    const row = [stu.rollNumber || '', stu.studentName || ''];
-    sessions.forEach(s => {
-        const cell = stu.cellsBySessionId ? stu.cellsBySessionId[s.sessionId] : null;
-        row.push(cell ? this.mapAttendanceCode(cell.attendance) : '');
-        row.push(cell ? (cell.remark || '') : '');
-    });
-    
-    row.push(
-    stu.totalSessionsCovered != null ? stu.totalSessionsCovered : '',
-    stu.presentCount != null ? stu.presentCount : '',
-    stu.absentCount != null ? stu.absentCount : '',
-    stu.lateCount != null ? stu.lateCount : '',
-    stu.sanctionedLeaveCount != null ? stu.sanctionedLeaveCount : '',
-    stu.absentPercent != null ? Number(stu.absentPercent) : ''
-   );
-    aoa.push(row);
-});
+        students.forEach(stu => {
+            const row = [stu.rollNumber || '', stu.studentName || ''];
+            sessions.forEach(s => {
+                const cell = stu.cellsBySessionId ? stu.cellsBySessionId[s.sessionId] : null;
+                row.push(cell ? this.mapAttendanceCode(cell.attendance) : '');
+                row.push(cell ? (cell.remark || '') : '');
+            });
 
-    // eslint-disable-next-line no-undef
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
+            row.push(
+                stu.totalSessionsCovered != null ? stu.totalSessionsCovered : '',
+                stu.presentCount != null ? stu.presentCount : '',
+                stu.absentCount != null ? stu.absentCount : '',
+                stu.lateCount != null ? stu.lateCount : '',
+                stu.sanctionedLeaveCount != null ? stu.sanctionedLeaveCount : '',
+                stu.absentPercent != null ? Number(stu.absentPercent) : ''
+            );
+            aoa.push(row);
+        });
 
-    const merges = [];
-    sessions.forEach((s, i) => {
-        const startCol = FIXED_COLS + i * COLS_PER_SESSION;
-        merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: startCol + 1 } });
-        merges.push({ s: { r: 1, c: startCol }, e: { r: 1, c: startCol + 1 } });
-        merges.push({ s: { r: 3, c: startCol }, e: { r: 3, c: startCol + 1 } });
-        merges.push({ s: { r: 4, c: startCol }, e: { r: 4, c: startCol + 1 } });
-        merges.push({ s: { r: 5, c: startCol }, e: { r: 5, c: startCol + 1 } });
-        merges.push({ s: { r: 6, c: startCol }, e: { r: 6, c: startCol + 1 } });
-    });
-    ws['!merges'] = merges;
+        // eslint-disable-next-line no-undef
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-    // NEW
-const colWidths = [{ wch: 16 }, { wch: 24 }];
-sessions.forEach(() => colWidths.push({ wch: 16 }, { wch: 16 }));
-colWidths.push(
-    { wch: 14 }, // Total Sessions Covered
-    { wch: 10 }, // Present
-    { wch: 10 }, // Absent
-    { wch: 10 }, // Late
-    { wch: 14 }, // Sanctioned Leave
-    { wch: 12 }  // Attendance %
-);
-ws['!cols'] = colWidths;
+        const merges = [];
+        sessions.forEach((s, i) => {
+            const startCol = FIXED_COLS + i * COLS_PER_SESSION;
+            merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: startCol + 1 } });
+            merges.push({ s: { r: 1, c: startCol }, e: { r: 1, c: startCol + 1 } });
+            merges.push({ s: { r: 3, c: startCol }, e: { r: 3, c: startCol + 1 } });
+            merges.push({ s: { r: 4, c: startCol }, e: { r: 4, c: startCol + 1 } });
+            merges.push({ s: { r: 5, c: startCol }, e: { r: 5, c: startCol + 1 } });
+            merges.push({ s: { r: 6, c: startCol }, e: { r: 6, c: startCol + 1 } });
+        });
+        ws['!merges'] = merges;
 
-    // eslint-disable-next-line no-undef
-    const wb = XLSX.utils.book_new();
-    // eslint-disable-next-line no-undef
-    XLSX.utils.book_append_sheet(wb, ws, 'Attendance Report');
-    // eslint-disable-next-line no-undef
-    XLSX.writeFile(wb, 'Consolidated_Attendance_Report.xlsx');
-}
+        const colWidths = [{ wch: 16 }, { wch: 24 }];
+        sessions.forEach(() => colWidths.push({ wch: 16 }, { wch: 16 }));
+        colWidths.push(
+            { wch: 14 }, // Total Sessions Covered
+            { wch: 10 }, // Present
+            { wch: 10 }, // Absent
+            { wch: 10 }, // Late
+            { wch: 14 }, // Sanctioned Leave
+            { wch: 12 }  // Absent %
+        );
+        ws['!cols'] = colWidths;
+
+        // eslint-disable-next-line no-undef
+        const wb = XLSX.utils.book_new();
+        // eslint-disable-next-line no-undef
+        XLSX.utils.book_append_sheet(wb, ws, 'Attendance Report');
+        // eslint-disable-next-line no-undef
+        XLSX.writeFile(wb, 'Consolidated_Attendance_Report.xlsx');
+    }
 
     mapAttendanceCode(attendance) {
         if (!attendance) return '';

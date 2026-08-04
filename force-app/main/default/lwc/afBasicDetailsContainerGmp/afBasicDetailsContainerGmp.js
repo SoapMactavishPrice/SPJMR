@@ -167,7 +167,7 @@ export default class AfBasicDetailsContainerGmp extends LightningElement {
                     { api: "Nationality__c", type: "picklist", label: "Nationality", required: true },
                     { api: "HavePassport__c", type: "picklist", label: "Do you have a Passport?", required: true, visibleWhen: { "otherResources.isIndianNational": true }, },
                     { api: "PassportNumber__c", type: "text", label: "Passport Number", maxlength: '25', pattern:"^[A-Z0-9<]{3,20}$", required: true, visibleWhen: { "otherResources.showPassportField": true }, },
-                    { api: "PassportApplicationNumber__c", type: "text", label: "Passport Application Number", maxlength: '35', pattern:"^[A-Za-z0-9]{10,16}$", required: true, visibleWhen: { "otherResources.showPassportApplicationNo": true }, },
+                    { api: "PassportApplicationNumber__c", type: "text", label: "Passport Application Number", maxlength: '35', pattern:"^[A-Za-z0-9]{10,20}$", required: true, visibleWhen: { "otherResources.showPassportApplicationNo": true }, },
                     { api: "AadhaarCardNumber__c", type: "text", label: "Aadhaar Card Number", maxlength: '80', pattern:"^[2-9][0-9]{11}$",required: true, visibleWhen: { "otherResources.isIndianNational": true }, },
                 ]
             },
@@ -921,8 +921,8 @@ export default class AfBasicDetailsContainerGmp extends LightningElement {
             if (field) {
                 field.pattern =
                     nationality === "Indian"
-                    ? '^[A-Z][0-9]{7}$'
-                    : '^[A-Z0-9<]{3,20}$';
+                        ? '^(?=.*[A-Z])[A-Z0-9]{8}$'
+                        : '^[A-Z0-9]{3,20}$';
             }
         }
 

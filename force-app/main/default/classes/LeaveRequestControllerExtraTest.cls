@@ -8,6 +8,18 @@ private class LeaveRequestControllerExtraTest {
         return vals.isEmpty() ? null : vals[0].getValue();
     }
 
+    /**
+     * Builds the 'yyyy-MM-dd HH:mm:ss' string LeaveRequestController expects.
+     * The controller parses its date arguments with Datetime.valueOf() after
+     * stripping the 'T', so a Date cannot be passed directly.
+     * @param d the calendar day
+     * @param hour hour of day, 0-23
+     * @return the formatted local-time datetime string
+     */
+    private static String dtStr(Date d, Integer hour) {
+        return Datetime.newInstance(d, Time.newInstance(hour, 0, 0, 0)).format('yyyy-MM-dd HH:mm:ss');
+    }
+
     @TestSetup
     static void setupData() {
         SpjimrPortalTestDataFactory.buildAll('lrc');
@@ -16,8 +28,8 @@ private class LeaveRequestControllerExtraTest {
     @IsTest
     static void getSessions_nullDatesReturnEmpty() {
         Test.startTest();
-        System.assertEquals(0, LeaveRequestController.getSessions(null, Date.today()).size());
-        System.assertEquals(0, LeaveRequestController.getSessions(Date.today(), null).size());
+        System.assertEquals(0, LeaveRequestController.getSessions(null, dtStr(Date.today(), 23)).size());
+        System.assertEquals(0, LeaveRequestController.getSessions(dtStr(Date.today(), 0), null).size());
         Test.stopTest();
     }
 
@@ -28,7 +40,7 @@ private class LeaveRequestControllerExtraTest {
         if (pu != null) {
             System.runAs(pu) {
                 List<LeaveRequestController.SessionWrapper> rows =
-                    LeaveRequestController.getSessions(Date.today().addDays(-30), Date.today().addDays(30));
+                    LeaveRequestController.getSessions(dtStr(Date.today().addDays(-30), 0), dtStr(Date.today().addDays(30), 23));
                 System.assertNotEquals(null, rows);
             }
         }
@@ -39,7 +51,7 @@ private class LeaveRequestControllerExtraTest {
     static void getSessions_defaultUserPath() {
         Test.startTest();
         List<LeaveRequestController.SessionWrapper> rows =
-            LeaveRequestController.getSessions(Date.today().addDays(-1), Date.today().addDays(1));
+            LeaveRequestController.getSessions(dtStr(Date.today().addDays(-1), 0), dtStr(Date.today().addDays(1), 23));
         Test.stopTest();
         System.assertNotEquals(null, rows);
     }
@@ -76,7 +88,7 @@ private class LeaveRequestControllerExtraTest {
     static void saveLeaveRequest_invalidDatesThrow() {
         Test.startTest();
         try {
-            LeaveRequestController.saveLeaveRequest(null, Date.today(), 'Sick', 'r', null, null);
+            LeaveRequestController.saveLeaveRequest(null, dtStr(Date.today(), 23), 'Sick', 'r', null, null);
             System.assert(false);
         } catch (AuraHandledException e) {
             System.assert(true);
@@ -101,8 +113,8 @@ private class LeaveRequestControllerExtraTest {
                     seIds.add(se.Id);
                 }
                 Id leaveId = LeaveRequestController.saveLeaveRequest(
-                    Date.today(),
-                    Date.today().addDays(1),
+                    dtStr(Date.today(), 9),
+                    dtStr(Date.today().addDays(1), 17),
                     'Sick',
                     'Test leave',
                     seIds,
@@ -126,8 +138,8 @@ private class LeaveRequestControllerExtraTest {
         System.runAs(pu) {
             try {
                 Id leaveId = LeaveRequestController.saveLeaveRequest(
-                    Date.today(),
-                    Date.today(),
+                    dtStr(Date.today(), 9),
+                    dtStr(Date.today(), 17),
                     firstLeaveType(),
                     'No sessions selected',
                     null,
@@ -156,8 +168,8 @@ private class LeaveRequestControllerExtraTest {
         System.runAs(internalUsers[0]) {
             try {
                 LeaveRequestController.saveLeaveRequest(
-                    Date.today(),
-                    Date.today(),
+                    dtStr(Date.today(), 9),
+                    dtStr(Date.today(), 17),
                     firstLeaveType(),
                     'Internal user branch',
                     null,

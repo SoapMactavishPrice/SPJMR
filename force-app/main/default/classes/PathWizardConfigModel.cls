@@ -67,6 +67,7 @@ public with sharing class PathWizardConfigModel {
             result.useClientRecordTypePicklist = row.Use_Client_Record_Type_Picklist__c == true;
             result.programFromRootRecord = row.Program_From_Root_Record__c == true;
         }
+        system.debug('Returning res:'+result);
         return result;
     }
 }

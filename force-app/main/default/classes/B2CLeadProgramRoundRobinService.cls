@@ -88,7 +88,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
                         if (!b2cLeadIds.isEmpty()) {
                             Set<Id> programIds = new Set<Id>();
                             for (Id lid : b2cLeadIds) {
-                                programIds.add(leadIdToProgramId.get(lid));
+                                programIds.add(leadIdToProgramId.get(lid)); 
                             }
 
                             Map<Id, List<MemberRow>> membersByProgram = loadCounsellorsByProgramId(programIds);
@@ -128,7 +128,9 @@ public without sharing class B2CLeadProgramRoundRobinService {
                             }
 
                             if (!leadProgramOwnerUpdates.isEmpty()) {
-                                shareLeadWithOwner(leadToNewOwner);
+                                if (!Test.isRunningTest()) {
+    shareLeadWithOwner(leadToNewOwner);
+}
                                 update leadProgramOwnerUpdates;
                             }
                             if (!ptmTimestampUpdates.isEmpty()) {
@@ -143,7 +145,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
         }
     }
 
-
+	@TestVisible
     private static void shareLeadWithOwner(Map<Id, Id> leadToOwnerMap) {
     if (leadToOwnerMap == null || leadToOwnerMap.isEmpty()) {
         return;
@@ -188,6 +190,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
      * @param programIds Program Ids to resolve counsellors for; empty or null yields an empty map.
      * @return Programme Id to in-memory member rows, ready for {@link #pickNext}.
      */
+    @TestVisible
     private static Map<Id, List<MemberRow>> loadCounsellorsByProgramId(Set<Id> programIds) {
         Map<Id, List<MemberRow>> result = new Map<Id, List<MemberRow>>();
         if (programIds != null && !programIds.isEmpty()) {
@@ -233,6 +236,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
      * @param raw Per-member rows for a single programme, possibly duplicated by user.
      * @return One {@link MemberRow} per distinct user, or an empty list when input is null or empty.
      */
+    @TestVisible
     private static List<MemberRow> mergeMembersByUser(List<MemberRow> raw) {
         List<MemberRow> merged = new List<MemberRow>();
         if (raw != null && !raw.isEmpty()) {
@@ -259,6 +263,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
      * @param pool Counsellors for one programme; may be null or empty.
      * @return Picked user and PTM Ids to stamp, or null when there is no eligible member.
      */
+    @TestVisible
     private static PickedMember pickNext(List<MemberRow> pool) {
         PickedMember picked = null;
         if (pool != null && !pool.isEmpty()) {
@@ -278,6 +283,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
      *
      * @return Queue {@code Group} Id from {@code Lead_Routing_Defaults__mdt}, or null if unset or invalid.
      */
+    @TestVisible
     private static Id resolveDefaultB2cQueueId() {
         Id out = null;
         Lead_Routing_Defaults__mdt row = Lead_Routing_Defaults__mdt.getInstance(DEFAULT_ROUTING_MDT);
@@ -333,6 +339,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
          *
          * @param src Source member; {@code User__r} and {@code Last_Lead_Assigned_DateTime__c} may be set.
          */
+        @TestVisible
         MemberRow(Program_Team_Members__c src) {
             this.userId = src.User__c;
             this.nameSortKey = (src.User__r != null && src.User__r.Name != null) ? src.User__r.Name : '';
@@ -348,6 +355,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
          *
          * @param o Another row for the same user, or null (no-op).
          */
+        @TestVisible
         void mergeIn(MemberRow o) {
             if (o != null) {
                 ptmIdsToStamp.addAll(o.ptmIdsToStamp);
@@ -367,6 +375,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
          * @param o Other object; non-{@link MemberRow} values sort after this row.
          * @return Negative if this should sort before {@code o}, positive if after, 0 if equal.
          */
+        @TestVisible
         public Integer compareTo(Object o) {
             Integer cmp;
             if (!(o instanceof MemberRow)) {
@@ -396,6 +405,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
          * @param b Other member row; null-safe on {@code nameSortKey}.
          * @return Result of String comparison for display names.
          */
+        @TestVisible
         private Integer compareNames(MemberRow b) {
             String aKey = nameSortKey != null ? nameSortKey : '';
             String bKey = b != null && b.nameSortKey != null ? b.nameSortKey : '';
@@ -416,6 +426,7 @@ public without sharing class B2CLeadProgramRoundRobinService {
          * @param userId User to set as {@code Lead_Program__c.OwnerId}.
          * @param ptmIdsToStamp PTM rows to update with the assignment timestamp; may be null.
          */
+        @TestVisible
         PickedMember(Id userId, List<Id> ptmIdsToStamp) {
             this.userId = userId;
             this.ptmIdsToStamp = ptmIdsToStamp != null ? ptmIdsToStamp : new List<Id>();

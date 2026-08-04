@@ -1,4 +1,4 @@
-public without sharing class LeadProgramTriggerHelper {
+public without sharing class LeadProgramTriggerHelper { 
     
     /**
      * Sets {@code Program_Code__c} on junction rows from {@code Program.Program_Code__c}.
@@ -51,49 +51,6 @@ public without sharing class LeadProgramTriggerHelper {
             Program p = programById.get(lp.Program__c);
             lp.Program_Code__c =
                 p != null && String.isNotBlank(p.Program_Code__c) ? p.Program_Code__c.trim() : null;
-        }
-    }
-    
-    /**
-     * For B2C Leads with blank Program_Master__c, set it from the first Program on new Lead_Program__c rows (per Lead in the batch).
-     */
-    public static void backfillProgramMasterOnB2cLead(List<Lead_Program__c> newList) {
-        if (newList == null || newList.isEmpty()) {
-            return;
-        }
-        Schema.RecordTypeInfo b2cRt = Schema.SObjectType.Lead.getRecordTypeInfosByDeveloperName().get('B2C');
-        if (b2cRt == null) {
-            return;
-        }
-        Id b2cRecordTypeId = b2cRt.getRecordTypeId();
-        
-        Map<Id, Id> leadIdToProgramId = new Map<Id, Id>();
-        for (Lead_Program__c lp : newList) {
-            if (lp.Lead__c == null || lp.Program__c == null) {
-                continue;
-            }
-            if (!leadIdToProgramId.containsKey(lp.Lead__c)) {
-                leadIdToProgramId.put(lp.Lead__c, lp.Program__c);
-            }
-        }
-        if (leadIdToProgramId.isEmpty()) {
-            return;
-        }
-        
-        List<Lead> toUpdate = new List<Lead>();
-        for (Lead l : [
-            SELECT Id, Program_Master__c, RecordTypeId
-            FROM Lead
-            WHERE Id IN :leadIdToProgramId.keySet()
-        ]) {
-            if (l.RecordTypeId != b2cRecordTypeId || l.Program_Master__c != null) {
-                continue;
-            }
-            l.Program_Master__c = leadIdToProgramId.get(l.Id);
-            toUpdate.add(l);
-        }
-        if (!toUpdate.isEmpty()) {
-            update toUpdate;
         }
     }
     

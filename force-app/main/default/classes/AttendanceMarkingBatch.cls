@@ -1,25 +1,3 @@
-/**
- * @class   AttendanceMarkingBatch
- * @purpose For every Session_Enrollment__c whose Session has already ended
- *          (Completed Session), decide attendance based on Attendance_Log__c
- *          rows received from the ESSL biometric server:
- *            - log inside the session window → Present
- *            - no log in window              → Absent
- *
- *          A late log arriving after an enrollment was already marked Absent
- *          will flip it back to Present. Already-Present and
- *          Sanctioned-Leave enrollments are left untouched.
- *
- * @schedule Every 2 hours 08:10–20:10 IST + a final sweep at 23:49 IST,
- *           Monday to Saturday (see AttendanceMarkingScheduler).
- *
- * @completed A session is considered "Completed" once End_Time__c is at least
- *            ABSENT_BUFFER_MIN minutes in the past. The buffer absorbs late
- *            ESSL syncs and clock skew.
- *
- * @window  Each run looks back LOOKBACK_DAYS to absorb missed runs / outages
- *          and to safely straddle the IST↔UTC midnight boundary.
- */
 public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
                                                Database.Stateful {
 
@@ -38,13 +16,12 @@ public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
 
         return Database.getQueryLocator([
             SELECT Id,
-                   Roll_Number__c,
+                   Registeration_Number__c,
                    Attendance__c,
                    Session__r.Start_Time__c,
                    Session__r.End_Time__c
             FROM   Session_Enrollment__c
             WHERE  (Attendance__c = NULL OR Attendance__c = 'Absent')
-              AND  Session__r.Schedule_Type__c = 'Published'
               AND  Session__r.End_Time__c   <  :completedCutoff
               AND  Session__r.Start_Time__c >= :windowStart
             ORDER BY Session__r.Start_Time__c ASC
@@ -60,11 +37,11 @@ public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
         Datetime maxEnd   = null;
 
         for (Session_Enrollment__c se : enrollments) {
-            if (se.Roll_Number__c == null
+            if (se.Registeration_Number__c == null
                 || se.Session__r.Start_Time__c == null
                 || se.Session__r.End_Time__c   == null) continue;
 
-            rollNumbers.add(se.Roll_Number__c);
+            rollNumbers.add(se.Registeration_Number__c);
             if (minStart == null || se.Session__r.Start_Time__c < minStart) {
                 minStart = se.Session__r.Start_Time__c;
             }
@@ -101,7 +78,7 @@ public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
         for (Session_Enrollment__c se : enrollments) {
             totalProcessed++;
 
-            if (se.Roll_Number__c == null
+            if (se.Registeration_Number__c == null
                 || se.Session__r.Start_Time__c == null
                 || se.Session__r.End_Time__c   == null) {
                 totalSkipped++;
@@ -109,7 +86,7 @@ public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
             }
 
             Attendance_Log__c matchedLog = null;
-            List<Attendance_Log__c> studentLogs = logMap.get(se.Roll_Number__c);
+            List<Attendance_Log__c> studentLogs = logMap.get(se.Registeration_Number__c);
 
             if (studentLogs != null) {
                 for (Attendance_Log__c log : studentLogs) {
@@ -165,13 +142,5 @@ public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
     }
 
     public void finish(Database.BatchableContext bc) {
-        System.debug('========================================');
-        System.debug('AttendanceMarkingBatch | COMPLETE');
-        System.debug('Processed      : ' + totalProcessed);
-        System.debug('Marked Present : ' + totalMarkedPresent);
-        System.debug('Marked Absent  : ' + totalMarkedAbsent);
-        System.debug('Skipped        : ' + totalSkipped);
-        System.debug('Failed         : ' + totalFailed);
-        System.debug('========================================');
     }
 }

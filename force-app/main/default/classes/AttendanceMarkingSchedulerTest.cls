@@ -1,13 +1,28 @@
 @IsTest
 private class AttendanceMarkingSchedulerTest {
+
     @IsTest
-    static void exerciseClass() {
-        AttendanceMarkingScheduler inst = null;
-        try { inst = new AttendanceMarkingScheduler(); } catch (Exception e) {}
-        try { if (inst != null) inst.execute(null); } catch (Exception e) {}
-        try { AttendanceMarkingScheduler.scheduleAll(); } catch (Exception e) {}
-        try { AttendanceMarkingScheduler.abortAll(); } catch (Exception e) {}
-        try { AttendanceMarkingScheduler.checkSchedule(); } catch (Exception e) {}
-        try { new AttendanceMarkingScheduler().execute(null); } catch (Exception e) {}
+    static void executeFiresBatch() {
+        Test.startTest();
+        new AttendanceMarkingScheduler().execute(null);
+        Test.stopTest();
+        System.assert(true);
+    }
+
+    @IsTest
+    static void scheduleAbortAndCheck() {
+        Test.startTest();
+        AttendanceMarkingScheduler.scheduleAll();
+        Integer scheduled = [
+            SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name LIKE 'Attendance_Marking_%'
+        ];
+        System.assertEquals(8, scheduled, 'Expected 7 daytime + 1 final job');
+        AttendanceMarkingScheduler.checkSchedule();
+        AttendanceMarkingScheduler.abortAll();
+        Test.stopTest();
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name LIKE 'Attendance_Marking_%']
+        );
     }
 }

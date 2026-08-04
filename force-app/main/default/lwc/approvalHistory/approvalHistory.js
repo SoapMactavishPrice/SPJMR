@@ -34,7 +34,7 @@ export default class ApprovalHistory extends LightningElement {
                     : '',
             
                 approvedBy: r.approvedBy,
-                remark: r.remark
+                remark: r.remark && r.remark.trim() ? r.remark : '-'
             }));
             this.error = undefined;
         } else if (error) {

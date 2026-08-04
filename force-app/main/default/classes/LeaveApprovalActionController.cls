@@ -1,12 +1,19 @@
 // Approval actions record per-step remarks into approval history.
 public without sharing class LeaveApprovalActionController {
 
+    /** AuraHandledException constructor message is often lost; setMessage() is required for LWC. */
+    private static AuraHandledException auraError(String message) {
+        AuraHandledException ex = new AuraHandledException(message);
+        ex.setMessage(message);
+        return ex;
+    }
+
     // ================= GET ROLE =================
     @AuraEnabled
     public static String getCurrentUserRole(Id leaveId){
         try{
             if(leaveId == null){
-                throw new AuraHandledException('Record Id is missing');
+                throw auraError('Record Id is missing');
             }
 
             Leave_Application__c rec = [
@@ -18,8 +25,10 @@ public without sharing class LeaveApprovalActionController {
 
             return rec.Current_Role_Name__c;
 
+        } catch(AuraHandledException ahe){
+            throw ahe;
         } catch(Exception e){
-            throw new AuraHandledException('Role Error: ' + e.getMessage());
+            throw auraError('Role Error: ' + e.getMessage());
         }
     }
 
@@ -69,7 +78,7 @@ public without sharing class LeaveApprovalActionController {
             ];
 
             if(workItems.isEmpty()){
-                throw new AuraHandledException('No pending approval found for this record.');
+                throw auraError('No pending approval found for this record.');
             }
 
             // ✅ Find work item belonging to current user if exists, else take first
@@ -83,6 +92,10 @@ public without sharing class LeaveApprovalActionController {
 
             Approval.ProcessWorkitemRequest req = new Approval.ProcessWorkitemRequest();
             req.setWorkitemId(workItem.Id);
+
+            if(String.isNotBlank(remarks)){
+    req.setComments(remarks);
+}
 
             // ================= PROGRAMME OFFICE =================
             if(leaveRec.Current_Role_Name__c == 'Programme Office'){
@@ -100,7 +113,7 @@ public without sharing class LeaveApprovalActionController {
                     ];
 
                     if(managers.isEmpty()){
-                        throw new AuraHandledException('No Manager found');
+                        throw auraError('No Manager found');
                     }
 
                     // ✅ BUILD list of all Manager IDs
@@ -199,7 +212,7 @@ public without sharing class LeaveApprovalActionController {
                         ];
 
                         if(deputies.isEmpty()){
-                            throw new AuraHandledException('No Deputy found');
+                            throw auraError('No Deputy found');
                         }
 
                         // ✅ BUILD list of all Deputy IDs
@@ -350,8 +363,12 @@ public without sharing class LeaveApprovalActionController {
                 submitToDeputyAsync(leaveId, String.join(deputyIdStrings, ','));
             }
 
+        } catch(AuraHandledException ahe){
+            // Re-throw as-is so LWC receives the real message (e.g. "No Manager found").
+            // Wrapping with new AuraHandledException(e.getMessage()) returns "Script-thrown exception".
+            throw ahe;
         } catch(Exception e){
-            throw new AuraHandledException(e.getMessage());
+            throw auraError(e.getMessage());
         }
     }
 
@@ -465,8 +482,10 @@ public without sharing class LeaveApprovalActionController {
             link.Visibility                = 'AllUsers';
             insert link;
 
+        } catch(AuraHandledException ahe){
+            throw ahe;
         } catch(Exception e){
-            throw new AuraHandledException('File Upload Error: ' + e.getMessage());
+            throw auraError('File Upload Error: ' + e.getMessage());
         }
     }
 

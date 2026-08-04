@@ -1,362 +1,340 @@
 @IsTest
 private class B2CLeadControllerTest {
-    
-    
-    @IsTest
-    static void exerciseClass() {
-        B2CLeadController inst = null;
-        try { inst = new B2CLeadController(); } catch (Exception e) {}
-        try { B2CLeadController.getCountries(); } catch (Exception e) {}
-        try { B2CLeadController.getStatesByCountry(null); } catch (Exception e) {}
-        try { B2CLeadController.getCitiesByState(null); } catch (Exception e) {}
-        try { B2CLeadController.searchPrograms(null); } catch (Exception e) {}
-        try { B2CLeadController.getEntranceExamOptions(); } catch (Exception e) {}
-        try { B2CLeadController.getLeadSourceOptions(); } catch (Exception e) {}
-        try { B2CLeadController.getCampaignsByLeadSource(null); } catch (Exception e) {}
-        try { B2CLeadController.checkExistingLead(null, null); } catch (Exception e) {}
-        try { B2CLeadController.createB2CLead(null, null, null, null, null, null, null, null, null, Date.today(), null, false, null, false, null, new List<String>(), null, false, null, null, null, null,null); } catch (Exception e) {}
+
+    private static Id b2cLeadRtId;
+
+    @testSetup
+    static void setup() {
+
+        // Lead Record Type
+        b2cLeadRtId =
+            Schema.SObjectType.Lead.getRecordTypeInfosByDeveloperName()
+            .get('B2C')
+            .getRecordTypeId();
+
+        // Country
+        Country_Master__c country = new Country_Master__c(
+            Name='India',
+            Country_Code__c='+91',
+            AcceptedNumberLength__c='10'
+        );
+        insert country;
+
+        // State
+        State__c state = new State__c(
+            Name='Kerala',
+            Country_Master__c=country.Id
+        );
+        insert state;
+
+        // City
+        City__c city = new City__c(
+            Name='Kochi',
+            State__c=state.Id,
+            CityCode__c='23'
+        );
+        insert city;
+
+        // Program Parent
+        Program parentProgram = new Program(
+            Name='PGDM',
+            Program_Code__c='PGDM',
+            Short_Programme_Code__c='PM',
+            Programme_Type__c ='Modular',
+            Programme_Sub_Type__c = 'Blended',
+            StartDate=System.Today(),
+            EndDate = System.Today().AddDays(3)
+        );
+        insert parentProgram;
+
+        // Child Program
+        Program childProgram = new Program(
+            Name='PGDM BM',
+            Program_Code__c='PGDMBM',
+            ParentProgramId=parentProgram.Id,
+            Short_Programme_Code__c='PMD',
+            Programme_Type__c ='Modular',
+            Programme_Sub_Type__c = 'Blended',
+            StartDate=System.Today(),
+            EndDate = System.Today().AddDays(3)
+        );
+        insert childProgram;
+
+        // Campaign
+        Campaign camp = new Campaign(
+            Name='Website Campaign',
+            IsActive=true,
+            CampaignSource__c='Website'
+        );
+        insert camp;
+
+        // Lead
+        Lead l = new Lead(
+            RecordTypeId=b2cLeadRtId,
+            Status='Untouched',
+            Company='Individual',
+            FirstName='John',
+            LastName='Doe',
+            Email='john@test.com',
+            Phone='+91 9876543210'
+        );
+        insert l;
+
+        insert new Lead_Program__c(
+            Lead__c=l.Id,
+            Program__c=childProgram.Id,
+            Lead_Source__c='Website',
+            Email__c=l.Email,
+            Phone__c=l.Phone
+        );
+        Id recordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName()
+                        .get('Applicant')
+                        .getRecordTypeId();
+        Account app =  new Account(RecordTypeId = recordTypeId,
+        FirstName='Applicant',LastName='2',PersonEmail='s@m.com',Phone='9876543123');
+        insert app;
     }
+
+    private static Country_Master__c getCountry(){
+        return [
+            SELECT Id
+            FROM Country_Master__c
+            LIMIT 1
+        ];
+    }
+
+    private static State__c getState(){
+        return [
+            SELECT Id
+            FROM State__c
+            LIMIT 1
+        ];
+    }
+
+    private static City__c getCity(){
+        return [
+            SELECT Id
+            FROM City__c
+            LIMIT 1
+        ];
+    }
+
+    private static Program getProgram(){
+        return [
+            SELECT Id,Name,Program_Code__c,ParentProgramId
+            FROM Program
+            WHERE ParentProgramId!=NULL
+            LIMIT 1
+        ];
+    }
+
+    private static Campaign getCampaign(){
+        return [
+            SELECT Id
+            FROM Campaign
+            LIMIT 1
+        ];
+    }
+
+    private static Lead getLeadRecord(){
+        return [
+            SELECT Id,Email,Phone
+            FROM Lead
+            LIMIT 1
+        ];
+    }
+    
     
     @isTest
-    static void testCityStateCountry(){
-        Country_Master__c country = new Country_Master__c(
-    Name = 'India'
-);
-insert country;
-
-State__c state = new State__c(
-    Name = 'Kerala',
-    Country_Master__c = country.Id
-);
-insert state;
-
-City__c city = new City__c(
-    Name = 'Kochi',
-    CityCode__c = 'COK',
-    State__c = state.Id
-);
-insert city;
-
-// Cover getStatesByCountry
-List<Map<String,String>> states =
-    B2CLeadController.getStatesByCountry(country.Id);
-
-System.assertEquals(1, states.size());
-System.assertEquals('Kerala', states[0].get('label'));
-
-// Cover getCitiesByState
-List<Map<String,String>> cities =
-    B2CLeadController.getCitiesByState(state.Id);
-
-System.assertEquals(1, cities.size());
-System.assertEquals('Kochi', cities[0].get('label'));
-    }
-    
-    
-    @IsTest
-static void testCheckExistingLead() {
-
-    // Program
-    Program prog = new Program(
-        Name = 'PGDM',
-        Short_Programme_Code__c = 'PM',
-        Program_Code__c = 'PGDM01',
-        StartDate = System.today(),
-        EndDate = System.today().addDays(10),
-        Programme_Type__c = 'Part-time',
-        Programme_Sub_Type__c = 'Class Room',
-        Status = 'Active',
-        Programme_Contact__c = '9999999999',
-        Programme_Intake__c = 100
-    );
-    insert prog;
-
-    // Lead
-    Lead ld = new Lead(
-        FirstName = 'Test',
-        LastName = 'Lead',
-        Company = 'Test Company',
-        Email = 'test@test.com',
-        Phone = '9999999999',
-        Status = 'Untouched'
-    );
-    insert ld;
-
-    // Lead Program
-    Lead_Program__c lp = new Lead_Program__c(
-        Lead__c = ld.Id,
-        Program__c = prog.Id,
-        Email__c = ld.Email,
-        Phone__c = ld.Phone
-    );
-    insert lp;
-
-    // Applicant Account
-    Id applicantRtId = Schema.SObjectType.Account
-        .getRecordTypeInfosByDeveloperName()
-        .get('Applicant')
-        .getRecordTypeId();
-
-    Account applicant = new Account(
-        RecordTypeId = applicantRtId,
-        FirstName = 'Test',
-        LastName = 'Applicant',
-        PersonEmail = 'test@test.com',
-        PersonMobilePhone = '9999999999'
-    );
-    insert applicant;
-
-    Test.startTest();
-
-    Map<String,Object> result =
-        B2CLeadController.checkExistingLead(
-            'test@test.com',
-            '9999999999'
-        );
-
-    Test.stopTest();
-
-    System.assertEquals(true, result.get('hasUnconvertedLead'));
-    System.assertEquals(true, result.get('hasApplicantAccount'));
-
-    System.assertEquals(ld.Id, result.get('leadId'));
-    System.assertEquals(applicant.Id, result.get('accountId'));
-
-    List<Object> programs =
-        (List<Object>)result.get('existingPrograms');
-
-    System.assertEquals(1, programs.size());
-}
-    
-    @IsTest
-static void testCreateB2CLead() {
-
-    // Country
-    Country_Master__c country = new Country_Master__c(
-        Name = 'India'
-    );
-    insert country;
-
-    // State
-    State__c state = new State__c(
-        Name = 'Kerala',
-        Country_Master__c = country.Id
-    );
-    insert state;
-
-    // City
-    City__c city = new City__c(
-        Name = 'Kochi',
-        CityCode__c = 'COK',
-        State__c = state.Id
-    );
-    insert city;
-
-    // Program
-    Program prog = new Program(
-        Name = 'PGDM',
-        Short_Programme_Code__c = 'PM',
-        Program_Code__c = 'PGDM01',
-        StartDate=System.Today(),
-        EndDate = System.Today().addDays(6),
-        Programme_Type__c = 'Part-time',
-        Programme_Sub_Type__c= 'Class Room',
-        Status = 'Active',
-        Programme_Contact__c = '9876543210',
-        Programme_Intake__c = 300
+    static void test_createb2CLead(){
         
-    );
-    insert prog;
-
-    List<String> programIds = new List<String>{ prog.Id };
-// Integration Partner (optional if Campaign.Source__c stores Partner Id)
-Integration_Partner__c partner = new Integration_Partner__c(
-    Name = 'Test Partner'
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Map<String, Object> result = B2CLeadController.createB2CLead(
+    'John',                          // firstName
+    'Doe',                           // lastName
+    's@m.com',                 // email
+    '9876540123',                    // phone
+    'Test Street',                   // street
+    (String)[SELECT Id FROM Country_Master__c LIMIT 1].Id,                      // countryId
+    (String)[SELECT Id FROM State__c LIMIT 1].Id,                        // stateId
+    (String)[SELECT Id FROM City__c LIMIT 1].Id,                         // cityId
+    '682001',                        // postalCode
+    Date.newInstance(1998, 1, 1),    // dateOfBirth
+    '27',                            // age
+    false,                           // hasWorkExperience
+    '3',                            // yearsOfWorkExperience
+    false,                           // hasEntranceExam
+    'CAT',                            // entranceExamName
+    'College',                       // studyingIn
+    'Test Organization',             // organizationName
+    new List<String>{(String)[SELECT Id FROM Program WHERE Name='PGDM BM' LIMIT 1].Id},    // selectedProgramIds
+    'Website',                       // leadSource
+    false,                           // areYouNri
+    '',                            // leadSourceOther
+    'null',                            // xs_source
+    'Google',                        // howDidYouKnow
+    '',                     // selectedCampaignId
+    '',                            // existingLeadId
+    (String)acc.Id,                            // existingApplicantAccountId
+    'Male',                          // gender
+    'null',                            // eventCountry
+    'null',                            // eventState
+    'null'                             // eventCity
 );
-insert partner;
 
-Campaign camp = new Campaign(
-    Name = 'Website Campaign',
-    IsActive = true,
-    CampaignSource__c = 'Website',
-    Source__c = partner.Id
+
+
+
+Lead l = [SELECT Id FROM Lead LIMIT 1];
+        Map<String, Object> result2 = B2CLeadController.createB2CLead(
+    'John',                          // firstName
+    'Doe',                           // lastName
+    's@m.com',                 // email
+    '9876540123',                    // phone
+    'Test Street',                   // street
+    (String)[SELECT Id FROM Country_Master__c LIMIT 1].Id,                      // countryId
+    (String)[SELECT Id FROM State__c LIMIT 1].Id,                        // stateId
+    (String)[SELECT Id FROM City__c LIMIT 1].Id,                         // cityId
+    '682001',                        // postalCode
+    Date.newInstance(1998, 1, 1),    // dateOfBirth
+    '27',                            // age
+    false,                           // hasWorkExperience
+    '3',                            // yearsOfWorkExperience
+    false,                           // hasEntranceExam
+    'CAT',                            // entranceExamName
+    'College',                       // studyingIn
+    'Test Organization',             // organizationName
+    new List<String>{(String)[SELECT Id FROM Program WHERE Name='PGDM BM' LIMIT 1].Id},    // selectedProgramIds
+    'Website',                       // leadSource
+    false,                           // areYouNri
+    '',                            // leadSourceOther
+    'null',                            // xs_source
+    'Google',                        // howDidYouKnow
+    '',                     // selectedCampaignId
+    '',                            // existingLeadId
+    '',                            // existingApplicantAccountId
+    'Male',                          // gender
+    'null',                            // eventCountry
+    'null',                            // eventState
+    'null'                             // eventCity
 );
-insert camp;
+    }
+        @IsTest
+    static void testGetCountries(){
 
-// Cover getLeadSourceOptions
-Map<String, Object> leadSourceOptions =
-    B2CLeadController.getLeadSourceOptions();
+        Test.startTest();
 
-System.assertNotEquals(null, leadSourceOptions);
-System.assert(leadSourceOptions.containsKey('options'));
+        List<Map<String,String>> countries =
+            B2CLeadController.getCountries();
 
-// Cover getCampaignsByLeadSource
-List<Map<String,String>> campaigns =
-    B2CLeadController.getCampaignsByLeadSource('Website');
+        Test.stopTest();
 
-System.assertEquals(1, campaigns.size());
-System.assertEquals(camp.Id, campaigns[0].get('value'));
-    Test.startTest();
+        System.assertEquals(1,countries.size());
+        System.assertEquals('India',countries[0].get('label'));
+    }
 
-    Map<String, Object> result = B2CLeadController.createB2CLead(
-        'Navaneeth',
-        'Hari',
-        'navaneeth@test.com',
-        '9876543210',
-        'Test Street',
-        country.Id,
-        state.Id,
-        city.Id,
-        '682001',
-        Date.newInstance(1995, 1, 1),
-        '30',
-        true,
-        '5',
-        true,
-        'CAT',
-        programIds,
-        'Website',
-        false,
-        null,
-        null,   // selectedCampaignId
-        null,   // existingLeadId
-        null,    // existingApplicantAccountId
-        null
-    );
-
-    Test.stopTest();
-
-    Id leadId = (Id) result.get('recordId');
-
-    Lead createdLead = [
-        SELECT Id,
-               FirstName,
-               LastName,
-               Email,
-               Phone,
-               Status,
-               Country_Master_backend__c,
-               State_Master__c,
-               District_City__c
-        FROM Lead
-        WHERE Id = :leadId
-    ];
-
-    List<Lead_Program__c> leadPrograms = [
-        SELECT Id, Program__c
-        FROM Lead_Program__c
-        WHERE Lead__c = :leadId
-    ];
-
-    System.assertNotEquals(null, leadId, 'Lead should be created');
-    System.assertEquals('Navaneeth', createdLead.FirstName);
-    System.assertEquals('Hari', createdLead.LastName);
-    System.assertEquals('navaneeth@test.com', createdLead.Email);
-    System.assertEquals('9876543210', createdLead.Phone);
-    System.assertEquals('Untouched', createdLead.Status);
-
-    System.assertEquals(country.Id, createdLead.Country_Master_backend__c);
-    System.assertEquals(state.Id, createdLead.State_Master__c);
-    System.assertEquals(city.Id, createdLead.District_City__c);
-
-    System.assertEquals(1, leadPrograms.size());
-    System.assertEquals(prog.Id, leadPrograms[0].Program__c);
-
-    System.assertEquals('Lead', (String)result.get('objectApiName'));
-    System.assertEquals('lead-created', (String)result.get('mode'));
-}
-    
     @IsTest
-static void testCreateB2CLead_ApplicantAccountPath() {
+    static void testGetStates(){
 
-    // Program
-    Program prog = new Program(
-        Name = 'PGDM',
-        Short_Programme_Code__c = 'PM',
-        Program_Code__c = 'PGDM01',
-        StartDate = System.today(),
-        EndDate = System.today().addDays(6),
-        Programme_Type__c = 'Part-time',
-        Programme_Sub_Type__c = 'Class Room',
-        Status = 'Active',
-        Programme_Contact__c = '9876543210',
-        Programme_Intake__c = 300
-    );
-    insert prog;
+        Test.startTest();
 
-    Id applicantRtId = Schema.SObjectType.Account
-        .getRecordTypeInfosByDeveloperName()
-        .get('Applicant')
-        .getRecordTypeId();
+        List<Map<String,String>> states =
+            B2CLeadController.getStatesByCountry(
+                getCountry().Id
+            );
 
-    Account applicant = new Account(
-        RecordTypeId = applicantRtId,
-        FirstName = 'Navaneeth',
-        LastName = 'Hari',
-        PersonEmail = 'applicant@test.com',
-        PersonMobilePhone = '9876543211'
-    );
-    insert applicant;
-	// Integration Partner (optional if Campaign.Source__c stores Partner Id)
-Integration_Partner__c partner = new Integration_Partner__c(
-    Name = 'Test Partner'
-);
-insert partner;
+        Test.stopTest();
 
-// Campaign
-Campaign camp = new Campaign(
-    Name = 'Website Campaign',
-    IsActive = true,
-    CampaignSource__c = 'Website',
-    Source__c = partner.Id
-);
-insert camp;
-    Test.startTest();
+        System.assertEquals(1,states.size());
+    }
 
-    Map<String, Object> result = B2CLeadController.createB2CLead(
-        'Navaneeth',
-        'Hari',
-        'applicant@test.com',
-        '9876543211',
-        'Test Street',
-        null,
-        null,
-        null,
-        '682001',
-        Date.newInstance(1995,1,1),
-        '30',
-        true,
-        '5',
-        true,
-        'CAT',
-        new List<String>{ prog.Id },
-        'Website',
-        false,
-        null,
-        null,
-        null,
-        applicant.Id,
-        'Male'
-    );
+    @IsTest
+    static void testGetCities(){
 
-    Test.stopTest();
+        Test.startTest();
 
-    List<Opportunity> opps = [
-        SELECT Id,
-               AccountId,
-               Program__c,
-               StageName
-        FROM Opportunity
-        WHERE AccountId = :applicant.Id
-    ];
+        List<Map<String,String>> cities =
+            B2CLeadController.getCitiesByState(
+                getState().Id
+            );
 
-    System.assertEquals(1, opps.size());
-    System.assertEquals(applicant.Id, opps[0].AccountId);
-    System.assertEquals(prog.Id, opps[0].Program__c);
-    System.assertEquals('Prospecting', opps[0].StageName);
+        Test.stopTest();
 
-    System.assertEquals('Opportunity', (String)result.get('objectApiName'));
-    System.assertEquals('account-opportunity', (String)result.get('mode'));
-    System.assertNotEquals(null, result.get('recordId'));
-}
+        System.assertEquals(1,cities.size());
+    }
+
+    @IsTest
+    static void testSearchPrograms(){
+
+        Test.startTest();
+
+        List<Map<String,String>> result =
+            B2CLeadController.searchPrograms('PGDM');
+
+        Test.stopTest();
+
+        System.assert(result.size()>0);
+    }
+
+    @IsTest
+    static void testEntranceExamOptions(){
+
+        Test.startTest();
+
+        List<Map<String,String>> exams =
+            B2CLeadController.getEntranceExamOptions();
+
+        Test.stopTest();
+
+        System.assert(exams.size()>5);
+    }
+
+    @IsTest
+    static void testLeadSourceOptions(){
+
+        Test.startTest();
+
+        Map<String,Object> result =
+            B2CLeadController.getLeadSourceOptions();
+
+        Test.stopTest();
+
+        System.assert(result.containsKey('options'));
+    }
+
+    @IsTest
+    static void testCampaignLookup(){
+
+        Test.startTest();
+
+        List<Map<String,String>> result =
+            B2CLeadController.getCampaignsByLeadSource(
+                'Website'
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(1,result.size());
+    }
+
+    @IsTest
+    static void testExistingLead(){
+
+        Lead l=getLeadRecord();
+
+        Test.startTest();
+
+        Map<String,Object> result =
+            B2CLeadController.checkExistingLead(
+                l.Email,
+                l.Phone
+            );
+
+        Test.stopTest();
+
+        System.assertEquals(
+            true,
+            result.get('hasUnconvertedLead')
+        );
+    }
 }

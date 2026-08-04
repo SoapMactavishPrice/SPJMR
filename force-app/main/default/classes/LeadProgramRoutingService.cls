@@ -1,6 +1,6 @@
 public without sharing class LeadProgramRoutingService {
 private static final String B2C_RECORD_TYPE_DEVELOPER_NAME = 'B2C';
-private static final String DEFAULT_ROUTING_ROW = 'Default';
+private static final String DEFAULT_ROUTING_ROW = 'Default'; 
 private static final String excludeStatus = 'Raw Data';    
     @TestVisible
     private static Id testB2cDefaultOwnerUserIdOverride;
@@ -64,6 +64,7 @@ private static final String excludeStatus = 'Raw Data';
         return result;
     }
     
+    @TestVisible
     private static Id parseActiveUserId(String raw) {
         Id candidate = SPJIMRUtility.parseSalesforceId(raw);
         if (candidate == null) {

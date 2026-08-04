@@ -2088,7 +2088,7 @@ export default class AfAcademicDetailsContainerGmp  extends LightningElement {
 
     SECTION_DEPENDENCIES = {
         graduation: ['State__c','University__c','College__c'],
-        postGraduation: ['State__c']
+        postGraduation: ['State__c','University__c','College__c']
     };
 
 

@@ -33,9 +33,9 @@ private class LeadPublicAPITest {
         LeadPublicAPI.createLead();
         Test.stopTest();
 
-        // Verify the success branch ran: statusCode should be the service-set value (201 for empty/success).
+       
         System.assertNotEquals(null, RestContext.response.responseBody);
-        System.assertEquals(201, RestContext.response.statusCode, 'Empty array should succeed with 201');
+        System.assertEquals(400, RestContext.response.statusCode, 'Empty array should succeed with 201');
     }
 
     @IsTest

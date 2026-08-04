@@ -24,6 +24,23 @@ public with sharing class CommunicationService {
         );
     }
 
+    public static void communicateInline(
+        CommunicationsController.CommunicationRequest request
+    ) {
+        List<Id> targetApplicationIds = normalizeApplicationIds(request);
+
+        if (targetApplicationIds.isEmpty()) {
+            throw new CommunicationServiceException(
+                'At least one Application Id is required.'
+            );
+        }
+
+        processScope(
+            request,
+            targetApplicationIds
+        );
+    }
+
     public static Id communicateAsync(
         CommunicationsController.CommunicationRequest request
     ) {
@@ -37,11 +54,19 @@ public with sharing class CommunicationService {
 
         CommunicationsController.CommunicationRequest asyncRequest =
             cloneRequest(request);
-        asyncRequest.applicationIds = targetApplicationIds;
+        if (
+            asyncRequest.applicationIdToReferenceRecordId == null ||
+            asyncRequest.applicationIdToReferenceRecordId.isEmpty()
+        ) {
+            asyncRequest.applicationIds = targetApplicationIds;
+        }
 
-        return Database.executeBatch(
-            new BulkCommunicationBatch(asyncRequest),
-            DEFAULT_BULK_BATCH_SIZE
+        return System.enqueueJob(
+            new BulkCommunicationBatch(
+                asyncRequest,
+                targetApplicationIds,
+                DEFAULT_BULK_BATCH_SIZE
+            )
         );
     }
 
@@ -82,10 +107,14 @@ public with sharing class CommunicationService {
                 configuration.ProviderType__c
             );
         Map<Id, Map<String, Object>> providerDataByApplicationId =
-            provider.getDataByApplicationIds(applicationIds);
+            provider.getDataByApplicationIds(
+                request,
+                applicationIds
+            );
 
         List<CustomNotification__c> notificationsToInsert =
             new List<CustomNotification__c>();
+        List<Id> emailApplicationIds = new List<Id>();
 
         for (Id applicationId : applicationIds) {
             if (!applicationsById.containsKey(applicationId)) {
@@ -102,13 +131,7 @@ public with sharing class CommunicationService {
             Application__c application = applicationsById.get(applicationId);
 
             if (options.sendEmail == true) {
-                sendEmail(
-                    request,
-                    application,
-                    configuration,
-                    providerData,
-                    options
-                );
+                emailApplicationIds.add(applicationId);
             }
 
             if (options.sendNotification == true) {
@@ -125,6 +148,15 @@ public with sharing class CommunicationService {
                     notificationsToInsert.add(notification);
                 }
             }
+        }
+
+        if (!emailApplicationIds.isEmpty()) {
+            sendEmail(
+                request,
+                configuration,
+                emailApplicationIds,
+                options
+            );
         }
 
         if (!notificationsToInsert.isEmpty()) {
@@ -170,6 +202,17 @@ public with sharing class CommunicationService {
             return normalizedApplicationIds;
         }
 
+        if (request.applicationIdToReferenceRecordId != null) {
+            for (Id applicationId : request.applicationIdToReferenceRecordId.keySet()) {
+                if (
+                    applicationId != null &&
+                    !normalizedApplicationIds.contains(applicationId)
+                ) {
+                    normalizedApplicationIds.add(applicationId);
+                }
+            }
+        }
+
         if (request.applicationIds != null) {
             for (Id applicationId : request.applicationIds) {
                 if (
@@ -210,6 +253,13 @@ public with sharing class CommunicationService {
         if (request.applicationIds != null) {
             clonedRequest.applicationIds = new List<Id>();
             clonedRequest.applicationIds.addAll(request.applicationIds);
+        }
+
+        if (request.applicationIdToReferenceRecordId != null) {
+            clonedRequest.applicationIdToReferenceRecordId = new Map<Id, Id>();
+            clonedRequest.applicationIdToReferenceRecordId.putAll(
+                request.applicationIdToReferenceRecordId
+            );
         }
 
         return clonedRequest;
@@ -322,9 +372,8 @@ public with sharing class CommunicationService {
 
     private static void sendEmail(
         CommunicationsController.CommunicationRequest request,
-        Application__c application,
         CommunicationConfiguration__mdt configuration,
-        Map<String, Object> providerData,
+        List<Id> applicationIds,
         CommunicationsController.CommunicationOptions options
     ) {
         if (String.isBlank(configuration.EmailFlowName__c)) {
@@ -335,19 +384,19 @@ public with sharing class CommunicationService {
             );
         }
 
-        Map<String, Object> flowInputs = buildMergedData(
-            request,
-            application.Id,
-            providerData
-        );
-
-        if (
-            options != null &&
-            !String.isBlank(options.documentIdentifier)
-        ) {
-            flowInputs.put('documentIdentifier', options.documentIdentifier);
-            flowInputs.put('DocumentIdentifier', options.documentIdentifier);
+        if (applicationIds == null || applicationIds.isEmpty()) {
+            return;
         }
+
+        Map<String, Object> flowInputs = new Map<String, Object>();
+        flowInputs.put('ProgramId', request.programId);
+        flowInputs.put('Scenario', String.valueOf(request.scenario));
+        addSharedEmailInputs(
+            request,
+            flowInputs,
+            applicationIds,
+            options
+        );
 
         Flow.Interview emailFlow = Flow.Interview.createInterview(
             configuration.EmailFlowName__c,
@@ -419,12 +468,57 @@ public with sharing class CommunicationService {
             mergedData.putAll(providerData);
         }
 
+        Id referenceRecordId = resolveReferenceRecordId(request, applicationId);
+
         mergedData.put('Scenario', String.valueOf(request.scenario));
         mergedData.put('ProgramId', request.programId);
-        mergedData.put('ApplicationId', applicationId);
-        mergedData.put('ReferenceRecordId', request.referenceRecordId);
+        mergedData.put('applicationId', applicationId);
+        mergedData.put('referenceRecordId', referenceRecordId);
 
         return mergedData;
+    }
+
+    private static void addSharedEmailInputs(
+        CommunicationsController.CommunicationRequest request,
+        Map<String, Object> flowInputs,
+        List<Id> applicationIds,
+        CommunicationsController.CommunicationOptions options
+    ) {
+        List<Id> referenceRecordIds = new List<Id>();
+
+        for (Id applicationId : applicationIds) {
+            referenceRecordIds.add(
+                resolveReferenceRecordId(request, applicationId)
+            );
+        }
+
+        flowInputs.put('ApplicationIds', applicationIds);
+        flowInputs.put('ReferenceRecordIds', referenceRecordIds);
+
+        if (
+            options != null &&
+            !String.isBlank(options.documentIdentifier)
+        ) {
+            flowInputs.put(
+                'documentIdentifier',
+                options.documentIdentifier
+            );
+        }
+    }
+
+    private static Id resolveReferenceRecordId(
+        CommunicationsController.CommunicationRequest request,
+        Id applicationId
+    ) {
+        if (
+            request != null &&
+            request.applicationIdToReferenceRecordId != null &&
+            request.applicationIdToReferenceRecordId.containsKey(applicationId)
+        ) {
+            return request.applicationIdToReferenceRecordId.get(applicationId);
+        }
+
+        return request == null ? null : request.referenceRecordId;
     }
 
     private static RenderedNotification renderNotificationTemplate(

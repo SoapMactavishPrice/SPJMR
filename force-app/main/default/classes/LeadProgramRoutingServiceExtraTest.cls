@@ -25,11 +25,11 @@ private class LeadProgramRoutingServiceExtraTest {
 
         Id currentUser = UserInfo.getUserId();
         LeadProgramRoutingService.testB2cDefaultOwnerUserIdOverride = currentUser;
-
+        LeadProgramRoutingService.parseActiveUserId(currentUser);
         // Explicitly call the list overload
         List<Lead_Program__c> input = new List<Lead_Program__c>{ lp };
         LeadProgramRoutingService.applyB2cDefaultOwnerIfConfigured(input);
-
+		LeadProgramRoutingService.applyB2cDefaultOwnerIfConfigured(input[0]);
         // Verify the assignment loop fired
         System.assertEquals(currentUser, lp.OwnerId, 'OwnerId should be set by the assignment loop');
     }

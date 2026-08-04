@@ -1,209 +1,256 @@
 @IsTest
 private class AttendanceMarkingBatchTest {
 
-    @TestSetup
-    static void setupData() {
-        SpjimrPortalTestDataFactory.buildAll('amb');
+    static final Datetime SESS_START = System.now().addHours(-3);
+    static final Datetime SESS_END   = System.now().addHours(-2);
 
-        // Link AcademicTermEnrollment.Batch_Enrollment__c so Session_Enrollment.Roll_Number__c formula resolves
-        List<ProgramCohortMember> pcms = [SELECT Id FROM ProgramCohortMember LIMIT 1];
-        List<AcademicTermEnrollment> ates = [SELECT Id FROM AcademicTermEnrollment LIMIT 1];
-        if (!pcms.isEmpty() && !ates.isEmpty()) {
-            SObject ate = ates[0];
-            try { ate.put('Batch_Enrollment__c', pcms[0].Id); update ate; } catch (Exception e) {}
+    static Id prep(SpjimrPortalTestDataFactory.Ctx ctx, String roll, String attendance) {
+        List<ProgramCohortMember> members =
+            [SELECT Id FROM ProgramCohortMember
+             WHERE  ProgramCohortId = :ctx.programCohortId LIMIT 1];
+
+        if (members.isEmpty() || ctx.atEnrollmentId == null
+                || ctx.divisionEnrollmentId == null) return null;
+
+        if (ctx.learner == null || ctx.learner.Id == null) return null;
+
+        try {
+            update new Account(Id = ctx.learner.Id, Registration_Number__c = roll);
+            SObject ate = (SObject) Type.forName('AcademicTermEnrollment').newInstance();
+            ate.put('Id',                  ctx.atEnrollmentId);
+            ate.put('Batch_Enrollment__c', members[0].Id);
+            update ate;
+        } catch (Exception e) {
+            return null;
         }
 
-        // Move Session into past so it's "completed"
-        List<Session__c> sessList = [SELECT Id, Start_Time__c, End_Time__c FROM Session__c LIMIT 1];
-        if (!sessList.isEmpty()) {
-            Session__c s = sessList[0];
-            Datetime start = Datetime.now().addHours(-2);
-            s.Start_Time__c = start;
-            s.End_Time__c = start.addHours(1);
-            try { update s; } catch (Exception e) {}
-        }
-    }
-
-    @IsTest
-    static void runBatch_emptyDataset() {
-        // Stand-alone test for the batch lifecycle even if dataset doesn't match
-        Test.startTest();
-        Id jobId = Database.executeBatch(new AttendanceMarkingBatch(), 200);
-        Test.stopTest();
-        System.assertNotEquals(null, jobId);
-    }
-
-    @IsTest
-    static void execute_emptyScope() {
-        AttendanceMarkingBatch b = new AttendanceMarkingBatch();
-        Test.startTest();
-        b.execute(null, new List<SObject>());
-        b.finish(null);
-        Test.stopTest();
-        System.assert(true);
-    }
-
-    @IsTest
-    static void execute_directScope_marksPresent_withMatchingLog() {
-        Session__c s = [SELECT Id, Start_Time__c, End_Time__c FROM Session__c LIMIT 1];
-        Datetime start = Datetime.now().addHours(-2);
-        s.Start_Time__c = start;
-        s.End_Time__c = start.addHours(1);
-        try { update s; } catch (Exception e) {}
-
-        // Make sure SE Attendance is null so the batch will mark it
-        List<Session_Enrollment__c> ses = [SELECT Id, Roll_Number__c, Attendance__c FROM Session_Enrollment__c LIMIT 1];
-        if (!ses.isEmpty() && ses[0].Attendance__c != null) {
-            ses[0].Attendance__c = null;
-            try { update ses[0]; } catch (Exception e) {}
-        }
-
-        String roll = (!ses.isEmpty() && ses[0].Roll_Number__c != null) ? ses[0].Roll_Number__c : 'R001';
-
-        // Insert logs for ALL possible roll variants so at least one matches the formula result
-        List<Attendance_Log__c> logs = new List<Attendance_Log__c>();
-        for (String r : new Set<String>{ roll, 'R001' }) {
-            Attendance_Log__c log = new Attendance_Log__c();
-            log.Roll_Number__c = r;
-            try { log.put('Device_ID__c', 'D1'); } catch (Exception e) {}
-            try { log.put('Is_Import__c', false); } catch (Exception e) {}
-            try { log.put('Log_Date_Time__c', start.addMinutes(15)); } catch (Exception e) {}
-            log.Status__c = 'Pending';
-            logs.add(log);
-        }
-        try { insert logs; } catch (Exception e) {}
-
-        // Override scope to use a hand-built SE whose Roll_Number__c (formula) equals our log
-        List<Session_Enrollment__c> scope = [
-            SELECT Id, Roll_Number__c, Attendance__c,
-                   Session__r.Start_Time__c, Session__r.End_Time__c
-            FROM Session_Enrollment__c
-        ];
-
-        Test.startTest();
-        AttendanceMarkingBatch b = new AttendanceMarkingBatch();
-        b.execute(null, (List<SObject>) scope);
-        b.finish(null);
-        Test.stopTest();
-    }
-
-    /** Hand-built scope: bypass the formula entirely by giving execute() in-memory SEs
-     *  whose Roll_Number__c is set directly. This forces the matched-log branches to run. */
-    @IsTest
-    static void execute_directScope_withMatchingLog_hardcoded() {
-        Datetime start = Datetime.now().addHours(-2);
-
-        // Insert a log with a fixed roll
-        Attendance_Log__c log = new Attendance_Log__c();
-        log.Roll_Number__c = 'X999';
-        try { log.put('Device_ID__c', 'D1'); } catch (Exception e) {}
-        try { log.put('Is_Import__c', false); } catch (Exception e) {}
-        try { log.put('Log_Date_Time__c', start.addMinutes(15)); } catch (Exception e) {}
-        log.Status__c = 'Pending';
-        try { insert log; } catch (Exception e) {}
-
-        // Build in-memory SEs via Test.deserialize trick — set Roll_Number__c on un-inserted record
-        // (Apex allows reading set values on un-inserted formula fields in some cases; we use SObject.put)
-        Session_Enrollment__c se = (Session_Enrollment__c) JSON.deserialize(
-            '{"attributes":{"type":"Session_Enrollment__c"},' +
-            '"Roll_Number__c":"X999",' +
-            '"Attendance__c":null,' +
-            '"Session__r":{"attributes":{"type":"Session__c"},' +
-                '"Start_Time__c":"' + start.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss.SSSXXX') + '",' +
-                '"End_Time__c":"' + start.addHours(1).formatGmt('yyyy-MM-dd\'T\'HH:mm:ss.SSSXXX') + '"' +
-            '}}',
-            Session_Enrollment__c.class
+        Session__c sess = new Session__c(
+            Name            = 'AMB Test Session - ' + roll,
+            Start_Time__c   = SESS_START,
+            End_Time__c     = SESS_END,
+            Schedule_Type__c = 'Published'
         );
+        insert sess;
+
+        Id seId = SpjimrPortalTestDataFactory.insertSessionEnrollment(
+            sess.Id, ctx.divisionEnrollmentId, ctx.atEnrollmentId);
+
+        // Pre-set attendance if required (e.g. to simulate Absent, Sanctioned Leave).
+        if (seId != null && attendance != null) {
+            update new Session_Enrollment__c(Id = seId, Attendance__c = attendance);
+        }
+        return seId;
+    }
+
+    /** Convenience overload: leaves Attendance__c unset (null). */
+    static Id prep(SpjimrPortalTestDataFactory.Ctx ctx, String roll) {
+        return prep(ctx, roll, null);
+    }
+
+    static String rollOf(Id seId) {
+        return [SELECT Registeration_Number__c
+                FROM   Session_Enrollment__c
+                WHERE  Id = :seId].Registeration_Number__c;
+    }
+
+    static Attendance_Log__c buildLog(String roll, Datetime logTime) {
+        return new Attendance_Log__c(
+            Roll_Number__c   = roll,
+            Log_Date_Time__c = logTime,
+            Device_ID__c     = 'SN-TEST',
+            Status__c        = 'Pending'
+        );
+    }
+
+    @IsTest
+    static void marksPresent_andSyncsLog() {
+        SpjimrPortalTestDataFactory.Ctx ctx = SpjimrPortalTestDataFactory.buildAll('ambp');
+        Id seId = prep(ctx, 'AMB-PRES');
+
+        if (seId == null) {
+            System.assert(false,
+                'Test setup failed: could not wire ProgramCohortMember / ATE. '
+                + 'Fix factory or org metadata before skipping this test.');
+            return;
+        }
+
+        String roll = rollOf(seId);
+        Attendance_Log__c log = buildLog(roll, SESS_START.addMinutes(30));
+        insert log;
 
         Test.startTest();
+        Database.executeBatch(new AttendanceMarkingBatch(), 200);
+        Test.stopTest();
+
+        Session_Enrollment__c se =
+            [SELECT Attendance__c FROM Session_Enrollment__c WHERE Id = :seId];
+        System.assertEquals('Present', se.Attendance__c,
+            'A log inside the session window should mark the enrollment Present.');
+
+        Attendance_Log__c updatedLog =
+            [SELECT Status__c FROM Attendance_Log__c WHERE Id = :log.Id];
+        System.assertEquals('Synced', updatedLog.Status__c,
+            'The matched log should be flipped to Synced.');
+    }
+
+    @IsTest
+    static void marksAbsent_whenNoLog() {
+        SpjimrPortalTestDataFactory.Ctx ctx = SpjimrPortalTestDataFactory.buildAll('amba');
+        Id seId = prep(ctx, 'AMB-ABS');
+
+        if (seId == null) {
+            System.assert(false,
+                'Test setup failed: could not wire ProgramCohortMember / ATE.');
+            return;
+        }
+
+        Test.startTest();
+        Database.executeBatch(new AttendanceMarkingBatch(), 200);
+        Test.stopTest();
+
+        System.assertEquals(
+            'Absent',
+            [SELECT Attendance__c FROM Session_Enrollment__c WHERE Id = :seId].Attendance__c,
+            'No log in the session window should mark the enrollment Absent.');
+    }
+
+    @IsTest
+    static void flipsAbsentToPresent_onLateLog() {
+        SpjimrPortalTestDataFactory.Ctx ctx = SpjimrPortalTestDataFactory.buildAll('ambf');
+        Id seId = prep(ctx, 'AMB-FLIP', 'Absent');   // pre-mark Absent
+
+        if (seId == null) {
+            System.assert(false,
+                'Test setup failed: could not wire ProgramCohortMember / ATE.');
+            return;
+        }
+
+        String roll = rollOf(seId);
+        insert buildLog(roll, SESS_START.addMinutes(10));   // late log now arrives
+
+        Test.startTest();
+        Database.executeBatch(new AttendanceMarkingBatch(), 200);
+        Test.stopTest();
+
+        System.assertEquals(
+            'Present',
+            [SELECT Attendance__c FROM Session_Enrollment__c WHERE Id = :seId].Attendance__c,
+            'A late log for a previously-Absent enrollment should flip it to Present.');
+    }
+
+    @IsTest
+    static void logAtEndTimeBoundary_treatedAsAbsent() {
+        SpjimrPortalTestDataFactory.Ctx ctx = SpjimrPortalTestDataFactory.buildAll('ambb');
+        Id seId = prep(ctx, 'AMB-BOUND');
+
+        if (seId == null) {
+            System.assert(false,
+                'Test setup failed: could not wire ProgramCohortMember / ATE.');
+            return;
+        }
+
+        String roll = rollOf(seId);
+        // Log exactly at SESS_END — should be excluded (< End_Time__c is strict)
+        insert buildLog(roll, SESS_END);
+
+        Test.startTest();
+        Database.executeBatch(new AttendanceMarkingBatch(), 200);
+        Test.stopTest();
+
+        System.assertEquals(
+            'Absent',
+            [SELECT Attendance__c FROM Session_Enrollment__c WHERE Id = :seId].Attendance__c,
+            'A log exactly at End_Time__c is outside the exclusive window and should not mark Present.');
+    }
+
+    @IsTest
+    static void sanctionedLeave_isUntouched() {
+        SpjimrPortalTestDataFactory.Ctx ctx = SpjimrPortalTestDataFactory.buildAll('ambs');
+        Id seId = prep(ctx, 'AMB-SL', 'Sanctioned Leave');
+
+        if (seId == null) {
+            System.assert(false,
+                'Test setup failed: could not wire ProgramCohortMember / ATE.');
+            return;
+        }
+
+        // Insert a log so the batch would mark Present if it wrongly processes this
+        String roll = rollOf(seId);
+        insert buildLog(roll, SESS_START.addMinutes(20));
+
+        Test.startTest();
+        Database.executeBatch(new AttendanceMarkingBatch(), 200);
+        Test.stopTest();
+
+        System.assertEquals(
+            'Sanctioned Leave',
+            [SELECT Attendance__c FROM Session_Enrollment__c WHERE Id = :seId].Attendance__c,
+            'Sanctioned Leave enrollments must not be modified by the batch.');
+    }
+
+    @IsTest
+    static void alreadyPresent_isNotReprocessed() {
+        SpjimrPortalTestDataFactory.Ctx ctx = SpjimrPortalTestDataFactory.buildAll('ambap');
+        Id seId = prep(ctx, 'AMB-PRES2', 'Present');
+
+        if (seId == null) {
+            System.assert(false,
+                'Test setup failed: could not wire ProgramCohortMember / ATE.');
+            return;
+        }
+
+        // Log exists but enrollment is already Present — batch should ignore it
+        String roll = rollOf(seId);
+        insert buildLog(roll, SESS_START.addMinutes(15));
+
+        Test.startTest();
+        Database.executeBatch(new AttendanceMarkingBatch(), 200);
+        Test.stopTest();
+
+        System.assertEquals(
+            'Present',
+            [SELECT Attendance__c FROM Session_Enrollment__c WHERE Id = :seId].Attendance__c,
+            'Already-Present enrollment should remain Present and not be re-updated.');
+    }
+
+    @IsTest
+    static void noEnrollmentsInWindow_runsClean() {
+        // Do NOT call prep() — intentionally leave the window empty.
+        Test.startTest();
+        Boolean exceptionThrown = false;
         try {
-            new AttendanceMarkingBatch().execute(null, new List<SObject>{ se });
+            Database.executeBatch(new AttendanceMarkingBatch(), 200);
         } catch (Exception e) {
-            System.debug('Hard-coded execute: ' + e.getMessage());
+            exceptionThrown = true;
         }
         Test.stopTest();
+
+        System.assert(!exceptionThrown,
+            'Batch should complete cleanly when no enrollments are in the scan window.');
     }
 
     @IsTest
-    static void execute_mixedScope_validAndBlank() {
-        // Include a valid SE PLUS a blank one so the second-loop null-skip branch is exercised
-        Session__c s = [SELECT Id, Start_Time__c, End_Time__c FROM Session__c LIMIT 1];
-        Datetime start = Datetime.now().addHours(-2);
-        s.Start_Time__c = start;
-        s.End_Time__c = start.addHours(1);
-        try { update s; } catch (Exception e) {}
+    static void logBeforeSessionStart_treatedAsAbsent() {
+        SpjimrPortalTestDataFactory.Ctx ctx = SpjimrPortalTestDataFactory.buildAll('ambbef');
+        Id seId = prep(ctx, 'AMB-BEFORE');
 
-        List<Session_Enrollment__c> ses = [SELECT Id, Roll_Number__c, Attendance__c, Session__r.Start_Time__c, Session__r.End_Time__c FROM Session_Enrollment__c LIMIT 1];
-        List<SObject> scope = new List<SObject>();
-        if (!ses.isEmpty()) scope.add(ses[0]);
-        scope.add(new Session_Enrollment__c()); // blank — covers null-field skip in second loop
-
-        Test.startTest();
-        new AttendanceMarkingBatch().execute(null, scope);
-        Test.stopTest();
-    }
-
-    @IsTest
-    static void execute_directScope_marksAbsent_noMatchingLog() {
-        Session__c s = [SELECT Id, Start_Time__c, End_Time__c FROM Session__c LIMIT 1];
-        Datetime start = Datetime.now().addHours(-3);
-        s.Start_Time__c = start;
-        s.End_Time__c = start.addHours(1);
-        try { update s; } catch (Exception e) {}
-
-        // Make sure SE Attendance is null so it gets marked Absent
-        List<Session_Enrollment__c> ses = [SELECT Id, Attendance__c FROM Session_Enrollment__c LIMIT 1];
-        if (!ses.isEmpty() && ses[0].Attendance__c != null) {
-            ses[0].Attendance__c = null;
-            try { update ses[0]; } catch (Exception e) {}
+        if (seId == null) {
+            System.assert(false,
+                'Test setup failed: could not wire ProgramCohortMember / ATE.');
+            return;
         }
 
-        List<Session_Enrollment__c> scope = [
-            SELECT Id, Roll_Number__c, Attendance__c,
-                   Session__r.Start_Time__c, Session__r.End_Time__c
-            FROM Session_Enrollment__c
-        ];
+        String roll = rollOf(seId);
+        // Log is 10 minutes BEFORE session started
+        insert buildLog(roll, SESS_START.addMinutes(-10));
 
         Test.startTest();
-        new AttendanceMarkingBatch().execute(null, (List<SObject>) scope);
+        Database.executeBatch(new AttendanceMarkingBatch(), 200);
         Test.stopTest();
-    }
 
-    @IsTest
-    static void execute_directScope_skipsAlreadyAbsent_whenNoLog() {
-        // SE already Absent with no log → skipped branch (totalSkipped++)
-        Session__c s = [SELECT Id, Start_Time__c, End_Time__c FROM Session__c LIMIT 1];
-        Datetime start = Datetime.now().addHours(-4);
-        s.Start_Time__c = start;
-        s.End_Time__c = start.addHours(1);
-        try { update s; } catch (Exception e) {}
-
-        List<Session_Enrollment__c> ses = [SELECT Id, Attendance__c FROM Session_Enrollment__c LIMIT 1];
-        if (!ses.isEmpty()) {
-            ses[0].Attendance__c = 'Absent';
-            try { update ses[0]; } catch (Exception e) {}
-        }
-
-        List<Session_Enrollment__c> scope = [
-            SELECT Id, Roll_Number__c, Attendance__c,
-                   Session__r.Start_Time__c, Session__r.End_Time__c
-            FROM Session_Enrollment__c
-        ];
-
-        Test.startTest();
-        new AttendanceMarkingBatch().execute(null, (List<SObject>) scope);
-        Test.stopTest();
-    }
-
-    @IsTest
-    static void execute_directScope_skipsNullFields() {
-        Session_Enrollment__c blank = new Session_Enrollment__c();
-        Test.startTest();
-        try {
-            new AttendanceMarkingBatch().execute(null, new List<SObject>{ blank });
-        } catch (Exception e) {
-            System.assert(true);
-        }
-        Test.stopTest();
+        System.assertEquals(
+            'Absent',
+            [SELECT Attendance__c FROM Session_Enrollment__c WHERE Id = :seId].Attendance__c,
+            'A log before session start must not mark the enrollment Present.');
     }
 }

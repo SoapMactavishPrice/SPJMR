@@ -183,7 +183,11 @@ export default class TimetableCalendar extends LightningElement {
     @track publishFromDate = '';
     @track publishToDate = '';
     @track isPublishingSessions = false;
-    
+
+    /** Send-notifications confirmation, shown before Create/Publish/Republish actually saves. */
+    @track showFacultyNotifyModal = false;
+    facultyNotifyResolve = null;
+
     // Event form fields
     @track eventTitle = '';
     @track eventDate = '';
@@ -2516,7 +2520,10 @@ export default class TimetableCalendar extends LightningElement {
             proposedConflictContextJson: JSON.stringify(
                 this.buildProposedConflictContextForPayload(sourceEvent, divisionId, divisionIds,sourceEvent.selectedAssignmentKeys)
             ),
-            ignoreConflicts: sourceEvent.ignoreConflicts === true || this.pendingConflictOverride === true
+            ignoreConflicts: sourceEvent.ignoreConflicts === true || this.pendingConflictOverride === true,
+            // Faculty notification confirmation (Create/Publish/Republish popup). Defaults to true
+            // (send) so callers that don't set it — e.g. drag/drop reschedule — keep existing behavior.
+            sendNotifications: sourceEvent.sendNotifications !== false
         };
         return payload;
     }
@@ -4316,6 +4323,42 @@ if (mergedPrograms.length > 0) {
         this.showPublishModal = false;
     }
 
+    /**
+     * Shows the "send email/notification to faculty?" confirmation and resolves
+     * true (Yes) or false (No) once the user picks. Used by Create/Republish/Publish saves.
+     */
+    promptSendFacultyNotifications() {
+        this.showFacultyNotifyModal = true;
+        return new Promise((resolve) => {
+            this.facultyNotifyResolve = resolve;
+        });
+    }
+
+    handleFacultyNotifyYes() {
+        this.showFacultyNotifyModal = false;
+        if (this.facultyNotifyResolve) {
+            this.facultyNotifyResolve(true);
+            this.facultyNotifyResolve = null;
+        }
+    }
+
+    handleFacultyNotifyNo() {
+        this.showFacultyNotifyModal = false;
+        if (this.facultyNotifyResolve) {
+            this.facultyNotifyResolve(false);
+            this.facultyNotifyResolve = null;
+        }
+    }
+
+    /** Closing via the X cancels the save entirely (no decision was made). */
+    handleFacultyNotifyClose() {
+        this.showFacultyNotifyModal = false;
+        if (this.facultyNotifyResolve) {
+            this.facultyNotifyResolve(null);
+            this.facultyNotifyResolve = null;
+        }
+    }
+
     handlePublishFromDateChange(event) {
         this.publishFromDate = event.target.value || '';
     }
@@ -4324,7 +4367,7 @@ if (mergedPrograms.length > 0) {
         this.publishToDate = event.target.value || '';
     }
 
-    handleConfirmPublishSessions() {
+    async handleConfirmPublishSessions() {
         const from = (this.publishFromDate || '').trim();
         const to = (this.publishToDate || '').trim();
         if (!from || !to) {
@@ -4362,14 +4405,18 @@ if (mergedPrograms.length > 0) {
         scheduleTypes.push('Published');
         }
 
+        const sendNotifications = await this.promptSendFacultyNotifications();
+        if (sendNotifications === null) {
+            return; // Closed via X — publish cancelled, no decision was made.
+        }
+
         const filterPayload = {
             divisionId: this.isAllDivisionsSelected ? null : (this.selectedDivision || null),
             divisionIds: this.isAllDivisionsSelected ? this.allDivisionIds : null,
             startDate: from,
             endDate: to,
-            scheduleTypes: scheduleTypes
-         
-        
+            scheduleTypes: scheduleTypes,
+            sendNotifications
         };
 
         this.isPublishingSessions = true;
@@ -6055,6 +6102,12 @@ if (mergedPrograms.length > 0) {
             return;
         }
 
+        const sendNotifications = await this.promptSendFacultyNotifications();
+        if (sendNotifications === null) {
+            this.isSaving = false;
+            return; // Closed via X — save cancelled, no decision was made.
+        }
+
         for (const session of mergedSessions) {
             const divisionIdsForSession = session.divisionIds;
             const payload = {
@@ -6082,7 +6135,8 @@ if (mergedPrograms.length > 0) {
                 remark: session.remark || '',
                 url: session.url || '',
                 selectedStudentIds: session.selectedStudentIds || [],  //SE-502
-                ignoreConflicts
+                ignoreConflicts,
+                sendNotifications
             };
             let sessionPayload;
             try {
@@ -6379,6 +6433,11 @@ if (mergedPrograms.length > 0) {
             return;
         }
 
+        const sendNotifications = await this.promptSendFacultyNotifications();
+        if (sendNotifications === null) {
+            return; // Closed via X — save cancelled, no decision was made.
+        }
+
         const editingEvent = this.isEditMode && this.selectedEventId
             ? this.findEventRowForSession(this.selectedEventId, this.clickedTileDivisionId)
             : null;
@@ -6402,7 +6461,8 @@ if (mergedPrograms.length > 0) {
             batchWiseCourseId: null,
             courseActivity: this.selectedCourseActivity || null,
             sessionType: this.selectedSessionType || null,
-            numberOfSessions: 1
+            numberOfSessions: 1,
+            sendNotifications
         };
 
         if (editingEvent) {

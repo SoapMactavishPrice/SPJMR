@@ -584,17 +584,17 @@ public static String getApplicationStage(Id applicationId) {
         return bookingInfo;
     }
     
-    private static String formatISTTime(Time t) {
-        if (t == null) return '';
-        
-        // Convert today's date + slot time into a UTC DateTime
-        DateTime dtUTC = DateTime.newInstance(Date.today(), t);
-        
-        // Convert UTC to IST (+5 hours 30 minutes)
-        DateTime dtIST = dtUTC.addHours(5).addMinutes(30);
-        
-        // Return formatted IST time (e.g., "09:00 AM")
-        return dtIST.format('hh:mm a');
+    private static String formatISTTime(Time val) {        
+        if (val == null) {
+            return '';
+        }
+
+        DateTime dt = DateTime.newInstance(
+            Date.newInstance(2000, 1, 1),
+            val
+        );
+
+        return dt.format('hh:mm a');
     }
     
     

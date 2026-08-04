@@ -5,6 +5,7 @@ import isGuestUser from '@salesforce/apex/LightningLoginFormController.isGuestUs
 import bgImage from '@salesforce/resourceUrl/loginBackground';
 import studentBg from '@salesforce/resourceUrl/Student_Banner';
 import googleLogo from '@salesforce/resourceUrl/GoogleLogo';
+import STUDENT_PORTAL_PATH from '@salesforce/label/c.Student_Portal_Path';
 
 export default class SpjimrLoginComp extends LightningElement {
    
@@ -25,7 +26,8 @@ export default class SpjimrLoginComp extends LightningElement {
         isGuestUser()
             .then((guest) => {
                 if (guest === false) {
-                    const loginPath = window.location.pathname || '/studentportal/login';
+                 /*   const loginPath = window.location.pathname || '/studentportal/login'; */
+                    const loginPath = window.location.pathname || `${STUDENT_PORTAL_PATH}/login`;
                     const retURL = encodeURIComponent(loginPath + (window.location.search || ''));
                     const logoutUrl = `${window.location.pathname.replace(/\/[^/]*$/, '')}/secur/logout.jsp?retURL=${retURL}`;
                     try {
@@ -105,12 +107,15 @@ export default class SpjimrLoginComp extends LightningElement {
     handleForgotPassword(event) {
         event.preventDefault();
         // Redirect to forgot password page
-        window.location.href = '/studentportal/ForgotPassword';
+     /*   window.location.href = '/studentportal/ForgotPassword'; */
+       window.location.href = `${STUDENT_PORTAL_PATH}/ForgotPassword`;
     }
     handleGoogleLogin() {
 
-        window.location.href =
-            '/student/services/auth/sso/Google';
+      /*  window.location.href =
+            '/student/services/auth/sso/Google';*/
+      window.location.href =
+    `${STUDENT_PORTAL_PATH}/services/auth/sso/Google`;      
     }
 
     // async handleSubmit(event) {
@@ -197,9 +202,10 @@ export default class SpjimrLoginComp extends LightningElement {
             } else {
                 // URL is relative; prepend current origin + site path
                 const origin = window.location.origin;
-                const sitePath = '/studentportal'; // root of your site
+              /*  const sitePath = '/studentportal'; // root of your site */
+              const sitePath = STUDENT_PORTAL_PATH;
                 // If url already starts with '/student', just combine origin + url
-                target = url.startsWith('/studentportal')
+                target = url.startsWith(sitePath)
                     ? origin + url
                     : origin + sitePath + url;
             }

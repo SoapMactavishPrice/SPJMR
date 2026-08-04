@@ -1,44 +1,18 @@
-/**
- * @description SE-1056 — decide, on Session changes, which Google Calendar action to
- *          take and for whom, then hand the callouts to
- *          SessionCalendarInviteQueueable (Database.AllowsCallouts).
- *
- *          Audience (SE-1056, per Ankur Malik's clarification):
- *            - Schedule_Type__c → 'Draft'                  → invite FACULTY only.
- *            - Schedule_Type__c → 'Published'/'Republished'→ invite STUDENTS + faculty.
- *          Update (SE-1047 §5):
- *            - A synced session (has Google_Event_Id__c) whose mapped details change,
- *              or a 'Rescheduled' session, is re-sent → the queueable PATCHes the event.
- *          Cancel (SE-1047 §5, decision D3):
- *            - Schedule_Type__c → 'Cancelled', or the Session is deleted, with a
- *              populated Google_Event_Id__c → the queueable DELETEs the event.
- *
- *          Wire-up: SessionTrigger (after insert, after update, after delete).
- */
-// complexity suppressed: working integration logic, refactor out of scope
 @SuppressWarnings('PMD.CyclomaticComplexity,PMD.StdCyclomaticComplexity,PMD.CognitiveComplexity,PMD.NcssMethodCount')
 public class SessionCalendarInviteHandler {
 
-    // Statuses that create/update an event and their audience.
     private static final Set<String> AUDIENCE_ALL     = new Set<String>{ 'Published', 'Republished' };
     private static final Set<String> AUDIENCE_FACULTY = new Set<String>{ 'Draft' };
-    // Statuses that only update an already-synced event (never create one).
+
     private static final Set<String> UPDATE_ONLY      = new Set<String>{ 'Rescheduled' };
     private static final String STATUS_CANCELLED      = 'Cancelled';
 
-    // Apex allows 100 callouts per transaction. Each synced session can cost up to
-    // three callouts: auth token + (on PATCH) a GET to read existing attendee RSVPs +
-    // the POST/PATCH itself. Chunk well below the limit so a busy publish can't exceed it.
     private static final Integer MAX_CALLOUTS_PER_JOB = 30;
 
-    /** Set by the queueable around its write-back DML to prevent trigger re-entry. */
     public static Boolean suppressInvites = false;
 
-    /**
-     * @description Decide and enqueue the Google Calendar action(s) for changed Sessions.
-     * @param newMap Trigger.newMap (Session__c)
-     * @param oldMap Trigger.oldMap (null on insert)
-     */
+    public static Boolean skipUserNotifications = false;
+
     public static void handleSessionCalendarInvites(
         Map<Id, Session__c> newMap,
         Map<Id, Session__c> oldMap
@@ -47,9 +21,11 @@ public class SessionCalendarInviteHandler {
             return;
         }
 
-        Set<Id> publishInviteIds = new Set<Id>(); // students + faculty (create/update)
-        Set<Id> draftInviteIds   = new Set<Id>(); // faculty only       (create/update)
-        Map<Id, String> cancelEventIdsBySession = new Map<Id, String>(); // → DELETE
+        Boolean suppressNotifications = skipUserNotifications;
+
+        Set<Id> publishInviteIds = new Set<Id>();
+        Set<Id> draftInviteIds   = new Set<Id>();
+        Map<Id, String> cancelEventIdsBySession = new Map<Id, String>();
 
         for (Session__c s : newMap.values()) {
             Session__c oldRec = (oldMap != null) ? oldMap.get(s.Id) : null;
@@ -58,7 +34,6 @@ public class SessionCalendarInviteHandler {
             Boolean hasEvent      = String.isNotBlank(s.Google_Event_Id__c);
             Boolean statusChanged = (newStatus != oldStatus);
 
-            // CANCEL — became Cancelled and there's an event to remove.
             if (newStatus == STATUS_CANCELLED) {
                 if (statusChanged && hasEvent) {
                     cancelEventIdsBySession.put(s.Id, s.Google_Event_Id__c);
@@ -66,7 +41,6 @@ public class SessionCalendarInviteHandler {
                 continue;
             }
 
-            // UPDATE-ONLY (e.g. Rescheduled) — PATCH an existing event, never create.
             if (UPDATE_ONLY.contains(newStatus)) {
                 if (hasEvent && (statusChanged || detailsChanged(s, oldRec))) {
                     publishInviteIds.add(s.Id);
@@ -74,11 +48,10 @@ public class SessionCalendarInviteHandler {
                 continue;
             }
 
-            // CREATE or UPDATE — entering an audience status, or editing a synced one.
             Boolean isAll     = AUDIENCE_ALL.contains(newStatus);
             Boolean isFaculty = AUDIENCE_FACULTY.contains(newStatus);
             if (!isAll && !isFaculty) {
-                continue; // Scheduled / Complete / etc. — not synced.
+                continue;
             }
             if (statusChanged || (hasEvent && detailsChanged(s, oldRec))) {
                 if (isAll) {
@@ -89,13 +62,9 @@ public class SessionCalendarInviteHandler {
             }
         }
 
-        enqueueWork(publishInviteIds, draftInviteIds, cancelEventIdsBySession);
+        enqueueWork(publishInviteIds, draftInviteIds, cancelEventIdsBySession, suppressNotifications);
     }
 
-    /**
-     * @description Cancel Google events for deleted Sessions (decision D3).
-     * @param oldMap Trigger.oldMap on after delete.
-     */
     public static void handleSessionDeletes(Map<Id, Session__c> oldMap) {
         if (suppressInvites || oldMap == null || oldMap.isEmpty()) {
             return;
@@ -106,15 +75,10 @@ public class SessionCalendarInviteHandler {
                 cancelEventIdsBySession.put(s.Id, s.Google_Event_Id__c);
             }
         }
-        enqueueWork(new Set<Id>(), new Set<Id>(), cancelEventIdsBySession);
+
+        enqueueWork(new Set<Id>(), new Set<Id>(), cancelEventIdsBySession, false);
     }
 
-    /**
-     * @description True if any SE-1057 mapped source field differs between new and old.
-     * @param s the new Session record
-     * @param oldRec the prior version of the Session record
-     * @return true when a mapped field changed
-     */
     private static Boolean detailsChanged(Session__c s, Session__c oldRec) {
         if (oldRec == null) {
             return false;
@@ -130,25 +94,17 @@ public class SessionCalendarInviteHandler {
             || s.Course__c         != oldRec.Course__c;
     }
 
-    /**
-     * @description Enqueue the work, chunked so no single queueable exceeds
-     *              MAX_CALLOUTS_PER_JOB callouts, and only while async slots remain.
-     * @param publishInviteIds session ids that need a published invite
-     * @param draftInviteIds session ids that need a draft invite
-     * @param cancelEventIdsBySession map of session id to Google event id to cancel
-     */
     private static void enqueueWork(
         Set<Id> publishInviteIds,
         Set<Id> draftInviteIds,
-        Map<Id, String> cancelEventIdsBySession
+        Map<Id, String> cancelEventIdsBySession,
+        Boolean suppressNotifications
     ) {
         if (publishInviteIds.isEmpty() && draftInviteIds.isEmpty()
             && cancelEventIdsBySession.isEmpty()) {
             return;
         }
 
-        // Honour the Active__c master switch: when the integration is turned off
-        // (or not configured) don't burn async slots only to fail in the queueable.
         if (!GoogleCalendarHelper.isActive()) {
             return;
         }
@@ -177,7 +133,7 @@ public class SessionCalendarInviteHandler {
             }
 
             System.enqueueJob(
-                new SessionCalendarInviteQueueable(chunkPub, chunkDrf, chunkCan)
+                new SessionCalendarInviteQueueable(chunkPub, chunkDrf, chunkCan, suppressNotifications)
             );
         }
     }

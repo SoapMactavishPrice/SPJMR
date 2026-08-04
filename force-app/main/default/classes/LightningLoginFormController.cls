@@ -65,7 +65,11 @@ global class LightningLoginFormController {
         
         // If startUrl is null or empty, use default
         if (String.isBlank(startUrl)) {
-            startUrl = '/studentportal/';
+          /*  startUrl = '/studentportal/';*/
+          startUrl = System.Label.Student_Portal_Path;
+            if (!startUrl.endsWith('/')) {
+              startUrl += '/';
+            }
         }
 
         ApexPages.PageReference pr = Site.login(username, password, startUrl);
@@ -89,10 +93,16 @@ global class LightningLoginFormController {
         try {
             // Return the home page route /student/
             // This is the configured home page route for the community
-            return '/studentportal/';
+            String sitePath = System.Label.Student_Portal_Path;
+
+        if (!sitePath.endsWith('/')) {
+            sitePath += '/';
+        }
+
+        return sitePath;
         } catch (Exception ex) {
             System.debug('Error getting home page URL: ' + ex.getMessage());
-            return '/studentportal/';
+            return '/';
         }
     }
 

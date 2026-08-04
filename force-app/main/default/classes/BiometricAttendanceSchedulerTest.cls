@@ -1,61 +1,44 @@
 @IsTest
 private class BiometricAttendanceSchedulerTest {
 
-    public class EmptyMock implements WebServiceMock {
-        public void doInvoke(
-            Object stub, Object request, Map<String, Object> response,
-            String endpoint, String soapAction, String requestName,
-            String responseNs, String responseName, String responseType
-        ) {
-            tempuriOrgLive.GetTransactionsLogResponse_element resp =
-                new tempuriOrgLive.GetTransactionsLogResponse_element();
-            resp.strDataList = '';
-            response.put('response_x', resp);
-        }
-    }
-
     @IsTest
-    static void execute_daytimeMode_firesBatch() {
-        Test.setMock(WebServiceMock.class, new EmptyMock());
+    static void daytimeExecute() {
+        Test.setMock(WebServiceMock.class, new TempuriOrgLiveMock());
         Test.startTest();
-        new BiometricAttendanceScheduler().execute(null);
+        new BiometricAttendanceScheduler(false).execute(null);
         Test.stopTest();
+        System.assert(true);
     }
 
     @IsTest
-    static void execute_finalSweepMode_firesBatch() {
-        Test.setMock(WebServiceMock.class, new EmptyMock());
+    static void finalSweepExecute() {
+        Test.setMock(WebServiceMock.class, new TempuriOrgLiveMock());
         Test.startTest();
         new BiometricAttendanceScheduler(true).execute(null);
         Test.stopTest();
+        System.assert(true);
     }
 
     @IsTest
-    static void resolveAnchorTime_returnsValidDatetime() {
-        Datetime anchor = BiometricAttendanceScheduler.resolveAnchorTime();
-        System.assertNotEquals(null, anchor);
-    }
-
-    @IsTest
-    static void scheduleAll_andAbortAll() {
+    static void scheduleAbortAndCheck() {
         Test.startTest();
         BiometricAttendanceScheduler.scheduleAll();
+        Integer scheduled = [
+            SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name LIKE 'Biometric_Sync_%'
+        ];
+        System.assertEquals(8, scheduled, 'Expected 7 daytime + 1 final job');
         BiometricAttendanceScheduler.checkSchedule();
         BiometricAttendanceScheduler.abortAll();
         Test.stopTest();
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM CronTrigger WHERE CronJobDetail.Name LIKE 'Biometric_Sync_%']
+        );
     }
 
     @IsTest
-    static void abortAll_whenNothingScheduled() {
-        Test.startTest();
-        BiometricAttendanceScheduler.abortAll();
-        Test.stopTest();
-    }
-
-    @IsTest
-    static void checkSchedule_whenNothingScheduled() {
-        Test.startTest();
-        BiometricAttendanceScheduler.checkSchedule();
-        Test.stopTest();
+    static void resolveAnchorReturnsScheduledHour() {
+        Datetime anchor = BiometricAttendanceScheduler.resolveAnchorTime();
+        System.assertEquals(0, anchor.minute());
     }
 }

@@ -1,84 +1,408 @@
 <apex:page controller="DaySyncController" docType="html-5.0"
-           showHeader="false" sidebar="false" lightningStylesheets="true" title="Sync">
+           showHeader="false" sidebar="false" lightningStylesheets="true"
+           title="Sync Attendance">
     <apex:slds />
-    <div class="slds-scope slds-p-around_medium">
 
-        <!-- ─────────────── SUCCESS: toast + auto-redirect ─────────────── -->
-        <apex:outputPanel rendered="{!isSuccess}" layout="none">
-            <div class="slds-notify_container slds-is-relative">
-                <div class="slds-notify slds-notify_toast slds-theme_success" role="status">
-                    <span class="slds-assistive-text">Success</span>
-                    <span class="slds-icon_container slds-icon-utility-success slds-m-right_small slds-no-flex slds-align-top">
-                        <svg class="slds-icon slds-icon_small" aria-hidden="true" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <use xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#success')}"></use>
-                        </svg>
-                    </span>
-                    <div class="slds-notify__content">
-                        <h2 class="slds-text-heading_small">{!resultMessage}</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="slds-text-align_center slds-text-body_small slds-text-color_weak slds-p-top_small">
-                Returning to Attendance Logs&hellip;&nbsp;
-                <apex:outputLink value="/lightning/o/Attendance_Log__c/list">click here if not redirected</apex:outputLink>
-            </div>
-            <script type="text/javascript">
-                (function () {
-                    window.setTimeout(function () { navigateToList(); }, 2500);
-                })();
-            </script>
-        </apex:outputPanel>
+    <style type="text/css">
+        .ds-wrap        { max-width: 1180px; margin: 0 auto; }
+        .ds-card        { max-width: 480px; margin: 0 auto; }
+        .ds-scroll      { overflow-x: auto; }
+        .ds-num         { text-align: center; white-space: nowrap; }
+        .ds-grp-before  { background: #f4f6f9; }
+        .ds-grp-after   { background: #eef4ff; }
+        .ds-sep-left    { border-left: 2px solid #c9c9c9 !important; }
+        .ds-dim         { opacity: .55; }
+        .ds-tot         { font-weight: 700; background: #f3f3f3; }
+        .ds-tile        { text-align: center; padding: .75rem .5rem; }
+        .ds-tile-num    { font-size: 1.5rem; font-weight: 300; line-height: 1.2; }
+        .ds-tile-lbl    { font-size: .75rem; text-transform: uppercase;
+                          letter-spacing: .05em; color: #514f4d; }
+        .ds-zero        { color: #b0adab; }
 
-        <!-- ─────────────── FORM (until a successful submit) ─────────────── -->
-        <apex:outputPanel rendered="{!NOT(isSuccess)}" layout="none">
-            <apex:form >
-                <div class="slds-box slds-theme_default" style="max-width:460px;margin:0 auto;">
+        /* ── Two-step progress tracker (RUNNING phase) ── */
+        .ds-card-wide   { max-width: 640px; margin: 0 auto; }
+        .ds-track       { display: flex; align-items: flex-start;
+                          justify-content: center; margin: 1.75rem 0 1.5rem; }
+        .ds-node        { flex: 0 0 200px; text-align: center; }
+        .ds-conn        { flex: 1 1 auto; max-width: 110px; height: 4px;
+                          border-radius: 2px; margin-top: 21px;
+                          background: #dddbda; transition: background .3s ease; }
+        .ds-conn.is-done{ background: #2e844a; }
+        .ds-marker      { width: 46px; height: 46px; border-radius: 50%;
+                          margin: 0 auto .6rem; display: flex; align-items: center;
+                          justify-content: center; font-weight: 700;
+                          border: 2px solid #dddbda; background: #fff;
+                          color: #706e6b; }
+        .ds-marker.ds-complete { background: #2e844a; border-color: #2e844a; color: #fff; }
+        .ds-marker.ds-active   { background: #0176d3; border-color: #0176d3; color: #fff;
+                                 box-shadow: 0 0 0 6px rgba(1,118,211,.15); }
+        .ds-marker.ds-error    { background: #ba0517; border-color: #ba0517; color: #fff; }
+        .ds-node-ttl    { font-weight: 600; font-size: .875rem; }
+        .ds-node-sub    { font-size: .75rem; color: #514f4d; min-height: 2.4em;
+                          padding: 0 .5rem; line-height: 1.3; }
+        .ds-node.is-idle .ds-node-ttl { color: #a8a6a4; }
+        .ds-pulse       { width: 15px; height: 15px; border-radius: 50%;
+                          background: #fff; animation: dsPulse 1.2s ease-in-out infinite; }
+        @keyframes dsPulse {
+            0%, 100% { transform: scale(.65); opacity: .6; }
+            50%      { transform: scale(1);   opacity: 1;  }
+        }
+        .ds-pct         { font-size: .75rem; color: #514f4d; margin-top: .4rem; }
 
-                    <h1 class="slds-text-heading_medium slds-m-bottom_medium">Sync Attendance for a Day</h1>
+        /* Breathing room between adjacent buttons. SLDS buttons carry no
+           margin of their own, so sibling buttons otherwise sit flush. */
+        .ds-btn-row     { display: flex; gap: .75rem; }
+    </style>
 
-                    <!-- Inline error from a failed submit -->
-                    <apex:outputPanel rendered="{!NOT(ISBLANK(resultMessage))}" layout="none">
-                        <div class="slds-notify slds-notify_toast slds-theme_error slds-m-bottom_medium" role="alert">
-                            <span class="slds-assistive-text">Error</span>
-                            <span class="slds-icon_container slds-icon-utility-error slds-m-right_small slds-no-flex slds-align-top">
-                                <svg class="slds-icon slds-icon_small" aria-hidden="true" xmlns:xlink="http://www.w3.org/1999/xlink">
-                                    <use xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#error')}"></use>
-                                </svg>
-                            </span>
-                            <div class="slds-notify__content">
-                                <h2 class="slds-text-heading_small">{!resultMessage}</h2>
+    <div class="slds-scope slds-p-around_medium ds-wrap">
+        <apex:form >
+            <apex:outputPanel id="mainPanel" layout="block">
+
+                <!-- ═══════════════ PHASE 1 — DATE PICKER ═══════════════ -->
+                <apex:outputPanel rendered="{!isForm}" layout="none">
+                    <div class="slds-box slds-theme_default ds-card">
+
+                        <h1 class="slds-text-heading_medium slds-m-bottom_x-small">
+                            Sync Attendance for a Day
+                        </h1>
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
+                            Pulls that day's punches from the biometric device, then marks
+                            Present / Absent on every session enrollment for the day.
+                        </p>
+
+                        <apex:outputPanel rendered="{!NOT(ISBLANK(resultMessage))}" layout="none">
+                            <div class="slds-notify slds-notify_toast slds-theme_error slds-m-bottom_medium"
+                                 role="alert">
+                                <span class="slds-assistive-text">Error</span>
+                                <span class="slds-icon_container slds-icon-utility-error slds-m-right_small slds-no-flex slds-align-top">
+                                    <svg class="slds-icon slds-icon_small" aria-hidden="true"
+                                         xmlns:xlink="http://www.w3.org/1999/xlink">
+                                        <use xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#error')}"></use>
+                                    </svg>
+                                </span>
+                                <div class="slds-notify__content">
+                                    <h2 class="slds-text-heading_small">{!resultMessage}</h2>
+                                </div>
                             </div>
+                        </apex:outputPanel>
+
+                        <div class="slds-form-element slds-m-bottom_medium">
+                            <label class="slds-form-element__label" for="dateInput">
+                                Date <abbr class="slds-required" title="required">*</abbr>
+                            </label>
+                            <div class="slds-form-element__control">
+                                <apex:input type="date" value="{!selectedDate}" id="dateInput"
+                                            styleClass="slds-input" required="false"
+                                            html-min="{!minDateStr}" html-max="{!maxDateStr}" />
+                            </div>
+                            <div class="slds-form-element__help">
+                                Pick a date at least 2 days old (within the last 90 days).
+                                Today and yesterday are not allowed — that day's punches
+                                may not have been fully pulled from the device yet.
+                            </div>
+                        </div>
+
+                        <div class="slds-grid slds-grid_align-end ds-btn-row">
+                            <button type="button" class="slds-button slds-button_neutral"
+                                    onclick="dsNavigateToList(); return false;">Cancel</button>
+                            <!-- NEVER add a server-side disabled= here: a VF
+                                 commandButton rendered disabled ships WITHOUT its
+                                 onclick handler, so re-enabling it from JS leaves a
+                                 dead button. An empty date is caught server-side. -->
+                            <apex:commandButton value="Submit" action="{!submit}" id="submitBtn"
+                                                reRender="mainPanel"
+                                                styleClass="slds-button slds-button_brand" />
+                        </div>
+                    </div>
+                </apex:outputPanel>
+
+                <!-- ═══════════════ PHASE 2 — IN PROGRESS ═══════════════ -->
+                <apex:outputPanel rendered="{!isRunning}" layout="none">
+
+                    <!-- Lives INSIDE this panel so it exists only while a batch is
+                         in flight; once the phase flips it is removed from the DOM
+                         and stops polling. -->
+                    <apex:actionPoller action="{!refreshStatus}" interval="5"
+                                       reRender="mainPanel" />
+
+                    <div class="slds-box slds-theme_default ds-card-wide slds-text-align_center">
+
+                        <h1 class="slds-text-heading_medium slds-m-bottom_xxx-small">
+                            Syncing {!syncedDateStr}
+                        </h1>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                            Step {!IF(step2State == 'pending', '1', '2')} of 2
+                        </p>
+
+                        <!-- ── Two-step tracker ── -->
+                        <div class="ds-track">
+
+                            <!-- STEP 1 — fetch punches from the device -->
+                            <div class="ds-node {!IF(step1State == 'pending', 'is-idle', '')}">
+                                <div class="ds-marker ds-{!step1State}">
+                                    <apex:outputPanel rendered="{!step1State == 'complete'}" layout="none">
+                                        <svg class="slds-icon slds-icon_x-small slds-icon-text-inverse"
+                                             aria-hidden="true" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                            <use xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#check')}"></use>
+                                        </svg>
+                                    </apex:outputPanel>
+                                    <apex:outputPanel rendered="{!step1State == 'active'}" layout="none">
+                                        <div class="ds-pulse"></div>
+                                    </apex:outputPanel>
+                                    <apex:outputPanel rendered="{!step1State == 'pending'}" layout="none">1</apex:outputPanel>
+                                    <apex:outputPanel rendered="{!step1State == 'error'}" layout="none">!</apex:outputPanel>
+                                </div>
+                                <div class="ds-node-ttl">Fetch punches</div>
+                                <div class="ds-node-sub">{!step1Detail}</div>
+                            </div>
+
+                            <div class="ds-conn {!IF(step1State == 'complete', 'is-done', '')}"></div>
+
+                            <!-- STEP 2 — mark Present / Absent -->
+                            <div class="ds-node {!IF(step2State == 'pending', 'is-idle', '')}">
+                                <div class="ds-marker ds-{!step2State}">
+                                    <apex:outputPanel rendered="{!step2State == 'complete'}" layout="none">
+                                        <svg class="slds-icon slds-icon_x-small slds-icon-text-inverse"
+                                             aria-hidden="true" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                            <use xlink:href="{!URLFOR($Asset.SLDS, 'assets/icons/utility-sprite/svg/symbols.svg#check')}"></use>
+                                        </svg>
+                                    </apex:outputPanel>
+                                    <apex:outputPanel rendered="{!step2State == 'active'}" layout="none">
+                                        <div class="ds-pulse"></div>
+                                    </apex:outputPanel>
+                                    <apex:outputPanel rendered="{!step2State == 'pending'}" layout="none">2</apex:outputPanel>
+                                    <apex:outputPanel rendered="{!step2State == 'error'}" layout="none">!</apex:outputPanel>
+                                </div>
+                                <div class="ds-node-ttl">Mark attendance</div>
+                                <div class="ds-node-sub">{!step2Detail}</div>
+                            </div>
+                        </div>
+
+                        <!-- ── Progress bar ── -->
+                        <div class="slds-progress-bar slds-progress-bar_medium" role="progressbar"
+                             aria-valuemin="0" aria-valuemax="100"
+                             aria-valuenow="{!progressPercent}" aria-label="Sync progress">
+                            <span class="slds-progress-bar__value slds-progress-bar__value_success"
+                                  style="width:{!progressPercent}%">
+                                <span class="slds-assistive-text">Progress: {!progressPercent}%</span>
+                            </span>
+                        </div>
+                        <p class="ds-pct">{!progressPercent}% complete</p>
+
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-vertical_medium">
+                            This page refreshes itself every few seconds and will show a
+                            before / after breakdown when the sync finishes.
+                        </p>
+
+                        <div class="slds-grid slds-grid_align-center ds-btn-row">
+                            <button type="button" class="slds-button slds-button_neutral"
+                                    onclick="dsNavigateToList(); return false;">Cancel</button>
+                        </div>
+                        <p class="slds-text-body_small slds-text-color_weak slds-p-top_small">
+                            Cancelling only closes this page — the sync keeps running in the background.
+                        </p>
+                    </div>
+                </apex:outputPanel>
+
+                <!-- ═══════════════ PHASE 3 — RESULTS ═══════════════ -->
+                <apex:outputPanel rendered="{!isResult}" layout="none">
+
+                    <!-- Header -->
+                    <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_small">
+                        <div>
+                            <h1 class="slds-text-heading_medium">Sync Complete</h1>
+                            <p class="slds-text-body_small slds-text-color_weak">
+                                Attendance synced for <strong>{!syncedDateStr}</strong>
+                            </p>
+                        </div>
+                        <div class="ds-btn-row">
+                            <apex:commandButton value="Sync another day" action="{!syncAnotherDay}"
+                                                reRender="mainPanel"
+                                                styleClass="slds-button slds-button_neutral" />
+                            <button type="button" class="slds-button slds-button_brand"
+                                    onclick="dsNavigateToList(); return false;">Close</button>
+                        </div>
+                    </div>
+
+                    <!-- Warning (job failed / marking never started) -->
+                    <apex:outputPanel rendered="{!hasWarning}" layout="none">
+                        <div class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_small"
+                             role="alert">
+                            <span class="slds-assistive-text">Warning</span>
+                            <h2>{!warningText}</h2>
                         </div>
                     </apex:outputPanel>
 
-                    <div class="slds-form-element slds-m-bottom_medium">
-                        <label class="slds-form-element__label" for="dateInput">
-                            Date <abbr class="slds-required" title="required">*</abbr>
-                        </label>
-                        <div class="slds-form-element__control">
-                            <apex:input type="date" value="{!selectedDate}" id="dateInput"
-                                        styleClass="slds-input"
-                                        html-min="{!minDateStr}" html-max="{!maxDateStr}" />
-                        </div>
-                        <div class="slds-form-element__help">
-                            Pick a past date only (within the last 90 days). Today and future dates are not allowed.
+                    <!-- Summary tiles -->
+                    <div class="slds-box slds-box_x-small slds-theme_default slds-m-bottom_small">
+                        <div class="slds-grid slds-wrap slds-grid_align-spread">
+                            <div class="slds-col ds-tile">
+                                <div class="ds-tile-num">{!logsFetched}</div>
+                                <div class="ds-tile-lbl">Punches imported</div>
+                            </div>
+                            <div class="slds-col ds-tile">
+                                <div class="ds-tile-num">{!totalSessions}</div>
+                                <div class="ds-tile-lbl">Sessions affected</div>
+                            </div>
+                            <div class="slds-col ds-tile">
+                                <div class="ds-tile-num">{!totalStudents}</div>
+                                <div class="ds-tile-lbl">Students in scope</div>
+                            </div>
+                            <div class="slds-col ds-tile">
+                                <div class="ds-tile-num">{!totalChanged}</div>
+                                <div class="ds-tile-lbl">Records updated</div>
+                            </div>
+                            <div class="slds-col ds-tile">
+                                <div class="ds-tile-num slds-text-color_success">{!totalNewPresent}</div>
+                                <div class="ds-tile-lbl">Marked Present</div>
+                            </div>
+                            <div class="slds-col ds-tile">
+                                <div class="ds-tile-num slds-text-color_error">{!totalNewAbsent}</div>
+                                <div class="ds-tile-lbl">Marked Absent</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="slds-grid slds-grid_align-end">
-                        <button type="button" class="slds-button slds-button_neutral"
-                                onclick="navigateToList(); return false;">Cancel</button>
-                        <apex:commandButton value="Submit" action="{!submit}" id="submitBtn"
-                                            styleClass="slds-button slds-button_brand" />
+                    <!-- Nothing changed -->
+                    <apex:outputPanel rendered="{!isEmptyResult}" layout="none">
+                        <div class="slds-box slds-theme_default slds-text-align_center slds-p-vertical_large">
+                            <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+                                No attendance was changed for {!syncedDateStr}
+                            </h2>
+                            <p class="slds-text-body_small slds-text-color_weak">
+                                Either every enrollment for that day was already marked, or no
+                                session on that day had a matching punch. Punches imported by this
+                                run: {!logsFetched}.
+                            </p>
+                        </div>
+                    </apex:outputPanel>
+
+                    <!-- Before / After table -->
+                    <apex:outputPanel rendered="{!NOT(isEmptyResult)}" layout="none">
+                        <div class="slds-box slds-box_x-small slds-theme_default ds-scroll">
+                            <table class="slds-table slds-table_bordered slds-table_fixed-layout slds-no-row-hover"
+                                   style="min-width:1000px;">
+                                <thead>
+                                    <tr class="slds-line-height_reset">
+                                        <th rowspan="2" scope="col" style="width:22%;">
+                                            <div class="slds-truncate" title="Session">Session</div>
+                                        </th>
+                                        <th rowspan="2" scope="col" class="ds-num" style="width:12%;">
+                                            <div title="Session time (IST)">Time (IST)</div>
+                                        </th>
+                                        <th rowspan="2" scope="col" class="ds-num" style="width:7%;">
+                                            <div title="Students enrolled">Students</div>
+                                        </th>
+                                        <th colspan="3" scope="col"
+                                            class="ds-num ds-grp-before ds-sep-left">
+                                            <div title="Attendance before this sync">BEFORE Sync</div>
+                                        </th>
+                                        <th colspan="3" scope="col"
+                                            class="ds-num ds-grp-after ds-sep-left">
+                                            <div title="Attendance after this sync">AFTER Sync</div>
+                                        </th>
+                                        <th rowspan="2" scope="col" class="ds-num ds-sep-left" style="width:8%;">
+                                            <div title="Enrollments this sync updated">Updated</div>
+                                        </th>
+                                        <th rowspan="2" scope="col" class="ds-num" style="width:8%;">
+                                            <div title="Net change in the Present headcount">Net Present</div>
+                                        </th>
+                                    </tr>
+                                    <tr class="slds-line-height_reset">
+                                        <th scope="col" class="ds-num ds-grp-before ds-sep-left">Present</th>
+                                        <th scope="col" class="ds-num ds-grp-before">Absent</th>
+                                        <th scope="col" class="ds-num ds-grp-before">Not Marked</th>
+                                        <th scope="col" class="ds-num ds-grp-after ds-sep-left">Present</th>
+                                        <th scope="col" class="ds-num ds-grp-after">Absent</th>
+                                        <th scope="col" class="ds-num ds-grp-after">Not Marked</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <apex:repeat value="{!sessionResults}" var="row">
+                                        <tr class="{!IF(row.isUnchanged, 'ds-dim', '')}">
+                                            <th scope="row">
+                                                <a href="/{!row.sessionId}" target="_top"
+                                                   class="slds-truncate" title="{!row.sessionName}">
+                                                    {!row.sessionName}
+                                                </a>
+                                                <div class="slds-text-body_small slds-text-color_weak">
+                                                    {!row.dateStr}
+                                                    <apex:outputText rendered="{!row.beforeOther > 0}"
+                                                        value=" · {!row.beforeOther} on Late / Sanctioned Leave" />
+                                                </div>
+                                            </th>
+                                            <td class="ds-num">{!row.timeRange}</td>
+                                            <td class="ds-num">{!row.total}</td>
+
+                                            <td class="ds-num ds-grp-before ds-sep-left">
+                                                <span class="{!IF(row.beforePresent == 0, 'ds-zero', '')}">{!row.beforePresent}</span>
+                                            </td>
+                                            <td class="ds-num ds-grp-before">
+                                                <span class="{!IF(row.beforeAbsent == 0, 'ds-zero', '')}">{!row.beforeAbsent}</span>
+                                            </td>
+                                            <td class="ds-num ds-grp-before">
+                                                <span class="{!IF(row.beforeNotMarked == 0, 'ds-zero', '')}">{!row.beforeNotMarked}</span>
+                                            </td>
+
+                                            <td class="ds-num ds-grp-after ds-sep-left">
+                                                <strong class="slds-text-color_success">{!row.afterPresent}</strong>
+                                            </td>
+                                            <td class="ds-num ds-grp-after">
+                                                <strong class="slds-text-color_error">{!row.afterAbsent}</strong>
+                                            </td>
+                                            <td class="ds-num ds-grp-after">
+                                                <span class="{!IF(row.afterNotMarked == 0, 'ds-zero', '')}">{!row.afterNotMarked}</span>
+                                            </td>
+
+                                            <td class="ds-num ds-sep-left">
+                                                <apex:outputPanel rendered="{!row.changed > 0}" layout="none">
+                                                    <span class="slds-badge slds-theme_success">{!row.changed}</span>
+                                                </apex:outputPanel>
+                                                <apex:outputPanel rendered="{!row.changed == 0}" layout="none">
+                                                    <span class="ds-zero">0</span>
+                                                </apex:outputPanel>
+                                            </td>
+                                            <td class="ds-num">{!row.presentDelta}</td>
+                                        </tr>
+                                    </apex:repeat>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="ds-tot">
+                                        <th scope="row">Total — {!totalSessions} session(s)</th>
+                                        <td class="ds-num">&nbsp;</td>
+                                        <td class="ds-num">{!totalStudents}</td>
+                                        <td colspan="3" class="ds-num ds-grp-before ds-sep-left">&nbsp;</td>
+                                        <td colspan="3" class="ds-num ds-grp-after ds-sep-left">&nbsp;</td>
+                                        <td class="ds-num ds-sep-left">{!totalChanged}</td>
+                                        <td class="ds-num">&nbsp;</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <p class="slds-text-body_small slds-text-color_weak slds-p-top_x-small">
+                            "Before" is reconstructed from Attendance field history for this run.
+                            Rows shown dimmed had no change. Present / Late / Sanctioned Leave are
+                            never overwritten by the sync — only blank and Absent records are updated.
+                        </p>
+                    </apex:outputPanel>
+
+                    <div class="slds-grid slds-grid_align-end slds-p-top_medium ds-btn-row">
+                        <apex:commandButton value="Sync another day" action="{!syncAnotherDay}"
+                                            reRender="mainPanel"
+                                            styleClass="slds-button slds-button_neutral" />
+                        <button type="button" class="slds-button slds-button_brand"
+                                onclick="dsNavigateToList(); return false;">Close</button>
                     </div>
-                </div>
-            </apex:form>
-        </apex:outputPanel>
+                </apex:outputPanel>
+
+            </apex:outputPanel>
+        </apex:form>
     </div>
 
     <script type="text/javascript">
-        // Cancel / redirect target — works inside Lightning and Classic.
-        function navigateToList() {
+        // Close / Cancel target — works inside Lightning and Classic.
+        function dsNavigateToList() {
             var listUrl = '/lightning/o/Attendance_Log__c/list';
             if (typeof sforce !== 'undefined' && sforce && sforce.one) {
                 sforce.one.navigateToURL(listUrl);
@@ -87,22 +411,5 @@
             }
         }
 
-        // Disable Submit while the date input is empty (server-side still validates).
-        (function () {
-            function wire() {
-                var input = document.querySelector('input[type=date]');
-                var btn   = document.querySelector('[id$="submitBtn"]');
-                if (!input || !btn) { return; }
-                function sync() { btn.disabled = !input.value; }
-                input.addEventListener('input', sync);
-                input.addEventListener('change', sync);
-                sync();
-            }
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', wire);
-            } else {
-                wire();
-            }
-        })();
     </script>
 </apex:page>

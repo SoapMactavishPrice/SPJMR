@@ -1706,6 +1706,36 @@
                 </div>
             </div>
         </template>
+        <template if:true={showFacultyNotifyModal}>
+            <div class="modal-overlay">
+                <div class="month-more-modal-content publish-range-modal" onclick={handleModalClick}>
+                    <div class="month-more-modal-header">
+                        <h3>Notify faculty?</h3>
+                        <button type="button" class="close-btn" onclick={handleFacultyNotifyClose} aria-label="Close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="publish-modal-body">
+                        <p>Would you like to send email and notification to the assigned faculty?</p>
+                    </div>
+                    <div class="publish-modal-footer">
+                        <lightning-button
+                            variant="neutral"
+                            label="No"
+                            onclick={handleFacultyNotifyNo}
+                        ></lightning-button>
+                        <lightning-button
+                            variant="brand"
+                            label="Yes"
+                            onclick={handleFacultyNotifyYes}
+                        ></lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
         <template if:true={showMonthMoreEventsModal}>
             <div class="modal-overlay" onclick={handleCloseMonthMoreEvents}>
                 <div class="month-more-modal-content" onclick={handleModalClick}>

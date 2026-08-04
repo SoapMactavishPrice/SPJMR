@@ -5,7 +5,7 @@
  * Rules: Application Status → Initiated / Paid map to the same opportunity stage names; Application Stage
  * maps a fixed set of steps to matching opportunity stages (Program Details on Application → Programme Details on Opportunity).
  */
-public with sharing class ApplicationTriggerHandler {
+public without sharing class ApplicationTriggerHandler {
 
     private static final String STAGE_INITIATED = 'Initiated';
     private static final String STAGE_PAID = 'Paid';

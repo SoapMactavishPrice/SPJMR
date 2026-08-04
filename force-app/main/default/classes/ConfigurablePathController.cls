@@ -1,6 +1,6 @@
 /**
  * Aura-enabled entry points for {@link ConfigurablePathService} used by the {@code configurablePath} LWC.
- *
+ * 
  * @see ConfigurablePathService
  */
 public with sharing class ConfigurablePathController {
@@ -40,10 +40,7 @@ public with sharing class ConfigurablePathController {
         try {
             result = ConfigurablePathService.getDependencyOptionsForTarget(recordId, configDeveloperName, targetPathValue);
         } catch (Exception e) {
-            result = new ConfigurablePathDependencyOptionsResult();
-            result.loadOk = false;
-            result.loadErrorMessage = e.getMessage();
-            result.options = new List<ConfigurablePathUiModel.OptionRow>();
+            return dependencyErrorResult(e.getMessage());
         }
         return result;
     }
@@ -75,10 +72,25 @@ public with sharing class ConfigurablePathController {
                 perProgramSubStatuses
             );
         } catch (Exception e) {
-            result = new ConfigurablePathSaveResult();
-            result.success = false;
-            result.message = e.getMessage();
+            return saveErrorResult(e.getMessage());
         }
         return result;
     }
+  @TestVisible
+private static ConfigurablePathDependencyOptionsResult dependencyErrorResult(String message) {
+    ConfigurablePathDependencyOptionsResult result =
+        new ConfigurablePathDependencyOptionsResult();
+    result.loadOk = false;
+    result.loadErrorMessage = message;
+    result.options = new List<ConfigurablePathUiModel.OptionRow>();
+    return result;
+}
+
+@TestVisible
+private static ConfigurablePathSaveResult saveErrorResult(String message) {
+    ConfigurablePathSaveResult result = new ConfigurablePathSaveResult();
+    result.success = false;
+    result.message = message;
+    return result;
+}
 }

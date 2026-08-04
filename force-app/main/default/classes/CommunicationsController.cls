@@ -29,6 +29,8 @@ public with sharing class CommunicationsController {
 
         public Id referenceRecordId { get; set; }
 
+        public Map<Id, Id> applicationIdToReferenceRecordId { get; set; }
+
         public CommunicationOptions options { get; set; }
 
     }
@@ -98,6 +100,51 @@ public with sharing class CommunicationsController {
         }
 
         return String.valueOf(value);
+    }
+
+    //interface for flow
+    @InvocableMethod(label='Send Communication')
+    public static void send(List<Request> requests) {
+
+        Map<String, CommunicationRequest> groupedRequests = new Map<String, CommunicationRequest>();
+
+        for (Request req : requests) {
+
+            String key = req.programId + '|' + req.scenario;
+
+            if (!groupedRequests.containsKey(key)) {
+                CommunicationRequest cr = new CommunicationRequest();
+                cr.scenario = CommunicationScenario.valueOf(req.scenario);
+                cr.programId = req.programId;
+                cr.applicationIdToReferenceRecordId = new Map<Id, Id>();
+
+                groupedRequests.put(key, cr);
+            }
+
+            groupedRequests.get(key).applicationIdToReferenceRecordId.put(
+                req.applicationId,
+                req.referenceRecordId
+            );
+        }
+
+        for (CommunicationRequest request : groupedRequests.values()) {
+            CommunicationService.communicateInline(request);
+        }
+    }
+
+    public class Request {
+
+        @InvocableVariable(required=true)
+        public String scenario;
+
+        @InvocableVariable(required=true)
+        public Id applicationId;
+
+        @InvocableVariable
+        public Id programId;
+
+        @InvocableVariable
+        public Id referenceRecordId;
     }
 
 

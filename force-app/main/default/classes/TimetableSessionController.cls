@@ -15,6 +15,8 @@ public without sharing class TimetableSessionController {
         @AuraEnabled public Date startDate { get; set; }
         @AuraEnabled public Date endDate { get; set; }
         @AuraEnabled public List<String> scheduleTypes { get; set; } // Optional: 'Draft', 'Published' - filter by Schedule_Type__c
+        /** When explicitly false, skip sending faculty email/Google Calendar sync for this publish batch. Defaults to true (send). */
+        @AuraEnabled public Boolean sendNotifications { get; set; }
     }
 
     public class SessionInput {
@@ -62,6 +64,8 @@ public without sharing class TimetableSessionController {
          * Student overlap warnings still apply as non-blocking.
          */
         @AuraEnabled public Boolean ignoreConflicts { get; set; }
+        /** When explicitly false, skip sending faculty email/Google Calendar sync for this save. Defaults to true (send). */
+        @AuraEnabled public Boolean sendNotifications { get; set; }
     }
 
     public class SessionDto {
@@ -900,12 +904,20 @@ dto.selectedStudentIds =
                 sessionRecord.Schedule_Type__c = 'Published';
             }
             
+            Boolean skipNotify = filter.sendNotifications == false;
             try {
+                if (skipNotify) {
+                    SessionCalendarInviteHandler.skipUserNotifications = true;
+                }
                 update publishableSessions;
                 updatedCount = publishableSessions.size();
             } catch (DmlException ex) {
                 System.debug('Error publishing sessions: ' + ex.getMessage());
                 throw new AuraHandledException('Error publishing sessions: ' + ex.getDmlMessage(0));
+            } finally {
+                if (skipNotify) {
+                    SessionCalendarInviteHandler.skipUserNotifications = false;
+                }
             }
         }
         
@@ -1131,7 +1143,17 @@ dto.selectedStudentIds =
                     : mergedOverlapWarning;
             }
 
-            upsert sessionRecord;
+            Boolean skipNotify = request.sendNotifications == false;
+            try {
+                if (skipNotify) {
+                    SessionCalendarInviteHandler.skipUserNotifications = true;
+                }
+                upsert sessionRecord;
+            } finally {
+                if (skipNotify) {
+                    SessionCalendarInviteHandler.skipUserNotifications = false;
+                }
+            }
         } catch (DmlException ex) {
             System.debug('Error saving session: ' + ex.getMessage());
             throw new AuraHandledException('Error saving session: ' + ex.getDmlMessage(0));
@@ -1366,12 +1388,6 @@ if(request.selectedStudentIds != null) {
                 if (!toDelete.isEmpty()) delete toDelete;
                 if (!toUpdate.isEmpty()) update toUpdate;
                 if (!toInsert.isEmpty()) insert toInsert;
-                if (!facultyIds.isEmpty()) {
-    update new Session__c(
-        Id = sessionRecord.Id,
-        Session_Faculty__c = facultyIds.iterator().next()
-    );
-}
             } else {
                 // New session: insert all Session_Faculty__c records
                 if (!facultyIds.isEmpty()) {
@@ -1387,12 +1403,6 @@ if(request.selectedStudentIds != null) {
                         sessionFaculties.add(sf);
                     }
                     insert sessionFaculties;
-                    if (!facultyIds.isEmpty()) {
-    update new Session__c(
-        Id = sessionRecord.Id,
-        Session_Faculty__c = facultyIds.iterator().next()
-    );
-}
                 }
             }
         } else if (request.sessionId != null) {
@@ -1404,11 +1414,6 @@ if(request.selectedStudentIds != null) {
             ];
             if (!existingSessionFaculties.isEmpty()) {
                 delete existingSessionFaculties;
-                update new Session__c(
-    Id = sessionRecord.Id,
-    Session_Faculty__c = null
-);
-
             }
         }
         
@@ -2506,6 +2511,13 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                 }
             }
             
+            if (filterMap.containsKey('sendNotifications')) {
+                Object sendNotificationsObj = filterMap.get('sendNotifications');
+                if (sendNotificationsObj instanceof Boolean) {
+                    filter.sendNotifications = (Boolean) sendNotificationsObj;
+                }
+            }
+
             return filter;
         } catch (Exception ex) {
             System.debug('Error parsing filter: ' + filterJson + ' - ' + ex.getMessage());

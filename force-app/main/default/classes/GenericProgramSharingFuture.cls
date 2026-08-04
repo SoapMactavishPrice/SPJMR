@@ -1,8 +1,14 @@
-public class GenericProgramSharingFuture {
+public class GenericProgramSharingFuture implements Queueable{
 
-    @future
-    public static void shareRecords(String objectApiName, List<Id> recordIds) {
+    public String objectApiName;
+    public List<Id> recordIds;
 
+    public GenericProgramSharingFuture(String objectApiName, List<Id> recordIds){
+        this.objectApiName = objectApiName;
+        this.recordIds = recordIds;
+    }   
+
+    public void execute(QueueableContext context){
         if (String.isBlank(objectApiName) || recordIds == null || recordIds.isEmpty()) {
             return;
         }
@@ -39,5 +45,11 @@ public class GenericProgramSharingFuture {
             System.debug('Inserting Share Record ' + shares);
             Database.insert(shares, false);
         }
+    }
+
+    public static void shareRecords(String objectApiName, List<Id> recordIds) {
+
+       GenericProgramSharingFuture queueableCls = new GenericProgramSharingFuture(objectApiName, recordIds);
+       System.enqueueJob(queueableCls);
     }
 }

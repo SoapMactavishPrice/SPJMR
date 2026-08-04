@@ -1,7 +1,7 @@
 /**
  * Serializable view model returned to {@code configurablePath} for rendering stages, modal copy, and dependency options.
  */
-public with sharing class ConfigurablePathUiModel {
+public with sharing class ConfigurablePathUiModel { 
     @AuraEnabled
     public Boolean loadOk { get; set; }
     @AuraEnabled

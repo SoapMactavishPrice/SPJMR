@@ -1,29 +1,3 @@
-/**
- * @description SessionCalendarInviteQueueable — SE-1056 / SE-1057 / SE-1047:
- *          asynchronously create, update or cancel a Google Calendar event per
- *          Session and invite the right participants.
- *
- *          SE-1057 (event mapping): Session__c fields → GoogleCalendarEvent
- *            summary     ← Programme | Batch | Batch Group | Term | Division | Course - Session Name
- *            start/end   ← Start_Time__c / End_Time__c (Asia/Kolkata)
- *            location    ← Class_Room__c (+ URL__c meeting link)
- *            description ← same context as labelled lines, then Description__c + join link
- *          SE-1056 (audience):
- *            publishSessionIds → students + faculty
- *            draftSessionIds   → faculty only
- *          Idempotency / update / cancel (SE-1047 §4–5):
- *            - Session with no Google_Event_Id__c → POST (create), store the id.
- *            - Session with a Google_Event_Id__c  → PATCH (update) the same event.
- *            - cancelEventIdsBySession            → DELETE the event (sendUpdates=all).
- *          Write-back: after each callout the Session is stamped with
- *            Google_Event_Id__c / Calendar_Sync_Status__c / Calendar_Last_Synced__c /
- *            Calendar_Sync_Error__c (DML is allowed post-callout in a Queueable).
- *
- * @note    Google Calendar has no bulk-insert API, so this issues one callout per
- *          session (Queueable allows up to 100 callouts). Larger publishes are
- *          chunked by the handler — see SessionCalendarInviteHandler.
- */
-// complexity suppressed: working integration logic, refactor out of scope
 @SuppressWarnings('PMD.CyclomaticComplexity,PMD.StdCyclomaticComplexity,PMD.CognitiveComplexity,PMD.NcssMethodCount')
 public class SessionCalendarInviteQueueable implements Queueable, Database.AllowsCallouts {
 
@@ -32,41 +6,37 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
     private static final String STATUS_FAILED    = 'Failed';
     private static final String STATUS_CANCELLED = 'Cancelled';
 
-    private Set<Id> publishSessionIds; // invite students + faculty
-    private Set<Id> draftSessionIds;   // invite faculty only
-    private Map<Id, String> cancelEventIdsBySession; // sessionId → Google event id to DELETE
+    private Set<Id> publishSessionIds;
+    private Set<Id> draftSessionIds;
+    private Map<Id, String> cancelEventIdsBySession;
 
-    /**
-     * @description Backward-compatible constructor: create/update only, no cancellations.
-     * @param publishSessionIds Sessions to invite students + faculty to.
-     * @param draftSessionIds Sessions to invite faculty only.
-     */
+    private Boolean suppressNotifications;
+
     public SessionCalendarInviteQueueable(Set<Id> publishSessionIds, Set<Id> draftSessionIds) {
-        this(publishSessionIds, draftSessionIds, null);
+        this(publishSessionIds, draftSessionIds, null, false);
     }
 
-    /**
-     * @description Full constructor supporting create/update plus cancellations.
-     * @param publishSessionIds Sessions to invite students + faculty to.
-     * @param draftSessionIds Sessions to invite faculty only.
-     * @param cancelEventIdsBySession Map of sessionId to Google event id to DELETE.
-     */
     public SessionCalendarInviteQueueable(
         Set<Id> publishSessionIds,
         Set<Id> draftSessionIds,
         Map<Id, String> cancelEventIdsBySession
     ) {
+        this(publishSessionIds, draftSessionIds, cancelEventIdsBySession, false);
+    }
+
+    public SessionCalendarInviteQueueable(
+        Set<Id> publishSessionIds,
+        Set<Id> draftSessionIds,
+        Map<Id, String> cancelEventIdsBySession,
+        Boolean suppressNotifications
+    ) {
         this.publishSessionIds        = (publishSessionIds != null) ? publishSessionIds : new Set<Id>();
         this.draftSessionIds          = (draftSessionIds   != null) ? draftSessionIds   : new Set<Id>();
         this.cancelEventIdsBySession  = (cancelEventIdsBySession != null)
             ? cancelEventIdsBySession : new Map<Id, String>();
+        this.suppressNotifications    = (suppressNotifications == true);
     }
 
-    /**
-     * @description Queueable entry point: process cancellations, then create/update
-     *          events, then write the sync results back to the Sessions.
-     * @param qc The Queueable execution context.
-     */
     public void execute(QueueableContext qc) {
         Map<Id, Session__c> toUpdate = new Map<Id, Session__c>();
 
@@ -76,12 +46,11 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         writeBack(toUpdate);
     }
 
-    // ── CANCEL: DELETE the Google event (sendUpdates=all) ─────────────────────
     private void processCancellations(Map<Id, Session__c> toUpdate) {
         if (cancelEventIdsBySession.isEmpty()) {
             return;
         }
-        // Which of these sessions still exist? (On delete they won't — no write-back.)
+
         Set<Id> existing = new Map<Id, Session__c>([
             SELECT Id FROM Session__c WHERE Id IN :cancelEventIdsBySession.keySet()
         ]).keySet();
@@ -100,7 +69,7 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
                     if (resp != null && resp.success) {
                         upd.Calendar_Sync_Status__c = STATUS_CANCELLED;
                         upd.Calendar_Last_Synced__c = Datetime.now();
-                        upd.Google_Event_Id__c      = null; // a future publish creates fresh
+                        upd.Google_Event_Id__c      = null;
                         upd.Calendar_Sync_Error__c  = null;
                     } else {
                         upd.Calendar_Sync_Status__c = STATUS_FAILED;
@@ -120,7 +89,6 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         }
     }
 
-    // ── CREATE / UPDATE: POST when no event id, PATCH when present ────────────
     private void processCreateOrUpdate(Map<Id, Session__c> toUpdate) {
         Set<Id> allSessionIds = new Set<Id>();
         allSessionIds.addAll(publishSessionIds);
@@ -158,8 +126,7 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
             attendees.remove('');
 
             if (attendees.isEmpty() || s.Start_Time__c == null || s.End_Time__c == null) {
-                // Record WHY we skipped so it is visible on the record and retryable,
-                // instead of failing silently in the debug log.
+
                 String why = (s.Start_Time__c == null || s.End_Time__c == null)
                     ? 'Session is missing Start_Time__c / End_Time__c.'
                     : 'No attendees with a valid email were found for this session.';
@@ -175,13 +142,16 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
 
             try {
                 Boolean isUpdate = String.isNotBlank(s.Google_Event_Id__c);
+                String sendUpdates = suppressNotifications
+                    ? GoogleCalendarService.SEND_UPDATES_NONE
+                    : GoogleCalendarService.SEND_UPDATES_ALL;
                 GoogleCalendarService.GoogleCalendarResponse resp = isUpdate
-                    ? GoogleCalendarHelper.updateEventWithStoredCredentials(s.Google_Event_Id__c, ev)
-                    : GoogleCalendarHelper.createEventWithStoredCredentials(ev);
+                    ? GoogleCalendarHelper.updateEventWithStoredCredentials(s.Google_Event_Id__c, ev, sendUpdates)
+                    : GoogleCalendarHelper.createEventWithStoredCredentials(ev, sendUpdates);
 
                 Session__c upd = new Session__c(Id = sessionId);
                 if (resp != null && resp.success) {
-                    // PATCH may not echo the id; keep the existing one in that case.
+
                     upd.Google_Event_Id__c      = String.isNotBlank(resp.eventId)
                         ? resp.eventId : s.Google_Event_Id__c;
                     upd.Calendar_Sync_Status__c = STATUS_SYNCED;
@@ -202,10 +172,6 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         }
     }
 
-    /**
-     * @description Stamp sync results back onto the Sessions (suppressing trigger re-entry).
-     * @param toUpdate Map of sessionId to the Session__c records carrying sync stamps.
-     */
     private void writeBack(Map<Id, Session__c> toUpdate) {
         if (toUpdate.isEmpty()) {
             return;
@@ -213,28 +179,19 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         Boolean prior = SessionCalendarInviteHandler.suppressInvites;
         SessionCalendarInviteHandler.suppressInvites = true;
         try {
-            // allOrNone = false: a single bad row (e.g. a validation rule on one
-            // Session) must NOT roll back the sync stamps — including freshly
-            // created Google_Event_Id__c values — of every other session in the
-            // chunk, which would otherwise orphan events and create duplicates.
+
             Database.update(toUpdate.values(), false);
         } catch (Exception e) {
-            // write-back DML failure is swallowed: the sync stamps are best-effort.
+
             String ignored = e.getMessage();
         } finally {
             SessionCalendarInviteHandler.suppressInvites = prior;
         }
     }
 
-    // ── SE-1057: map a Session to the Google Calendar event format ────────────
-    // A faculty may teach the same course across programmes/batches/terms, so the event
-    // must identify the Programme / Batch / Term / Division it belongs to — not just the
-    // course. The full context goes in the summary (visible on the calendar block AND the
-    // event pop-up); the same breakdown is repeated as labelled lines in the description.
     private GoogleCalendarEvent buildEvent(Session__c s, List<String> attendees, Set<String> divisionNames) {
         GoogleCalendarEvent ev = new GoogleCalendarEvent();
 
-        // Final, most-specific token: "Course - Session Name".
         String courseName  = (s.Course__r != null && String.isNotBlank(s.Course__r.Name)) ? s.Course__r.Name : '';
         String sessionName = String.isNotBlank(s.Name) ? s.Name : '';
         String courseSession;
@@ -246,20 +203,17 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
 
         String programmeCode = (s.Program__r != null) ? s.Program__r.Program_Code__c : null;
         String batchName     = (s.Batch__r != null) ? s.Batch__r.Name : null;
-        // Field API name is Academic_Year__c, but its org label is "Batch Group";
-        // the value (e.g. "Year 1") is the batch group shown to faculty.
+
         String batchGroup    = (s.Academic_Year__r != null) ? s.Academic_Year__r.Name : null;
         String termName      = (s.Term__r != null) ? s.Term__r.Name : null;
         String divisionText  = (divisionNames != null && !divisionNames.isEmpty())
             ? String.join(new List<String>(divisionNames), ', ')
             : null;
-        // Department comes from the selected course (Course__c → LearningCourse → Course_Department__c).
+
         String departmentName = (s.Course__r != null && s.Course__r.Course_Department__r != null)
             ? s.Course__r.Course_Department__r.Name
             : null;
 
-        // Summary format (blank tokens omitted):
-        //   Programme | Batch | Batch Group | Term | Division | Course - Session Name
         List<String> summaryParts = new List<String>();
         if (String.isNotBlank(programmeCode)) { summaryParts.add(programmeCode); }
         if (String.isNotBlank(batchName))     { summaryParts.add(batchName); }
@@ -284,7 +238,6 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
             ev.location = String.join(locationParts, ' | ');
         }
 
-        // Description: structured detail block, then any session outline, then the join link.
         List<String> detailLines = new List<String>();
         if (String.isNotBlank(programmeCode)) {
             detailLines.add('Programme: ' + programmeCode);
@@ -333,7 +286,6 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         return ev;
     }
 
-    // ── Division names: Session_Division__c junction (supports joint sessions) ─
     private Map<Id, Set<String>> resolveDivisionNames(Set<Id> sessionIds) {
         Map<Id, Set<String>> bySession = new Map<Id, Set<String>>();
         if (sessionIds == null || sessionIds.isEmpty()) {
@@ -364,7 +316,6 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         };
     }
 
-    // ── Faculty emails: Session_Faculty__c → Account.PersonEmail ──────────────
     private Map<Id, Set<String>> resolveFacultyEmails(Set<Id> sessionIds) {
         Map<Id, Set<String>> bySession = new Map<Id, Set<String>>();
         for (Session_Faculty__c sf : [
@@ -385,7 +336,6 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         return bySession;
     }
 
-    // ── Student emails: Session_Enrollment__c → ... → LearnerAccount.PersonEmail
     private Map<Id, Set<String>> resolveStudentEmails(Set<Id> sessionIds) {
         Map<Id, Set<String>> bySession = new Map<Id, Set<String>>();
         if (sessionIds.isEmpty()) {
@@ -398,7 +348,7 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
             WHERE  Session__c IN :sessionIds
               AND  Division_Enrollment__r.Academic_Term_Enrollment__r.LearnerAccount.PersonEmail != NULL
         ]) {
-            // The SOQL filter guarantees the path is non-null, but guard defensively.
+
             String email =
                 (se.Division_Enrollment__r != null
                     && se.Division_Enrollment__r.Academic_Term_Enrollment__r != null

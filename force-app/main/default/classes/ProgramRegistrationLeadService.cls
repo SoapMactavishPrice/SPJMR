@@ -22,7 +22,7 @@ public without sharing class ProgramRegistrationLeadService {
     ) {
         ProgramRegistrationFormController.SaveLeadResult result = new ProgramRegistrationFormController.SaveLeadResult();
         result.success = false;
-
+		system.debug('JSON is :'+formValuesJson);
         if (String.isBlank(programId)) {
             result.message = 'Program Id is required.';
             return result;
@@ -242,6 +242,42 @@ public without sharing class ProgramRegistrationLeadService {
             String ln = String.isNotBlank(lead.LastName) ? lead.LastName : '';
             lead.Company = (fn + ' ' + ln).trim() + ' (Individual)';
         }
+
+                    if (lead.Country_Master_backend__c != null) {
+                List<Country_Master__c> countries = [
+                    SELECT Name
+                    FROM Country_Master__c
+                    WHERE Id = :lead.Country_Master_backend__c
+                    LIMIT 1
+                ];
+                if (!countries.isEmpty()) {
+                    lead.Country = countries[0].Name;
+                }
+            }
+
+            if (lead.State_Master__c != null) {
+                List<State__c> states = [
+                    SELECT Name
+                    FROM State__c
+                    WHERE Id = :lead.State_Master__c
+                    LIMIT 1
+                ];
+                if (!states.isEmpty()) {
+                    lead.State = states[0].Name;
+                }
+            }
+
+            if (lead.District_City__c != null) {
+                List<City__c> cities = [
+                    SELECT Name
+                    FROM City__c
+                    WHERE Id = :lead.District_City__c
+                    LIMIT 1
+                ];
+                if (!cities.isEmpty()) {
+                    lead.City = cities[0].Name;
+                }
+            }
 
         String phoneValidationError = validatePhoneAgainstCountryRule(lead);
         if (String.isNotBlank(phoneValidationError)) {
@@ -503,7 +539,10 @@ public without sharing class ProgramRegistrationLeadService {
     List<Account> accList = [
         SELECT Id, FirstName, LastName
         FROM Account
-        WHERE PersonEmail = :email
+        WHERE (PersonEmail = :email
+        OR PersonMobilePhone=:phoneRaw
+        OR PersonMobilePhone=:phoneDigits
+        OR Phone=:phoneRaw OR Phone=:phoneDigits)
         ORDER BY CreatedDate DESC
         LIMIT 1
     ];
@@ -576,7 +615,7 @@ private static void createLeadProgram(
 
     insert lp;
 }
-
+@TestVisible
 private static Boolean createOpportunityAndApplicationIfMissing(
     Id accountId,
     Id programId,

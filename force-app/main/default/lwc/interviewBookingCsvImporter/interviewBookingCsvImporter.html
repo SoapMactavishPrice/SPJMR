@@ -1,0 +1,68 @@
+<template>
+    <lightning-card title="Interview Booking CSV Import">
+        <lightning-button slot="actions" label="Download Sample Header" icon-name="utility:download"
+            onclick={downloadSampleHeader} disabled={isImportTypeUnselected}>
+        </lightning-button>
+
+        <div class="slds-p-around_medium">
+            <a class="slds-hide" data-id="sample-download"></a>
+            <lightning-radio-group name="importType" label="Import Type" options={importOptions} value={importType}
+                type="button" onchange={handleImportTypeChange}>
+            </lightning-radio-group>
+
+            <template if:true={showImportForm}>
+                <template if:true={requiresProgram}>
+                    <div class="slds-m-top_medium">
+                        <lightning-record-picker label="Program" object-api-name="Program" placeholder="Search programs..."
+                            onchange={handleProgramChange} required>
+                        </lightning-record-picker>
+                    </div>
+                </template>
+
+                <div class="guidance slds-text-body_small slds-m-top_medium" role="note">
+                    <strong>Required headers:</strong> {requiredHeaders}. Header names must match exactly and can be in any order.
+                    Additional columns are ignored.
+                </div>
+
+                <lightning-input class="slds-m-top_medium" type="file" label="Upload CSV File" accept=".csv"
+                    onchange={handleFileUpload} disabled={isLoading}>
+                </lightning-input>
+                <p class="slds-text-body_small slds-text-color_weak">Upload files smaller than 9 MB.</p>
+
+                <template if:true={fileName}>
+                    <p class="slds-m-top_small"><strong>Selected file:</strong> {fileName}</p>
+                </template>
+
+                <div class="slds-m-top_medium">
+                    <template if:true={showNotifyApplicants}>
+                        <lightning-input type="checkbox" label="Notify Applicants" checked={notifyApplicants}
+                            onchange={handleCheckboxChange} data-field="notifyApplicants">
+                        </lightning-input>
+                    </template>
+                    <template if:true={showNotifyInterviewers}>
+                        <lightning-input type="checkbox" label="Notify Interviewers" checked={notifyInterviewers}
+                            onchange={handleCheckboxChange} data-field="notifyInterviewers">
+                        </lightning-input>
+                    </template>
+                    <lightning-input type="checkbox" label="Email Error CSV" checked={emailErrorCsv}
+                        onchange={handleCheckboxChange} data-field="emailErrorCsv">
+                    </lightning-input>
+                </div>
+
+                <lightning-button class="slds-m-top_medium" label="Start Import" variant="brand"
+                    onclick={startImport} disabled={isStartDisabled}>
+                </lightning-button>
+            </template>
+
+            <template if:true={isLoading}>
+                <div class="slds-m-top_medium"><lightning-spinner alternative-text="Processing CSV"></lightning-spinner></div>
+            </template>
+
+            <template if:true={errorFile}>
+                <p class="slds-m-top_medium">
+                    <a href={errorFile.url} target="_blank">Download generated error CSV</a>
+                </p>
+            </template>
+        </div>
+    </lightning-card>
+</template>

@@ -60,7 +60,7 @@ public with sharing class ConfigurablePathService {
         if (cfg == null) {
             out.loadErrorMessage = 'Path configuration was not found.';
             return out;
-        }
+         }
         if (!isSafeConfig(cfg)) {
             out.loadErrorMessage = 'Path configuration is invalid.';
             return out;
@@ -125,6 +125,7 @@ public with sharing class ConfigurablePathService {
      * @param dependencyValues Selected dependency values (multiple for multi-select).
      * @return Success flag and user-facing message.
      */
+    @TestVisible
     public static ConfigurablePathSaveResult savePathTransition(
         Id recordId,
         String configDeveloperName,
@@ -185,7 +186,7 @@ public with sharing class ConfigurablePathService {
             perProgramSubStatuses
         );
     }
-
+	@TestVisible
     private static ConfigurablePathSaveResult savePathTransitionCore(
         Id recordId,
         PathWizardConfigModel cfg,
@@ -555,7 +556,7 @@ public with sharing class ConfigurablePathService {
         }
         return result;
     }
-
+@TestVisible
     private static Boolean isSafeConfig(PathWizardConfigModel cfg) {
         Boolean ok = true;
         if (
@@ -622,7 +623,7 @@ public with sharing class ConfigurablePathService {
         }
         return models;
     }
-
+@TestVisible
     private static Set<String> collectProgramCodes(Id recordId, PathWizardConfigModel cfg) {
         Set<String> normalized = new Set<String>();
         if (cfg.programFromRootRecord == true) {
@@ -971,7 +972,7 @@ public with sharing class ConfigurablePathService {
         }
         return joined;
     }
-
+	@TestVisible
     private static List<String> parseStoredDependencies(String stored, PathWizardConfigModel cfg) {
         List<String> out = new List<String>();
         if (String.isBlank(stored)) {
@@ -1183,6 +1184,7 @@ public with sharing class ConfigurablePathService {
         return blocks;
     }
 
+    @TestVisible
     private static List<ConfigurablePathUiModel.LeadProgramSubStatusBlock> buildProgramContextsWithOptions(
         Id recordId,
         PathWizardConfigModel cfg,

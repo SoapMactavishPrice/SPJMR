@@ -224,11 +224,13 @@
    non-flex flex-item (flex: 0 0 auto only) to an actual flex container,
    so Search/Clear align to the bottom edge of the date input boxes
    instead of floating at their own height */
-.date-range-actions {
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-    padding-top: 18px;   /* Align with date input boxes */
+.date-range-actions{
+    display:flex;
+    gap:8px;
+    flex:0 0 auto;
+    white-space:nowrap;
+    align-items:flex-end;
+     margin-top: 20px;
 }
 
 .date-range-actions lightning-button {
@@ -350,34 +352,35 @@
 /* NEW: wraps course-selector and date-range-row side by side
    in a single row above the attendance summary card, per updated layout
    requirement (previously these lived in separate rows/sections) */
-.top-filter-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 20px;
+.top-filter-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+    width:100%;
 }
 
 /* course-selector width constrained (previously unconstrained
    width, just margin-top + position:relative) so it shares row space
    properly with the date-range-row next to it */
-.course-selector {
-    flex: 1;
-    min-width: 350px;
-    max-width: 450px;
-    position: relative;
+.course-selector{
+    flex:1 1 42%;
+    min-width:260px;
+    max-width:520px;
+    position:relative;    
+    margin-top: 20px;
 }
 
 /* NEW date-range-row definition (replaces the commented-out
    version above). Pushed to the right edge of .top-filter-row via
    margin-left: auto, sized to content instead of stretching full width */
-.date-range-row {
-    display: flex;
-    align-items: flex-start;   /* was center */
-    gap: 10px;
-    flex: 0 0 auto;
-    width: auto;
-    margin-left: auto;
-    margin-top: -12px;   /* Increase from 0 to -10px or -12px */
+.date-range-row{
+    flex:1 1 auto;
+    display:flex;
+    align-items:flex-start;
+    justify-content:flex-end;
+    gap:8px;
+    min-width:0;
 }
 
 /* NEW: labels above each date input ("From Date" / "To Date"),
@@ -392,7 +395,8 @@
 }
 /* date-field resized to a fixed 150px (was flexible 110–130px
    range) to fit cleanly in the new side-by-side top-filter-row layout */
-.date-field {
-    width: 150px;
-    flex: 0 0 150px;
+.date-field{
+    flex: 1 1 0;      /* was: 0 0 160px — now shares space equally with its sibling date-field instead of holding a fixed width */
+    min-width: 0;      /* allows it to shrink below its content size when space is tight, same as Leave Application's .datetime-half */
+    max-width: 200px;  /* optional cap — stops it from growing too wide if there's extra space left over */
 }

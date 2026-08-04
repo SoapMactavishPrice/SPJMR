@@ -1,23 +1,90 @@
 @IsTest
 private class RawDataControllerTest {
 
+    private static final String ADMIN_EMAIL = 'rdc.coverage.admin@example.com';
+
+    private static User createAdminUser() {
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
+        User u = new User(
+            ProfileId = p.Id,
+            FirstName = 'Coverage',
+            LastName = 'Admin',
+            Email = ADMIN_EMAIL,
+            Username = ADMIN_EMAIL + '.' + DateTime.now().getTime(),
+            Alias = 'covadm2',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert u;
+
+        // Belt-and-braces: explicitly grant Modify/View All Data so this user
+        // bypasses FLS regardless of any org-specific profile customization
+        // or package license gating.
+        PermissionSet ps = new PermissionSet(
+            Name = 'Coverage_Full_Access_RDC',
+            Label = 'Coverage Full Access RDC'
+        );
+        insert ps;
+
+        insert new PermissionSetAssignment(
+            AssigneeId = u.Id,
+            PermissionSetId = ps.Id
+        );
+
+        insert new ObjectPermissions(
+            ParentId = ps.Id,
+            SobjectType = 'Lead_Import_Parent__c',
+            PermissionsRead = true,
+            PermissionsCreate = true,
+            PermissionsEdit = true,
+            PermissionsDelete = true,
+            PermissionsViewAllRecords = true,
+            PermissionsModifyAllRecords = true
+        );
+
+        insert new List<FieldPermissions>{
+            new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'Lead_Import_Parent__c',
+                Field = 'Lead_Import_Parent__c.Title__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            ),
+            new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'Lead_Import_Parent__c',
+                Field = 'Lead_Import_Parent__c.Description__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            ),
+            new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'Lead_Import_Parent__c',
+                Field = 'Lead_Import_Parent__c.Status__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            )
+        };
+
+        return u;
+    }
+
     @IsTest
     static void testStartImport() {
 
-        Test.startTest();
+        User adminUser = createAdminUser();
+        Id importId;
 
-        Id importId = RawDataController.startImport(
-            'Test Import',
-            'Test Description'
-        );
-
-        Test.stopTest();
+        System.runAs(adminUser) {
+            Test.startTest();
+            importId = RawDataController.startImport('Test Import', 'Test Description');
+            Test.stopTest();
+        }
 
         Lead_Import_Parent__c parent = [
-            SELECT Id,
-                   Title__c,
-                   Description__c,
-                   Status__c
+            SELECT Id, Title__c, Description__c, Status__c
             FROM Lead_Import_Parent__c
             WHERE Id = :importId
         ];
@@ -30,45 +97,43 @@ private class RawDataControllerTest {
     @IsTest
     static void testInsertImportRows() {
 
-        Lead_Import_Parent__c parent =
-            new Lead_Import_Parent__c(
-                Title__c = 'Import',
-                Status__c = 'Uploaded'
-            );
-
-        insert parent;
-
-        RawDataController.ImportRowWrapper row =
-            new RawDataController.ImportRowWrapper();
-
-        row.rowNumber = 1;
-        row.name = 'John Doe';
-        row.email = 'john@test.com';
-        row.phone = '9999999999';
-        row.programme = 'PGDM';
-        row.leadSource = 'Website';
-        row.country = 'India';
-        row.state = 'Kerala';
-        row.city = 'Kochi';
-        row.yearsOfWorkExperience = '5';
-        row.entranceExamScore = 'Yes';
-        row.entranceExamName = 'CAT';
-        row.partnerCompany = 'ABC';
-        row.organization = 'XYZ';
-        row.referralSource = 'Google';
-        row.designation = 'Developer';
-        row.age = '28';
-        row.college = 'CUSAT';
-        row.graduationYear = '2020';
-
-        Test.startTest();
-
-        RawDataController.insertImportRows(
-            parent.Id,
-            new List<RawDataController.ImportRowWrapper>{ row }
+        User adminUser = createAdminUser();
+        Lead_Import_Parent__c parent = new Lead_Import_Parent__c(
+            Title__c = 'Import',
+            Status__c = 'Uploaded'
         );
 
-        Test.stopTest();
+        System.runAs(adminUser) {
+            insert parent;
+
+            RawDataController.ImportRowWrapper row = new RawDataController.ImportRowWrapper();
+            row.rowNumber = 1;
+            row.name = 'John Doe';
+            row.email = 'john@test.com';
+            row.phone = '9999999999';
+            row.programme = 'PGDM';
+            row.leadSource = 'Website';
+            row.country = 'India';
+            row.state = 'Kerala';
+            row.city = 'Kochi';
+            row.yearsOfWorkExperience = '5';
+            row.entranceExamScore = 'Yes';
+            row.entranceExamName = 'CAT';
+            row.partnerCompany = 'ABC';
+            row.organization = 'XYZ';
+            row.referralSource = 'Google';
+            row.designation = 'Developer';
+            row.age = '28';
+            row.college = 'CUSAT';
+            row.graduationYear = '2020';
+
+            Test.startTest();
+            RawDataController.insertImportRows(
+                parent.Id,
+                new List<RawDataController.ImportRowWrapper>{ row }
+            );
+            Test.stopTest();
+        }
 
         Lead_Import__c record = [
             SELECT Lead_Import_Parent__c,
@@ -124,26 +189,21 @@ private class RawDataControllerTest {
     @IsTest
     static void testStartProcessing() {
 
-        Lead_Import_Parent__c parent =
-            new Lead_Import_Parent__c(
-                Title__c = 'Import',
-                Status__c = 'Uploaded'
-            );
+        User adminUser = createAdminUser();
+        Lead_Import_Parent__c parent = new Lead_Import_Parent__c(
+            Title__c = 'Import',
+            Status__c = 'Uploaded'
+        );
 
-        insert parent;
+        System.runAs(adminUser) {
+            insert parent;
 
-        Test.startTest();
+            Test.startTest();
+            RawDataController.startProcessing(parent.Id);
+            Test.stopTest();
+        }
 
-        RawDataController.startProcessing(parent.Id);
-
-        Test.stopTest();
-
-        parent = [
-            SELECT Status__c
-            FROM Lead_Import_Parent__c
-            WHERE Id = :parent.Id
-        ];
-
+        parent = [SELECT Status__c FROM Lead_Import_Parent__c WHERE Id = :parent.Id];
         System.assertEquals('Processing', parent.Status__c);
     }
 }

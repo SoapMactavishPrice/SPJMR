@@ -4,27 +4,36 @@ import getAnnouncements from '@salesforce/apex/ApAccountProgramController.getDas
 export default class DashboardAnnouncements extends LightningElement {
     @api applicationId;
     @api programName;
-    announcements = [];
+    announcements = []; 
+    _rendered = false;
 
-    @wire(getAnnouncements, { applicationId: '$applicationId' })
-    wiredAnnouncements({ data, error }) {
-        if (data) {
-            this.announcements = [...data].sort(
-                (a, b) => (a.priority || 0) - (b.priority || 0)
-            );
-        } else if (error) {
-            this.announcements = [];
-            console.error(error);
+    @wire(getAnnouncements, { applicationId: '$applicationId' }) 
+    wired({ data, error }) { 
+        if (data) { 
+            this.announcements = [...data].sort((a, b) => (a.priority || 0) - (b.priority || 0));
+            this._rendered = false; 
+        } else if (error) { 
+            this.announcements = []; 
         }
     }
 
-    get hasAnnouncements() {
-        return this.announcements.length > 0;
+    renderedCallback() { 
+        if (this._rendered) return; 
+        const els = this.template.querySelectorAll('.announcement-body'); 
+        els.forEach((e, i) => e.innerHTML = this.announcements[i]?.htmlContent || '');
+        this._rendered = true; 
     }
 
-    get sectionLabel() {
-        return this.programName
-            ? `${this.programName} Updates`
-            : 'Application Updates';
+    get hasAnnouncements() {
+        return this.announcements.length > 0; 
+    }
+
+    get sectionLabel() { 
+        return this.programName ? `${this.programName} Updates` : 'Application Updates'; 
+    }
+
+    get updateLabel() { 
+        const n = this.announcements.length; 
+        return `${n} update${n === 1 ? '' : 's'}`; 
     }
 }

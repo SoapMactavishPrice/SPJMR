@@ -1,39 +1,149 @@
 @IsTest
 private class LeadRoutingServiceTest {
-    @IsTest
-    static void applyB2cDefaultOwnerIfConfigured_sets_owner_when_b2c_and_override_user() {
-        Schema.RecordTypeInfo b2c = Schema.SObjectType.Lead.getRecordTypeInfosByDeveloperName().get('B2C');
-        System.assertNotEquals(null, b2c, 'B2C Lead record type required for this test.');
 
-        Id runAsUserId = UserInfo.getUserId();
-        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(runAsUserId);
+    private static Id getB2CRecordTypeId() {
+        return Schema.SObjectType.Lead
+            .getRecordTypeInfosByDeveloperName()
+            .get('B2C')
+            .getRecordTypeId();
+    }
+
+    @IsTest
+    static void testApplyDefaultOwnerSingleLead() {
+
+        User u = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(u.Id);
+
         Lead l = new Lead(
-            LastName = 'RoutingTest',
-            Company = 'RoutingTest Co',
-            RecordTypeId = b2c.getRecordTypeId()
+            LastName = 'Test',
+            Email = 'single@test.com',
+            Phone = '+91 9876543210',
+            RecordTypeId = getB2CRecordTypeId()
         );
 
         LeadRoutingService.applyB2cDefaultOwnerIfConfigured(l);
 
-        System.assertEquals(runAsUserId, l.OwnerId, 'B2C insert-row should receive configured default user owner.');
+        System.assertEquals(u.Id, l.OwnerId);
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(null);
     }
 
     @IsTest
-    static void applyB2cDefaultOwnerIfConfigured_bulk_sets_owner_once_per_batch() {
-        Schema.RecordTypeInfo b2c = Schema.SObjectType.Lead.getRecordTypeInfosByDeveloperName().get('B2C');
-        System.assertNotEquals(null, b2c, 'B2C Lead record type required for this test.');
-        Id b2cRt = b2c.getRecordTypeId();
+    static void testApplyDefaultOwnerList() {
 
-        Id runAsUserId = UserInfo.getUserId();
-        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(runAsUserId);
+        User u = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(u.Id);
+
         List<Lead> leads = new List<Lead>{
-            new Lead(LastName = 'A', Company = 'Co', RecordTypeId = b2cRt),
-            new Lead(LastName = 'B', Company = 'Co', RecordTypeId = b2cRt)
+            new Lead(
+                LastName='One',
+                Email='one@test.com',
+                Phone='+91 9876543210',
+                RecordTypeId=getB2CRecordTypeId()
+            ),
+            new Lead(
+                LastName='Two',
+                Email='two@test.com',
+                Phone='+91 9876543211',
+                RecordTypeId=getB2CRecordTypeId()
+            )
         };
 
         LeadRoutingService.applyB2cDefaultOwnerIfConfigured(leads);
 
-        System.assertEquals(runAsUserId, leads[0].OwnerId);
-        System.assertEquals(runAsUserId, leads[1].OwnerId);
+        for(Lead l : leads){
+            System.assertEquals(u.Id, l.OwnerId);
+        }
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(null);
+    }
+
+    @IsTest
+    static void testApplyDefaultOwnerNullLead() {
+
+        User u = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(u.Id);
+
+        Test.startTest();
+        LeadRoutingService.applyB2cDefaultOwnerIfConfigured((Lead)null);
+        Test.stopTest();
+
+        System.assert(true);
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(null);
+    }
+
+    @IsTest
+    static void testApplyDefaultOwnerEmptyList() {
+
+        User u = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(u.Id);
+
+        Test.startTest();
+        LeadRoutingService.applyB2cDefaultOwnerIfConfigured(new List<Lead>());
+        Test.stopTest();
+
+        System.assert(true);
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(null);
+    }
+
+    @IsTest
+    static void testResolveDefaultOwnerOverride() {
+
+        User u = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(u.Id);
+
+        Id ownerId = LeadRoutingService.resolveB2cDefaultOwnerUserId();
+
+        System.assertEquals(u.Id, ownerId);
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(null);
+    }
+
+    @IsTest
+    static void testQueueableUpdatesLeadOwner() {
+
+        User u = [SELECT Id FROM User WHERE IsActive = true LIMIT 1];
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(u.Id);
+
+        Lead l = new Lead(
+            LastName='Queue',
+            Email='queue@test.com',
+            Phone='+91 9876543210',
+            RecordTypeId=getB2CRecordTypeId()
+        );
+
+        insert l;
+
+        Test.startTest();
+        System.enqueueJob(new LeadRoutingService(new List<Lead>{l}));
+        Test.stopTest();
+
+        Lead updatedLead = [
+            SELECT OwnerId
+            FROM Lead
+            WHERE Id = :l.Id
+        ];
+
+        System.assertEquals(u.Id, updatedLead.OwnerId);
+
+        LeadRoutingService.setTestB2cDefaultOwnerUserIdOverride(null);
+    }
+
+    @IsTest
+    static void testQueueableWithNoLeadIds() {
+
+        Test.startTest();
+        System.enqueueJob(new LeadRoutingService(new List<Lead>()));
+        Test.stopTest();
+
+        System.assert(true);
     }
 }

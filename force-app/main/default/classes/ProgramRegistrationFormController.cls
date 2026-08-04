@@ -2,7 +2,7 @@ public without sharing class ProgramRegistrationFormController {
     /** Resolve options from Lead describe using Lead_Field_API_Name__c. */
     private static final String PICKLIST_SOURCE_SALESFORCE_FIELD = 'Salesforce_Field';
 
-    /**
+    /** 
      * Program Ids from Allowed_Registration_Program_Ids__c (comma, pipe, semicolon, newline).
      * Order preserved; duplicates removed.
      */
@@ -263,6 +263,7 @@ public without sharing class ProgramRegistrationFormController {
      * @param programId URL or metadata program key (often 15/18 char Program Id).
      * @return Program Id, or null if the value is not a Program Id.
      */
+    @TestVisible
     private static Id tryParseProgramSfdcId(String programId) {
         Id result = null;
         if (String.isBlank(programId)) {
@@ -300,7 +301,7 @@ public without sharing class ProgramRegistrationFormController {
         }
         return out;
     }
-
+	@TestVisible
     private static FieldDTO toFieldDto(Program_Registration_Field__mdt f) {
         FieldDTO dto = new FieldDTO();
         dto.fieldKey = f.Field_Key__c;

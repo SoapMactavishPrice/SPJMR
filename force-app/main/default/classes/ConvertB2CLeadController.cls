@@ -32,6 +32,16 @@ public without sharing class ConvertB2CLeadController {
         return autoApplicationCreationEnabledCache;
     }
     
+    @TestVisible
+private static ConversionResult handleLeadConversionFailure(
+    String errorMessages
+) {
+    ConversionResult result = new ConversionResult();
+    result.isSuccess = false;
+    result.message = 'Lead conversion failed: ' + errorMessages;
+    return result;
+}
+    
     public static List<String> generateApplicationNumbersInBulk(List<String> programCodesList) {
         List<String> applicationNumbers = new List<String>();
         String intakeYear = String.valueOf(Date.today().year());
@@ -113,6 +123,7 @@ public without sharing class ConvertB2CLeadController {
         return numStr;
     }
     
+    @TestVisible
     private static void insertApplicationRelatedRecords(List<Application__c> applications, Lead leadRecord, String email, String userId) {
         List<Personal_Detail__c> personalDetails = new List<Personal_Detail__c>();
         
@@ -226,9 +237,7 @@ public without sharing class ConvertB2CLeadController {
                 for (Database.Error err : lcr.getErrors()) {
                     errorMessages += err.getMessage() + ' ';
                 }
-                result.isSuccess = false;
-                result.message = 'Lead conversion failed: ' + errorMessages;
-                return result;
+                return handleLeadConversionFailure(errorMessages);
             }
             
             result.accountId = lcr.getAccountId();
@@ -390,18 +399,18 @@ String formattedProgrammeNames =
             }
 
             insert opportunitiesToInsert;
-             EmailTemplate et = [
-    SELECT Id
-    FROM EmailTemplate
-    WHERE DeveloperName = 'SPJIMR_New_User_VF'
-    LIMIT 1
-];
+//              EmailTemplate et = [
+//     SELECT Id
+//     FROM EmailTemplate
+//     WHERE DeveloperName = 'SPJIMR_New_User_VF'
+//     LIMIT 1
+// ];
 //             System.enqueueJob(
 //     new ApplicantWelcomeEmailQueue(
 //         (Id)userResult.get('USERID')
 //     )
 // );
-    System.resetPasswordWithEmailTemplate((Id)userResult.get('USERID'), true, 'SPJIMR_New_User_VF');
+    //System.resetPasswordWithEmailTemplate((Id)userResult.get('USERID'), true, 'SPJIMR_New_User_VF');
             for (Opportunity opp : opportunitiesToInsert) {
                 result.opportunityIds.add(opp.Id);
             }
@@ -572,13 +581,20 @@ String formattedProgrammeNames =
             response.put('applicationId', app.Id);
             return response;
         } catch (Exception e) {
-            Database.rollback(sp);
-            response.put('isSuccess', false);
-            response.put('message', 'Error creating application: ' + e.getMessage());
-            return response;
-        }
+    Database.rollback(sp);
+    return handleCreateApplicationException(e.getMessage());
+}
     }
     
+    @TestVisible
+private static Map<String, Object> handleCreateApplicationException(
+    String errorMessage
+) {
+    Map<String, Object> response = new Map<String, Object>();
+    response.put('isSuccess', false);
+    response.put('message', 'Error creating application: ' + errorMessage);
+    return response;
+}
     @AuraEnabled(cacheable=true)
     public static Map<String, Object> getLeadDetails(Id leadId) {
         Map<String, Object> details = new Map<String, Object>();
@@ -719,10 +735,16 @@ String formattedProgrammeNames =
             return resultMap;
         } catch (Exception e) {
             System.debug('Error creating user: ' + e.getMessage());
-            resultMap.put('ERROR', 'Error creating user: ' + e.getMessage());
-            return resultMap;
+           return handleCreateCommunityUserException(e.getMessage());
         }
     }
+    
+    @TestVisible
+private static Map<String, String> handleCreateCommunityUserException(String message) {
+    Map<String, String> result = new Map<String, String>();
+    result.put('ERROR', 'Error creating user: ' + message);
+    return result;
+}
 
     private static void assignPermissionSet(String assigneeId) {
         List<PermissionSet> permissionSets = [

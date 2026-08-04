@@ -1,11 +1,11 @@
-public class TaskTriggerHandler {
+public class TaskTriggerHandler { 
 	 public void beforeInsert(List<Task> newList) {
          TaskTriggerHelper.validateFields(newList);
        TaskTriggerHelper.updateCompanyOnTaskB2B(newList);
     }
 
     public void beforeUpdate(List<Task> newList, Map<Id,Task> newMap, List<Task> oldList, Map<Id,Task> oldMap) {
-        TaskTriggerHelper.updateCompanyOnTaskB2B(newList);
+      //  TaskTriggerHelper.updateCompanyOnTaskB2B(newList);
     }
 
     public void afterInsert(List<Task> newList, Map<Id,Task> newMap) {
@@ -15,7 +15,7 @@ public class TaskTriggerHandler {
 
     public void afterUpdate(List<Task> newList, Map<Id,Task> newMap, List<Task> oldList, Map<Id,Task> oldMap) {
         
-        TaskTriggerHelper.updateCompanyOnTaskB2B(newList);
+      //  TaskTriggerHelper.updateCompanyOnTaskB2B(newList);
     }
 
     public void beforeDelete(List<Task> oldList, Map<Id,Task> oldMap) {

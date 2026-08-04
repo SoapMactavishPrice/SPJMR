@@ -1,36 +1,48 @@
 /**
  * @class   BiometricAttendanceBatch
- * @purpose Fetches raw biometric punch-in logs from the device API for a
- *          fixed 2-hour window and stores them as Attendance_Log__c records
- *          with Status__c = 'Pending'.
+ * @purpose Fetches raw biometric punch logs from the eSSL device API for an
+ *          anchored time window and stores them as Attendance_Log__c records with
+ *          Status__c = 'Pending'.
  *
- * @schedule Every 2 hours (8AM → 8PM) + 23:39 final sweep, all 7 days (Mon–Sun).
- *           Window is ANCHORED by the scheduler — immune to early/late execution.
+ * @design  Callouts run once in start() (one per active device) and the parsed
+ *          records are RETURNED from start(), so the batch framework chunks the
+ *          inserts across execute() calls. That keeps each insert inside DML row
+ *          limits and keeps heap low.
  *
- * @design  Callouts run once in start() (one per active device); the parsed
- *          records are RETURNED from start() so the batch framework chunks the
- *          inserts in execute() (scope set by the scheduler). This keeps each
- *          insert within DML row limits and keeps heap low.
+ * @dedup   Punches are deduplicated on ROLL_NUMBER + LOG_DATE_TIME before insert,
+ *          at two levels:
+ *            1. within this fetch — the same punch reported twice in one response,
+ *               or by two devices, is collapsed to one row;
+ *            2. against what is already stored — every existing log in the span
+ *               being inserted is loaded and matching keys are skipped.
+ *          This matters because the windows deliberately OVERLAP: each daytime run
+ *          covers 2 hours and the 23:39 final sweep re-pulls from the PREVIOUS
+ *          day 06:00 IST, so without this guard every punch would be stored
+ *          several times over.
+ *          NOTE the key ignores Device_ID__c — two different devices reporting the
+ *          same roll number at the same second are treated as ONE punch.
  *
  * @creds   API username/password come from the protected Custom Metadata record
  *          Biometric_API_Config__mdt 'Default' — never hard-coded here.
  *
- * @note    Deduplication is intentionally NOT done here.
- *          Batch 2 (AttendanceMarkingBatch) handles it at the session level.
+ * @suppress ApexCRUDViolation — a scheduled integration job running in system
+ *           context; the Attendance_Log__c read below exists only to avoid
+ *           inserting duplicates of rows this same job created.
  */
-public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
-                                                  Database.AllowsCallouts,
-                                                  Database.Stateful {
+@SuppressWarnings('PMD.ApexCRUDViolation')
+public without sharing class BiometricAttendanceBatch implements Database.Batchable<SObject>,
+                                                                Database.AllowsCallouts,
+                                                                Database.Stateful {
 
-    // ── Credentials (from protected CMDT, never hard-coded) ───────────────────
-    // Device serial numbers live in Biometric_Device__mdt (one record per device).
-    // The API user/password live in Biometric_API_Config__mdt 'Default'.
     private static final String CONFIG_NAME = 'Default';
 
-    /** Test-only override so tests can supply credentials without an org record. */
     @TestVisible
     private static Biometric_API_Config__mdt configOverride;
 
+    /**
+     * Credentials for the device API.
+     * @return the 'Default' config record, or the test override when set
+     */
     @TestVisible
     private static Biometric_API_Config__mdt apiConfig() {
         if (configOverride != null) {
@@ -39,9 +51,7 @@ public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
         return Biometric_API_Config__mdt.getInstance(CONFIG_NAME);
     }
 
-    // Raised around the batch's DML so AttendanceLogTrigger can apply its
-    // IST timezone correction only for biometric inserts. UI inserts leave
-    // this false and the trigger skips the time shift.
+    /** Raised around this batch's DML so AttendanceLogTrigger can tell the source. */
     @TestVisible
     public static Boolean isBiometricInsert = false;
 
@@ -49,63 +59,48 @@ public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
     private final Datetime windowStart;
     private final Datetime windowEnd;
 
-    // When true, finish() chains a day-scoped AttendanceBackfillBatch over the
-    // window just fetched, so a manual fetch is immediately followed by
-    // Present/Absent marking. Used ONLY by the "Sync" button. Scheduled runs
-    // leave this false — their marking is handled by AttendanceMarkingBatch.
-    private final Boolean chainMarking;
-
     // ── Stateful Counters (accumulated across execute() chunks) ───────────────
     private Integer totalParsed  = 0;
     private Integer totalSuccess = 0;
     private Integer totalFailed  = 0;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // CONSTRUCTORS
-    //
-    //   BiometricAttendanceBatch(anchorTime)
-    //       Daytime use. Window = [anchorTime - 2h  →  anchorTime].
-    //
-    //   BiometricAttendanceBatch(windowStart, windowEnd)
-    //       Explicit-window use, e.g. the 23:39 IST final sweep that needs to
-    //       cover everything from the last daytime sync (20:00 IST) to now —
-    //       a span wider than 2 hours.
-    // ─────────────────────────────────────────────────────────────────────────
+    /** Punches dropped by the dedup guard. Exposed so tests can assert on it. */
+    @TestVisible
+    private Integer totalSkippedDuplicates = 0;
+
+    /**
+     * Daytime use: a rolling 2-hour window ending at the anchor.
+     * @param anchorTime the scheduled hour this run represents
+     */
     public BiometricAttendanceBatch(Datetime anchorTime) {
-        this.windowEnd    = anchorTime;
-        this.windowStart  = anchorTime.addHours(-2);
-        this.chainMarking = false;
+        this.windowEnd   = anchorTime;
+        this.windowStart = anchorTime.addHours(-2);
     }
 
+    /**
+     * Explicit-window use, e.g. the 23:39 IST final sweep.
+     * @param windowStart inclusive start of the window to request
+     * @param windowEnd   inclusive end of the window to request
+     */
     public BiometricAttendanceBatch(Datetime windowStart, Datetime windowEnd) {
-        this.windowStart  = windowStart;
-        this.windowEnd    = windowEnd;
-        this.chainMarking = false;
+        this.windowStart = windowStart;
+        this.windowEnd   = windowEnd;
     }
 
-    //   BiometricAttendanceBatch(windowStart, windowEnd, chainMarking)
-    //       "Sync" button use. Fetches the window, then (when chainMarking) runs
-    //       a day-scoped AttendanceBackfillBatch over the SAME window to mark
-    //       Present/Absent from the punches just inserted.
-    public BiometricAttendanceBatch(Datetime windowStart, Datetime windowEnd, Boolean chainMarking) {
-        this.windowStart  = windowStart;
-        this.windowEnd    = windowEnd;
-        this.chainMarking = chainMarking == true;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // START — Call API, parse response, RETURN records for chunked insert
-    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Calls the device API once per active device, parses the responses and returns
+     * the NEW punches only — see @dedup on the class.
+     * @param  bc the batch context
+     * @return the deduplicated Attendance_Log__c records to insert
+     */
     public Iterable<SObject> start(Database.BatchableContext bc) {
 
         List<Attendance_Log__c> records = new List<Attendance_Log__c>();
 
         Biometric_API_Config__mdt cfg = apiConfig();
         if (cfg == null || String.isBlank(cfg.Api_User__c) || String.isBlank(cfg.Api_Password__c)) {
-            System.debug(LoggingLevel.ERROR,
-                'Batch1 | Biometric_API_Config__mdt "' + CONFIG_NAME
-                + '" is missing API User/Password — aborting run (no records fetched).');
-            return records; // empty → execute() never runs, finish() logs zeros
+            // Missing credentials: return empty so execute() never runs.
+            return records;
         }
         String apiUser = cfg.Api_User__c;
         String apiPass = cfg.Api_Password__c;
@@ -113,20 +108,14 @@ public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
         String fromStr = windowStart.format('yyyy-MM-dd HH:mm:ss');
         String toStr   = windowEnd.format('yyyy-MM-dd HH:mm:ss');
 
-        System.debug('========================================');
-        System.debug('Batch1 | Window    : ' + fromStr + '  →  ' + toStr);
-        System.debug('Batch1 | Actual Run: ' + Datetime.now());
-        System.debug('========================================');
-
         List<Biometric_Device__mdt> devices = [
             SELECT MasterLabel, Serial_Number__c
             FROM Biometric_Device__mdt
             WHERE Is_Active__c = true
         ];
-        System.debug('Batch1 | Querying ' + devices.size() + ' active device(s).');
 
-        // One callout per device. Per-device try/catch so a single device
-        // outage doesn't abort the whole run — the others still get fetched.
+        // One callout per device. Per-device try/catch so a single device outage
+        // doesn't abort the whole run — the others still get fetched.
         for (Biometric_Device__mdt device : devices) {
             try {
                 tempuriOrgLive.WebAPIServiceSoap svc = new tempuriOrgLive.WebAPIServiceSoap();
@@ -135,32 +124,24 @@ public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
                                            apiUser, apiPass, '1');
 
                 if (String.isNotBlank(res.strDataList)) {
-                    List<Attendance_Log__c> parsed =
-                        parseAndBuild(res.strDataList, device.Serial_Number__c);
-                    records.addAll(parsed);
-                    System.debug('Batch1 | ' + device.MasterLabel
-                        + ' (' + device.Serial_Number__c + ') → ' + parsed.size() + ' records.');
-                } else {
-                    System.debug('Batch1 | ' + device.MasterLabel
-                        + ' (' + device.Serial_Number__c + ') → no data for this window.');
+                    records.addAll(parseAndBuild(res.strDataList, device.Serial_Number__c));
                 }
             } catch (Exception e) {
-                System.debug(LoggingLevel.ERROR,
-                    'Batch1 | ' + device.MasterLabel
-                    + ' (' + device.Serial_Number__c + ') callout failed: ' + e.getMessage());
+                // Swallowed on purpose: one device failing must not stop the rest.
+                this.totalFailed++;
             }
         }
 
         totalParsed = records.size();
-        System.debug('Batch1 | Total parsed across all devices: ' + totalParsed);
-
-        // Returned to the framework, which chunks these into execute() calls.
-        return records;
+        return dropDuplicates(records);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // EXECUTE — Insert one chunk (partial success: failures logged, not thrown)
-    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Inserts one chunk. Partial success is tolerated: failures are counted, not
+     * thrown, so one bad row cannot lose the whole chunk.
+     * @param bc    the batch context
+     * @param scope the chunk of Attendance_Log__c records to insert
+     */
     public void execute(Database.BatchableContext bc, List<SObject> scope) {
         if (scope == null || scope.isEmpty()) {
             return;
@@ -179,59 +160,134 @@ public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
                 totalSuccess++;
             } else {
                 totalFailed++;
-                for (Database.Error err : sr.getErrors()) {
-                    System.debug(LoggingLevel.WARN,
-                        'Batch1 | Insert failed: ' + err.getStatusCode()
-                        + ' — ' + err.getMessage());
-                }
             }
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // FINISH — Log summary
-    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Required by Database.Batchable; this job needs no post-processing.
+     * @param bc the batch context
+     */
+    @SuppressWarnings('PMD.EmptyStatementBlock')
     public void finish(Database.BatchableContext bc) {
-        System.debug('========================================');
-        System.debug('Batch1 | COMPLETE');
-        System.debug('Window   : ' + windowStart + '  →  ' + windowEnd);
-        System.debug('Parsed   : ' + totalParsed);
-        System.debug('Inserted : ' + totalSuccess);
-        System.debug('Failed   : ' + totalFailed);
-        System.debug('========================================');
-
-        // "Sync" button: mark Present/Absent for the day just fetched. Chained
-        // here (not in the scheduler) so marking only runs after the punches are
-        // committed. Guarded by !Test.isRunningTest() ONLY to avoid the platform
-        // limit on chaining a second batch from a test context; the marking path
-        // itself is covered directly by AttendanceBackfillBatchTest.
-        if (chainMarking && !Test.isRunningTest()) {
-            Database.executeBatch(
-                new AttendanceBackfillBatch(windowStart, windowEnd), 200);
-        }
+        // Intentionally empty — marking is handled by AttendanceMarkingBatch on a
+        // schedule, and by DaySyncController's polling loop for the Sync button.
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // PARSE — Tab-delimited API response  →  Attendance_Log__c records
-    // Expected format: Col[0] = Roll Number  |  Col[1] = Log DateTime
-    // deviceSerial is stamped on each resulting record so multi-device runs
-    // retain provenance (which physical machine recorded each punch).
+    // DEDUP
     // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Removes punches already stored, and collapses repeats inside this fetch.
+     * @param  parsed every punch parsed from every device this run
+     * @return only the punches not already present, each key appearing once
+     */
+    private List<Attendance_Log__c> dropDuplicates(List<Attendance_Log__c> parsed) {
+        if (parsed.isEmpty()) {
+            return parsed;
+        }
+
+        List<Datetime> span = spanOf(parsed);
+        Set<String>    seen = existingKeys(span[0], span[1]);
+
+        List<Attendance_Log__c> fresh = new List<Attendance_Log__c>();
+        for (Attendance_Log__c log : parsed) {
+            String key = dedupKey(log.Roll_Number__c, log.Log_Date_Time__c);
+            if (seen.contains(key)) {
+                this.totalSkippedDuplicates++;
+                continue;
+            }
+            seen.add(key);   // also blocks repeats within this same fetch
+            fresh.add(log);
+        }
+        return fresh;
+    }
+
+    /**
+     * The earliest and latest punch instant in a parsed batch.
+     * @param  parsed the punches to measure
+     * @return a two-element list: [min, max]
+     */
+    private static List<Datetime> spanOf(List<Attendance_Log__c> parsed) {
+        Datetime minLog = null;
+        Datetime maxLog = null;
+        for (Attendance_Log__c log : parsed) {
+            if (minLog == null || log.Log_Date_Time__c < minLog) {
+                minLog = log.Log_Date_Time__c;
+            }
+            if (maxLog == null || log.Log_Date_Time__c > maxLog) {
+                maxLog = log.Log_Date_Time__c;
+            }
+        }
+        return new List<Datetime>{ minLog, maxLog };
+    }
+
+    /**
+     * Loads the dedup keys already stored across a span. Scoped to the exact span
+     * being inserted rather than the requested window, so the read stays as small
+     * as possible on an object that holds hundreds of thousands of rows.
+     * @param  minLog earliest punch instant being inserted
+     * @param  maxLog latest punch instant being inserted
+     * @return the keys already present in that span
+     */
+    private static Set<String> existingKeys(Datetime minLog, Datetime maxLog) {
+        Set<String> seen = new Set<String>();
+        for (Attendance_Log__c existing : [
+            SELECT Roll_Number__c, Log_Date_Time__c
+            FROM   Attendance_Log__c
+            WHERE  Log_Date_Time__c >= :minLog
+              AND  Log_Date_Time__c <= :maxLog
+              AND  Roll_Number__c   != NULL
+        ]) {
+            seen.add(dedupKey(existing.Roll_Number__c, existing.Log_Date_Time__c));
+        }
+        return seen;
+    }
+
+    /**
+     * The uniqueness key for a punch: roll number + punch instant.
+     * @param  rollNumber the identifier the device reported
+     * @param  logDt      the punch instant
+     * @return a stable key, GMT-formatted so it never shifts with timezone
+     */
+    @TestVisible
+    private static String dedupKey(String rollNumber, Datetime logDt) {
+        return rollNumber + '|'
+            + (logDt == null ? '' : logDt.formatGmt('yyyy-MM-dd HH:mm:ss'));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PARSE — tab-delimited API response → Attendance_Log__c
+    // Col[0] = Roll Number | Col[1] = Log DateTime
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Parses one device's tab-delimited response.
+     * @param  raw          the raw strDataList payload
+     * @param  deviceSerial the device that produced it, stamped for provenance
+     * @return unsaved Attendance_Log__c records, not yet deduplicated
+     */
     private List<Attendance_Log__c> parseAndBuild(String raw, String deviceSerial) {
         List<Attendance_Log__c> records = new List<Attendance_Log__c>();
 
         for (String line : raw.split('\n')) {
-            line = line.trim();
-            if (String.isBlank(line)) continue;
+            String trimmed = line.trim();
+            if (String.isBlank(trimmed)) {
+                continue;
+            }
 
-            String[] cols = line.split('\t');
-            if (cols.size() < 2) continue;
+            String[] cols = trimmed.split('\t');
+            if (cols.size() < 2) {
+                continue;
+            }
 
             String   rollNumber = cols[0].trim();
-            String   logDtStr   = cols[1].trim();
-            Datetime logDt      = safeParseDateTime(logDtStr);
+            Datetime logDt      = safeParseDateTime(cols[1].trim());
 
-            if (String.isBlank(rollNumber) || logDt == null) continue;
+            if (String.isBlank(rollNumber) || logDt == null) {
+                continue;
+            }
 
             records.add(new Attendance_Log__c(
                 Roll_Number__c   = rollNumber,
@@ -244,12 +300,16 @@ public class BiometricAttendanceBatch implements Database.Batchable<SObject>,
         return records;
     }
 
+    /**
+     * Parses a device datetime string, skipping unparseable values.
+     * @param  s the raw datetime text
+     * @return the parsed Datetime, or null if it could not be read
+     */
     private Datetime safeParseDateTime(String s) {
         try {
             return Datetime.valueOf(s);
         } catch (Exception e) {
-            System.debug(LoggingLevel.WARN, 'Batch1 | Skipping bad datetime: ' + s);
-            return null;
+            return null;   // bad row: skipped rather than failing the whole fetch
         }
     }
 }

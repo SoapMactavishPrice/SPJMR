@@ -9,7 +9,7 @@ public static List<SessionWrapper> getSessions(String startDate, String endDate)
     if(startDate == null || endDate == null){
         return new List<SessionWrapper>();
     }
-
+//test
     List<Id> ateIds = getStudentATEIds();
 
     if(ateIds.isEmpty()){
@@ -150,8 +150,6 @@ public static List<SessionWrapper> getSessions(String startDate, String endDate)
             throw new AuraHandledException('No Program Enrollment found.');
         }
 
-        Id programEnrollmentId = peList[0].Id;
-
         // -------------------------------------------------
         // GET PROGRAM COHORT MEMBER
         // -------------------------------------------------
@@ -207,22 +205,8 @@ public static List<SessionWrapper> getSessions(String startDate, String endDate)
         if(batchEnrollmentId != null){
             leaveRec.Batch_Enrollment__c = batchEnrollmentId;
         }
-     system.debug(leaveRec);
         insert leaveRec;
-        Leave_Application__c chk = [
-            SELECT Start_Date__c,
-                   End_Date__c
-            FROM Leave_Application__c
-            WHERE Id = :leaveRec.Id
-        ];
-        
-        System.debug('==========================');
-        System.debug('startDT = ' + startDT);
-        System.debug('leaveRec.Start_Date__c = ' + leaveRec.Start_Date__c);
-        System.debug('AFTER INSERT Start = ' + chk.Start_Date__c);
-        System.debug('AFTER INSERT End = ' + chk.End_Date__c);
-        System.debug('==========================');
-        // Submit Leave for Approval via Queueable
+
         System.enqueueJob(new LeaveSubmissionController.SubmitLeaveJob(leaveRec.Id));
 
         // -------------------------------------------------
@@ -232,7 +216,9 @@ public static List<SessionWrapper> getSessions(String startDate, String endDate)
         if(sessionEnrollmentIds != null && !sessionEnrollmentIds.isEmpty()){
 
             List<Session_Enrollment__c> enrollments = [
-                SELECT Id, Session__c
+                SELECT Id, Session__c,
+                       Session__r.Start_Time__c,
+                       Session__r.End_Time__c
                 FROM Session_Enrollment__c
                 WHERE Id IN :sessionEnrollmentIds
             ];
@@ -240,7 +226,13 @@ public static List<SessionWrapper> getSessions(String startDate, String endDate)
             List<Missed_Sessions__c> missedList = new List<Missed_Sessions__c>();
 
             for(Session_Enrollment__c se : enrollments){
-                if(se.Session__c != null){
+                Boolean covered = se.Session__c != null && MissedSessionSyncService.isCovered(
+                    startDT,
+                    endDT,
+                    se.Session__r.Start_Time__c,
+                    se.Session__r.End_Time__c
+                );
+                if(covered){
                     Missed_Sessions__c ms         = new Missed_Sessions__c();
                     ms.Leave_Application__c        = leaveRec.Id;
                     ms.Session_Enrollment__c       = se.Id;
@@ -251,8 +243,6 @@ public static List<SessionWrapper> getSessions(String startDate, String endDate)
             if(!missedList.isEmpty()){
                 insert missedList;
             }
-
-            System.debug('Missed Sessions Created: ' + missedList.size());
         }
 
         return leaveRec.Id;

@@ -1,4 +1,26 @@
-public class BiometricAttendanceScheduler implements Schedulable {
+/**
+ * @class   BiometricAttendanceScheduler
+ * @purpose Anchors and launches BiometricAttendanceBatch, which pulls raw punches
+ *          from the eSSL device API into Attendance_Log__c.
+ *
+ *          Eight jobs per day, all 7 days of the week (cron is evaluated in the
+ *          scheduling user's timezone, IST for this org):
+ *            Biometric_Sync_08H .. _20H   '0 0 <h> ? * *'   every 2h, 08:00-20:00
+ *            Biometric_Sync_23H39M_Final  '0 39 23 ? * *'   the final sweep
+ *
+ *          DAYTIME runs pass an ANCHOR time, giving a rolling 2-hour window
+ *          [anchor - 2h, anchor]. The anchor is snapped to the nearest SCHEDULED
+ *          hour rather than Datetime.now(), so a job that fires late still asks
+ *          the device for the same window — execution drift cannot open a gap.
+ *
+ *          The FINAL SWEEP passes an explicit, much wider window so any punch the
+ *          device reported late still lands. See FINAL_WINDOW_DAYS_BACK.
+ *
+ * @suppress ApexCRUDViolation — the CronTrigger reads below are platform job
+ *           metadata used purely to schedule and inspect this job, not user data.
+ */
+@SuppressWarnings('PMD.ApexCRUDViolation')
+public without sharing class BiometricAttendanceScheduler implements Schedulable {
 
     private static final String  IST_TZ          = 'Asia/Kolkata';
     private static final Integer IST_OFFSET_MIN  = 330; // IST = UTC + 5:30, no DST
@@ -10,56 +32,66 @@ public class BiometricAttendanceScheduler implements Schedulable {
     private static final Integer FINAL_HOUR        = 23;
     private static final Integer FINAL_MINUTE      = 39;
 
-    // IST clock hour at which the FINAL sweep's dynamic window begins.
-    // Changed from 20:00 (LAST_DAYTIME_HOUR) to 06:00 so the final run
-    // re-pulls the entire day's punches, not just those after 20:00.
     private static final Integer FINAL_WINDOW_START_HOUR = 6;
 
-    // Records are returned from BiometricAttendanceBatch.start() and inserted in
-    // chunks of this size, keeping each insert within DML row limits.
+    // How many days back the 23:39 final sweep starts from.
+    // 0 = today 06:00 IST (old behaviour)
+    // 1 = PREVIOUS day 06:00 IST, so the sweep re-pulls ~42 hours and picks up
+    //     any punch the device reported late, after the previous day's sweep ran.
+    // private static final Integer FINAL_WINDOW_DAYS_BACK = 0; // old: same-day 06:00
+    private static final Integer FINAL_WINDOW_DAYS_BACK = 1;
+
     private static final Integer BATCH_SCOPE       = 200;
 
-    // Serialised with the scheduled instance so daytime and final jobs behave differently.
+    private static final String JOB_PREFIX = 'Biometric_Sync_';
+
+    /** True on the 23:39 job, which uses the wide explicit window. */
     public Boolean isFinalSweep = false;
 
+    /** Default constructor — a daytime (anchored 2-hour window) run. */
+    @SuppressWarnings('PMD.EmptyStatementBlock')
     public BiometricAttendanceScheduler() {}
+
+    /**
+     * Builds a scheduler instance for a specific job type.
+     * @param isFinalSweep true for the 23:39 job, false for a daytime run
+     */
     public BiometricAttendanceScheduler(Boolean isFinalSweep) {
         this.isFinalSweep = isFinalSweep;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // EXECUTE
-    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Scheduler entry point. Launches the fetch batch over the window this job
+     * is responsible for.
+     * @param ctx the schedulable context (unused)
+     */
     public void execute(SchedulableContext ctx) {
         if (isFinalSweep) {
             Datetime windowEnd   = Datetime.now();
             // Datetime windowStart = istHourAsUtc(todayIst(), LAST_DAYTIME_HOUR); // old: 20:00 IST
-            Datetime windowStart = istHourAsUtc(todayIst(), FINAL_WINDOW_START_HOUR); // 06:00 IST
+            // Datetime windowStart = istHourAsUtc(todayIst(), FINAL_WINDOW_START_HOUR); // old: today 06:00 IST
+            Datetime windowStart = istHourAsUtc(
+                todayIst().addDays(-FINAL_WINDOW_DAYS_BACK), FINAL_WINDOW_START_HOUR); // previous day 06:00 IST
             // Safety net: if the cron somehow fires before the window start IST, or
             // drifts across midnight, fall back to a 2-hour window so we never request
             // a non-positive or future-spanning range.
             if (windowEnd <= windowStart) {
                 windowStart = windowEnd.addHours(-2);
             }
-            System.debug('BiometricAttendanceScheduler | FINAL | Window: '
-                + windowStart + '  →  ' + windowEnd);
             Database.executeBatch(
                 new BiometricAttendanceBatch(windowStart, windowEnd), BATCH_SCOPE);
             return;
         }
 
-        Datetime anchor = resolveAnchorTime();
-        System.debug('BiometricAttendanceScheduler | DAYTIME | Anchor: '
-            + anchor + '  Actual: ' + Datetime.now());
-        Database.executeBatch(new BiometricAttendanceBatch(anchor), BATCH_SCOPE);
+        Database.executeBatch(
+            new BiometricAttendanceBatch(resolveAnchorTime()), BATCH_SCOPE);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Resolves the intended anchor regardless of execution drift.
-    //   Fires at 8:07 AM  → anchor = 8:00 AM  ✅
-    //   Fires at 7:59 AM  → anchor = 8:00 AM  ✅
-    //   Fires at 9:55 AM  → anchor = 10:00 AM ✅
-    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Snaps "now" to the nearest SCHEDULED_HOURS entry so the requested window is
+     * identical whether the job fires on time, early or late.
+     * @return the anchor instant, always on the hour
+     */
     @TestVisible
     private static Datetime resolveAnchorTime() {
         Datetime now         = Datetime.now();
@@ -81,65 +113,85 @@ public class BiometricAttendanceScheduler implements Schedulable {
         );
     }
 
-    // ── IST helpers ──────────────────────────────────────────────────────────
+    /**
+     * Today's calendar date in IST.
+     * @return the IST calendar date
+     */
     private static Date todayIst() {
         return Date.valueOf(Datetime.now().format('yyyy-MM-dd', IST_TZ));
     }
 
-    // UTC instant corresponding to the given IST clock hour on the given IST date.
+    /**
+     * The UTC instant of a given IST wall-clock hour on a given date.
+     * @param  d    the IST calendar date
+     * @param  hour the IST hour
+     * @return the equivalent UTC Datetime
+     */
     private static Datetime istHourAsUtc(Date d, Integer hour) {
         return Datetime.newInstanceGmt(d.year(), d.month(), d.day(), hour, 0, 0)
                        .addMinutes(-IST_OFFSET_MIN);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // SCHEDULE MANAGEMENT
-    // ─────────────────────────────────────────────────────────────────────────
-
-    public static void scheduleAll() {
+    /**
+     * Registers all 8 jobs, replacing any that already exist.
+     * @return the job names that were scheduled
+     */
+    public static List<String> scheduleAll() {
         abortAll();
+        List<String> scheduled = new List<String>();
 
         for (Integer hour : SCHEDULED_HOURS) {
             String hh      = String.valueOf(hour).leftPad(2, '0');
-            String jobName = 'Biometric_Sync_' + hh + 'H';
-            String cron    = '0 0 ' + hour + ' ? * *';
-            System.schedule(jobName, cron, new BiometricAttendanceScheduler(false));
-            System.debug('Scheduled → ' + jobName + '  Cron: ' + cron);
+            String jobName = JOB_PREFIX + hh + 'H';
+            System.schedule(jobName, '0 0 ' + hour + ' ? * *',
+                            new BiometricAttendanceScheduler(false));
+            scheduled.add(jobName);
         }
 
-        String finalJob  = 'Biometric_Sync_'
-                           + String.valueOf(FINAL_HOUR).leftPad(2, '0')
-                           + 'H' + FINAL_MINUTE + 'M_Final';
-        String finalCron = '0 ' + FINAL_MINUTE + ' ' + FINAL_HOUR + ' ? * *';
-        System.schedule(finalJob, finalCron, new BiometricAttendanceScheduler(true));
-        System.debug('Scheduled → ' + finalJob + '  Cron: ' + finalCron);
+        String finalJob = JOB_PREFIX + String.valueOf(FINAL_HOUR).leftPad(2, '0')
+                          + 'H' + FINAL_MINUTE + 'M_Final';
+        System.schedule(finalJob, '0 ' + FINAL_MINUTE + ' ' + FINAL_HOUR + ' ? * *',
+                        new BiometricAttendanceScheduler(true));
+        scheduled.add(finalJob);
 
-        System.debug('BiometricAttendanceScheduler: '
-            + (SCHEDULED_HOURS.size() + 1)
-            + ' jobs scheduled (all 7 days, incl. Sunday).');
+        return scheduled;
     }
 
-    public static void abortAll() {
+    /**
+     * Aborts every scheduled job belonging to this scheduler. Required before the
+     * class can be modified — Salesforce blocks edits while jobs are pending.
+     * @return the job names that were aborted
+     */
+    public static List<String> abortAll() {
+        List<String> aborted = new List<String>();
         for (CronTrigger ct : [
             SELECT Id, CronJobDetail.Name FROM CronTrigger
-            WHERE CronJobDetail.Name LIKE 'Biometric_Sync_%'
+            WHERE CronJobDetail.Name LIKE :(JOB_PREFIX + '%')
         ]) {
             System.abortJob(ct.Id);
-            System.debug('Aborted: ' + ct.CronJobDetail.Name);
+            aborted.add(ct.CronJobDetail.Name);
         }
+        return aborted;
     }
 
-    public static void checkSchedule() {
+    /**
+     * Reports the current schedule. Returns the rows rather than logging them so
+     * the caller (anonymous Apex, a test) can inspect them.
+     * @return one "name | State | Next | Last" line per scheduled job
+     */
+    public static List<String> checkSchedule() {
+        List<String> lines = new List<String>();
         for (CronTrigger ct : [
             SELECT CronJobDetail.Name, State, NextFireTime, PreviousFireTime
             FROM   CronTrigger
-            WHERE  CronJobDetail.Name LIKE 'Biometric_Sync_%'
+            WHERE  CronJobDetail.Name LIKE :(JOB_PREFIX + '%')
             ORDER BY NextFireTime ASC
         ]) {
-            System.debug(ct.CronJobDetail.Name
+            lines.add(ct.CronJobDetail.Name
                 + ' | State: ' + ct.State
                 + ' | Next: '  + ct.NextFireTime
                 + ' | Last: '  + ct.PreviousFireTime);
         }
+        return lines;
     }
 }

@@ -1,1 +1,45 @@
-.slds-box{border-left:4px solid #0176d3;}
+.updates-container {
+    margin-top: 2rem;
+    margin-bottom: 1.5rem
+}
+
+.updates-card {
+    background: #fff;
+    border: 1px solid #d8dde6;
+    border-left: 4px solid #f28c00;
+    border-radius: 4px
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #eef1f6
+}
+
+.title {
+    font-size: 1.6rem;
+    font-weight: 500;
+    margin: 0
+}
+
+.badge {
+    background: #f3eefb;
+    color: #5b2a86;
+    padding: .2rem .6rem;
+    border-radius: 999px;
+    font-size: .8rem
+}
+
+.announcement {
+    padding: 1.25rem
+}
+
+.announcement+.announcement {
+    border-top: 1px solid #eef1f6
+}
+
+.announcement-body p:first-child {
+    margin-top: 0
+}

@@ -14,35 +14,10 @@
  * ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――
  */
 
-public without sharing class ApplicantWelcomeEmailQueue implements Queueable {
-	  private Id userId;
+public without sharing class ApplicantWelcomeEmailQueue{
+	
 
-public ApplicantWelcomeEmailQueue(Id userId) {
-    this.userId = userId;
-}
-
-    public void execute(QueueableContext context) {
-
-        User applicantUser = [
-            SELECT Id, FirstName, Username, Email,ContactId
-            FROM User
-            WHERE Id = :userId
-            LIMIT 1
-        ];
-
-
-		try{
-			
-			 System.resetPasswordWithEmailTemplate(applicantUser.Id, true, 'SPJIMR_New_User_VF');
-			
-		}
-		catch(DMLException e){
-			system.debug('Could not update User with Programme Names '+e.getMessage());
-		}
-
-		
-
-    }
+    
 
     public static String formatProgrammeList(List<String> programmes) {
 

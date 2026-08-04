@@ -68,7 +68,29 @@ static void testApplicantPath() {
         PersonMobilePhone = '9999999999'
     );
     insert applicant;
-
+    
+    Profile portalProfile = [
+    SELECT Id
+    FROM Profile
+    WHERE Name = 'SPJIMR Applicant'
+    LIMIT 1
+];
+Account acc = [SELECT PersonContactId FROM Account WHERE Id=:applicant.Id LIMIT 1];
+User applicantUser = new User(
+    Username = 'john@test.com',
+    Alias = 'jdoe',
+    Email = 'john@test.com',
+    LastName = 'Doe',
+    FirstName = 'John',
+    CommunityNickname = 'john' + DateTime.now().getTime(),
+    TimeZoneSidKey = 'America/Los_Angeles',
+    LocaleSidKey = 'en_US',
+    EmailEncodingKey = 'UTF-8',
+    LanguageLocaleKey = 'en_US',
+    ProfileId = portalProfile.Id,
+    ContactId = acc.PersonContactId
+);
+insert applicantUser;
     String body =
     '[' +
         '{' +

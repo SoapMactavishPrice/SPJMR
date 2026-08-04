@@ -76,12 +76,12 @@ private class LeaveRequestControllerTest {
         System.runAs(portal) {
             try {
                 System.assertNotEquals(null,
-                    LeaveRequestController.getSessions(Date.today().addDays(-5), Date.today().addDays(5)));
+                    LeaveRequestController.getSessions(dtStr(Date.today().addDays(-5), 0), dtStr(Date.today().addDays(5), 23)));
             } catch (Exception e) { System.debug('getSessions: ' + e.getMessage()); }
 
             try {
                 LeaveRequestController.saveLeaveRequest(
-                    Date.today(), Date.today().addDays(2),
+                    dtStr(Date.today(), 9), dtStr(Date.today().addDays(2), 17),
                     'Medical Leave', 'Not well', seIds, new List<Id>());
             } catch (Exception e) {
                 System.debug('saveLeaveRequest (expected to throw at insert): ' + e.getMessage());
@@ -89,6 +89,18 @@ private class LeaveRequestControllerTest {
         }
         Test.stopTest();
         System.assert(true);
+    }
+
+    /**
+     * Builds the 'yyyy-MM-dd HH:mm:ss' string LeaveRequestController expects.
+     * The controller parses its date arguments with Datetime.valueOf() after
+     * stripping the 'T', so a Date cannot be passed directly.
+     * @param d the calendar day
+     * @param hour hour of day, 0-23
+     * @return the formatted local-time datetime string
+     */
+    private static String dtStr(Date d, Integer hour) {
+        return Datetime.newInstance(d, Time.newInstance(hour, 0, 0, 0)).format('yyyy-MM-dd HH:mm:ss');
     }
 
     private static void createTeamMember(String role, Id userId) {
