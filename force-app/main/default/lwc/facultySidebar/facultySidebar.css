@@ -1,15 +1,11 @@
 /* Sidebar */
 .sidebar {
-    position: fixed;
-    top: 60px;   /* ✅ move sidebar just below the header */
-    left: 0;
-    width: 251px;
-    height: calc(100vh - 60px); /* ✅ adjust height to fill remaining space */
+    width: 100%;
+    height: 100%;
     background-color: #4b2e83;
     overflow-x: hidden;
     transition: 0.3s;
     padding-top: 0;
-    z-index: 5;
 }
 
 

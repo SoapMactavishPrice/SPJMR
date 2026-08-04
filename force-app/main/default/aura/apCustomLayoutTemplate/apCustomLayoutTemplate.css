@@ -2,6 +2,11 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    width: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;
 }
 
 .THIS .headerContainer {
@@ -55,4 +60,17 @@
     overflow-y: auto;
     background: #fff;
     min-width: 0;
+}
+
+/* Override Salesforce theme layout default max-width/padding constraints */
+.themeLayoutInner,
+.forceCommunityThemeLayout,
+.siteforceThemeLayout,
+.body,
+.themeLayout,
+.siteforcePanelsContainer {
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
