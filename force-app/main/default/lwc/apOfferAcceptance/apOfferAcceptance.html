@@ -28,44 +28,35 @@
                         <template lwc:elseif={offer.isWithdrawDisabled}>
                            Offer Withdrawn
                         </template>
-                       
-                      
-                        
-                        
-                            
-                       
-                  
-                     
-                        <template lwc:if={offer.showButtons}>
+
                         <div class="actions">
-                        
-                        <!-- DOWNLOAD -->
-                        <button class="btn btn-outline"
-                                data-id={offer.offerLetterLink}
-                                onclick={handleDownload}>
-                            Download Offer
-                        </button>
+                            <!-- DOWNLOAD -->
+                            <button class="btn btn-outline"
+                                    data-id={offer.offerLetterLink}
+                                    onclick={handleDownload}>
+                                Download Offer
+                            </button>
 
-                        <!-- ACCEPT -->
-                        <button class="btn btn-accept"
-                                data-id={offer.admissionDecisionId}
-                                data-admid={offer.admissionDecisionId}
-                                onclick={handleAccept}
-                                disabled={isDisabled}>
-                            Accept
-                        </button>
-
-                        <!-- REJECT -->
-                        <button class="btn btn-reject"
-                                data-id={offer.applicationId}
-                                data-admid={offer.admissionDecisionId}
-                                onclick={handleReject}
-                                disabled={isDisabled}>
-                            Reject
-                        </button>
-                        
+                            <template lwc:if={offer.showButtons}>
+                                <!-- ACCEPT -->
+                                <button class="btn btn-accept"
+                                        data-id={offer.admissionDecisionId}
+                                        data-admid={offer.admissionDecisionId}
+                                        onclick={handleAccept}
+                                        disabled={isDisabled}>
+                                    Accept
+                                </button>
+    
+                                <!-- DECLINE -->
+                                <button class="btn btn-reject"
+                                        data-id={offer.applicationId}
+                                        data-admid={offer.admissionDecisionId}
+                                        onclick={handleReject}
+                                        disabled={isDisabled}>
+                                    Decline
+                                </button>
+                            </template>
                         </div>
-                        </template>
                     
                     
                 </div>
