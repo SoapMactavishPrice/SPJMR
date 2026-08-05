@@ -83,7 +83,8 @@
                                                 data-booking={cell.bookingId}
                                                 data-crit={cell.critId}
                                                 onchange={handleScoreChange}
-                                                class="score-input">
+                                                class="score-input"
+                                                step="0.1">
                                             </lightning-input>
                                         </template>
                                         <template if:true={cell.isFinished}>

@@ -76,9 +76,6 @@
                                 <th scope="col"><div class="slds-truncate">ASB Code</div></th>
                                 <th scope="col"><div class="slds-truncate">My Eval Status</div></th>
                                 <th scope="col"><div class="slds-truncate">Application PDF</div></th>
-                                <template if:true={showStaticPdfCol}>
-                                    <th scope="col"><div class="slds-truncate">Meritto Extract</div></th>
-                                </template>
                             </tr>
                         </thead>
                         <tbody>
@@ -94,9 +91,11 @@
                                     <td>
                                         <span class={b.evalBadgeClass}>{b.evalStatus}</span>
                                     </td>
-                                    <td>
-                                        <c-ap-preview-pdf record-id={b.applicationId}></c-ap-preview-pdf>
-                                    </td>
+                                    <template if:false={showStaticPdfCol}>
+                                        <td>
+                                            <c-ap-preview-pdf record-id={b.applicationId}></c-ap-preview-pdf>
+                                        </td>
+                                    </template>
                                     <template if:true={showStaticPdfCol}>
                                         <td>
                                             <lightning-button
