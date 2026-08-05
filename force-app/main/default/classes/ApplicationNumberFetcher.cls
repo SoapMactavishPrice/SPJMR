@@ -1,4 +1,4 @@
-public with sharing class ApplicationNumberFetcher {
+public without sharing class ApplicationNumberFetcher {
 
     public class AppInfoWrapper {
         @AuraEnabled public String appNumber;
