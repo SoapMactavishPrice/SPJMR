@@ -255,25 +255,54 @@ public static String getApplicationStage(Id applicationId) {
             throw new AuraHandledException(e.getMessage());
         }
     }
-    
-    
+
     @AuraEnabled
-    public static List<Program_Document__mdt> getProgramSpecificDocuments(String admissionId){
+    public static ProgramDocumentWrapper getProgramSpecificDocuments(String admissionId) {
         try {
-            List<Admission_Decision__c> admList = [SELECT Id, Application__r.Program__r.Program_Code__c 
-            FROM Admission_Decision__c WHERE Id=:admissionId LIMIT 1];
-            if(!admList.isEmpty()){
-                String pgmCode = admList[0].Application__r.Program__r.Program_Code__c;
-                List<Program_Document__mdt> pgmMetadata = [SELECT Id,Acceptance_Letter__c,Annexure_1__c 
-                FROM Program_Document__mdt WHERE DeveloperName=:pgmCode LIMIT 1];
-                
-                if(!pgmMetadata.isEmpty()){
-                    return pgmMetadata;
-                }
-                
+            List<Admission_Decision__c> admList = [
+                SELECT Id, Application__r.Program__r.Program_Code__c
+                FROM Admission_Decision__c
+                WHERE Id = :admissionId
+                LIMIT 1
+            ];
+
+            if (admList.isEmpty()) {
+                return null;
             }
-            return new List<Program_Document__mdt>();
-            
+
+            String pgmCode = admList[0].Application__r.Program__r.Program_Code__c;
+
+            List<Program_Document__mdt> pgmMetadataList = [
+                SELECT Id, Program_Code__c, Acceptance_Letter__c,
+                       (SELECT Id, Annexure_Name__c, Annexure_URL__c, Display_Order__c
+                        FROM Program_Annexures__r
+                        ORDER BY Display_Order__c ASC)
+                FROM Program_Document__mdt
+                WHERE Program_Code__c = :pgmCode
+                LIMIT 1
+            ];
+
+            if (pgmMetadataList.isEmpty()) {
+                return null;
+            }
+
+            Program_Document__mdt pgmMetadata = pgmMetadataList[0];
+
+            ProgramDocumentWrapper result = new ProgramDocumentWrapper();
+            result.programCode = pgmMetadata.Program_Code__c;
+            result.acceptanceLetterUrl = pgmMetadata.Acceptance_Letter__c;
+            result.annexures = new List<AnnexureWrapper>();
+
+            for (Program_Annexure__mdt ann : pgmMetadata.Program_Annexures__r) {
+                AnnexureWrapper aw = new AnnexureWrapper();
+                aw.annexureName = ann.Annexure_Name__c;
+                aw.annexureUrl = ann.Annexure_URL__c;
+                aw.displayOrder = ann.Display_Order__c;
+                result.annexures.add(aw);
+            }
+
+            return result;
+
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -631,6 +660,18 @@ public static String getApplicationStage(Id applicationId) {
         }
         
         return recordId.getSObjectType().getDescribe().getName();
+    }
+
+    public class AnnexureWrapper {
+        @AuraEnabled public String annexureName;
+        @AuraEnabled public String annexureUrl;
+        @AuraEnabled public Decimal displayOrder;
+    }
+
+    public class ProgramDocumentWrapper {
+        @AuraEnabled public String programCode;
+        @AuraEnabled public String acceptanceLetterUrl;
+        @AuraEnabled public List<AnnexureWrapper> annexures;
     }
     
     

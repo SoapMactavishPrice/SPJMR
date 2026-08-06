@@ -61,6 +61,14 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         return this._admissionId;
     }
 
+    get hasAnnexures() {
+        return this.annexures && this.annexures.length > 0;
+    }
+
+    get noAnnexures() {
+        return !this.hasAnnexures;
+    }
+
     // ---------------- Wire Applicant Info ----------------
     
 
@@ -311,12 +319,18 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                 .then((result) => {
                     this.isLoaded = true;
 
-                    this.annexures = result.map((item, index) => ({
-                        Id: index + 1,
-                        value: item.Annexure_1__c
-                    }));
+                    if (result) {
+                        this.annexures = (result.annexures || []).map((item, index) => ({
+                            Id: index + 1,
+                            name: item.annexureName,
+                            value: item.annexureUrl
+                        }));
 
-                    this.acceptanceLetterUrl = result[0].Acceptance_Letter__c;
+                        this.acceptanceLetterUrl = result.acceptanceLetterUrl;
+                    } else {
+                        this.annexures = [];
+                        this.acceptanceLetterUrl = '';
+                    }
                 })
                 .catch((error) => console.log(JSON.stringify(error)));
 
@@ -336,6 +350,8 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                 });
         }
     }
+
+
 
     renderedCallback() {
         if (!this.isUploaded) {
