@@ -1,41 +1,35 @@
+:host {
+    --spjimr-purple: #3B1863;
+    --spjimr-purple-dark: #2A1149;
+    --spjimr-purple-tint: #F3F0FA;
+    --spjimr-border: #E7E3EF;
+    --spjimr-text-muted: #8B7FA8;
+}
+
 .section {
     padding: 1.5rem;
     font-family: 'Nunito Sans', sans-serif;
+    max-width: 95%;
+    margin: 0 auto;
 }
 
 .card {
     background: #ffffff;
-    border-radius: 8px;
+    border: 1px solid var(--spjimr-border);
+    border-radius: 12px;
     padding: 1.2rem 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.label {
-    font-size: 18px;
-    font-weight: 700;
-    color: #3b1863; /* SPJIMR Purple */
-}
-
-.uploaded-box {
-    display: flex;
-    align-items: center;
-    background: #f0f9f0;
-    padding: 10px 14px;
-    border-radius: 6px;
-    border-left: 4px solid #2e844a; /* Salesforce success-green */
     margin-bottom: 1rem;
 }
 
-.uploaded-text {
-    margin-left: 8px;
-    font-weight: 600;
-    color: #2e844a;
+.stepper {
+    padding: 1.4rem 1.5rem 0.6rem;
 }
 
-.message{
-    color: #3b1863;
-    font-size: 12px;
+.label {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--spjimr-purple-dark);
+    margin: 0 0 0.75rem;
 }
 
 .row {
@@ -50,54 +44,62 @@
     align-items: center;
 }
 
+.row.space-between.center > .label {
+    margin: 0;
+}
+
+.upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 640px) {
+    .upload-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .annexure-row {
     padding: 10px 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #F0EEF6;
+}
+
+.annexure-row:last-of-type {
+    border-bottom: none;
 }
 
 .annexure-title {
-    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #3D3450;
+}
+
+.annexure-icon {
+    --sds-c-icon-color-foreground-default: var(--spjimr-text-muted);
 }
 
 .download-btn {
-    --sds-c-button-text-color: #3b1863;
+    --sds-c-button-text-color: var(--spjimr-purple);
+    --sds-c-button-color-border: var(--spjimr-border);
 }
 
-.fee-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    font-size: 16px;
+.message {
+    color: var(--spjimr-text-muted);
+    font-size: 12.5px;
+    margin: 0 0 0.9rem;
 }
 
-.fee-row.total {
-    font-weight: 700;
-    border-top: 1px solid #ddd;
-    padding-top: 10px;
-}
-
-.empty {
-    font-size: 14px;
-    color: #777;
-    padding: 8px 0;
-}
-
-.compact-field .slds-form-element {
-    width: auto !important;
-    display: inline-block !important;
-}
-
-.compact-field .slds-form-element__control {
-    width: auto !important;
-}
 .uploaded-box {
     display: flex;
-    align-items: flex-start; /* icon aligns to top */
-    background: #f0f9f0;
+    align-items: flex-start;
+    background: #F0F9F0;
     padding: 12px 14px;
-    border-radius: 6px;
-    border-left: 4px solid #2e844a;
-    margin-bottom: 1rem;
+    border-radius: 8px;
+    border-left: 3px solid #2E844A;
+    border-radius: 0 8px 8px 0;
     gap: 10px;
 }
 
@@ -107,14 +109,17 @@
 }
 
 .uploaded-text {
-    font-weight: 600;
-    color: #2e844a;
+    font-weight: 700;
+    font-size: 13px;
+    color: #1E7F43;
     margin-bottom: 8px;
 }
 
 .uploaded-letter {
-    border: 1px solid #d8dde6;
-    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--spjimr-border);
+    border-radius: 8px;
     padding: 8px 12px;
     background-color: #ffffff;
     width: fit-content;
@@ -122,8 +127,9 @@
 
 .uploaded-letter a {
     text-decoration: none;
-    font-weight: 600;
-    color: #3b1863; /* SPJIMR purple */
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--spjimr-purple);
 }
 
 .uploaded-letter a:hover {
@@ -131,16 +137,51 @@
 }
 
 .delete-icon {
-    --sds-c-icon-color-foreground-default: #6b6d70; /* neutral grey */
+    --sds-c-icon-color-foreground-default: #6b6d70;
     cursor: pointer;
     margin-left: 12px;
 }
 
 .delete-icon:hover {
-    --sds-c-icon-color-foreground-default: #ba0517; /* Salesforce error red */
+    --sds-c-icon-color-foreground-default: #ba0517;
 }
 
+.tshirt-size {
+    max-width: 260px;
+}
 
-.tshirt-size{
-    padding-top: 15px;
+.fee-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 7px 0;
+    font-size: 14px;
+    color: #3D3450;
+}
+
+.fee-row.total {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--spjimr-purple-dark);
+    border-top: 1px solid var(--spjimr-border);
+    padding-top: 12px;
+    margin-top: 6px;
+}
+
+.pay-btn {
+    width: 100%;
+    margin-top: 12px;
+    --sds-c-button-color-background: var(--spjimr-purple);
+    --sds-c-button-text-color: #ffffff;
+}
+
+.empty {
+    font-size: 13px;
+    color: var(--spjimr-text-muted);
+    padding: 4px 0;
+}
+
+.loading-state {
+    padding: 3rem;
+    display: flex;
+    justify-content: center;
 }

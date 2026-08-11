@@ -1,77 +1,176 @@
 <template>
     <div class="container">
 
-        <!-- Page Title -->
-        <h1 class="title">Offer and Acceptance</h1>
+        <div class="page-header">
+            <p class="eyebrow">Admissions</p>
+            <h1 class="title">Offer and acceptance</h1>
+        </div>
 
-        <!-- Offer List -->
+        <template lwc:if={isViewingAcceptance}>
+            <div class="offer-card">
+                <div class="back-btn-wrapper slds-p-bottom_small">
+                    <lightning-button label="Back" icon-name="utility:back" variant="neutral"
+                        onclick={handleBackToOffers} class="btn-back">
+                    </lightning-button>
+                </div>
+
+                <div class="offer-header">
+                    <div>
+                        <div class="title-status-row">
+                            <h2 class="offer-name">{activeOffer.ProgramName}</h2>
+                            <div class="status-badge-group">
+                                <span class="status-badge status-accepted">
+                                    <lightning-icon icon-name="utility:check" size="xx-small" variant="success"></lightning-icon>
+                                    Accepted
+                                </span>
+                                <template lwc:if={activeOffer.hasPendingDocuments}>
+                                    <span class="status-badge status-doc-pending">
+                                        <lightning-icon icon-name="utility:warning" size="xx-small" variant="warning"></lightning-icon>
+                                        Pending Documents
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="offer-actions">
+                        <lightning-button label="Download offer" icon-name="utility:download" variant="neutral"
+                            class="btn-download" data-id={activeOffer.offerLetterLink} onclick={handleDownload}>
+                        </lightning-button>
+
+                        <template lwc:if={activeOffer.offerAccepted}>
+                            <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"
+                                data-id={activeOffer.applicationId} data-admid={activeOffer.admissionDecisionId}
+                                onclick={handleWithdraw}>
+                            </lightning-button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="offer-detail detail-page">
+                    <c-ap-offer-acceptance-child admission-id={activeOffer.admissionDecisionId}
+                        application-id={activeOffer.applicationId}
+                        offer-letter-url={activeOffer.offerLetterLink}
+                        onupdateadmissionaccept={handleUpdateAdmissionAccept}
+                        ondocstatuschange={handleDocStatusChange}>
+                    </c-ap-offer-acceptance-child>
+                </div>
+            </div>
+        </template>
+
+        <template lwc:else>
         <template if:true={offers}>
             <template for:each={offers} for:item="offer">
                 <div key={offer.admissionDecisionId} class="offer-card">
 
-                    <!-- Label -->
-                    <div class="label">Offer - {offer.ProgramName}</div>
+                    <div class="offer-header">
+                        <div>
+                            <p class="offer-eyebrow">Offer</p>
+                            <p class="offer-name">{offer.ProgramName}</p>
+                        </div>
 
-                    <!-- Buttons -->
-                     <template lwc:if={offer.offerDeclined}>
-                        Rejected!
-                     </template>
-                     <template lwc:elseif={offer.offerAccepted}>
-                         <button class="btn btn-withdraw"
-                                        data-id={offer.applicationId}
-                                        data-admid={offer.admissionDecisionId}
-                                        onclick={handleWithdraw}
-                                        >
-                                    Withdraw Offer
-                                </button>
-                            </template>
+                        <template lwc:if={offer.offerDeclined}>
+                            <span class="status-badge status-declined">
+                                <lightning-icon icon-name="utility:close" size="xx-small" variant="error"></lightning-icon>
+                                Declined
+                            </span>
+                        </template>
+                        <template lwc:elseif={offer.offerAccepted}>
+                            <div class="status-badge-group">
+                                <span class="status-badge status-accepted">
+                                    <lightning-icon icon-name="utility:check" size="xx-small" variant="success"></lightning-icon>
+                                    Accepted
+                                </span>
+                                <template lwc:if={offer.hasPendingDocuments}>
+                                    <span class="status-badge status-doc-pending">
+                                        <lightning-icon icon-name="utility:warning" size="xx-small" variant="warning"></lightning-icon>
+                                        Pending Documents
+                                    </span>
+                                </template>
+                            </div>
+                        </template>
                         <template lwc:elseif={offer.isWithdrawDisabled}>
-                           Offer Withdrawn
+                            <span class="status-badge status-withdrawn">
+                                Withdrawn
+                            </span>
+                        </template>
+                        <template lwc:else>
+                            <span class="status-badge status-pending">
+                                Awaiting response
+                            </span>
+                        </template>
+                    </div>
+
+                    <div class="offer-actions">
+                        <template lwc:if={offer.offerAccepted}>
+                            <lightning-button label="View" icon-name="utility:preview" variant="brand"
+                                data-admid={offer.admissionDecisionId} onclick={handleViewAcceptance}>
+                            </lightning-button>
                         </template>
 
-                        <div class="actions">
-                            <!-- DOWNLOAD -->
-                            <button class="btn btn-outline"
-                                    data-id={offer.offerLetterLink}
-                                    onclick={handleDownload}>
-                                Download Offer
-                            </button>
+                        <lightning-button label="Download offer" icon-name="utility:download" variant="neutral"
+                            class="btn-download" data-id={offer.offerLetterLink} onclick={handleDownload}>
+                        </lightning-button>
 
-                            <template lwc:if={offer.showButtons}>
-                                <!-- ACCEPT -->
-                                <button class="btn btn-accept"
-                                        data-id={offer.admissionDecisionId}
-                                        data-admid={offer.admissionDecisionId}
-                                        onclick={handleAccept}
-                                        disabled={isDisabled}>
-                                    Accept
-                                </button>
-    
-                                <!-- DECLINE -->
-                                <button class="btn btn-reject"
-                                        data-id={offer.applicationId}
-                                        data-admid={offer.admissionDecisionId}
-                                        onclick={handleReject}
-                                        disabled={isDisabled}>
-                                    Decline
-                                </button>
-                            </template>
-                        </div>
-                    
-                    
+                        <template lwc:if={offer.offerAccepted}>
+                            <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"
+                                data-id={offer.applicationId} data-admid={offer.admissionDecisionId}
+                                onclick={handleWithdraw}>
+                            </lightning-button>
+                        </template>
+
+                        <template lwc:if={offer.showButtons}>
+                            <lightning-button label="Accept" icon-name="utility:check" variant="success"
+                                class="btn-accept" data-id={offer.applicationId} data-admid={offer.admissionDecisionId}
+                                onclick={handleAccept} disabled={isDisabled}>
+                            </lightning-button>
+
+                            <lightning-button label="Decline" icon-name="utility:close" variant="destructive"
+                                data-id={offer.applicationId} data-admid={offer.admissionDecisionId}
+                                onclick={handleReject} disabled={isDisabled}>
+                            </lightning-button>
+                        </template>
+                    </div>
+
                 </div>
-                <template lwc:if={offer.selectedAccepted}>
-                        <c-ap-offer-acceptance-child key={offer.admissionId} admission-id={offer.admissionDecisionId}
-                        application-id={offer.applicationId} onupdateadmissionaccept={handleUpdateAdmissionAccept}></c-ap-offer-acceptance-child>
-                </template>
-                
             </template>
         </template>
 
-        <!-- No Offers -->
         <template if:false={offers}>
-            <p>No offers available.</p>
+            <div class="empty-state">
+                <lightning-icon icon-name="utility:einstein" size="medium" variant="inverse" class="empty-icon"></lightning-icon>
+                <p class="empty-title">No offers yet</p>
+                <p class="empty-body">Offers will appear here as soon as they're issued.</p>
+            </div>
+        </template>
         </template>
 
     </div>
+
+    <template lwc:if={showAcceptConfirm}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="accept-modal-heading"
+            class="slds-modal slds-fade-in-open accept-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header accept-modal-header">
+                    <h2 id="accept-modal-heading" class="slds-text-heading_medium">
+                        Accept Offer
+                    </h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p>Are you sure you want to accept this offer?</p>
+                </div>
+
+                <footer class="slds-modal__footer">
+                    <button type="button" class="slds-button slds-button_neutral" onclick={closeAcceptConfirm}>
+                        Cancel
+                    </button>
+                    <button type="button" class="slds-button slds-button_brand" onclick={confirmAcceptOffer}>
+                        Yes, I am
+                    </button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
 </template>

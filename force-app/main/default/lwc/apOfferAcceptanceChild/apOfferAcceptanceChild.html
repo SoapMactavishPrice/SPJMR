@@ -2,33 +2,41 @@
     <template lwc:if={isLoaded}>
         <div class="section">
 
+            <!-- <div class="stepper card">
+                <lightning-progress-indicator current-step={currentStep} type="path" variant="shaded">
+                    <lightning-progress-step label="Offer" value="offer"></lightning-progress-step>
+                    <lightning-progress-step label="Accepted" value="accepted"></lightning-progress-step>
+                    <lightning-progress-step label="Documents" value="documents"></lightning-progress-step>
+                    <lightning-progress-step label="Fees" value="fees"></lightning-progress-step>
+                </lightning-progress-indicator>
+            </div> -->
+
+            <template lwc:if={hasAcceptanceLetterDownload}>
             <div class="card">
                 <div class="row space-between center">
-                    <h2 class="label">Acceptance Letter</h2>
+                    <h2 class="label">Acceptance letter</h2>
 
-                    <lightning-button label="Download Acceptance Letter" variant="neutral" class="download-btn"
+                    <lightning-button label="Download" icon-name="utility:download" variant="neutral" class="download-btn"
                         onclick={handleDownloadAcceptance}>
                     </lightning-button>
                 </div>
             </div>
+            </template>
 
             <div class="card">
-                <div class="row space-between center">
-                    <h2 class="label">Annexures</h2>
-                </div>
+                <h2 class="label">Annexures</h2>
 
                 <template if:true={hasAnnexures}>
                     <template for:each={annexures} for:item="ann">
                         <div key={ann.Id} class="annexure-row row space-between center">
-
                             <span class="annexure-title">
+                                <lightning-icon icon-name="utility:file" size="x-small" class="annexure-icon"></lightning-icon>
                                 {ann.name}
                             </span>
 
-                            <lightning-button label="Download" variant="base" data-id={ann.value}
+                            <lightning-button label="Download" icon-name="utility:download" variant="base" data-id={ann.value}
                                 onclick={handleDownloadAnnexure}>
                             </lightning-button>
-
                         </div>
                     </template>
                 </template>
@@ -38,122 +46,153 @@
                 </template>
             </div>
 
-            <div class="card">
-                <template lwc:if={isOfferLetterPresent}>
-                    <div class="uploaded-box">
-                        <lightning-icon icon-name="utility:success" variant="success" size="small">
-                        </lightning-icon>
+            <div class="upload-grid">
+                <template lwc:if={showOfferUploadSection}>
+                <div class="card">
+                    <template lwc:if={isOfferLetterPresent}>
+                        <div class="uploaded-box">
+                            <lightning-icon icon-name="utility:success" variant="success" size="small">
+                            </lightning-icon>
 
-                        <div class="uploaded-content">
-                            <span class="uploaded-text">
-                                Signed Offer Letter Uploaded
-                            </span>
+                            <div class="uploaded-content">
+                                <span class="uploaded-text">
+                                    Signed offer letter uploaded
+                                </span>
 
-                            <div class="uploaded-letter">
-                                <a href={offerLetterLink} target="_blank">
-                                    View Signed Offer Letter
-                                </a>
-                                <lightning-button-icon icon-name="utility:delete" variant="bare" size="small"
-                                    class="delete-icon" alternative-text="Delete Offer letter"
-                                    onclick={handleOfferDelete}>
-                                </lightning-button-icon>
+                                <div class="uploaded-letter">
+                                    <a href={offerLetterLink} target="_blank">
+                                        View file
+                                    </a>
+                                    <template lwc:if={canDeleteDocuments}>
+                                    <lightning-button-icon icon-name="utility:delete" variant="bare" size="small"
+                                        class="delete-icon" alternative-text="Delete offer letter"
+                                        onclick={handleOfferDelete}>
+                                    </lightning-button-icon>
+                                    </template>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </template>
+
+                    <template lwc:else>
+                        <template lwc:if={isReadOnly}>
+                            <div class="uploaded-box">
+                                <lightning-icon icon-name="utility:lock" size="small"></lightning-icon>
+                                <div class="uploaded-content">
+                                    <span class="uploaded-text">
+                                        Signed offer letter submitted
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                        <h2 class="label">Upload signed offer letter</h2>
+                        <p class="message">PDF, JPG or PNG. Make sure the file is clearly named before uploading.</p>
+                        <lightning-file-upload accept=".pdf,.jpg,.png" label="Upload offer letter" record-id={applicationId}
+                            file-field-name={fileFieldName} file-field-value={fileNameOfferLetter}
+                            onuploadfinished={handleOfferUpload} multiple="false">
+                        </lightning-file-upload>
+                        </template>
+                    </template>
+                </div>
                 </template>
 
-                <template lwc:else>
-                    <h2 class="label">Upload Signed Offer Letter</h2>
-                    <p class="message">Supported formats: PDF, JPG, PNG. Kindly ensure your file is properly named
-                        before uploading.</p>
-                    <lightning-file-upload accept=".pdf,.jpg,.png" label="Upload Offer Letter" record-id={applicationId}
-                        file-field-name={fileFieldName} file-field-value={fileNameOfferLetter}
-                        onuploadfinished={handleOfferUpload} multiple="false">
-                    </lightning-file-upload>
+                <template lwc:if={showAcceptanceUploadSection}>
+                <div class="card">
+                    <template lwc:if={isAcceptanceLetterPresent}>
+                        <div class="uploaded-box">
+                            <lightning-icon icon-name="utility:success" variant="success" size="small">
+                            </lightning-icon>
+
+                            <div class="uploaded-content">
+                                <span class="uploaded-text">
+                                    Signed acceptance letter uploaded
+                                </span>
+
+                                <div class="uploaded-letter">
+                                    <a href={acceptanceLetterLink} target="_blank">
+                                        View file
+                                    </a>
+                                    <template lwc:if={canDeleteDocuments}>
+                                    <lightning-button-icon icon-name="utility:delete" variant="bare" size="small"
+                                        class="delete-icon" alternative-text="Delete acceptance letter"
+                                        onclick={handleAcceptanceDelete}>
+                                    </lightning-button-icon>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template lwc:else>
+                        <template lwc:if={isReadOnly}>
+                            <div class="uploaded-box">
+                                <lightning-icon icon-name="utility:lock" size="small"></lightning-icon>
+                                <div class="uploaded-content">
+                                    <span class="uploaded-text">
+                                        Signed acceptance letter submitted
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                        <h2 class="label">Upload signed acceptance letter</h2>
+                        <p class="message">PDF, JPG or PNG. Make sure the file is clearly named before uploading.</p>
+                        <lightning-file-upload accept=".pdf,.jpg,.png" label="Upload acceptance letter"
+                            record-id={applicationId} file-field-name={fileFieldName}
+                            file-field-value={fileNameAcceptanceLetter} onuploadfinished={handleAcceptanceUpload}
+                            multiple="false">
+                        </lightning-file-upload>
+                        </template>
+                    </template>
+                </div>
                 </template>
             </div>
 
-
-
             <div class="card">
-                <template lwc:if={isAcceptanceLetterPresent}>
-                    <div class="uploaded-box">
-                        <lightning-icon icon-name="utility:success" variant="success" size="small">
-                        </lightning-icon>
-
-                        <div class="uploaded-content">
-                            <span class="uploaded-text">
-                                Signed Acceptance Letter Uploaded
-                            </span>
-
-                            <div class="uploaded-letter">
-                                <a href={acceptanceLetterLink} target="_blank">
-                                    View Signed Acceptance Letter
-                                </a>
-                                <lightning-button-icon icon-name="utility:delete" variant="bare" size="small"
-                                    class="delete-icon" alternative-text="Delete acceptance letter"
-                                    onclick={handleAcceptanceDelete}>
-                                </lightning-button-icon>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <template lwc:else>
-                    <h2 class="label">Upload Signed Acceptance Letter</h2>
-                    <p class="message">Supported formats: PDF, JPG, PNG. Kindly ensure your file is properly named
-                        before uploading.</p>
-                    <lightning-file-upload accept=".pdf,.jpg,.png" label="Upload Acceptance Letter"
-                        record-id={applicationId} file-field-name={fileFieldName}
-                        file-field-value={fileNameAcceptanceLetter} onuploadfinished={handleAcceptanceUpload}
-                        multiple="false">
-                    </lightning-file-upload>
-
-                </template>
+                <h2 class="label">T-shirt size</h2>
+                <p class="message">Choose your size so we can prepare your welcome kit: XS, S, M, L, XL, XXL or XXXL.</p>
                 <div class="tshirt-size">
                     <lightning-record-edit-form object-api-name="Account" record-id={applicantId}>
-                        <p>To send you your welcome kit, please help us with your T-shirt size by choosing the correct
-                            option: (XS, S, M, L, XL, XXL, XXXL) </p>
-
                         <lightning-input-field field-name={sizeField} value={tshirtSize}
                             onchange={handleShirtSizeChange}></lightning-input-field>
-
                     </lightning-record-edit-form>
                 </div>
-
             </div>
 
-            <template if:true={isUploaded}>
+            <!-- <template if:true={isUploaded}>
                 <div class="card">
-                    <h2 class="label">Fee Breakup</h2>
+                    <h2 class="label">Fee breakup</h2>
 
                     <div class="fee-row">
-                        <span>Tuition Fees</span>
+                        <span>Tuition fees</span>
                         <span>₹ {tuitionFee}</span>
                     </div>
 
                     <div class="fee-row">
-                        <span>Hostel Fees</span>
+                        <span>Hostel fees</span>
                         <span>₹ {hostelFee}</span>
                     </div>
 
                     <div class="fee-row total">
-                        <span>Total Payable</span>
+                        <span>Total payable</span>
                         <span>₹ {totalFee}</span>
                     </div>
                     <template lwc:if={isPaymentPending}>
                         <c-ccavenue-payment-gateway program-code={pgmCode}></c-ccavenue-payment-gateway>
                     </template>
                     <template lwc:else>
-                        <lightning-button variant="brand" label="Pay now" disabled></lightning-button>
+                        <lightning-button variant="brand" label="Pay now" class="pay-btn" disabled></lightning-button>
                     </template>
                 </div>
-            </template>
+            </template> -->
 
         </div>
 
     </template>
     <template lwc:else>
-        Loading...
+        <div class="loading-state">
+            <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+        </div>
     </template>
 </template>

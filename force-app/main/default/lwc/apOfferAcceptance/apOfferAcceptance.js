@@ -24,6 +24,15 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
     isDisabled = false
     userEmail = '';
     userName = '';
+    showAcceptConfirm = false;
+    pendingAcceptAdmissionId = '';
+    pendingAcceptApplicationId = '';
+    activeOffer = null;
+
+    get isViewingAcceptance() {
+        return this.activeOffer !== null;
+    }
+
     @wire(getRecord, {recordId:'$userId',fields:[EMAIL_FIELD,FIRST_NAME,LAST_NAME]})
     wiredUser({error,data}){
         if(data){
@@ -36,17 +45,70 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
     }
 
     handleAccept(event) {
-        const applicationId = event.currentTarget.dataset.id
-        const admId = event.currentTarget.dataset.admid
-        console.log('Admission Id', admId)
-        this.offers.forEach((item) => {
-            if (item.admissionDecisionId == admId) {
-                item.selectedAccepted = true
-                item.selectedRejected = false
-                item.showButtons = false
-            }
-        })
+        this.pendingAcceptAdmissionId = event.currentTarget.dataset.admid
+        this.pendingAcceptApplicationId = event.currentTarget.dataset.id
+        console.log('Admission Id', this.pendingAcceptAdmissionId)
+        this.showAcceptConfirm = true;
+    }
 
+    closeAcceptConfirm() {
+        this.showAcceptConfirm = false;
+        this.pendingAcceptAdmissionId = '';
+        this.pendingAcceptApplicationId = '';
+    }
+
+    async confirmAcceptOffer() {
+        const admId = this.pendingAcceptAdmissionId;
+        if (!admId) {
+            this.closeAcceptConfirm();
+            return;
+        }
+
+        this.showAcceptConfirm = false;
+        const fields = {};
+        fields[ID_FIELD.fieldApiName] = admId;
+        fields[ACCEPT_OFFER.fieldApiName] = true;
+        fields[DECLINE_OFFER.fieldApiName] = false;
+        let today = new Date();
+        let formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        fields[ACCEPTANCE_DATE.fieldApiName] = formattedDate;
+
+        try {
+            await updateRecord({ fields });
+            this.showSuccessToastMessage('Offer Accepted', '');
+        } catch (error) {
+            console.log('Could not Update Admission record', JSON.stringify(error));
+            this.showErrorToastMessage('Could not accept offer', this.getErrorMessage(error));
+            this.pendingAcceptAdmissionId = '';
+            this.pendingAcceptApplicationId = '';
+            return;
+        }
+
+        this.offers = this.offers.map((item) => {
+            if (item.admissionDecisionId !== admId) {
+                return item;
+            }
+            return {
+                ...item,
+                selectedAccepted: true,
+                selectedRejected: false,
+                showButtons: false,
+                offerAccepted: true
+            };
+        });
+        this.activeOffer = this.offers.find((item) => item.admissionDecisionId === admId) || null;
+        this.pendingAcceptAdmissionId = '';
+        this.pendingAcceptApplicationId = '';
+
+    }
+
+    handleViewAcceptance(event) {
+        const admId = event.currentTarget.dataset.admid;
+        this.activeOffer = this.offers.find((item) => item.admissionDecisionId === admId) || null;
+    }
+
+    handleBackToOffers() {
+        this.activeOffer = null;
     }
 
     async handleReject(event) {
@@ -117,6 +179,19 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
             variant: 'success',
             mode: 'dismissable'
         }))
+    }
+
+    showErrorToastMessage(title, message) {
+        this.dispatchEvent(new ShowToastEvent({
+            title: title,
+            message: message,
+            variant: 'error',
+            mode: 'dismissable'
+        }))
+    }
+
+    getErrorMessage(error) {
+        return error?.body?.message || error?.message || 'Please try again or contact support.';
     }
 
     updateApplicationRecord(applicationId, action) {
@@ -208,6 +283,19 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
             window.open(url, "_blank")
         })
     }
+    handleDocStatusChange(event) {
+        const { applicationId, hasPendingDocuments } = event.detail;
+        this.offers = this.offers.map((item) => {
+            if (item.applicationId === applicationId) {
+                return { ...item, hasPendingDocuments };
+            }
+            return item;
+        });
+        if (this.activeOffer && this.activeOffer.applicationId === applicationId) {
+            this.activeOffer = { ...this.activeOffer, hasPendingDocuments };
+        }
+    }
+
     connectedCallback() {
         getEligibleAdmissionDecisions()
             .then((result) => {
@@ -218,6 +306,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         ...item,
                         offerDeclined: item.offerDeclined === 'true',
                         offerAccepted: item.offerAccepted === 'true',
+                        hasPendingDocuments: item.hasPendingDocuments === true || item.hasPendingDocuments === 'true',
                         selectedAccepted: false,
                         selectedRejected: false,
                         showButtons: item.offerDeclined != 'true' && item.offerAccepted != 'true' && item.isOfferWithdrawn != 'true',

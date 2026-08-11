@@ -1,6 +1,10 @@
 import { LightningElement, api, wire } from 'lwc';
 import getProgramSpecificDocuments from '@salesforce/apex/ApAccountProgramController.getProgramSpecificDocuments'
 import checkUploadedDocuments from '@salesforce/apex/ApAccountProgramController.checkUploadedDocuments'
+import getAcceptanceLetterFileUrl from '@salesforce/apex/ApAccountProgramController.getAcceptanceLetterFileUrl'
+import getOfferLetterFileUrl from '@salesforce/apex/ApAccountProgramController.getOfferLetterFileUrl'
+import getOfferUploadConfig from '@salesforce/apex/ApAccountProgramController.getOfferUploadConfig'
+import linkDocumentDetails from '@salesforce/apex/ApAccountProgramController.linkDocumentDetails'
 import { NavigationMixin } from 'lightning/navigation';
 import getDistributionUrl from '@salesforce/apex/ApAccountProgramController.getDistributionUrl';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
@@ -19,6 +23,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
     _applicationId;
     _admissionId;
+    _offerLetterUrl = '';
     offerLetterLink=''
     acceptanceLetterLink = ''
     isUploaded = false;
@@ -35,6 +40,10 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     fileNameOfferLetter = 'Signed Offer Letter';
     fileNameAcceptanceLetter = 'Signed Acceptance Letter';
     fileFieldName = CUSTOM_TITLE.fieldApiName;
+    hasAcceptanceLetterDownload = false;
+    hasOfferLetterDownload = false;
+    showUploadOfferDocuments = false;
+    showUploadAcceptDocuments = false;
 
     annexures = [];
     pgmCode = '';
@@ -42,6 +51,16 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     sizeField = TSHIRT_FIELD;
 
     // ---------------- API setters ----------------
+
+    @api
+    set offerLetterUrl(value) {
+        this._offerLetterUrl = value || '';
+        this.hasOfferLetterDownload = !!this._offerLetterUrl;
+        this.updateUploadCompletion();
+    }
+    get offerLetterUrl() {
+        return this._offerLetterUrl;
+    }
 
     @api
     set applicationId(value) {
@@ -67,6 +86,22 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
     get noAnnexures() {
         return !this.hasAnnexures;
+    }
+
+    get isReadOnly() {
+        return this.applicantState === 'Offer Accepted';
+    }
+
+    get canDeleteDocuments() {
+        return !this.isReadOnly;
+    }
+
+    get showOfferUploadSection() {
+        return this.showUploadOfferDocuments && this.hasOfferLetterDownload;
+    }
+
+    get showAcceptanceUploadSection() {
+        return this.showUploadAcceptDocuments && this.hasAcceptanceLetterDownload;
     }
 
     // ---------------- Wire Applicant Info ----------------
@@ -124,6 +159,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
             this.applicantId = data.fields.Applicant__c.value;
             this.pgmCode = data.fields.Program_Code__c.value;
             this.applicantState = data.fields.Applicant_State_Management__c.value;
+            this.loadUploadConfig();
 
             if (this.applicantState === 'Offer Accepted') {
                // this.isPaymentPending = false;
@@ -210,38 +246,61 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
     // ---------------- Upload Handlers ----------------
 
-   async handleAcceptanceUpload(event) {
+    async handleAcceptanceUpload(event) {
         this.showSuccessToast('Acceptance Letter Uploaded Successfully', '');
         console.log(JSON.stringify(event.detail.files))
-        const contentVersionId = event.detail.files[0].contentVersionId;
+        const uploadedFile = event.detail.files[0];
+        const contentVersionId = uploadedFile.contentVersionId;
+        const contentDocumentId = uploadedFile.documentId;
        await getDistributionUrl({contentVersionId:contentVersionId,entity:'Acceptance Letter'})
         .then((result)=>{
             if(result){
-                this.isLoaded = false;
-                this.getDocuments();
+                return linkDocumentDetails({
+                    applicationId: this._applicationId,
+                    contentDocumentId: contentDocumentId,
+                    docCode: 'SignedAcceptanceLetter',
+                    contentVersionId: contentVersionId
+                });
             }
+        })
+        .then(() => {
+            this.isLoaded = false;
+            this.getDocuments();
         })
         .catch((error)=>{
             console.log(JSON.stringify(error))
         })
         
         this.isAcceptanceLetterPresent = true;
+        this.updateUploadCompletion();
     }
 
    async handleOfferUpload(event) {
         console.log(JSON.stringify(event.detail.files))
-        const contentVersionId = event.detail.files[0].contentVersionId;
+        const uploadedFile = event.detail.files[0];
+        const contentVersionId = uploadedFile.contentVersionId;
+        const contentDocumentId = uploadedFile.documentId;
         this.showSuccessToast('Offer Letter Uploaded Successfully', '');
         await getDistributionUrl({contentVersionId:contentVersionId,entity:'Offer Letter'})
         .then((result)=>{
             if(result){
-                this.isLoaded = false;
-                this.getDocuments();
+                return linkDocumentDetails({
+                    applicationId: this._applicationId,
+                    contentDocumentId: contentDocumentId,
+                    docCode: 'SignedOfferLetter',
+                    contentVersionId: contentVersionId
+                });
             }
-        }).catch((error)=>{
+        })
+        .then(() => {
+            this.isLoaded = false;
+            this.getDocuments();
+        })
+        .catch((error)=>{
             console.log(JSON.stringify(error))
         })
         this.isOfferLetterPresent = true;
+        this.updateUploadCompletion();
     }
 
 
@@ -314,6 +373,25 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
     getDocuments() {
         if (this._applicationId && this._admissionId) {
+            console.log('Fetching Documents for ApplicationId: ', this._applicationId, ' and AdmissionId: ', this._admissionId);
+            getAcceptanceLetterFileUrl({ applicationId: this._applicationId })
+                .then((result) => {
+                    console.log('Acceptance Letter URL ',result);
+                    this.acceptanceLetterUrl = result || '';
+                    this.hasAcceptanceLetterDownload = !!this.acceptanceLetterUrl;
+                    this.updateUploadCompletion();
+                })
+                .catch((error) => console.log(JSON.stringify(error)));
+
+            if (!this._offerLetterUrl) {
+                getOfferLetterFileUrl({ admissionId: this._admissionId })
+                    .then((result) => {
+                        this._offerLetterUrl = result || '';
+                        this.hasOfferLetterDownload = !!this._offerLetterUrl;
+                        this.updateUploadCompletion();
+                    })
+                    .catch((error) => console.log(JSON.stringify(error)));
+            }
 
             getProgramSpecificDocuments({ admissionId: this._admissionId })
                 .then((result) => {
@@ -326,10 +404,8 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                             value: item.annexureUrl
                         }));
 
-                        this.acceptanceLetterUrl = result.acceptanceLetterUrl;
                     } else {
                         this.annexures = [];
-                        this.acceptanceLetterUrl = '';
                     }
                 })
                 .catch((error) => console.log(JSON.stringify(error)));
@@ -347,15 +423,43 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                         this.acceptanceLetterLink = result.acceptanceLetterUrl;
                         this.acceptanceLetterId = result.acceptanceLetterId
                     }
+                    this.updateUploadCompletion();
                 });
         }
     }
 
+    loadUploadConfig() {
+        if (!this.pgmCode) {
+            return;
+        }
 
+        getOfferUploadConfig({ programCode: this.pgmCode })
+            .then((result) => {
+                this.showUploadOfferDocuments = !!result?.showUploadOfferDocuments;
+                this.showUploadAcceptDocuments = !!result?.showUploadAcceptDocuments;
+                this.updateUploadCompletion();
+            })
+            .catch((error) => console.log(JSON.stringify(error)));
+    }
+
+    updateUploadCompletion() {
+        const offerRequirementComplete = !this.showOfferUploadSection || this.isOfferLetterPresent;
+        const acceptanceRequirementComplete = !this.showAcceptanceUploadSection || this.isAcceptanceLetterPresent;
+        this.isUploaded = offerRequirementComplete && acceptanceRequirementComplete;
+
+        this.dispatchEvent(new CustomEvent('docstatuschange', {
+            detail: {
+                applicationId: this.applicationId,
+                hasPendingDocuments: !this.isUploaded
+            },
+            bubbles: true,
+            composed: true
+        }));
+    }
 
     renderedCallback() {
         if (!this.isUploaded) {
-            this.isUploaded = this.isOfferLetterPresent && this.isAcceptanceLetterPresent;
+            this.updateUploadCompletion();
         }
     }
 }

@@ -1,63 +1,200 @@
+:host {
+    --spjimr-purple: #3B1863;
+    --spjimr-purple-dark: #2A1149;
+    --spjimr-purple-tint: #F3F0FA;
+    --spjimr-border: #E7E3EF;
+    --spjimr-text-muted: #8B7FA8;
+}
+
 .container {
-    padding: 20px;
-    font-family: "Nunito Sans", sans-serif;
+    padding: 1.5rem;
+    font-family: 'Nunito Sans', sans-serif;
+    max-width: 90%;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 1.5rem;
+}
+
+.eyebrow {
+    margin: 0 0 2px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--spjimr-text-muted);
 }
 
 .title {
-    font-size: 26px;
+    margin: 0;
+    font-size: 24px;
     font-weight: 700;
-    color: #4A2E8C; /* SPJIMR purple */
-    margin-bottom: 20px;
+    color: var(--spjimr-purple-dark);
 }
 
 .offer-card {
-    background: #fff;
-    padding: 16px 20px;
-    border-radius: 8px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    margin-bottom: 16px;
+    background: #ffffff;
+    border: 1px solid var(--spjimr-border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.offer-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.back-btn-wrapper {
+    margin-bottom: 0.75rem;
+}
+
+.offer-eyebrow {
+    margin: 0 0 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--spjimr-text-muted);
+}
+
+.offer-name {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--spjimr-purple-dark);
+}
+
+.title-status-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
-.label {
-    font-size: 18px;
-    font-weight: 600;
+.status-badge-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
-.actions {
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.status-accepted {
+    background: #E7F5EA;
+    color: #1E7F43;
+}
+
+.status-doc-pending {
+    background: #FFF3CD;
+    color: #856404;
+    border: 1px solid #FFEEBA;
+}
+
+.status-declined {
+    background: #FCEBEB;
+    color: #A32D2D;
+}
+
+.status-withdrawn {
+    background: #F1EFE8;
+    color: #5F5E5A;
+}
+
+.status-pending {
+    background: var(--spjimr-purple-tint);
+    color: var(--spjimr-purple);
+}
+
+.offer-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
 }
 
-.btn {
-    padding: 8px 18px;
-    border-radius: 6px;
-    font-size: 15px;
-    cursor: pointer;
-    font-family: inherit;
-}
-
-.btn-outline {
-    background: white;
-    border: 1.5px solid #999;
-}
-
-.btn-withdraw{
-    background: rgb(75, 0, 118);
-    color: white;
-    border: none;
+.btn-download {
+    --sds-c-button-text-color: var(--spjimr-purple);
+    --sds-c-button-color-border: var(--spjimr-border);
 }
 
 .btn-accept {
-    background: #23AF46;   /* Green */
-    color: white;
-    border: none;
+    --sds-c-button-color-background: #1E7F43;
+    --sds-c-button-text-color: #ffffff;
 }
 
-.btn-reject {
-    background: #DE3B3B;   /* Red */
-    color: white;
-    border: none;
+.offer-detail {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--spjimr-border);
+}
+
+.detail-page {
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 0;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: #ffffff;
+    border: 1px dashed var(--spjimr-border);
+    border-radius: 12px;
+}
+
+.empty-icon {
+    background: var(--spjimr-purple);
+    border-radius: 50%;
+    padding: 10px;
+    margin-bottom: 12px;
+}
+
+.empty-title {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--spjimr-purple-dark);
+}
+
+.empty-body {
+    margin: 0;
+    font-size: 13px;
+    color: var(--spjimr-text-muted);
+}
+
+.accept-modal-header {
+    background: #4b2e83;
+    color: #ffffff;
+    border-bottom: 0;
+}
+
+.accept-modal-close {
+    color: #ffffff;
+}
+
+.accept-confirm-button {
+    background: #4b2e83;
+    border-color: #4b2e83;
+    color: #ffffff;
+}
+
+.accept-confirm-button:hover,
+.accept-confirm-button:focus {
+    background: #3b2468;
+    border-color: #3b2468;
+    color: #ffffff;
 }
