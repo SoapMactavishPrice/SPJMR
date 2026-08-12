@@ -9,7 +9,7 @@ private class GoogleCalendarServiceTest {
     @isTest
     static void testCreateCalendarEvent() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
-            // Note: This is a mock test. In real scenarios, you would use:
+            // Note: This is a mock test. In real scenarios, you would use asdf:
             // 1. Named Credentials for secure storage of service account credentials
             // 2. Mock HTTP callouts using Test.setMock()
             // 3. Custom Metadata Types or Custom Settings for configuration

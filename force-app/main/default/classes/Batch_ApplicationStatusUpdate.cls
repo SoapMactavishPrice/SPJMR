@@ -28,6 +28,9 @@ public with sharing class Batch_ApplicationStatusUpdate
         public String contentDocumentId;
 
         @AuraEnabled
+        public String contentVersionId;
+
+        @AuraEnabled
         public String downloadUrl;
 
     }
@@ -270,6 +273,7 @@ public with sharing class Batch_ApplicationStatusUpdate
             payload.errorCount = resultRows.size() - 1;
             payload.fileName = cv.Title + '.csv';
             payload.contentDocumentId = cv.ContentDocumentId;
+            payload.contentVersionId = cv.Id;
             payload.downloadUrl = downloadLink;
 
             insert new Export_Job__c(

@@ -64,6 +64,15 @@ public class GoogleCalendarService {
         String eventId,
         String userEmail
     ) {
+        return deleteCalendarEvent(calendarId, eventId, userEmail, SEND_UPDATES_ALL);
+    }
+
+    public static GoogleCalendarResponse deleteCalendarEvent(
+        String calendarId,
+        String eventId,
+        String userEmail,
+        String sendUpdates
+    ) {
         GoogleCalendarResponse response = new GoogleCalendarResponse();
         try {
             if (String.isBlank(eventId)) {
@@ -81,8 +90,9 @@ public class GoogleCalendarService {
                 return response;
             }
 
+            String updates = String.isNotBlank(sendUpdates) ? sendUpdates : SEND_UPDATES_ALL;
             HttpRequest req = new HttpRequest();
-            req.setEndpoint(eventEndpoint(calendarId, eventId) + '?sendUpdates=all');
+            req.setEndpoint(eventEndpoint(calendarId, eventId) + '?sendUpdates=' + updates);
             req.setMethod('DELETE');
             req.setHeader('Authorization', 'Bearer ' + token);
 

@@ -13,6 +13,7 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
         ApplicationSlotBooking__c booking;
         Id programId;
         String panelKey;
+        Date slotDate;
         public Boolean hasError = false;
         PendingBooking(Row row, ApplicationSlotBooking__c booking, Id programId, String panelKey) {
             this.row = row; this.booking = booking; this.programId = programId; this.panelKey = panelKey;
@@ -28,8 +29,11 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
     private Integer successCount = 0;
     private Integer failedCount = 0;
     private List<String> errorRows = new List<String>();
+    private List<String> successRows = new List<String>();
     private Id errorContentDocumentId;
-    private List<String> errorHeaders;
+    private List<Id> successContentDocumentIds = new List<Id>();
+    private List<String> errorHeaders = new List<String>();
+    private List<String> successHeaders = new List<String>();
 
     public InterviewBookingImportBatch(
         List<Id> contentVersionIds, String importType, Id selectedProgramId, Boolean notifyApplicants,
@@ -50,12 +54,11 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
     }
 
     public void execute(Database.BatchableContext context, List<SObject> scope) {
-         List<ContentVersion> versions = (List<ContentVersion>)scope;
-         for (ContentVersion version : versions) {
+         for (SObject scopeRecord : scope) {
             try {
-                processFile(version);
+                processFile((contentVersion)scopeRecord);
             } catch (Exception exp) {
-                addFileError(version.Title, exp.getMessage());
+                addFileError(((contentVersion)scopeRecord).Title, exp.getMessage());
             }
         }
     }
@@ -72,8 +75,8 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
             errorHeaders.add('Interviewer Emails');
         } else {
             errorHeaders.add('Application Number');
-            errorHeaders.add('Slot Identifier');
-            errorHeaders.add('Round');
+            errorHeaders.add('Slot Code');
+            errorHeaders.add('Round Name');
 
             if (importType == WITH_PANEL) {
                 errorHeaders.add('Interviewer Emails');
@@ -81,8 +84,23 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
         }
         errorHeaders.add('Error');
 
+        successHeaders = new List<String>(errorHeaders);
+        successHeaders.remove(successHeaders.size() - 1);
+        if (importType == WITHOUT_PANEL) {
+            successHeaders.add('ApplicationSlotBookingCode');
+            successHeaders.add('Interviewer Emails');
+        } else if (importType == WITH_PANEL) {
+            successHeaders.add('ApplicationSlotBookingCode');
+            successHeaders.add('Panel Code');
+        } else {
+            successHeaders.add('Panel Code');
+        }
+
         if (errorRows.isEmpty()) {
             errorRows.add(String.join(errorHeaders, ','));
+        }
+        if (successRows.isEmpty()) {
+            successRows.add(String.join(successHeaders, ','));
         }
 
         List<Row> rows = new List<Row>();
@@ -106,7 +124,7 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
     private void validateHeaders(Map<String, Integer> indexes) {
         List<String> required = importType == ASSIGN_PANEL
             ? new List<String>{ 'ApplicationSlotBookingCode', 'Interviewer Emails' }
-            : new List<String>{ 'Application Number', 'Slot Identifier', 'Round' };
+            : new List<String>{ 'Application Number', 'Slot Code', 'Round Name' };
         if (importType == WITH_PANEL) required.add('Interviewer Emails');
         List<String> missing = new List<String>();
         for (String header : required) if (!indexes.containsKey(header)) missing.add(header);
@@ -128,37 +146,76 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
         Set<String> roundNames = new Set<String>();
         for (Row row : rows) { 
             appNumbers.add(row.values.get('Application Number')); 
-            slotCodes.add(row.values.get('Slot Identifier')); 
-            roundNames.add(row.values.get('Round')); 
+            slotCodes.add(row.values.get('Slot Code')); 
+            roundNames.add(row.values.get('Round Name')); 
         }
         Map<String, Application__c> apps = new Map<String, Application__c>();
         for (Application__c app : [SELECT Id, Name, Program__c FROM Application__c WHERE Name IN :appNumbers]) apps.put(app.Name, app);
         Map<String, SlotMaster__c> slots = new Map<String, SlotMaster__c>();
-        for (SlotMaster__c slot : [SELECT Id, Name FROM SlotMaster__c WHERE Name IN :slotCodes]) slots.put(slot.Name, slot);
+        for (SlotMaster__c slot : [SELECT Id, Name, SlotDate__c FROM SlotMaster__c WHERE Name IN :slotCodes]) slots.put(slot.Name, slot);
         Map<String, RoundMaster__c> rounds = new Map<String, RoundMaster__c>();
         for (RoundMaster__c round : [SELECT Id, Name FROM RoundMaster__c WHERE Name IN :roundNames]) rounds.put(round.Name, round);
+        Map<String, ApplicationSlotBooking__c> existingBookings = getExistingBookings(appNumbers);
 
         List<PendingBooking> pending = new List<PendingBooking>();
         for (Row row : rows) {
             try {
                 String appNumber = require(row, 'Application Number');
-                String slotCode = require(row, 'Slot Identifier');
-                String roundName = require(row, 'Round');
+                String slotCode = require(row, 'Slot Code');
+                String roundName = require(row, 'Round Name');
                 if (!apps.containsKey(appNumber)) throw new ImportException('Application not found: ' + appNumber);
                 if (!slots.containsKey(slotCode)) throw new ImportException('Slot not found: ' + slotCode);
                 if (!rounds.containsKey(roundName)) throw new ImportException('Round not found: ' + roundName);
+                if (slots.get(slotCode).SlotDate__c < Date.today()) {
+                    throw new ImportException('Cannot book an interview for a slot whose Slot Date is in the past.');
+                }
+                String existingBookingKey = bookingKey(appNumber, slotCode, roundName);
+                // A With panel booking is only a duplicate when the resolved panel also matches
+                if (!withPanel && existingBookings.containsKey(existingBookingKey)) {
+                    addSuccess(row, existingBookings.get(existingBookingKey));
+                    successCount++;
+                    continue;
+                }
                 ApplicationSlotBooking__c booking = new ApplicationSlotBooking__c(
                     Application__c = apps.get(appNumber).Id, SlotMaster__c = slots.get(slotCode).Id,
                     RoundMaster__c = rounds.get(roundName).Id, BookingState__c = 'Booked'
                 );
-                if (withPanel) pending.add(new PendingBooking(row, booking, selectedProgramId, getEmailKey(require(row, 'Interviewer Emails'))));
-                else pending.add(new PendingBooking(row, booking, null, null));
+                PendingBooking pendingBooking = new PendingBooking(
+                    row,
+                    booking,
+                    withPanel ? selectedProgramId : null,
+                    withPanel ? getEmailKey(require(row, 'Interviewer Emails')) : null
+                );
+                pendingBooking.slotDate = slots.get(slotCode).SlotDate__c;
+                pending.add(pendingBooking);
             } catch (Exception exp) {
                  addError(row, exp.getMessage()); 
             }
         }
         if (withPanel) resolvePanelsAndInsert(pending);
         else insertBookings(pending);
+    }
+
+    private static Map<String, ApplicationSlotBooking__c> getExistingBookings(Set<String> applicationNumbers) {
+        Map<String, ApplicationSlotBooking__c> bookingsByKey = new Map<String, ApplicationSlotBooking__c>();
+        Date today = Date.today();
+        for (ApplicationSlotBooking__c booking : [
+            SELECT Id, Name, Application__r.Name, SlotMaster__r.Name, RoundMaster__r.Name,
+                   Panel_Master__r.Name, Slot_Date__c
+            FROM ApplicationSlotBooking__c
+            WHERE Application__r.Name IN :applicationNumbers
+            AND Slot_Date__c >= :today
+        ]) {
+            bookingsByKey.put(
+                bookingKey(booking.Application__r.Name, booking.SlotMaster__r.Name, booking.RoundMaster__r.Name),
+                booking
+            );
+        }
+        return bookingsByKey;
+    }
+
+    private static String bookingKey(String applicationNumber, String slotCode, String roundName) {
+        return applicationNumber + '|' + slotCode + '|' + roundName;
     }
 
     private void processAssignPanel(List<Row> rows) {
@@ -186,32 +243,97 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
 
     private void resolvePanelsAndInsert(List<PendingBooking> pending) {
         Map<String, Id> panels = resolvePanels(pending);
+        Map<Id, String> panelNamesById = getPanelNames(panels.values());
+        Map<String, ApplicationSlotBooking__c> existingBookings = getExistingPanelBookings(pending);
         List<PendingBooking> valid = new List<PendingBooking>();
         for (PendingBooking item : pending) {
-            if (panels.containsKey(panelMapKey(item.programId, item.panelKey))) { 
-                item.booking.Panel_Master__c = panels.get(panelMapKey(item.programId, item.panelKey)); 
-                valid.add(item); 
+            if (item.hasError) {
+                continue;
+            }
+            if (panels.containsKey(panelMapKey(item.programId, item.panelKey))) {
+                Id panelId = panels.get(panelMapKey(item.programId, item.panelKey));
+                item.booking.Panel_Master__c = panelId;
+                String existingBookingKey = panelBookingKey(
+                    item.row.values.get('Application Number'),
+                    item.slotDate,
+                    item.row.values.get('Round Name'),
+                    panelNamesById.get(panelId)
+                );
+                if (existingBookings.containsKey(existingBookingKey)) {
+                    addSuccess(item.row, existingBookings.get(existingBookingKey));
+                    successCount++;
+                }else{
+                    valid.add(item);
+                }
             }else addError(item.row, 'Unable to create or find a matching panel.');
         }
         insertBookings(valid);
     }
 
+    private static Map<Id, String> getPanelNames(List<Id> panelIds) {
+        Map<Id, String> namesById = new Map<Id, String>();
+        if (panelIds.isEmpty()) return namesById;
+        for (PanelMaster__c panel : [ SELECT Id, Name FROM PanelMaster__c WHERE Id IN :panelIds]) {
+            namesById.put(panel.Id, panel.Name);
+        }
+        return namesById;
+    }
+
+    private static Map<String, ApplicationSlotBooking__c> getExistingPanelBookings(
+        List<PendingBooking> pending
+    ) {
+        Map<String, ApplicationSlotBooking__c> bookingsByKey = new Map<String, ApplicationSlotBooking__c>();
+        Set<String> applicationNumbers = new Set<String>();
+        for (PendingBooking item : pending) {
+            if (!item.hasError) applicationNumbers.add(item.row.values.get('Application Number'));
+        }
+        if (applicationNumbers.isEmpty())  return bookingsByKey;
+        Date today = Date.today();
+
+        for (ApplicationSlotBooking__c booking : [
+            SELECT Id, Name, Application__r.Name, Slot_Date__c, RoundMaster__r.Name, Panel_Master__r.Name
+            FROM ApplicationSlotBooking__c
+            WHERE Application__r.Name IN :applicationNumbers
+                AND Slot_Date__c >= :today
+                AND Panel_Master__c != NULL
+        ]) {
+            bookingsByKey.put(
+                panelBookingKey(
+                    booking.Application__r.Name,
+                    booking.slot_Date__c,
+                    booking.RoundMaster__r.Name,
+                    booking.Panel_Master__r.Name
+                ),
+                booking
+            );
+        }
+        return bookingsByKey;
+    }
+
+    private static String panelBookingKey(
+        String applicationNumber,
+        Date slotDate,
+        String roundName,
+        String panelName
+    ){
+        return applicationNumber + '|' + String.valueOf(slotDate) + '|' + roundName + '|' + panelName;
+    }
+    
     private void resolvePanelsAndUpdate(List<PendingBooking> pending) {
         Map<String, Id> panels = resolvePanels(pending);
         List<ApplicationSlotBooking__c> updates = new List<ApplicationSlotBooking__c>(); 
-        List<Row> updateRows = new List<Row>();
+        List<PendingBooking> updatePending = new List<PendingBooking>();
         for (PendingBooking item : pending) {
             if (item.hasError) {
                 continue;
             }
             if (panels.containsKey(panelMapKey(item.programId, item.panelKey))) { 
                 item.booking.Panel_Master__c = panels.get(panelMapKey(item.programId, item.panelKey)); 
-                updates.add(item.booking); updateRows.add(item.row); 
+                updates.add(item.booking); updatePending.add(item); 
             }
             else addError(item.row, 'Unable to create or find a matching panel.');
         }
-        Database.SaveResult[] results = Database.update(updates, false);
-        processResults(results, updateRows);
+        processUpdateResults(Database.update(updates, false), updatePending);
     }
 
     private Map<String, Id> resolvePanels(List<PendingBooking> pending) {
@@ -229,9 +351,13 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
         for (Program program : [SELECT Id, Program_Code__c FROM Program WHERE Id IN :programIds]) programCodeById.put(program.Id, program.Program_Code__c);
         Map<String, Id> panelByKey = getExistingPanels(programIds);
         Map<String, List<String>> newKeys = new Map<String, List<String>>();
+        Map<String, Id> programIdByPanelKey = new Map<String, Id>();
         for (PendingBooking item : pending) {
             String key = panelMapKey(item.programId, item.panelKey);
-            if (!panelByKey.containsKey(key) && !newKeys.containsKey(key)) newKeys.put(key, item.panelKey.split(';'));
+            if (!panelByKey.containsKey(key) && !newKeys.containsKey(key)) {
+                newKeys.put(key, item.panelKey.split(';'));
+                programIdByPanelKey.put(key, item.programId);
+            }
         }
         List<PanelMaster__c> panelsToInsert = new List<PanelMaster__c>(); List<String> panelKeys = new List<String>();
         // for (String key : newKeys.keySet()) {
@@ -250,22 +376,28 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
         //     panelKeys.add(key);
         // }
 
+        Set<String> processedPanelKeys = new Set<String>();
         for (PendingBooking item : pending) {
             String key = panelMapKey(item.programId, item.panelKey);
-            if (!newKeys.containsKey(key)) {
+            if (!newKeys.containsKey(key) || processedPanelKeys.contains(key)) {
                 continue;
             }
-            List<String> keyParts = key.split('\\|');
-            Id programId = (Id)keyParts[0];
-            Boolean allAccountsFound = true;
+            processedPanelKeys.add(key);
+            Id programId = programIdByPanelKey.get(key);
+            String missingEmail;
             for (String email : newKeys.get(key)) {
                 if (!accountByEmail.containsKey(email)) {
-                    addError( item.row, 'Account not found for interviewer email: ' + email);
-                    item.hasError = true;
-                    allAccountsFound = false;
+                    missingEmail = email;
+                    break;
                 }
             }
-            if (!allAccountsFound) {
+            if (missingEmail != null) {
+                for (PendingBooking pendingItem : pending) {
+                    if (panelMapKey(pendingItem.programId, pendingItem.panelKey) == key) {
+                        pendingItem.hasError = true;
+                        addError(pendingItem.row, 'Account not found for interviewer email: ' + missingEmail);
+                    }
+                }
                 continue;
             }
             panelsToInsert.add(new PanelMaster__c(
@@ -276,7 +408,6 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
                 )
             );
             panelKeys.add(key);
-            newKeys.remove(key);
         }
         
         if (!panelsToInsert.isEmpty()) {
@@ -284,7 +415,12 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
             List<PanelInterviewer__c> interviewers = new List<PanelInterviewer__c>();
             for (Integer index = 0; index < panelsToInsert.size(); index++) {
                 panelByKey.put(panelKeys[index], panelsToInsert[index].Id);
-                for (String email : newKeys.get(panelKeys[index])) interviewers.add(new PanelInterviewer__c(PanelMaster__c = panelsToInsert[index].Id, Account__c = accountByEmail.get(email)));
+                for (String email : newKeys.get(panelKeys[index])) {
+                    interviewers.add(new PanelInterviewer__c(
+                        PanelMaster__c = panelsToInsert[index].Id,
+                        Account__c = accountByEmail.get(email)
+                    ));
+                }
             }
             insert interviewers;
         }
@@ -312,7 +448,7 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
             bookings.add(item.booking); 
             rows.add(item.row); 
         }
-        processResults(Database.insert(bookings, false), rows);
+        processInsertResults(Database.insert(bookings, false), pending);
     }
 
     private void processResults(Database.SaveResult[] results, List<Row> rows) {
@@ -324,6 +460,62 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
                 addError(rows[index], String.join(messages, '; ')); 
             }
         }
+    }
+
+    private void processInsertResults(Database.SaveResult[] results, List<PendingBooking> pending) {
+        Map<Id, PendingBooking> pendingByBookingId = new Map<Id, PendingBooking>();
+        for (Integer index = 0; index < results.size(); index++) {
+            if (results[index].isSuccess()) {
+                successCount++;
+                pendingByBookingId.put(results[index].getId(), pending[index]);
+            } else {
+                List<String> messages = new List<String>();
+                for (Database.Error error : results[index].getErrors()) messages.add(error.getMessage());
+                addError(pending[index].row, String.join(messages, '; '));
+            }
+        }
+        addInsertedBookingSuccessRows(pendingByBookingId);
+    }
+
+    private void processUpdateResults(Database.SaveResult[] results, List<PendingBooking> pending) {
+        Map<Id, PendingBooking> pendingByBookingId = new Map<Id, PendingBooking>();
+        for (Integer index = 0; index < results.size(); index++) {
+            if (results[index].isSuccess()) {
+                successCount++;
+                pendingByBookingId.put(results[index].getId(), pending[index]);
+            } else {
+                List<String> messages = new List<String>();
+                for (Database.Error error : results[index].getErrors()) messages.add(error.getMessage());
+                addError(pending[index].row, String.join(messages, '; '));
+            }
+        }
+        addInsertedBookingSuccessRows(pendingByBookingId);
+    }
+
+    private void addInsertedBookingSuccessRows(Map<Id, PendingBooking> pendingByBookingId) {
+        if (pendingByBookingId.isEmpty()) return;
+        for (ApplicationSlotBooking__c booking : [
+            SELECT Id, Name, Panel_Master__r.Name
+            FROM ApplicationSlotBooking__c
+            WHERE Id IN :pendingByBookingId.keySet()
+        ]) {
+            addSuccess(pendingByBookingId.get(booking.Id).row, booking);
+        }
+    }
+
+    private void addSuccess(Row row, ApplicationSlotBooking__c booking) {
+        List<String> values = new List<String>();
+        for (String header : successHeaders) {
+            if (header == 'ApplicationSlotBookingCode') values.add(csvValue(booking.Name));
+            else if (header == 'Panel Code') values.add(csvValue(booking.Panel_Master__r == null ? null : booking.Panel_Master__r.Name));
+            //else if (header == 'Interviewer Emails') values.add(csvValue(''));
+            else if (header == 'Interviewer Emails'){
+                String interviewerEmails = importType == WITHOUT_PANEL ? '' : row.values.get('Interviewer Emails');
+                values.add(csvValue(interviewerEmails));
+            } 
+            else values.add(csvValue(row.values.get(header)));
+        }
+        successRows.add(String.join(values, ','));
     }
 
     private static String require(Row row, String header) { 
@@ -403,28 +595,67 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
     public void finish(Database.BatchableContext context) {
         Map<String, Object> payload = new Map<String, Object>{ 'status' => 'Completed', 'successCount' => successCount, 'failedCount' => failedCount, 'hasErrors' => failedCount > 0 };
         if (failedCount > 0) createErrorReport(payload, context.getJobId());
+        if (successRows.size() > 1) createSuccessReports(payload, context.getJobId());
         EventBus.publish(new AdmissionConsoleEvent__e(Intent__c = 'InterviewBookingImport', UserId__c = UserInfo.getUserId(), Message__c = JSON.serialize(payload)));
-        if (emailErrorCsv && errorContentDocumentId != null) sendErrorEmail();
+        if (emailErrorCsv && (errorContentDocumentId != null || !successContentDocumentIds.isEmpty())) sendReportsEmail();
         deleteUploadedFiles();
     }
 
     private void createErrorReport(Map<String, Object> payload, Id jobId) {
         ContentVersion version = new ContentVersion(Title = 'Interview_Booking_Import_Error_Report', PathOnClient = 'Interview_Booking_Import_Error_Report.csv', VersionData = Blob.valueOf(String.join(errorRows, '\n')));
         insert version; 
-        version = [SELECT ContentDocumentId, Title FROM ContentVersion WHERE Id = :version.Id]; 
+        version = [SELECT Id, ContentDocumentId, Title FROM ContentVersion WHERE Id = :version.Id]; 
         errorContentDocumentId = version.ContentDocumentId;
         insert new Export_Job__c(DocumentId__c = errorContentDocumentId, JobId__c = jobId, Name = version.Title, Status__c = 'Completed');
-        payload.put('contentDocumentId', errorContentDocumentId); payload.put('fileName', version.Title + '.csv');
+        payload.put('contentDocumentId', errorContentDocumentId); 
+        payload.put('contentVersionId', version.Id); 
+        payload.put('fileName', version.Title + '.csv');
     }
 
-    private void sendErrorEmail() {
+    private void createSuccessReports(Map<String, Object> payload, Id jobId) {
+        List<Object> files = new List<Object>();
+        Integer partNumber = 1;
+        for (Integer startIndex = 1; startIndex < successRows.size(); startIndex += 5000) {
+            Integer endIndex = Math.min(startIndex + 5000, successRows.size());
+            List<String> rows = new List<String>{ successRows[0] };
+            for (Integer rowIndex = startIndex; rowIndex < endIndex; rowIndex++) {
+                rows.add(successRows[rowIndex]);
+            }
+            String title = 'Interview_Booking_Import_Success_Part_' + partNumber;
+            ContentVersion version = new ContentVersion(
+                Title = title,
+                PathOnClient = title + '.csv',
+                VersionData = Blob.valueOf(String.join(rows, '\n'))
+            );
+            insert version;
+            version = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :version.Id];
+            insert new Export_Job__c(
+                DocumentId__c = version.ContentDocumentId,
+                JobId__c = jobId,
+                Name = title,
+                Status__c = 'Completed'
+            );
+            successContentDocumentIds.add(version.ContentDocumentId);
+            files.add(new Map<String, Object>{ 'name' => title + '.csv', 'documentId' => version.ContentDocumentId, 'contentVersionId' => version.Id });
+            partNumber++;
+        }
+        payload.put('successFiles', files);
+    }
+
+    private void sendReportsEmail() {
         Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
         email.setToAddresses(new String[]{ UserInfo.getUserEmail() });
-        email.setSubject('Interview Booking Import Error CSV');
-        email.setPlainTextBody(
-            'Your error CSV is ready: ' + URL.getOrgDomainUrl().toExternalForm() +
-            '/lightning/r/ContentDocument/' + errorContentDocumentId + '/view'
-        );
+        email.setSubject('Interview Booking Import Success/Error CSV Files');
+        String body = 'Your Interview Booking import files are ready.\n\n';
+        if (errorContentDocumentId != null) {
+            body += 'Error CSV: ' + URL.getOrgDomainUrl().toExternalForm() +
+                '/lightning/r/ContentDocument/' + errorContentDocumentId + '/view\n';
+        }
+        for (Id documentId : successContentDocumentIds) {
+            body += 'Success CSV: ' + URL.getOrgDomainUrl().toExternalForm() +
+                '/lightning/r/ContentDocument/' + documentId + '/view\n';
+        }
+        email.setPlainTextBody(body);
         Messaging.sendEmail(new Messaging.SingleEmailMessage[]{ email });
     }
 
@@ -432,5 +663,9 @@ public without sharing class InterviewBookingImportBatch implements Database.Bat
         if (contentVersionIds.isEmpty()) return; 
         List<ContentDocument> documents = [SELECT Id FROM ContentDocument WHERE Id IN (SELECT ContentDocumentId FROM ContentVersion WHERE Id IN :contentVersionIds)]; 
         if (!documents.isEmpty()) delete documents; 
+    }
+
+    private static String csvValue(String value) {
+        return '"' + (value == null ? '' : value.replace('"', '""')) + '"';
     }
 }

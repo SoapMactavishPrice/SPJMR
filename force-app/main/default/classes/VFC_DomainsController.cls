@@ -25,8 +25,10 @@ public without sharing class VFC_DomainsController {
 
          if (applicationPortal.size()>0) {
             loginLink = Network.getLoginUrl(applicationPortal[0].Id);
+             system.debug(loginLink);
             //loginLink = portalLink.substringBefore('.com') + '.com';
 
         }
     }
+
 }

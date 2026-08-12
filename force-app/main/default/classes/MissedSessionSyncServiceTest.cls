@@ -303,4 +303,97 @@ private class MissedSessionSyncServiceTest {
                 'All 50 links must be removed once every session leaves the window.');
         }
     }
+
+    @IsTest
+    static void orphanedLinkWithoutEnrollmentIsRemoved() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Datetime leaveStart = Datetime.now().addDays(5);
+            Datetime leaveEnd   = leaveStart.addDays(2);
+            Map<String, Id> ids = buildLinkedTrio(
+                leaveStart.addHours(1), leaveStart.addHours(2), leaveStart, leaveEnd);
+
+            // Reproduces the state left behind when the enrollment is deleted and the
+            // SetNull constraint empties the lookup.
+            List<Missed_Sessions__c> orphan = [
+                SELECT Id FROM Missed_Sessions__c WHERE Leave_Application__c = :ids.get('leave')
+            ];
+            orphan[0].Session_Enrollment__c = null;
+            update orphan;
+
+            Test.startTest();
+            MissedSessionSyncService.resyncForLeaves(new Set<Id>{ ids.get('leave') });
+            Test.stopTest();
+
+            System.assertEquals(0, linkCount(ids.get('leave')),
+                'A link with no enrollment cannot be covered and must be removed, not skipped.');
+        }
+    }
+
+    @IsTest
+    static void deletingSessionRemovesLink() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Datetime leaveStart = Datetime.now().addDays(5);
+            Datetime leaveEnd   = leaveStart.addDays(2);
+            Map<String, Id> ids = buildLinkedTrio(
+                leaveStart.addHours(1), leaveStart.addHours(2), leaveStart, leaveEnd);
+
+            Test.startTest();
+            delete new Session__c(Id = ids.get('session'));
+            Test.stopTest();
+
+            System.assertEquals(0, linkCount(ids.get('leave')),
+                'Deleting the session cascades to the enrollment and must clear the link.');
+        }
+    }
+
+    @IsTest
+    static void bulkSessionDeleteStaysWithinLimits() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Datetime leaveStart = Datetime.now().addDays(5);
+            Datetime leaveEnd   = leaveStart.addDays(2);
+
+            Leave_Application__c la = newLeave(leaveStart, leaveEnd);
+            insert la;
+            Id deId = divisionEnrollmentId();
+            Id ateId = atEnrollmentId();
+
+            List<Session__c> sessions = new List<Session__c>();
+            for (Integer i = 0; i < 50; i++) {
+                sessions.add(newSession(leaveStart.addMinutes(i * 5), leaveStart.addMinutes(i * 5 + 30)));
+            }
+            insert sessions;
+
+            List<Missed_Sessions__c> links = new List<Missed_Sessions__c>();
+            for (Session__c s : sessions) {
+                Id seId = SpjimrPortalTestDataFactory.insertSessionEnrollment(s.Id, deId, ateId);
+                if (seId != null) {
+                    links.add(new Missed_Sessions__c(Leave_Application__c = la.Id, Session_Enrollment__c = seId));
+                }
+            }
+            insert links;
+            System.assertEquals(50, links.size(), 'All 50 sessions must be linked before the bulk delete.');
+
+            Test.startTest();
+            delete sessions;
+            Test.stopTest();
+
+            System.assert(Limits.getQueries() < Limits.getLimitQueries(),
+                'A 50-session delete must not approach the SOQL limit.');
+            System.assertEquals(0, linkCount(la.Id),
+                'All 50 links must be removed once every session is deleted.');
+        }
+    }
+
+    @IsTest
+    static void pendingResyncIsSafeWhenNothingWasCaptured() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Test.startTest();
+            MissedSessionSyncService.capturePendingLeaves(null, null);
+            MissedSessionSyncService.capturePendingLeaves(new Set<Id>(), new Set<Id>());
+            MissedSessionSyncService.resyncPendingLeaves();
+            Test.stopTest();
+
+            System.assert(true, 'Capture and resync entry points must be null and empty safe.');
+        }
+    }
 }

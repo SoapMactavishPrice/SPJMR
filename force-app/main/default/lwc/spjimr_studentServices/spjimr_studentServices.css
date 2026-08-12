@@ -1,0 +1,51 @@
+:host {
+    --spjimr-primary: #5b2a82;
+    --spjimr-primary-light: #e1d5f0;
+    --spjimr-border: #d8d8d8;
+    --spjimr-text: #2b2b2b;
+}
+
+.ss-page {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 1rem 1.5rem 2.5rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+        Roboto, Helvetica, Arial, sans-serif;
+    color: var(--spjimr-text);
+}
+
+.ss-page-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--spjimr-primary);
+    margin: 0 0 0.75rem 0;
+}
+
+.ss-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+}
+
+.ss-tab {
+    border: none;
+    border-radius: 6px 6px 0 0;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: var(--spjimr-primary-light);
+    color: var(--spjimr-primary);
+}
+
+.ss-tab_active {
+    background-color: var(--spjimr-primary);
+    color: #ffffff;
+}
+
+.ss-panel {
+    background: #ffffff;
+    border-radius: 0 8px 8px 8px;
+    border: 1px solid var(--spjimr-border);
+    padding: 1.5rem;
+}

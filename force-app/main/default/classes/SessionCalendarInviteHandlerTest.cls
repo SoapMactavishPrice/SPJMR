@@ -15,10 +15,41 @@ private class SessionCalendarInviteHandlerTest {
     }
 
     private static List<String> capturedEndpoints = new List<String>();
+    private static List<String> capturedBodies = new List<String>();
 
     private static Boolean sawEventCalloutWith(String fragment) {
         for (String endpoint : capturedEndpoints) {
             if (endpoint.contains('/calendar/v3/') && endpoint.contains(fragment)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Boolean sawEventBodyWith(String fragment) {
+        if (String.isBlank(fragment)) {
+            return false;
+        }
+        String needle = fragment.toLowerCase();
+        for (String body : capturedBodies) {
+            if (String.isNotBlank(body) && body.toLowerCase().contains(needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True if any calendar create/update body has a non-empty attendees array. */
+    private static Boolean sawNonEmptyAttendeesInBody() {
+        for (String body : capturedBodies) {
+            if (String.isBlank(body) || !body.contains('attendees')) {
+                continue;
+            }
+            // Empty list looks like "attendees":[] (optional spaces)
+            if (body.contains('"attendees":[]') || body.contains('"attendees": []')) {
+                continue;
+            }
+            if (body.contains('"email"')) {
                 return true;
             }
         }
@@ -31,6 +62,11 @@ private class SessionCalendarInviteHandlerTest {
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
             capturedEndpoints.add(req.getEndpoint());
+            if (String.isNotBlank(req.getBody())
+                    && req.getEndpoint() != null
+                    && req.getEndpoint().contains('/calendar/v3/')) {
+                capturedBodies.add(req.getBody());
+            }
             if (req.getEndpoint().contains('oauth2.googleapis.com/token')) {
                 res.setStatusCode(200);
                 res.setBody('{"access_token":"mock_token","expires_in":3600}');
@@ -322,6 +358,63 @@ private class SessionCalendarInviteHandlerTest {
                 'The callout must use sendUpdates=none so Google emails nobody.');
             System.assert(!sawEventCalloutWith('sendUpdates=all'),
                 'No callout may use sendUpdates=all when the user chose "No".');
+            // EXPECTATION CHANGED (calendar notification ticket). This previously asserted that a
+            // suppressed create must NOT attach faculty, an abandoned workaround that tried to make
+            // faculty "new guests" at publish time so Google would email them.
+            //
+            // The agreed requirement is the opposite: creating with "No" must put the event on the
+            // faculty member's calendar with no email (so they can see it), and publishing with
+            // "Yes" must then send them an *Updated* invitation. Both require faculty to be guests
+            // from the Draft push onwards. Silence is achieved by sendUpdates=none (asserted
+            // above), not by withholding guests.
+            System.assertEquals(true, sawNonEmptyAttendeesInBody(),
+                'Creating with "No" must still attach faculty as guests so the event lands on their '
+                + 'calendar; only the email is suppressed. BODIES=' + String.join(capturedBodies, ' || '));
+        }
+    }
+
+    /**
+     * Ticket path: silent Draft event already exists (no guests / no mail).
+     * Notify=Yes (publish audience) must send faculty in the payload with sendUpdates=all.
+     * Guests-omitted-on-No is covered by skipUserNotificationsStillSyncsButSuppressesEmails.
+     */
+    @IsTest
+    static void draftNoThenPublishYesIncludesFacultyAndSendsAll() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = newSession('Draft', 'silent_evt_no_guests');
+            s.Session_Date__c = Date.today().addDays(1);
+            SessionCalendarInviteHandler.suppressInvites = true;
+            insert s;
+            SessionCalendarInviteHandler.suppressInvites = false;
+            addFaculty(s.Id, 'facNoThenYes@example.com');
+
+            capturedEndpoints.clear();
+            capturedBodies.clear();
+
+            Test.startTest();
+            // Simulate publish+Yes: full audience, notifications not suppressed
+            System.enqueueJob(new SessionCalendarInviteQueueable(
+                new Set<Id>{ s.Id },
+                new Set<Id>(),
+                null,
+                false
+            ));
+            Test.stopTest();
+
+            Session__c after = [
+                SELECT Calendar_Sync_Status__c, Google_Event_Id__c
+                FROM Session__c WHERE Id = :s.Id
+            ];
+            System.assertEquals('Synced', after.Calendar_Sync_Status__c,
+                'Notify=Yes after silent Draft must re-sync successfully.');
+            System.assert(sawEventCalloutWith('sendUpdates=all'),
+                'Notify=Yes must use sendUpdates=all so invite emails go out.');
+            System.assert(sawEventBodyWith('facNoThenYes@example.com'),
+                'Notify=Yes must attach faculty so Google can email them as new guests. Bodies='
+                + String.join(capturedBodies, ' || '));
         }
     }
 
@@ -360,11 +453,23 @@ private class SessionCalendarInviteHandlerTest {
         }
     }
 
+    /**
+     * @description Publishing now ALWAYS suppresses the per-session Google emails, whatever the
+     *          modal answer was: Google sends one invitation per event, so a multi-session publish
+     *          flooded every student. The Yes answer is served instead by the single consolidated
+     *          email from SessionPublishSummaryEmailQueueable, covered in
+     *          SessionPublishSummaryEmailTest. The event itself must still sync.
+     */
     @IsTest
-    static void publishSessionsDefaultStillSyncs() {
+    static void publishSessionsDefaultSyncsSilently() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             seedConfig();
             Test.setMock(HttpCalloutMock.class, new Mock());
+            // Default (no answer) counts as Yes, so publishing enqueues the consolidated summary
+            // email. That job insists on a verified org-wide sender, which no test run has, so the
+            // requirement is switched off here — this test is about the calendar callout, and the
+            // sender rule itself is asserted in SessionPublishSummaryEmailTest.
+            SessionPublishSummaryEmailQueueable.requireVerifiedSender = false;
 
             Session__c s = newSession('Draft', null);
             s.Session_Date__c = Date.today().addDays(1);
@@ -386,8 +491,321 @@ private class SessionCalendarInviteHandlerTest {
             Session__c after = [SELECT Calendar_Sync_Status__c FROM Session__c WHERE Id = :s.Id];
             System.assertEquals('Synced', after.Calendar_Sync_Status__c,
                 'Default (sendNotifications unset) must preserve existing publish-sync behavior.');
+            System.assert(sawEventCalloutWith('sendUpdates=none'),
+                'Publishing must always use sendUpdates=none: the per-session Google invitation '
+                + 'emails are replaced by one consolidated summary email.');
+            System.assert(!sawEventCalloutWith('sendUpdates=all'),
+                'No publish callout may use sendUpdates=all, or students get one email per session.');
+        }
+    }
+
+    /** @description Counts how many calendar event callouts (not token calls) were made. */
+    private static Integer eventCalloutCount() {
+        Integer n = 0;
+        for (String endpoint : capturedEndpoints) {
+            if (endpoint != null && endpoint.contains('/calendar/v3/')) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /**
+     * @description Counts only the calendar calls that CHANGE the event, i.e. one per logical
+     *          push. A PATCH costs two calendar callouts, because GoogleCalendarService first
+     *          GETs the event to preserve each existing guest's responseStatus, and only the
+     *          mutating call carries a request body.
+     * @return The number of POST/PATCH calls made to the Calendar API.
+     */
+    private static Integer mutatingEventCalloutCount() {
+        return capturedBodies.size();
+    }
+
+    /**
+     * @description Creates a session that is already synced to Google, without letting the
+     *          insert itself fire a push.
+     * @param status The Schedule_Type__c to give the session.
+     * @param eventId The Google event id to pretend it already has.
+     * @return The inserted session.
+     */
+    private static Session__c syncedSession(String status, String eventId) {
+        Session__c s = newSession(status, eventId);
+        s.Session_Date__c = Date.today().addDays(1);
+        SessionCalendarInviteHandler.suppressInvites = true;
+        insert s;
+        SessionCalendarInviteHandler.suppressInvites = false;
+        return s;
+    }
+
+    /**
+     * @description Fix 1 — the publish PATCH must carry the schedule status in the event body.
+     *          Without it the Draft -> Published PATCH is byte-identical for the faculty already
+     *          on the event (their responseStatus is deliberately re-sent unchanged), so Google
+     *          has no change to announce and they receive no "Updated invitation" at all.
+     */
+    @IsTest
+    static void publishBodyCarriesPublishedStatusSoFacultyGetAnUpdate() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Published', 'evt_status_line');
+            addFaculty(s.Id, 'facStatusLine@example.com');
+
+            capturedEndpoints.clear();
+            capturedBodies.clear();
+
+            Test.startTest();
+            System.enqueueJob(new SessionCalendarInviteQueueable(
+                new Set<Id>{ s.Id }, new Set<Id>(), null, false
+            ));
+            Test.stopTest();
+
+            System.assert(sawEventBodyWith('Status: Published'),
+                'The publish PATCH body must contain the schedule status, otherwise the PATCH is '
+                + 'a no-op for existing faculty guests and Google emails nobody. Bodies='
+                + String.join(capturedBodies, ' || '));
+            System.assert(sawEventCalloutWith('evt_status_line'),
+                'Publishing must PATCH the event created at Draft time, not create a second one — '
+                + 'otherwise faculty receive a fresh "Invitation" instead of an "Updated '
+                + 'invitation", and the student RSVPs already on the event are lost.');
             System.assert(sawEventCalloutWith('sendUpdates=all'),
-                'Default must keep sendUpdates=all so faculty are still emailed.');
+                'Publishing with "Yes" must ask Google to notify the guests.');
+            System.assert(sawEventBodyWith('facStatusLine@example.com'),
+                'Faculty must remain a guest so Google has someone to send the update to.');
+        }
+    }
+
+    /** @description The Draft push must carry the Draft status, so publishing is a real diff. */
+    @IsTest
+    static void draftBodyCarriesDraftStatus() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Draft', 'evt_draft_status');
+            addFaculty(s.Id, 'facDraftStatus@example.com');
+
+            capturedEndpoints.clear();
+            capturedBodies.clear();
+
+            Test.startTest();
+            System.enqueueJob(new SessionCalendarInviteQueueable(
+                new Set<Id>(), new Set<Id>{ s.Id }, null, true
+            ));
+            Test.stopTest();
+
+            System.assert(sawEventBodyWith('Status: Draft'),
+                'The Draft push must record Draft, so the later Published PATCH is a real change. '
+                + 'Bodies=' + String.join(capturedBodies, ' || '));
+        }
+    }
+
+    /**
+     * @description Fix 2a — a Name-only edit on an already-Republished session must re-push.
+     *          Republished -> Republished does not change the status, so before the widening this
+     *          fell through to a 9-field comparison that excluded Name and sent nothing, even
+     *          though Name is part of the Google event summary.
+     */
+    @IsTest
+    static void nameOnlyEditOnRepublishedSessionRePushes() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Republished', 'evt_name_edit');
+            addFaculty(s.Id, 'facNameEdit@example.com');
+
+            capturedEndpoints.clear();
+            capturedBodies.clear();
+
+            Test.startTest();
+            s.Name = 'Renamed Session For Calendar';
+            update s;
+            Test.stopTest();
+
+            System.assert(eventCalloutCount() > 0,
+                'Renaming a Republished session must re-push the Google event; the session name '
+                + 'appears in the event summary.');
+        }
+    }
+
+    /**
+     * @description Fix 2a — an academic-context edit (Is_Joint_Session__c) on an already
+     *          Republished session must also re-push rather than being silently ignored.
+     */
+    @IsTest
+    static void contextOnlyEditOnRepublishedSessionRePushes() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Republished', 'evt_context_edit');
+            addFaculty(s.Id, 'facContextEdit@example.com');
+
+            capturedEndpoints.clear();
+
+            Test.startTest();
+            s.Is_Joint_Session__c = true;
+            update s;
+            Test.stopTest();
+
+            System.assert(eventCalloutCount() > 0,
+                'An academic-context edit on a Republished session must re-push the event.');
+        }
+    }
+
+    /**
+     * @description Fix 2b — a related-record change on a synced, published session patches it.
+     */
+    @IsTest
+    static void relatedRecordChangePatchesSyncedSession() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Published', 'evt_related_ok');
+            addFaculty(s.Id, 'facRelated@example.com');
+
+            capturedEndpoints.clear();
+
+            Test.startTest();
+            SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ s.Id });
+            Test.stopTest();
+
+            System.assert(eventCalloutCount() > 0,
+                'A division/faculty/enrolment change on a synced session must patch the event.');
+        }
+    }
+
+    /**
+     * @description Fix 2b — the related-record path is PATCH-only: a session that was never
+     *          pushed to Google must be skipped, never created. Otherwise adding a division or a
+     *          faculty member could publish an unsynced session as a side effect.
+     */
+    @IsTest
+    static void relatedRecordChangeSkipsUnsyncedSession() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Published', null);
+            addFaculty(s.Id, 'facUnsynced@example.com');
+
+            capturedEndpoints.clear();
+
+            Test.startTest();
+            SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ s.Id });
+            Test.stopTest();
+
+            System.assertEquals(0, eventCalloutCount(),
+                'A session with no Google_Event_Id__c must not be created from the related-record '
+                + 'path; that path may only update an event that already exists.');
+        }
+    }
+
+    /**
+     * @description Fix 2b — a Cancelled session must not be resurrected by the cascade delete of
+     *          its own enrolments, which fires the related-record path in the same transaction.
+     */
+    @IsTest
+    static void relatedRecordChangeSkipsCancelledSession() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Cancelled', 'evt_cancelled_related');
+            addFaculty(s.Id, 'facCancelledRelated@example.com');
+
+            capturedEndpoints.clear();
+
+            Test.startTest();
+            SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ s.Id });
+            Test.stopTest();
+
+            System.assertEquals(0, eventCalloutCount(),
+                'Cancelling deletes the enrolments, which fires this path. A Cancelled session '
+                + 'must not be re-pushed.');
+        }
+    }
+
+    /**
+     * @description Fix 2b — the trigger-friendly overload collects parent ids off related rows.
+     */
+    @IsTest
+    static void relatedRecordOverloadCollectsParentIds() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Published', 'evt_overload');
+            addFaculty(s.Id, 'facOverload@example.com');
+
+            capturedEndpoints.clear();
+
+            Test.startTest();
+            // In-memory rows only: the overload just reads the lookup, no DML needed.
+            SessionCalendarInviteHandler.handleRelatedRecordChange(
+                new List<Session_Division__c>{ new Session_Division__c(Session__c = s.Id) },
+                'Session__c'
+            );
+            Test.stopTest();
+
+            System.assert(eventCalloutCount() > 0,
+                'The List<SObject> overload must resolve the parent session and push it.');
+        }
+    }
+
+    /** @description The overload must no-op safely on null/empty input and a blank field name. */
+    @IsTest
+    static void relatedRecordOverloadHandlesEmptyInput() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+            capturedEndpoints.clear();
+
+            Test.startTest();
+            SessionCalendarInviteHandler.handleRelatedRecordChange(null, 'Session__c');
+            SessionCalendarInviteHandler.handleRelatedRecordChange(new List<Session_Division__c>(), 'Session__c');
+            SessionCalendarInviteHandler.handleRelatedRecordChange(
+                new List<Session_Division__c>{ new Session_Division__c() }, ''
+            );
+            SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>());
+            Test.stopTest();
+
+            System.assertEquals(0, eventCalloutCount(),
+                'Empty related-record input must not produce any calendar callout.');
+        }
+    }
+
+    /**
+     * @description Fix 2b dedupe — one user action can touch the session AND its related records
+     *          in a single transaction (removing a division stamps the session Republished and
+     *          deletes Session_Division__c rows). Without the transaction guard that enqueued two
+     *          PATCHes and guests received two "Updated invitation" emails for one click.
+     */
+    @IsTest
+    static void repeatedPushInOneTransactionIsDeduped() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Published', 'evt_dedupe');
+            addFaculty(s.Id, 'facDedupe@example.com');
+
+            capturedEndpoints.clear();
+
+            capturedBodies.clear();
+
+            Test.startTest();
+            SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ s.Id });
+            SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ s.Id });
+            SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ s.Id });
+            Test.stopTest();
+
+            System.assertEquals(1, mutatingEventCalloutCount(),
+                'Three pushes for the same session in one transaction must collapse to a single '
+                + 'PATCH, so the guests get exactly one email instead of three.');
         }
     }
 }

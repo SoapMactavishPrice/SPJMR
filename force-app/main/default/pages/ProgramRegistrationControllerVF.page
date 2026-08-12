@@ -96,19 +96,21 @@
     </button>
 
     <div class="prf-login">
-        <a href="{!loginLink}"
-           class="prf-login-link">
-            ALREADY REGISTERED? LOGIN
-        </a>
-    </div>
+    <a href="javascript:void(0);"
+       class="prf-login-link"
+       onclick="sendLoginEvent();">
+        ALREADY REGISTERED? LOGIN
+    </a>
+</div>
 
 </div>
     
     <script>
         
-        window.addEventListener('unhandledrejection', function (e) {
-    console.log(e.reason);
-    console.log(JSON.stringify(e.reason));
+        window.addEventListener("message", function (e) {
+        
+    console.log(e.data);
+    console.log(JSON.stringify(e.data));
 });
         var parentOrigin = "{!JSENCODE(parentOrigin)}";
         window.submitRegistration = function (){
@@ -118,7 +120,18 @@
             
            
            parent.postMessage(message, parentOrigin);
+           if (recaptchaWidgetId !== null && window.grecaptcha) {
+        grecaptcha.reset(recaptchaWidgetId);
+    }
         }
+        
+        function sendLoginEvent() {
+    var message = {
+        name: 'login'
+    };
+
+    postToParent(message);
+}
         
         function hasProgramId() {
     const params = new URLSearchParams(window.location.search);
@@ -129,7 +142,9 @@
     );
 }
 
-
+function goToLogin() {
+    window.top.location.href = "{!JSENCODE(loginLink)}";
+}
 
         function onCaptchaSuccess(token) {
              console.log("Parent origin configured:", parentOrigin);
@@ -157,22 +172,25 @@ function postToParent(message) {
         console.log('No parent window. Message not sent:', message);
     }
 }
-         
+         var recaptchaWidgetId = null;
 
         window.onload = function () {
         
          
+         if (recaptchaWidgetId === null) {
+         recaptchaWidgetId = grecaptcha.render(
+                'recaptcha-container',
+                {
+                    sitekey: '6LdCQ2ktAAAAAID_bM0EuhE16wmPFyFcZ0oKRpAo',
+                    callback: onCaptchaSuccess
+                }
+            );
+    }
                  
          document.getElementById('registerBtn')
         .addEventListener('click', submitRegistration);
         
-            if (!window.recaptchaRendered) {
-        window.recaptchaRendered = true;
-         grecaptcha.render('recaptcha-container', {
-            sitekey: '6LdCQ2ktAAAAAID_bM0EuhE16wmPFyFcZ0oKRpAo',
-            callback: onCaptchaSuccess
-        });
-                }
+           
         };
     </script>
 </body>

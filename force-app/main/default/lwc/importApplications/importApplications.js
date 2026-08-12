@@ -69,11 +69,19 @@ export default class CsvUploader extends LightningElement {
         this.isLoading = false;
         this.generatedFiles = [];
         if(message.hasErrors){
+            // this.generatedFiles = [
+            //     {
+            //         fileName: message.fileName,
+            //         contentDocumentId: message.contentDocumentId,
+            //         url: '/lightning/r/ContentDocument/' + message.contentDocumentId + '/view'
+            //     }
+            // ];
             this.generatedFiles = [
                 {
                     fileName: message.fileName,
                     contentDocumentId: message.contentDocumentId,
-                    url: '/lightning/r/ContentDocument/' + message.contentDocumentId + '/view'
+                    contentVersionId: message.contentVersionId,
+                    url: '/sfc/servlet.shepherd/version/download/' + message.contentVersionId
                 }
             ];
         }else{

@@ -1,5 +1,5 @@
 trigger LeaveApplicationTrigger on Leave_Application__c (before insert, after insert, after update) {
-
+    //trigger
     if (Trigger.isBefore && Trigger.isInsert) {
         LeaveApplicationTriggerHandler.beforeInsert(Trigger.new);
     }

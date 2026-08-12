@@ -5,7 +5,7 @@ public class LeaveApplicationTriggerHandler {
         'Approved - Eligible for Makeup',
         'Approved - Not Eligible for Makeup'
     };
-    //test
+    
     /** Active Programme Office users, for assigning the first approval step. */
     private static List<Id> getProgrammeOfficeUsers() {
 

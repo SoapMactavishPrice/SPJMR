@@ -27,6 +27,157 @@ public without sharing class ProgramRegistrationFormController {
         return out;
     }
 
+
+    @AuraEnabled
+    public static string sendManualEmail(Id recordId,String SObjectName){
+        try {
+            if(String.isBlank(recordId) || String.isBlank(SObjectName)){
+                return 'Could not send Email as either '+ recordId+' or '+SObjectName+' was blank.' ;
+            }
+            if(SObjectName == 'Account'){
+                List<Account> applicantAccountList = [SELECT Id FROM Account WHERE
+                Id=:recordId LIMIT 1];
+                if(!applicantAccountList.isEmpty()){
+                    EmailTemplate template = [SELECT Id,Name FROM EmailTemplate 
+                    WHERE DeveloperName = 'SPJIMR_New_User_Creation' LIMIT 1];
+                                                List<User> targetUser = [
+                                    SELECT Id,
+                                        FirstName,
+                                        Username,
+                                        Email,
+                                        Programs_Applied__c
+                                    FROM User
+                                    WHERE ContactId IN (
+                                        SELECT PersonContactId
+                                        FROM Account
+                                        WHERE Id = :recordId
+                                    )
+                                    LIMIT 1
+                                ];
+
+                                if (targetUser.isEmpty()) {
+                                    return 'User not found for this Account.';
+                                }
+                    //List<Account> targetAccount = [SELECT Id FROM Account WHERE Id=:recordId LIMIT 1];
+                    User applicant = targetUser[0];
+                    //Network applicationPortal = [SELECT Id FROM Network WHERE Name ='Application Portal' LIMIT 1];
+                    //String communityUrl = Network.getLoginUrl(applicationPortal.Id)+'/ForgotPassword';
+                                   /* String htmlBody =
+                    '<div style="text-align:center;">' +
+                        '<img src="https://platform-energy-10.file.force.com/sfc/dist/version/download/?oid=00DdN00000UKZDF&ids=068OS00000Hhqum&d=%2Fa%2FOS000004q0uW%2FOARCVKVy1qerXqAty87qIdoIazXO10A_fX8xRjfq7IY&asPdf=false" ' +
+                        'alt="SPJIMR Logo" ' +
+                        'style="width:20%; height:auto; display:block; margin:0 auto;" />' +
+                    '</div>' +
+
+                    '<p style="font-family:Arial, sans-serif; font-size:16px;">' +
+                        'Dear ' + applicant.FirstName + ',' +
+                    '</p>' +
+
+                    '<p style="font-family:Arial, sans-serif; font-size:15px; line-height:1.6;">' +
+                        'Your account has been created successfully. Please reset your password to get started with your application for the ' +
+                        applicant.Programs_Applied__c +
+                        ' at SPJIMR.' +
+                    '</p>' +
+
+                    '<p style="font-family:Arial, sans-serif; font-size:15px;">' +
+                        'Username - ' +
+                        '<b style="background-color:#f4f4f4; padding:6px 10px; border-radius:4px;">' +
+                            applicant.Username +
+                        '</b>' +
+                    '</p>' +
+
+                    '<div style="text-align:center; margin:30px 0;">' +
+                        '<a href="' + communityUrl + '" target="_blank" ' +
+                        'style="display:inline-block;' +
+                            'background-color:#fbbc04;' +
+                            'color:#000000;' +
+                            'font-size:16px;' +
+                            'font-weight:bold;' +
+                            'padding:14px 28px;' +
+                            'text-decoration:none;' +
+                            'border-radius:6px;' +
+                            'font-family:Arial, sans-serif;">' +
+                            'Reset Password' +
+                        '</a>' +
+                    '</div>' +
+
+                    '<div style="text-align:center; background-color:#3B1151; padding:15px; margin-top:30px;">' +
+                        '<p style="color:white; font-family:Arial, sans-serif; margin:4px;">Warm regards,</p>' +
+                        '<p style="color:white; font-family:Arial, sans-serif; margin:4px;">Admissions Team</p>' +
+                        '<p style="color:white; font-family:Arial, sans-serif; margin:4px;"><b>SPJIMR</b></p>' +
+                    '</div>';
+                    //resetApplicantPass(targetUser[0].Username,template.Name);
+                    //Boolean success = Site.forgotPassword(targetUser[0].Username,template.Name);
+                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+                   mail.setToAddresses(new String[] {
+                            applicant.Email
+                        });
+
+                        mail.setSubject('Your SPJIMR Account Details');
+
+                        mail.setHtmlBody(htmlBody);
+
+                        mail.setSaveAsActivity(false);
+                    List<OrgWideEmailAddress> EmailList = [SELECT Id FROM OrgWideEmailAddress 
+                    WHERE DisplayName='SPJIMR Admissions' LIMIT 1];
+                    mail.setOrgWideEmailAddressId(EmailList[0].Id);
+                    // Messaging.SendEmailResult[] results =
+                    //     Messaging.sendEmail(
+                    //         new Messaging.SingleEmailMessage[] { mail }
+                    //     );
+
+                    // if (results != null && !results.isEmpty()) {
+                    //     if (!results[0].isSuccess()) {
+                    //         String errors = '';
+
+                    //         for (Messaging.SendEmailError err : results[0].getErrors()) {
+                    //             errors += err.getMessage() + ' ';
+                    //         }
+
+                    //         return 'Email failed: ' + errors;
+                    //     }
+                    //     system.debug(results[0].isSuccess());
+                    // }*/
+                    
+                    System.enqueueJob(new TestQueuable(applicant.Id));
+                    // Applicant_Password_Reset__e eventRecord =
+                    //     new Applicant_Password_Reset__e(
+                    //         User_Id__c = targetUser[0].Id
+                    //     );
+                    // PageReference p = Site.login('jan0908543@yopmail.com','2QEBAb5i','platform-energy-10--devorg.sandbox.my.site.com/applicationportal/s/');
+                    // system.debug('Page Ref is: '+p);
+                    
+
+//                     Database.SaveResult result =
+//                         EventBus.publish(eventRecord);
+//                     if (result.isSuccess()) {
+//                         User u = [SELECT Temp_Pass__c,Username FROM User WHERE Id=:targetUser[0].Id limit 1];
+//                         PageReference ref = Site.Login(u.Username,u.Temp_Pass__c,'platform-energy-10--devorg.sandbox.my.site.com/applicationportal/s/');
+//     return 'Reset Email Sent!';
+// }
+
+return 'Unable to initiate password reset.';
+                                       
+                }
+                return 'Account Not Found with Id: '+recordId;
+            }
+            else if(SObjectName == 'Lead'){
+                List<Lead> leadList = [SELECT Id FROM Lead WHERE Id=:recordId LIMIT 1];
+                if(!leadList.isEmpty()){
+                    List<Lead_Program__c> leadPrograms = [SELECT Id,Program__c,Lead__c,Email__c,Phone__c 
+                    FROM Lead_Program__c
+                    WHERE Lead__c=:leadList[0].Id ];
+                    LeadProgramTriggerHelper.sendVerificationEmail(leadPrograms);
+                    return 'Lead Verification Email Sent!';
+                }
+                return 'Lead not found with Id: '+recordId;
+            }
+            return 'Not Account nor Lead: '+SObjectName;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
     /**
      * Picker labels: Program.Name for Salesforce Program Ids; else Form_Title__c from Program_Registration_Config__mdt; else the id string.
      */
@@ -286,6 +437,7 @@ public without sharing class ProgramRegistrationFormController {
      * @param parentProgramId Parent Program record Id.
      * @return Child Program Ids in name order; empty when none or parent is null.
      */
+    @TestVisible
     private static List<String> queryChildProgramRecordIds(Id parentProgramId) {
         List<String> out = new List<String>();
         if (parentProgramId == null) {
@@ -425,6 +577,7 @@ public without sharing class ProgramRegistrationFormController {
             registrationConfigProgramId,
             brochureMode
         );
+        
     }
 
     /**
@@ -502,6 +655,9 @@ public without sharing class ProgramRegistrationFormController {
         @AuraEnabled public String leadId;
         @AuraEnabled public String message;
         @AuraEnabled public Boolean alreadyRegistered;
+        @AuraEnabled public String existingStatus;
+        @AuraEnabled public String leadOrAccountId;
+        @AuraEnabled public String leadOrAccountType;
     }
  
 

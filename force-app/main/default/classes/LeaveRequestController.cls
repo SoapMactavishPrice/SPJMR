@@ -1,8 +1,5 @@
 public without sharing class LeaveRequestController {
 
-    /* =========================================================
-       GET SESSIONS
-    ========================================================= */
     @AuraEnabled
 public static List<SessionWrapper> getSessions(String startDate, String endDate) {
 

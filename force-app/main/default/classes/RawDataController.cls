@@ -28,7 +28,7 @@ public class RawDataController {
     @AuraEnabled public String college{get;set;}
     @AuraEnabled public String graduationYear{get;set;}
 }
-    
+    @TestVisible
     private static final List<String> EXPECTED_HEADERS = new List<String>{
     'Name',
     'Email',
@@ -70,14 +70,12 @@ public static ImportSummaryWrapper getImportSummary(Id parentId){
 
     ImportSummaryWrapper wrapper =
         new ImportSummaryWrapper();
-
-    wrapper.parent = [
-        SELECT Id,
+ 	List<Lead_Import_Parent__c> parents = [SELECT Id,
                Title__c,
                Status__c
         FROM Lead_Import_Parent__c
-        WHERE Id = :parentId
-    ];
+        WHERE Id = :parentId LIMIT 1];
+    wrapper.parent= parents.isEmpty()?null:parents[0];
 
     wrapper.successCount = [
         SELECT COUNT()
@@ -121,63 +119,39 @@ public static void insertImportRows(
     List<ImportRowWrapper> rows
 ) {
 
-    List<Lead_Import__c> records =
-        new List<Lead_Import__c>();
+    List<Lead_Import__c> records = new List<Lead_Import__c>();
 
     for(ImportRowWrapper row : rows){
 
-        Lead_Import__c importRow =
-            new Lead_Import__c();
+        Lead_Import__c importRow = new Lead_Import__c(
+    Lead_Import_Parent__c = importId,
+    Row_Number__c = row.rowNumber,
+    Name__c = row.name,
+    Email__c = row.email,
+    Phone__c = row.phone,
+    Programme__c = row.programme,
+    LeadSource__c = row.leadSource,
+    Country__c = row.country,
+    State__c = row.state,
+    City__c = row.city,
+    Years_of_Work_Experience__c = row.yearsOfWorkExperience,
+    Do_you_have_Entrance_Exam_Scores__c = row.entranceExamScore,
+    Entrance_Exam_Name__c = row.entranceExamName,
+    SPJIMR_Partner_Company__c = row.partnerCompany,
+    Organization__c = row.organization,
+    How_did_you_find_out_about_us__c = row.referralSource,
+    Current_Designation__c = row.designation,
+    College__c = row.college,
+    Graduation_Year__c = row.graduationYear,
+    Send_Welcome_and_Verification_Email__c = 'No',
+    Status__c = 'New'
+);
 
-        importRow.Lead_Import_Parent__c = importId;
-        importRow.Row_Number__c = row.rowNumber;
+if (String.isNotBlank(row.age)) {
+    importRow.Age__c = Decimal.valueOf(row.age);
+}
 
-        importRow.Name__c = row.name;
-        importRow.Email__c = row.email;
-        importRow.Phone__c = row.phone;
-        importRow.Programme__c = row.programme;
-        importRow.LeadSource__c = row.leadSource;
-        importRow.Country__c = row.country;
-        importRow.State__c = row.state;
-        importRow.City__c = row.city;
-        importRow.Years_of_Work_Experience__c =
-            row.yearsOfWorkExperience;
-
-        importRow.Do_you_have_Entrance_Exam_Scores__c =
-            row.entranceExamScore;
-
-        importRow.Entrance_Exam_Name__c =
-            row.entranceExamName;
-
-        importRow.SPJIMR_Partner_Company__c =
-            row.partnerCompany;
-
-        importRow.Organization__c =
-            row.organization;
-
-        importRow.How_did_you_find_out_about_us__c =
-            row.referralSource;
-
-        importRow.Current_Designation__c =
-            row.designation;
-
-        if(String.isNotBlank(row.age)){
-            importRow.Age__c =
-                Decimal.valueOf(row.age);
-        }
-
-        importRow.College__c =
-            row.college;
-
-        importRow.Graduation_Year__c =
-            row.graduationYear;
-
-        importRow.Send_Welcome_and_Verification_Email__c =
-            'No';
-
-        importRow.Status__c = 'New';
-
-        records.add(importRow);
+records.add(importRow);
     }
 
     insert records;

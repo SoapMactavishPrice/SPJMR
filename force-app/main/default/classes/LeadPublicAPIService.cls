@@ -1,6 +1,6 @@
 /**
  * Orchestrates bulk load, routing (Applicant vs Lead), DML, and API response rows for LeadPublicAPI.
- */
+ */ 
 public without sharing class LeadPublicAPIService {
     private class ReferenceData {
         Map<String, Program> programByCode = new Map<String, Program>();
@@ -512,7 +512,7 @@ public without sharing class LeadPublicAPIService {
         }
         update oppsToUpdate;
     }
-
+@TestVisible
     private static void insertCampaignMembers(
         Map<Integer, LeadPublicAPI.LeadWrapper> validByIndex,
         Map<Integer, LeadPublicAPIHelper.ResultWrapper> indexToResult,

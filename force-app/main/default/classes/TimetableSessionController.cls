@@ -900,24 +900,62 @@ dto.selectedStudentIds =
 	 }
 
          if (!publishableSessions.isEmpty()) {
+            Set<Id> publishedIds = new Set<Id>();
+            Date rangeStart;
+            Date rangeEnd;
             for (Session__c sessionRecord : publishableSessions) {
                 sessionRecord.Schedule_Type__c = 'Published';
+                publishedIds.add(sessionRecord.Id);
+                // The email must quote the range of the sessions actually published, which can be
+                // narrower than the From/To the user typed (past and already-published sessions
+                // were filtered out above).
+                if (sessionRecord.Session_Date__c != null) {
+                    if (rangeStart == null || sessionRecord.Session_Date__c < rangeStart) {
+                        rangeStart = sessionRecord.Session_Date__c;
+                    }
+                    if (rangeEnd == null || sessionRecord.Session_Date__c > rangeEnd) {
+                        rangeEnd = sessionRecord.Session_Date__c;
+                    }
+                }
             }
-            
-            Boolean skipNotify = filter.sendNotifications == false;
+
+            // Consolidated publish notification.
+            //
+            // The per-session Google Calendar invitation emails are now ALWAYS suppressed on this
+            // path (sendUpdates=none), because Google emails every guest once per event and a
+            // 40-session publish therefore meant 40 emails for each enrolled student. The events
+            // are still created and patched and the students are still attached as guests, so the
+            // sessions land silently on everyone's calendar and RSVP capture is unaffected.
+            //
+            // In place of that flood, answering Yes sends ONE summary email per student and per
+            // faculty member for the whole publication. Answering No sends nothing at all, which
+            // is what it already did. `== false` keeps the established convention that only an
+            // explicit No suppresses: a null means a non-UI caller (Flow, data loader, older
+            // client) rather than a user who chose No.
+            //
+            // Deliberately enqueued BEFORE the DML: the calendar chunker consumes queueable slots
+            // while `update` fires the Session trigger, and on a large publish it can use them all,
+            // so a job enqueued afterwards would silently never run. Enqueuing first reserves the
+            // slot and is still safe — an enqueued job is rolled back with the transaction if the
+            // DML fails, so no email is sent for a publish that did not happen.
+            //
+            // Scoped to this method on purpose: creating a session (saveSession) keeps its own
+            // independent Yes/No behaviour, and nothing here lives in a trigger, so a
+            // Draft -> Published change made any other way cannot send a summary email.
+            Boolean notifyAudience = filter.sendNotifications != false;
             try {
-                if (skipNotify) {
-                    SessionCalendarInviteHandler.skipUserNotifications = true;
+                SessionCalendarInviteHandler.skipUserNotifications = true;
+                if (notifyAudience) {
+                    System.enqueueJob(
+                        new SessionPublishSummaryEmailQueueable(publishedIds, rangeStart, rangeEnd)
+                    );
                 }
                 update publishableSessions;
                 updatedCount = publishableSessions.size();
             } catch (DmlException ex) {
-                System.debug('Error publishing sessions: ' + ex.getMessage());
                 throw new AuraHandledException('Error publishing sessions: ' + ex.getDmlMessage(0));
             } finally {
-                if (skipNotify) {
-                    SessionCalendarInviteHandler.skipUserNotifications = false;
-                }
+                SessionCalendarInviteHandler.skipUserNotifications = false;
             }
         }
         
@@ -1143,17 +1181,19 @@ dto.selectedStudentIds =
                     : mergedOverlapWarning;
             }
 
+            // See publishSessions: only an explicit No suppresses the Google Calendar emails.
+            //
+            // Deliberately NOT reset after the upsert. Everything below this point — the
+            // Session_Division__c, Session_Enrollment__c and Session_Faculty__c reconciliation —
+            // now fires its own Google Calendar re-push, and those triggers read this same flag.
+            // Clearing it here would have let a save the user answered "No" to go on and email
+            // every guest from the related-record path. One Aura call is one transaction, so the
+            // flag cannot leak into an unrelated save.
             Boolean skipNotify = request.sendNotifications == false;
-            try {
-                if (skipNotify) {
-                    SessionCalendarInviteHandler.skipUserNotifications = true;
-                }
-                upsert sessionRecord;
-            } finally {
-                if (skipNotify) {
-                    SessionCalendarInviteHandler.skipUserNotifications = false;
-                }
+            if (skipNotify) {
+                SessionCalendarInviteHandler.skipUserNotifications = true;
             }
+            upsert sessionRecord;
         } catch (DmlException ex) {
             System.debug('Error saving session: ' + ex.getMessage());
             throw new AuraHandledException('Error saving session: ' + ex.getDmlMessage(0));
@@ -1327,6 +1367,22 @@ if(request.selectedStudentIds != null) {
                 throw new AuraHandledException('Error creating session divisions: ' + ex.getDmlMessage(0));
             }
         }
+    // Get all division names for this session
+List<String> divisionNames = new List<String>();
+List<String>divisionAutoCode=new List<String>();
+        
+for (Session_Division__c sd : [
+    SELECT Division__r.Name,Division__r.Division_Name__c
+    FROM Session_Division__c
+    WHERE Session__c = :sessionRecord.Id
+]) {
+    if (sd.Division__r != null) {
+        divisionNames.add(sd.Division__r.Division_Name__c);
+        divisionAutoCode.add(sd.Division__r.Name);
+    }
+}
+String divisionNameText = String.join(divisionNames, ', ');
+String divisionAutoNameText = String.join(divisionAutoCode, ', '); 
         
         // Handle Session_Faculty__c records: update only what changed (insert new, update type, delete removed)
         if (request.selectedFacultyIds != null && !request.selectedFacultyIds.isEmpty()) {
@@ -1349,7 +1405,7 @@ if(request.selectedStudentIds != null) {
             if (request.sessionId != null) {
                 // Update existing session: reconcile existing Session_Faculty__c with request (insert/update/delete only what changed)
                 List<Session_Faculty__c> existingList = [
-                    SELECT Id, Session_Faculty__c, Faculty_Type__c
+                    SELECT Id, Session_Faculty__c, Faculty_Type__c,Divisions__c,Division_Names__c
                     FROM Session_Faculty__c
                     WHERE Session__c = :sessionRecord.Id
                 ];
@@ -1368,7 +1424,10 @@ if(request.selectedStudentIds != null) {
                     if (existing == null) {
                         Session_Faculty__c sf = new Session_Faculty__c(
                             Session__c = sessionRecord.Id,
-                            Session_Faculty__c = facultyId
+                            Session_Faculty__c = facultyId,
+                            Divisions__c= divisionAutoNameText,
+                            Division_Names__c= divisionNameText
+
                         );
                         if (!leadIds.isEmpty()) {
                             sf.Faculty_Type__c = newType;
@@ -1395,7 +1454,10 @@ if(request.selectedStudentIds != null) {
                     for (Id facultyId : facultyIds) {
                         Session_Faculty__c sf = new Session_Faculty__c(
                             Session__c = sessionRecord.Id,
-                            Session_Faculty__c = facultyId
+                            Session_Faculty__c = facultyId,
+                            Divisions__c= divisionAutoNameText,
+                            Division_Names__c= divisionNameText
+
                         );
                         if (!leadIds.isEmpty()) {
                             sf.Faculty_Type__c = leadIds.contains(facultyId) ? 'Lead' : 'Support';
@@ -1416,7 +1478,19 @@ if(request.selectedStudentIds != null) {
                 delete existingSessionFaculties;
             }
         }
-        
+
+        // Google Calendar: the divisions and faculty reconciled above are part of the event —
+        // division names appear in the summary and description, and faculty are guests — but
+        // they live on child objects, so the Session__c trigger never saw them change. Re-push
+        // here, at the end of the save, once every child record is in its final state.
+        //
+        // Called instead of putting triggers on Session_Division__c / Session_Faculty__c: this is
+        // the only path that edits them, so a direct call keeps the component count down and the
+        // ordering deterministic. The handler is PATCH-only (an unsynced session is skipped, never
+        // created), it honours the caller's "No" choice via skipUserNotifications, and it dedupes
+        // per transaction, so a save that already pushed via the status change sends one email.
+        SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ sessionRecord.Id });
+
         return new SaveSessionResult(sessionRecord.Id, studentConflictMessage, studentConflictWarningDetails);
     }
 
@@ -1718,6 +1792,10 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                 update sessionRecord;
             }
             removeDivisionFromSession(sessionId, divisionIdToRemove);
+            // Google Calendar: the removed division's students must drop off the event and the
+            // remaining guests need the corrected summary/description. Deduped against the
+            // Republished stamp above, so the guests get one "Updated invitation", not two.
+            SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ sessionId });
             return sessionId;
         }
 

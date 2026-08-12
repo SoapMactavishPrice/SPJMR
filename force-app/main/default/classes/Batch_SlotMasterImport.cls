@@ -1,9 +1,9 @@
 global without sharing class Batch_SlotMasterImport implements Database.Batchable<ContentVersion>, Database.Stateful {
     private static final List<String> REQUIRED_HEADERS = new List<String>{
-        'SlotCode', 'Program Master', 'SlotDate', 'Slot Start Time', 'Capacity'
+        'Program Code', 'Location Code', 'Slot Code', 'Capacity', 'Slot Date', 'Slot Start Time'
     };
     private static final List<String> IMPORT_HEADERS = new List<String>{
-        'SlotCode', 'Program Master', 'SlotDate', 'Slot Start Time', 'Capacity', 'Slot End Time', 'Location Master'
+        'Program Code', 'Location Code', 'Slot Code', 'Capacity', 'Slot Date', 'Slot Start Time', 'Slot End Time'
     };
 
     private class SlotMasterImportValidationException extends Exception {
@@ -217,17 +217,17 @@ global without sharing class Batch_SlotMasterImport implements Database.Batchabl
         Map<String, Id> programMap,
         Map<String, Id> locationMap
     ) {
-        String slotCode = values.get('SlotCode');
-        String programCode = values.get('Program Master');
-        String slotDate = values.get('SlotDate');
+        String slotCode = values.get('Slot Code');
+        String programCode = values.get('Program Code');
+        String slotDate = values.get('Slot Date');
         String slotStart = values.get('Slot Start Time');
         String capacity = values.get('Capacity');
         String slotEnd = values.get('Slot End Time');
-        String location = values.get('Location Master');
+        String location = values.get('Location Code');
 
-        requireValue(slotCode, 'SlotCode');
-        requireValue(programCode, 'Program Master');
-        requireValue(slotDate, 'SlotDate');
+        requireValue(slotCode, 'Slot Code');
+        requireValue(programCode, 'Program Code');
+        requireValue(slotDate, 'Slot Date');
         requireValue(slotStart, 'Slot Start Time');
         requireValue(capacity, 'Capacity');
 
@@ -275,7 +275,7 @@ global without sharing class Batch_SlotMasterImport implements Database.Batchabl
             // The clear validation message below is returned for parsing errors.
         }
         throw new SlotMasterImportValidationException(
-            'Invalid SlotDate "' + value + '". Use YYYY-MM-DD or DD-MM-YYYY.'
+            'Invalid Slot Date "' + value + '". Use DD-MM-YYYY.'
         );
     }
 
@@ -358,7 +358,7 @@ global without sharing class Batch_SlotMasterImport implements Database.Batchabl
             VersionData = Blob.valueOf(String.join(errorRows, '\n'))
         );
         insert version;
-        version = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :version.Id LIMIT 1];
+        version = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :version.Id LIMIT 1];
         errorContentDocumentId = version.ContentDocumentId;
         insert new Export_Job__c(
             DocumentId__c = errorContentDocumentId,
@@ -368,6 +368,7 @@ global without sharing class Batch_SlotMasterImport implements Database.Batchabl
         );
         payload.put('fileName', 'SlotMaster_Import_Error_Report.csv');
         payload.put('contentDocumentId', errorContentDocumentId);
+        payload.put('contentVersionId', version.Id);
         payload.put('downloadUrl', URL.getOrgDomainUrl().toExternalForm() +
             '/lightning/r/ContentDocument/' + errorContentDocumentId + '/view');
     }

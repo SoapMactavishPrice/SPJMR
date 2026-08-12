@@ -1,5 +1,5 @@
 /**
- * Covers LeaveApplicationTriggerHandler branches not hit by LeaveApplicationTHExtraTest.
+ * Covers LeaveApplicationTriggerHandler branches not hit by LeaveApplicationTHExtraTest.test
  */
 @IsTest
 private class LeaveApplicationTriggerHandlerTest {

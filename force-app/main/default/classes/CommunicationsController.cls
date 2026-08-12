@@ -12,7 +12,9 @@ public with sharing class CommunicationsController {
 
         OFFER_AVAILABLE,
 
-        OFFER_RESPONSE,
+        OFFER_ACCEPTED,
+
+        OFFER_WITHDRAWN,
 
         APPLICATION_REJECTED
     }

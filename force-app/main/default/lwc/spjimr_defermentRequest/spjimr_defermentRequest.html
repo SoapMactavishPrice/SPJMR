@@ -1,0 +1,259 @@
+<template>
+    <div class="deferment-form">
+
+        <!-- Success Message -->
+        <template if:true={submitSuccess}>
+            <div class="success-banner">
+                <span class="success-check">✓</span>
+                Deferment Request submitted successfully!
+            </div>
+        </template>
+
+        <!-- Header -->
+        <div class="deferment-header">
+            Deferment Request
+        </div>
+
+        <!-- Reason for Deferment -->
+        <div class="field-block">
+            <label class="field-label">
+                Reason for Deferment
+                <span class="required-mark">*</span>
+            </label>
+
+            <textarea
+                class={reasonFieldClass}
+                placeholder="Enter your reason..."
+                value={reason}
+                onchange={handleReasonChange}>
+            </textarea>
+
+            <template if:true={reasonHasError}>
+                <p class="field-error">
+                    This field is required.
+                </p>
+            </template>
+        </div>
+
+        <!-- Documents to Support Request -->
+        <div class="field-block">
+            <label class="field-label">
+                Documents to support Request
+                <span class="required-mark">*</span>
+            </label>
+
+            <div class={documentsBoxClass}>
+
+                <p class="upload-title">
+                    Upload Document
+                </p>
+
+                <label class="upload-browse">
+                    Browse Files
+
+                    <input
+                        type="file"
+                        data-field="documents"
+                        accept=".pdf,.jpg,.jpeg"
+                        onchange={handleFileChange}
+                        class="upload-input"
+                    />
+                </label>
+
+                <p class="upload-hint">
+                    Must be .pdf, .jpg file and not exceeding
+                    <strong>15mb</strong> file size
+                </p>
+
+                <template if:true={documentsFile}>
+                    <p class="upload-filename">
+                        {documentsFile.name}
+                    </p>
+                </template>
+
+            </div>
+
+            <template if:true={documentsHasError}>
+                <p class="field-error">
+                    This field is required.
+                </p>
+            </template>
+        </div>
+
+        <!-- Approval Email -->
+        <div class="field-block">
+            <label class="field-label">
+                Approval Email (screenshot) with rejoining Condition
+                <span class="required-mark">*</span>
+            </label>
+
+            <div class={approvalEmailBoxClass}>
+
+                <p class="upload-title">
+                    Upload Document
+                </p>
+
+                <label class="upload-browse">
+                    Browse Files
+
+                    <input
+                        type="file"
+                        data-field="approvalEmail"
+                        accept=".pdf,.jpg,.jpeg"
+                        onchange={handleFileChange}
+                        class="upload-input"
+                    />
+                </label>
+
+                <p class="upload-hint">
+                    Must be .pdf, .jpg file and not exceeding
+                    <strong>15mb</strong> file size
+                </p>
+
+                <template if:true={approvalEmailFile}>
+                    <p class="upload-filename">
+                        {approvalEmailFile.name}
+                    </p>
+                </template>
+
+            </div>
+
+            <template if:true={approvalEmailHasError}>
+                <p class="field-error">
+                    This field is required.
+                </p>
+            </template>
+        </div>
+
+        <!-- Rejoining Condition Acceptance -->
+        <div class="field-block">
+            <label class="field-label">
+                Rejoining Condition Acceptance Email Screenshot
+                <span class="required-mark">*</span>
+            </label>
+
+            <div class={rejoiningAcceptanceBoxClass}>
+
+                <p class="upload-title">
+                    Upload Document
+                </p>
+
+                <label class="upload-browse">
+                    Browse Files
+
+                    <input
+                        type="file"
+                        data-field="rejoiningAcceptance"
+                        accept=".pdf,.jpg,.jpeg"
+                        onchange={handleFileChange}
+                        class="upload-input"
+                    />
+                </label>
+
+                <p class="upload-hint">
+                    Must be .pdf, .jpg file and not exceeding
+                    <strong>15mb</strong> file size
+                </p>
+
+                <template if:true={rejoiningAcceptanceFile}>
+                    <p class="upload-filename">
+                        {rejoiningAcceptanceFile.name}
+                    </p>
+                </template>
+
+            </div>
+
+            <template if:true={rejoiningAcceptanceHasError}>
+                <p class="field-error">
+                    This field is required.
+                </p>
+            </template>
+        </div>
+
+        <!-- Fees + Transaction Details -->
+        <div class="field-row">
+
+            <!-- Fees -->
+            <div class="field-block field-block_half">
+
+                <label class="field-label">
+                    Deferment Application fees
+                    <span class="required-mark">*</span>
+                </label>
+
+                <input
+                    type="text"
+                    class="fee-input"
+                    value={feesDisplay}
+                    readonly
+                />
+
+            </div>
+
+            <!-- Transaction Details -->
+            <div class="field-block field-block_half">
+
+                <label class="field-label">
+                    Transaction Details (Screenshot)
+                    <span class="required-mark">*</span>
+                </label>
+
+                <template if:true={isFeeApplicable}>
+
+                    <label class={transactionBoxClass}>
+
+                        <span class="transaction-placeholder">
+
+                            <template if:false={transactionFile}>
+                                Browse Files
+                            </template>
+
+                            <template if:true={transactionFile}>
+                                {transactionFile.name}
+                            </template>
+
+                        </span>
+
+                        <input
+                            type="file"
+                            data-field="transaction"
+                            accept=".pdf,.jpg,.jpeg"
+                            onchange={handleFileChange}
+                            class="upload-input"
+                        />
+
+                    </label>
+
+                </template>
+
+                <template if:false={isFeeApplicable}>
+
+                    <input
+                        type="text"
+                        class="fee-input"
+                        value="Not Applicable"
+                        readonly
+                    />
+
+                </template>
+
+                <template if:true={transactionHasError}>
+                    <p class="field-error">
+                        This field is required.
+                    </p>
+                </template>
+
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <button
+            type="button"
+            class="submit-btn"
+            onclick={handleSubmit}
+            disabled={isSubmitting}>
+            Submit
+        </button>
+
+    </div>
+</template>

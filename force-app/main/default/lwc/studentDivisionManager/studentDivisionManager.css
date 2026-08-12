@@ -15,3 +15,8 @@
     overflow-wrap: break-word;
     max-width: 100%;
 }
+
+/* "Preview - not yet saved" badge */
+:host .slds-badge.slds-theme_warning {
+    font-weight: 600;
+}

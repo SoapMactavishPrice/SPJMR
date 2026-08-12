@@ -1,0 +1,45 @@
+<template>
+    <div class="ss-page">
+
+        <h1 class="ss-page-title">Student Services</h1>
+
+        <c-spjimr_student-info-header></c-spjimr_student-info-header>
+
+        <!-- Tabs -->
+        <div class="ss-tabs" role="tablist">
+
+            <button
+                type="button"
+                class={withdrawalTabClass}
+                role="tab"
+                aria-selected={isWithdrawalActive}
+                onclick={handleWithdrawalClick}>
+                Withdrawal Request
+            </button>
+
+            <button
+                type="button"
+                class={defermentTabClass}
+                role="tab"
+                aria-selected={isDefermentActive}
+                onclick={handleDefermentClick}>
+                Deferment Request
+            </button>
+
+        </div>
+
+        <!-- Tab Content -->
+        <div class="ss-panel">
+
+         <!--   <template if:true={isWithdrawalActive}>
+                <c-spjimr_withdrawal-request></c-spjimr_withdrawal-request>
+            </template>-->
+
+            <template if:true={isDefermentActive}>
+                <c-spjimr_deferment-request></c-spjimr_deferment-request>
+            </template>
+
+        </div>
+
+    </div>
+</template>

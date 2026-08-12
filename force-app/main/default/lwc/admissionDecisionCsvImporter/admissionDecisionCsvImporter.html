@@ -1,0 +1,158 @@
+<template>
+    <lightning-card title="Admission Decision CSV Import">
+
+        <lightning-button
+            slot="actions"
+            label="Download Sample Header"
+            icon-name="utility:download"
+            onclick={downloadSampleHeader}>
+        </lightning-button>
+
+        <lightning-button
+            slot="actions"
+            class="slds-m-left_small"
+            label="Download Column Instructions"
+            icon-name="utility:info"
+            onclick={downloadColumnInstructions}>
+        </lightning-button>
+
+        <div class="slds-p-around_medium">
+
+            <a class="slds-hide" data-id="sample-download"></a>
+
+            <!-- File Requirements -->
+            <div class="guidance slds-text-body_small slds-m-bottom_medium" role="note">
+                <strong>File Requirements:</strong>
+                <ul class="slds-list_dotted slds-m-left_large">
+                    <li>
+                        <strong>Application Number</strong> and
+                        <strong>Admission Decision</strong> are mandatory.
+                    </li>
+
+                    <li>
+                        If Admission Decision is
+                        <strong>Waitlisted</strong>,
+                        <strong>Waitlist Number</strong> is mandatory.
+                    </li>
+
+                    <li>
+                        If Admission Decision is
+                        <strong>Eligible for Admission</strong>,
+                        all date fields are mandatory.
+                    </li>
+
+                    <li>
+                        If Admission Decision is
+                        <strong>Not Eligible</strong>,
+                        no additional fields are mandatory.
+                    </li>
+
+                    <li>
+                        Date format should be
+                        <strong>dd-mm-yyyy</strong>.
+                    </li>
+
+                    <li>
+                        Header names must match exactly.
+                    </li>
+
+                    <li>
+                        Header order can be changed.
+                    </li>
+
+                    <li>
+                        Additional columns are ignored.
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Upload -->
+
+            <lightning-input
+                type="file"
+                label="Upload CSV File"
+                accept=".csv"
+                onchange={handleFileUpload}
+                disabled={isLoading}>
+            </lightning-input>
+
+            <p class="slds-text-body_small slds-text-color_weak">
+                Upload files smaller than 9 MB.
+            </p>
+
+            <template if:true={fileName}>
+                <p class="slds-m-top_small">
+                    <strong>Selected File :</strong>
+                    {fileName}
+                </p>
+            </template>
+
+            <!-- Checkbox -->
+
+            <div class="slds-m-top_medium">
+
+                <lightning-input
+                    type="checkbox"
+                    label="Email Success/Error CSV"
+                    checked={emailReports}
+                    onchange={handleEmailReports}>
+                </lightning-input>
+
+            </div>
+
+            <!-- Start Import -->
+
+            <lightning-button
+                class="slds-m-top_medium"
+                variant="brand"
+                label="Start Import"
+                onclick={startImport}
+                disabled={disableImportButton}>
+            </lightning-button>
+
+            <!-- Spinner -->
+
+            <template if:true={isLoading}>
+                <div class="slds-m-top_medium">
+                    <lightning-spinner
+                        alternative-text="Importing..."
+                        size="medium">
+                    </lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Success CSV -->
+
+            <template if:true={successFiles.length}>
+                <div class="slds-m-top_large">
+                    <h3 class="slds-text-heading_small">
+                        Success CSV Files
+                    </h3>
+                    <template for:each={successFiles} for:item="file">
+                        <p key={file.documentId} class="slds-m-top_x-small">
+                            <a href={file.url} download> {file.name}</a>
+                        </p>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Error CSV -->
+
+            <template if:true={errorFiles.length}>
+                <div class="slds-m-top_large">
+                    <h3 class="slds-text-heading_small">
+                        Error CSV Files
+                    </h3>
+
+                    <template for:each={errorFiles} for:item="file">
+                        <p key={file.documentId} class="slds-m-top_x-small">
+                            <a href={file.url} download>
+                                {file.name}
+                            </a>
+                        </p>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

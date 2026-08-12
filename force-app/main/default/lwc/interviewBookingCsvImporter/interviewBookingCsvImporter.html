@@ -3,6 +3,9 @@
         <lightning-button slot="actions" label="Download Sample Header" icon-name="utility:download"
             onclick={downloadSampleHeader} disabled={isImportTypeUnselected}>
         </lightning-button>
+        <lightning-button slot="actions" label="Download Column Instructions" icon-name="utility:info"
+            onclick={downloadColumnInstructions} disabled={isImportTypeUnselected} style="margin-left:8px;">
+        </lightning-button>
 
         <div class="slds-p-around_medium">
             <a class="slds-hide" data-id="sample-download"></a>
@@ -34,7 +37,7 @@
                 </template>
 
                 <div class="slds-m-top_medium">
-                    <template if:true={showNotifyApplicants}>
+                    <!-- <template if:true={showNotifyApplicants}>
                         <lightning-input type="checkbox" label="Notify Applicants" checked={notifyApplicants}
                             onchange={handleCheckboxChange} data-field="notifyApplicants">
                         </lightning-input>
@@ -43,9 +46,9 @@
                         <lightning-input type="checkbox" label="Notify Interviewers" checked={notifyInterviewers}
                             onchange={handleCheckboxChange} data-field="notifyInterviewers">
                         </lightning-input>
-                    </template>
-                    <lightning-input type="checkbox" label="Email Error CSV" checked={emailErrorCsv}
-                        onchange={handleCheckboxChange} data-field="emailErrorCsv">
+                    </template> -->
+                    <lightning-input type="checkbox" label="Email Success/Error CSV" checked={emailReports}
+                        onchange={handleCheckboxChange} data-field="emailReports">
                     </lightning-input>
                 </div>
 
@@ -58,10 +61,26 @@
                 <div class="slds-m-top_medium"><lightning-spinner alternative-text="Processing CSV"></lightning-spinner></div>
             </template>
 
-            <template if:true={errorFile}>
-                <p class="slds-m-top_medium">
-                    <a href={errorFile.url} target="_blank">Download generated error CSV</a>
-                </p>
+            <template if:true={successFiles.length}>
+                <div class="slds-m-top_medium">
+                    <h3 class="slds-text-heading_small">Success CSV Files</h3>
+                    <template for:each={successFiles} for:item="file">
+                        <p key={file.documentId} class="slds-m-top_x-small">
+                            <a href={file.url} target="_blank">{file.name}</a>
+                        </p>
+                    </template>
+                </div>
+            </template>
+
+            <template if:true={errorFiles.length}>
+                <div class="slds-m-top_medium">
+                    <h3 class="slds-text-heading_small">Error CSV Files</h3>
+                    <template for:each={errorFiles} for:item="file">
+                        <p key={file.documentId} class="slds-m-top_x-small">
+                            <a href={file.url} target="_blank">{file.name}</a>
+                        </p>
+                    </template>
+                </div>
             </template>
         </div>
     </lightning-card>

@@ -7,13 +7,20 @@
             onclick={downloadSampleHeader}>
         </lightning-button>
 
+        <lightning-button
+            slot="actions"
+            label="Download Column Instructions"
+            icon-name="utility:info"
+            onclick={downloadColumnInstructions}>
+        </lightning-button>
+
         <div class="container">
             <a class="slds-hide" data-id="sample-header-download"></a>
 
             <div class="import-guidance slds-text-body_small" role="note">
-                <strong>File requirements:</strong> <code>SlotCode</code>, <code>Program Master</code>,
-                <code>SlotDate</code>, <code>Slot Start Time</code>, and <code>Capacity</code> are mandatory.
-                <code> Slot End Time</code> and <code>Location Master</code> are optional. The CSV header names
+                <strong>File requirements:</strong> <code>Program Code</code>, <code>Location Code</code>,
+                <code>Slot Code</code>, <code>Capacity</code>, <code>Slot Date</code>, and
+                <code>Slot Start Time</code> are mandatory. <code>Slot End Time</code> is optional. The CSV header names
                 must match exactly; additional columns are ignored.
             </div>
 

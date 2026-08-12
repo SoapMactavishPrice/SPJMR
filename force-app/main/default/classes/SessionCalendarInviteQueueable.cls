@@ -12,6 +12,14 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
 
     private Boolean suppressNotifications;
 
+    /**
+     * When true this job may only PATCH an event that already exists; a session with a blank
+     * Google_Event_Id__c is skipped instead of created. Used by the related-record path
+     * (division / faculty / enrolment changes) so those objects cannot publish an unsynced
+     * session — or resurrect a just-cancelled one — as a side effect.
+     */
+    private Boolean patchOnly;
+
     public SessionCalendarInviteQueueable(Set<Id> publishSessionIds, Set<Id> draftSessionIds) {
         this(publishSessionIds, draftSessionIds, null, false);
     }
@@ -30,11 +38,22 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         Map<Id, String> cancelEventIdsBySession,
         Boolean suppressNotifications
     ) {
+        this(publishSessionIds, draftSessionIds, cancelEventIdsBySession, suppressNotifications, false);
+    }
+
+    public SessionCalendarInviteQueueable(
+        Set<Id> publishSessionIds,
+        Set<Id> draftSessionIds,
+        Map<Id, String> cancelEventIdsBySession,
+        Boolean suppressNotifications,
+        Boolean patchOnly
+    ) {
         this.publishSessionIds        = (publishSessionIds != null) ? publishSessionIds : new Set<Id>();
         this.draftSessionIds          = (draftSessionIds   != null) ? draftSessionIds   : new Set<Id>();
         this.cancelEventIdsBySession  = (cancelEventIdsBySession != null)
             ? cancelEventIdsBySession : new Map<Id, String>();
         this.suppressNotifications    = (suppressNotifications == true);
+        this.patchOnly                = (patchOnly == true);
     }
 
     public void execute(QueueableContext qc) {
@@ -115,6 +134,21 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         for (Id sessionId : sessions.keySet()) {
             Session__c s = sessions.get(sessionId);
 
+            // Related-record pushes may only update an event that already exists. Skipping
+            // silently (no Failed stamp) is correct here: an unsynced session is not an error,
+            // it simply has no Google event for a division/faculty/enrolment change to update.
+            if (patchOnly && String.isBlank(s.Google_Event_Id__c)) {
+                continue;
+            }
+
+            // Guests: faculty always; students only when Published/Republished path.
+            //
+            // Create/Publish + No  → guests attached (faculty calendar) + sendUpdates=none
+            //   so no invite emails. Create/Publish + Yes → same guest rules +
+            //   sendUpdates=all. When Google_Event_Id__c already exists we PATCH the
+            //   same event (never delete+create) so existing guests get "Updated
+            //   invitation" and newly added guests (e.g. students on first publish)
+            //   get a new "Invitation".
             Set<String> attendees = new Set<String>();
             if (facultyBySession.containsKey(sessionId)) {
                 attendees.addAll(facultyBySession.get(sessionId));
@@ -125,15 +159,20 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
             attendees.remove(null);
             attendees.remove('');
 
-            if (attendees.isEmpty() || s.Start_Time__c == null || s.End_Time__c == null) {
-
-                String why = (s.Start_Time__c == null || s.End_Time__c == null)
-                    ? 'Session is missing Start_Time__c / End_Time__c.'
-                    : 'No attendees with a valid email were found for this session.';
+            if (s.Start_Time__c == null || s.End_Time__c == null) {
                 toUpdate.put(sessionId, new Session__c(
                     Id = sessionId,
                     Calendar_Sync_Status__c = STATUS_FAILED,
-                    Calendar_Sync_Error__c  = why
+                    Calendar_Sync_Error__c  = 'Session is missing Start_Time__c / End_Time__c.'
+                ));
+                continue;
+            }
+
+            if (attendees.isEmpty()) {
+                toUpdate.put(sessionId, new Session__c(
+                    Id = sessionId,
+                    Calendar_Sync_Status__c = STATUS_FAILED,
+                    Calendar_Sync_Error__c  = 'No attendees with a valid email were found for this session.'
                 ));
                 continue;
             }
@@ -145,8 +184,11 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
                 String sendUpdates = suppressNotifications
                     ? GoogleCalendarService.SEND_UPDATES_NONE
                     : GoogleCalendarService.SEND_UPDATES_ALL;
+
                 GoogleCalendarService.GoogleCalendarResponse resp = isUpdate
-                    ? GoogleCalendarHelper.updateEventWithStoredCredentials(s.Google_Event_Id__c, ev, sendUpdates)
+                    ? GoogleCalendarHelper.updateEventWithStoredCredentials(
+                        s.Google_Event_Id__c, ev, sendUpdates
+                    )
                     : GoogleCalendarHelper.createEventWithStoredCredentials(ev, sendUpdates);
 
                 Session__c upd = new Session__c(Id = sessionId);
@@ -239,6 +281,15 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         }
 
         List<String> detailLines = new List<String>();
+        // Schedule state is part of the event body on purpose. Google only emails a guest when
+        // the event genuinely changed for them, so without this line a Draft -> Published PATCH
+        // (which only appends students to the guest list, and deliberately re-sends existing
+        // guests with their unchanged responseStatus) is a no-op for the faculty already on the
+        // event and they receive nothing. With it, publishing is a real change and faculty get
+        // the "Updated invitation" the business expects. It is also genuinely useful to read.
+        if (String.isNotBlank(s.Schedule_Type__c)) {
+            detailLines.add('Status: ' + s.Schedule_Type__c);
+        }
         if (String.isNotBlank(programmeCode)) {
             detailLines.add('Programme: ' + programmeCode);
         }

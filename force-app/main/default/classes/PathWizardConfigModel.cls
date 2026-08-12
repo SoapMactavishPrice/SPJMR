@@ -3,7 +3,7 @@
  */
 public with sharing class PathWizardConfigModel {
     public String developerName { get; set; }
-    public String objectApiName { get; set; }
+    public String objectApiName { get; set; } 
     public String pathFieldApiName { get; set; }
     public String dependencyFieldApiName { get; set; }
     public String recordTypeDeveloperName { get; set; }

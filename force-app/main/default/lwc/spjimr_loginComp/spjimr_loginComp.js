@@ -112,10 +112,8 @@ export default class SpjimrLoginComp extends LightningElement {
     }
     handleGoogleLogin() {
 
-      /*  window.location.href =
-            '/student/services/auth/sso/Google';*/
-      window.location.href =
-    `${STUDENT_PORTAL_PATH}/services/auth/sso/Google`;      
+        window.location.href =
+            '/student/services/auth/sso/Google';     
     }
 
     // async handleSubmit(event) {

@@ -78,6 +78,17 @@ private class ConfigurablePathUiModelTest {
             new ConfigurablePathUiModel.ProgramSubStatusSaveItem();
         saveItem.leadProgramId = 'a01000000000001AAA';
         saveItem.subStatusValue = 'Qualified';
+        
+         ConfigurablePathDependencyOptionsResult s = new ConfigurablePathDependencyOptionsResult();
+        s.loadOk=true;        
+        s.loadErrorMessage = 'None';
+        List<ConfigurablePathUiModel.OptionRow> options = new  List<ConfigurablePathUiModel.OptionRow>();
+        s.options = options;
+        s.usePerProgramLayout = true;
+        List<ConfigurablePathUiModel.LeadProgramSubStatusBlock> programContexts = new List<ConfigurablePathUiModel.LeadProgramSubStatusBlock>();
+        s.programContexts = programContexts;
+        
+        system.assert(s!=null);
 
         System.assert(model.loadOk);
         System.assertEquals('Error', model.loadErrorMessage);

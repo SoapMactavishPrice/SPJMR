@@ -8,13 +8,23 @@ import startImport from '@salesforce/apex/ImportSlotMaster.startImport';
 const PLATFORM_EVENT_CHANNEL = '/event/AdmissionConsoleEvent__e';
 const IMPORT_INTENT = 'SlotMasterImport';
 const SAMPLE_HEADERS = [
-    'SlotCode',
-    'Program Master',
-    'SlotDate',
-    'Slot Start Time',
+    'Program Code',
+    'Location Code',
+    'Slot Code',
     'Capacity',
-    'Slot End Time',
-    'Location Master'
+    'Slot Date',
+    'Slot Start Time',
+    'Slot End Time'
+];
+
+const INSTRUCTIONS = [
+    ['Program Code', 'Yes', 'Existing Program.Program_Code__c', 'Enter an existing Program Code. Example: PGPM.'],
+    ['Location Code', 'Yes', 'Existing LocationMaster__c.Name', 'Enter an existing Location Code. Example: L-001.'],
+    ['Slot Code', 'Yes', 'Text', 'Enter a unique Slot Code. Example: S-001. This is stored in SlotMaster__c.Name.'],
+    ['Capacity', 'Yes', 'Whole Number', 'Enter the maximum number of applicants that can be booked for the slot. Example: 25. Decimal values are not allowed.'],
+    ['Slot Date', 'Yes', 'dd-MM-yyyy', 'Enter the slot date in dd-MM-yyyy format. Example: 15-08-2026.'],
+    ['Slot Start Time', 'Yes', 'HH:mm (24-hour format)', 'Enter the slot start time in 24-hour format. Example: 09:30 or 14:00.'],
+    ['Slot End Time', 'No', 'HH:mm (24-hour format)', 'Optional. If provided, enter the slot end time. Example: 10:30.']
 ];
 
 export default class SlotMasterCsvUploader extends LightningElement {
@@ -71,10 +81,16 @@ export default class SlotMasterCsvUploader extends LightningElement {
         this.generatedFiles = [];
 
         if (message.hasErrors) {
+            // this.generatedFiles = [{
+            //     fileName: message.fileName,
+            //     contentDocumentId: message.contentDocumentId,
+            //     url: `/lightning/r/ContentDocument/${message.contentDocumentId}/view`
+            // }];
             this.generatedFiles = [{
                 fileName: message.fileName,
                 contentDocumentId: message.contentDocumentId,
-                url: `/lightning/r/ContentDocument/${message.contentDocumentId}/view`
+                contentVersionId: message.contentVersionId,
+                url: `/sfc/servlet.shepherd/version/download/${message.contentVersionId}`
             }];
             this.showSuccess('Import completed. Error CSV has been generated.');
             return;
@@ -97,10 +113,29 @@ export default class SlotMasterCsvUploader extends LightningElement {
         reader.readAsText(file, 'UTF-8');
     }
 
+    // downloadSampleHeader() {
+    //     const downloadLink = this.template.querySelector('[data-id="sample-header-download"]');
+    //     downloadLink.href = `data:text/csv;charset=utf-8,${encodeURIComponent(`${SAMPLE_HEADERS.join(',')}\n`)}`;
+    //     downloadLink.download = 'SlotMaster_Import_Sample_Header.csv';
+    //     downloadLink.click();
+    // }
     downloadSampleHeader() {
+        this.downloadCsv(
+            'SlotMaster_Import_Sample_Header.csv',
+            [SAMPLE_HEADERS.join(',')]
+        );
+    }
+
+    downloadColumnInstructions() {
+        const rows = [ 'Column Name,Mandatory,Format / Value to Enter,Description / Validation' ];
+        INSTRUCTIONS.forEach(row => { rows.push( row.map(value => `"${value.replace(/"/g, '""')}"`).join(',')); });
+        this.downloadCsv('SlotMaster_Import_Column_Instructions.csv', rows);
+    }
+
+    downloadCsv(fileName, rows) {
         const downloadLink = this.template.querySelector('[data-id="sample-header-download"]');
-        downloadLink.href = `data:text/csv;charset=utf-8,${encodeURIComponent(`${SAMPLE_HEADERS.join(',')}\n`)}`;
-        downloadLink.download = 'SlotMaster_Import_Sample_Header.csv';
+        downloadLink.href = `data:text/csv;charset=utf-8,${encodeURIComponent(rows.join('\n') + '\n')}`;
+        downloadLink.download = fileName;
         downloadLink.click();
     }
 

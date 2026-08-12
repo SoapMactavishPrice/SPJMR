@@ -10,14 +10,64 @@
             </template>
 
             <template if:false={loadError}>
+                
                 <template if:true={formModel}>
+                    
                     <div class="prf-header slds-text-align_center slds-m-bottom_medium">
                         <h1 class="prf-title">{pageTitle}</h1>
                         <template if:true={pageSubtitle}>
                             <p class="prf-subtitle">{pageSubtitle}</p>
                         </template>
                     </div>
+                    <template if:true={showAlreadyRegistered}>
+                        <template lwc:if={isLead}>
+                            <div
+                                class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_medium"
+                                role="alert"
+                            >
+                                <span class="slds-assistive-text">Warning</span>
 
+                                <div class="slds-notify__content">
+                                    <h2 class="slds-text-heading_small">
+                                        Already Registered
+                                    </h2>
+
+                                    <p class="slds-m-top_x-small">
+                                        Your email ID is already registered with us. 
+                                        <button
+                                            type="button"
+                                            class="slds-button slds-button_reset slds-text-link"
+                                            onclick={handleResendVerification}
+                                            disabled={isResendingVerification}
+                                        >
+                                            Click here
+                                        </button>
+                                        to receive your credentials email and proceed with your application.
+                                    </p>
+                                </div>
+                            </div>
+                            </template>
+                        <template lwc:elseif={isAccount}>
+                                <div
+                                class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_medium"
+                                role="alert"
+                            >
+                                <span class="slds-assistive-text">Warning</span>
+
+                                <div class="slds-notify__content">
+                                    <h2 class="slds-text-heading_small">
+                                        Already Registered
+                                    </h2>
+
+                                    <p class="slds-m-top_x-small">
+                                        Your email ID is already registered with us. 
+                                        
+                                        Please login to proceed with your application.
+                                    </p>
+                                </div>
+                            </div>
+                        </template>
+                        </template>
                     <form class="prf-form" onsubmit={handleRegister}>
                        
                         <template for:each={displayRowsWithoutConsent} for:item="row">

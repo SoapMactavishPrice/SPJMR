@@ -1,6 +1,6 @@
 /**
  * @description Unit tests for GoogleCalendarHelper config/credential accessors
- *              and the stored-credential event entry points.
+ *              and the stored-credential event entry pointshjk.
  */
 @IsTest
 private class GoogleCalendarHelperTest {

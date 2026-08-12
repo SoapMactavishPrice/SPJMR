@@ -1,0 +1,54 @@
+<template>
+    <lightning-quick-action-panel header="Break in Study">
+
+        <div class="slds-p-around_medium">
+
+            <lightning-input
+                type="datetime"
+                label="Break Start Date & Time"
+                value={startDate}
+                onchange={handleStartDateChange}
+                required>
+            </lightning-input>
+
+            <lightning-input
+                class="slds-m-top_medium"
+                type="datetime"
+                label="Break End Date & Time"
+                value={endDate}
+                onchange={handleEndDateChange}
+                required>
+            </lightning-input>
+
+            <lightning-input
+                class="slds-m-top_medium"
+                type="number"
+                label="Deferment Application Fee"
+                value={fee}
+                step="0.01"
+                min="0"
+                onchange={handleFeeChange}
+                required>
+            </lightning-input>
+
+        </div>
+
+        <div slot="footer">
+
+            <lightning-button
+                label="Cancel"
+                onclick={handleCancel}>
+            </lightning-button>
+
+            <lightning-button
+                class="slds-m-left_small"
+                variant="brand"
+                label="Save"
+                onclick={handleSave}
+                disabled={isLoading}>
+            </lightning-button>
+
+        </div>
+
+    </lightning-quick-action-panel>
+</template>

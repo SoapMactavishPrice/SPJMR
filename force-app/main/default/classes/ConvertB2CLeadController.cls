@@ -183,7 +183,7 @@ private static ConversionResult handleLeadConversionFailure(
         try {
             Lead leadRecord = [
                 SELECT Id, FirstName, LastName, Email, Phone, Status, IsConverted,
-                       Company, LeadSource, Date_Of_Birth__c, XS_Age__c,
+                       Company, LeadSource, Date_Of_Birth__c, XS_Age__c,AlternateContactNumber__c,
                        XS_YearsOfWorkExperience__c, XS_EntranceExamName__c,
                        XS_DoYouHaveEntranceExamScore__c, Publisher_Name__c,
                        XS_HowDidYouFindOutAboutUs__c, Street, City, State, PostalCode, Country,
@@ -247,6 +247,7 @@ private static ConversionResult handleLeadConversionFailure(
             Account accRecordType = new Account(
                 Id = lcr.getAccountId(),
                 RecordTypeId = applicantRtId
+                //PersonOtherPhone=leadRecord.AlternateContactNumber__c
             );
             update accRecordType;
             

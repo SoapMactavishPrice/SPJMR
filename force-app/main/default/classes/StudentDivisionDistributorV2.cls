@@ -1,3 +1,9 @@
+/*
+ * Distributes unassigned students into a Term's active "Fundamental"
+ * divisions (A, B, C, ...) so that each division ends up with a roughly
+ * equal mix of gender, Major specialisation, Work-Experience bucket, and
+ * Educational Background (Technical/Non-Technical).*/
+
 public with sharing class StudentDivisionDistributorV2 {
   /* ================= CONSTANTS ================= */
   private static final String MALE = 'Male';
@@ -6,26 +12,31 @@ public with sharing class StudentDivisionDistributorV2 {
   private static final String NON_TECH = 'Non Technical';
   private static final Integer GENDER_TOLERANCE = 5;
   private static final Decimal EXP_TOLERANCE = 6.0;
+  // Sentinel "remaining capacity" for a division with no Capacity__c set.
+  private static final Integer UNCAPPED = 999999;
 
-  // Scoring weights for distribution algorithm
-  private static final Decimal GENDER_WEIGHT = 30;
-  private static final Decimal EXP_WEIGHT = 25;
-  private static final Decimal GRAD_TYPE_WEIGHT = 15;
-  private static final Decimal SPECIALISATION_WEIGHT = 20;
-  private static final Decimal TOTAL_WEIGHT = 10;
+  // Specialisation sort order for Step 3 of the allocation process
+  // (Fin -> IM -> Mkt -> OSC). Anything not in this list sorts after these
+  // four, alphabetically among themselves.
+  private static final List<String> SPEC_ORDER = new List<String>{
+    'FIN', 'IM', 'MKT', 'OSC'
+  };
 
   /* ================= INTERNAL MODELS ================= */
 
   private class Student {
     Id enrollmentId;
+    String studentName;
     String gender;
     String gradType;
     Decimal workExp;
+    Integer weBucket;
     Id specialisationId;
     String specialisationName;
 
     public Student(
       Id enrollmentId,
+      String studentName,
       String gender,
       String gradType,
       Decimal workExp,
@@ -33,14 +44,39 @@ public with sharing class StudentDivisionDistributorV2 {
       String specialisationName
     ) {
       this.enrollmentId = enrollmentId;
+      this.studentName = studentName != null ? studentName : '';
       this.gender = gender != null ? gender : '';
       this.gradType = gradType != null ? gradType : '';
       this.workExp = workExp != null ? workExp : 0;
+      this.weBucket = StudentDivisionDistributorV2.computeWeBucket(this.workExp);
       this.specialisationId = specialisationId;
       this.specialisationName = specialisationName != null ? specialisationName : '';
     }
   }
 
+  // Work-Experience bucket per the process document (Step 4):
+  //   0-1 yr = 0, >1-2 yr = 1, >2-3 yr = 2, >3 yr = 3
+  private static Integer computeWeBucket(Decimal years) {
+    Decimal yrs = years != null ? years : 0;
+    if (yrs <= 1) {
+      return 0;
+    }
+    if (yrs <= 2) {
+      return 1;
+    }
+    if (yrs <= 3) {
+      return 2;
+    }
+    return 3;
+  }
+
+  // Wraps loadStudents() output so the specialisation-name lookup built while
+  // querying is available to the caller for building preview DTOs later,
+  // without re-querying it.
+  private class StudentLoadResult {
+    List<Student> students;
+    Map<Id, String> specialisationIdToName;
+  }
   private class DivisionState {
     Id divisionId;
     Integer total = 0;
@@ -51,6 +87,7 @@ public with sharing class StudentDivisionDistributorV2 {
     Decimal maleExpTotal = 0;
     Decimal femaleExpTotal = 0;
     Map<Id, Integer> specialisationCount = new Map<Id, Integer>();
+    Map<Integer, Integer> weBucketCount = new Map<Integer, Integer>();
 
     public Decimal getAvgMaleExp() {
       return male > 0 ? maleExpTotal / male : 0;
@@ -58,10 +95,6 @@ public with sharing class StudentDivisionDistributorV2 {
 
     public Decimal getAvgFemaleExp() {
       return female > 0 ? femaleExpTotal / female : 0;
-    }
-
-    public Integer getSpecialisationCount(Id specId) {
-      return specialisationCount.containsKey(specId) ? specialisationCount.get(specId) : 0;
     }
 
     public void addStudent(Student s) {
@@ -85,6 +118,10 @@ public with sharing class StudentDivisionDistributorV2 {
           ? specialisationCount.get(s.specialisationId) : 0;
         specialisationCount.put(s.specialisationId, currentCount + 1);
       }
+
+      Integer currentWeCount = weBucketCount.containsKey(s.weBucket)
+        ? weBucketCount.get(s.weBucket) : 0;
+      weBucketCount.put(s.weBucket, currentWeCount + 1);
     }
   }
 
@@ -93,6 +130,10 @@ public with sharing class StudentDivisionDistributorV2 {
   public class DivisionDTO {
     @AuraEnabled
     public Id divisionId;
+    // Record auto-number (Division__c.Name), e.g. "DIV-1562".
+    @AuraEnabled
+    public String divisionAutoNumber;
+    // Short display label (Division__c.Division_Name__c), e.g. "A".
     @AuraEnabled
     public String divisionName;
     @AuraEnabled
@@ -111,6 +152,9 @@ public with sharing class StudentDivisionDistributorV2 {
     public Decimal avgFemaleExp;
     @AuraEnabled
     public Map<String, Integer> specialisationCounts;
+    // Work-experience bucket counts, keyed "0".."3" per computeWeBucket().
+    @AuraEnabled
+    public Map<String, Integer> weBucketCounts;
   }
 
   public class ValidationResult {
@@ -124,12 +168,45 @@ public with sharing class StudentDivisionDistributorV2 {
     public List<String> warnings;
   }
 
-  /* ================= MAIN DISTRIBUTION METHOD ================= */
+  // Explicit outcome of confirmDistribution, returned instead of thrown so
+  // the client always gets a clear success/failure signal plus the exact
+  // DML error(s) if a save failed - rather than a generic caught exception.
+  public class ConfirmResult {
+    @AuraEnabled
+    public Boolean success;
+    @AuraEnabled
+    public String message;
+    @AuraEnabled
+    public Integer savedCount;
+    @AuraEnabled
+    public List<String> errors;
+  }
+
+  // Result of running the algorithm WITHOUT committing anything. Carries both
+  // the computed division stats (for display) and the raw assignments (to be
+  // sent back to confirmDistribution if the user approves). Assignments are
+  // a plain enrollmentId -> divisionId map (NOT a List of a custom wrapper
+  // type) - Maps of primitive/Id keys and values round-trip reliably through
+  // the LWC<->Apex wire; a List<CustomType> is far more prone to silently
+  // losing field values on the way back from the client.
+  public class PreviewResult {
+    @AuraEnabled
+    public Boolean isValid;
+    @AuraEnabled
+    public String message;
+    @AuraEnabled
+    public List<DivisionDTO> divisions;
+    @AuraEnabled
+    public List<String> warnings;
+    @AuraEnabled
+    public Map<Id, Id> assignments;
+  }
+
+  /* ================= PREVIEW (no DML) ================= */
 
   @AuraEnabled
-  public static void distribute(Id termId) {
+  public static PreviewResult previewDistribution(Id termId) {
     try {
-      // Load divisions and students
       List<Division__c> divisions = loadActiveDivisions(termId);
       if (divisions.isEmpty()) {
         throw new DistributionException(
@@ -137,7 +214,8 @@ public with sharing class StudentDivisionDistributorV2 {
         );
       }
 
-      List<Student> students = loadStudents(termId);
+      StudentLoadResult loadResult = loadStudents(termId);
+      List<Student> students = loadResult.students;
       if (students.isEmpty()) {
         throw new DistributionException(
           'No unassigned students found for this term'
@@ -147,127 +225,227 @@ public with sharing class StudentDivisionDistributorV2 {
       // Initialize division states
       Map<Id, DivisionState> stateMap = initializeDivisionStates(divisions);
 
-      // Execute distribution algorithm with rules in sequence
+      // Remaining capacity per division BEFORE this preview: Capacity__c
+      // minus enrollments already committed for this term. Divisions with a
+      // null Capacity__c are treated as uncapped. This is passed into the
+      // algorithm itself so a full division is skipped live, rather than
+      // discovered only after the fact.
+      Map<Id, Integer> existingCounts = loadExistingEnrollmentCounts(termId, stateMap.keySet());
+      Map<Id, Integer> remainingCapacity = new Map<Id, Integer>();
+      for (Division__c d : divisions) {
+        Integer existing = existingCounts.containsKey(d.Id) ? existingCounts.get(d.Id) : 0;
+        Integer capacity = d.Capacity__c != null ? d.Capacity__c.intValue() : UNCAPPED;
+        remainingCapacity.put(d.Id, capacity - existing);
+      }
+
+      List<String> capacityWarnings = new List<String>();
+
+      // Execute distribution algorithm. This only mutates the in-memory
+      // stateMap/assignments below - nothing is written to the database at
+      // this point. Divisions that are already full (or that fill up mid-
+      // pass) are skipped; capacityWarnings records exactly which ones.
       Map<Id, Id> assignments = executeDistribution(
         students,
         divisions,
-        stateMap
+        stateMap,
+        remainingCapacity,
+        capacityWarnings
       );
 
-      // Validate and commit assignments
       if (assignments.isEmpty()) {
         throw new DistributionException(
-          'Distribution algorithm failed to assign students'
+          'Division capacity reached. Allocation cannot be completed.'
         );
       }
 
-      updateEnrollments(assignments);
+      PreviewResult result = new PreviewResult();
+      result.divisions = buildDivisionDTOsFromState(
+        divisions,
+        stateMap,
+        loadResult.specialisationIdToName
+      );
+      result.assignments = assignments;
+
+      Map<Id, DivisionDTO> divisionMap = new Map<Id, DivisionDTO>();
+      for (DivisionDTO dto : result.divisions) {
+        divisionMap.put(dto.divisionId, dto);
+      }
+
+      ValidationResult vr = new ValidationResult();
+      vr.warnings = new List<String>();
+      vr.isValid = true;
+      validateConstraints(divisionMap, vr);
+
+      // A capacity-driven skip isn't a balance-rule violation, but not every
+      // student getting placed IS a real problem - flag both explicitly.
+      Boolean allStudentsPlaced = assignments.size() == students.size();
+
+      result.warnings = vr.warnings;
+      result.warnings.addAll(capacityWarnings);
+      result.isValid = vr.isValid && allStudentsPlaced;
+
+      if (!allStudentsPlaced) {
+        result.message = 'Preview generated, but not every student could be placed - see warnings below.';
+      } else if (!capacityWarnings.isEmpty()) {
+        result.message = 'Preview generated. One or more divisions reached capacity - see warnings below.';
+      } else if (result.isValid) {
+        result.message = 'Preview generated. Review the proposed allocation below, then confirm to save it.';
+      } else {
+        result.message = 'Preview generated with warnings. Review before confirming.';
+      }
+
+      return result;
     } catch (Exception e) {
-      throw new AuraHandledException('Distribution failed: ' + e.getMessage());
+      throw new AuraHandledException('Preview failed: ' + e.getMessage());
     }
   }
 
+  /* ================= CONFIRM (commits a previewed allocation) ================= */
+
+  @AuraEnabled
+  public static ConfirmResult confirmDistribution(Map<Id, Id> assignments) {
+    if (assignments == null || assignments.isEmpty()) {
+      return failedConfirm('No assignments to confirm');
+    }
+
+    Map<Id, Id> assignmentMap = new Map<Id, Id>();
+    for (Id enrollmentId : assignments.keySet()) {
+      Id divisionId = assignments.get(enrollmentId);
+      if (enrollmentId != null && divisionId != null) {
+        assignmentMap.put(enrollmentId, divisionId);
+      }
+    }
+
+    if (assignmentMap.isEmpty()) {
+      return failedConfirm('No valid assignments to confirm');
+    }
+
+    return updateEnrollments(assignmentMap);
+  }
+
+  private static ConfirmResult failedConfirm(String message) {
+    ConfirmResult result = new ConfirmResult();
+    result.success = false;
+    result.savedCount = 0;
+    result.errors = new List<String>{ message };
+    result.message = message;
+    return result;
+  }
+
   /* ================= CORE DISTRIBUTION ALGORITHM ================= */
-  /* Rules Applied in Sequence:
-   * 1. Gender Balance: Same number of Males & Females across divisions (±5)
-   * 2. Work Experience: Average work exp same across divisions by gender (±6)
-   * 3. Graduation Type: Equal distribution of Tech/Non-Tech students
-   * 4. Specialisation Balance: Equal distribution within each Major specialisation across divisions (±5)
-   *    Note: Only Major specialisation type is considered for balancing
+  /* Allocation process (per the SPJIMR division-allocation process document):
+   *   1. Sort ALL unassigned students once by:
+   *        Gender (Male, then Female)
+   *        -> Specialisation (Fin, IM, Mkt, OSC; SPEC_ORDER)
+   *        -> Work-Experience bucket (0-1yr=0, >1-2yr=1, >2-3yr=2, >3yr=3)
+   *        -> Educational Background (Technical, then Non-Technical)
+   *        -> Name (alphabetical - stable, deterministic tiebreak)
+   *   2. Walk that sorted list once, allocating sequentially: A -> B -> C ->
+   *      repeat, across whichever divisions are active for the term.
+   *
+   * A single continuous round-robin over a sorted list always splits any
+   * contiguous run (i.e. any one combination of gender/spec/WE-bucket/edu)
+   * within +/-1 of even across the divisions, regardless of where in the
+   * A/B/C cycle that run happens to start. So this one sort + one pass keeps
+   * gender, specialisation, WE bucket, and grad type balanced everywhere
+   * without needing per-group scoring, swaps, or optimization passes.
    */
 
   private static Map<Id, Id> executeDistribution(
     List<Student> students,
     List<Division__c> divisions,
-    Map<Id, DivisionState> stateMap
+    Map<Id, DivisionState> stateMap,
+    Map<Id, Integer> remainingCapacity,
+    List<String> capacityWarnings
   ) {
     Map<Id, Id> assignments = new Map<Id, Id>();
-    DistributionTargets targets = calculateTargets(students, divisions.size());
 
-    // Separate students by gender AND graduation type for better balance
-    List<Student> maleTech = new List<Student>();
-    List<Student> maleNonTech = new List<Student>();
-    List<Student> maleOther = new List<Student>();
-    List<Student> femaleTech = new List<Student>();
-    List<Student> femaleNonTech = new List<Student>();
-    List<Student> femaleOther = new List<Student>();
-    List<Student> others = new List<Student>();
+    List<Student> sortedStudents = new List<Student>(students);
+    sortedStudents.sort(new StudentAllocationComparator());
 
-    for (Student s : students) {
-      if (s.gender == MALE) {
-        if (s.gradType == TECH) {
-          maleTech.add(s);
-        } else if (s.gradType == NON_TECH) {
-          maleNonTech.add(s);
-        } else {
-          maleOther.add(s);
-        }
-      } else if (s.gender == FEMALE) {
-        if (s.gradType == TECH) {
-          femaleTech.add(s);
-        } else if (s.gradType == NON_TECH) {
-          femaleNonTech.add(s);
-        } else {
-          femaleOther.add(s);
-        }
-      } else {
-        others.add(s);
-      }
-    }
-
-    // Sort by work experience for balanced distribution
-    maleTech.sort(new StudentWorkExpComparator());
-    maleNonTech.sort(new StudentWorkExpComparator());
-    maleOther.sort(new StudentWorkExpComparator());
-    femaleTech.sort(new StudentWorkExpComparator());
-    femaleNonTech.sort(new StudentWorkExpComparator());
-    femaleOther.sort(new StudentWorkExpComparator());
-
-    // Distribute each group separately using snake draft
-    // This ensures both gender and graduation type are balanced
-    distributeBySnakeDraft(maleTech, divisions, stateMap, assignments);
-    distributeBySnakeDraft(maleNonTech, divisions, stateMap, assignments);
-    distributeBySnakeDraft(maleOther, divisions, stateMap, assignments);
-    distributeBySnakeDraft(femaleTech, divisions, stateMap, assignments);
-    distributeBySnakeDraft(femaleNonTech, divisions, stateMap, assignments);
-    distributeBySnakeDraft(femaleOther, divisions, stateMap, assignments);
-
-    // Distribute others using scoring
-    for (Student s : others) {
-      Id bestDivision = findBestDivisionByScore(s, divisions, stateMap, targets);
-      assignments.put(s.enrollmentId, bestDivision);
-      stateMap.get(bestDivision).addStudent(s);
-    }
-
-    // Fine-tune graduation type balance
-    optimizeGraduationBalance(students, divisions, stateMap, assignments, targets);
-    
-    // Specialisation balance optimization
-    optimizeSpecialisationBalance(students, divisions, stateMap, assignments, targets);
+    distributeSequentially(sortedStudents, divisions, stateMap, assignments, remainingCapacity, capacityWarnings);
 
     return assignments;
   }
 
-  private static void distributeBySnakeDraft(
+  // Sequential (round-robin) allocation: A -> B -> C -> A -> B -> C ...,
+  // skipping any division whose remaining capacity has hit zero rather than
+  // allocating past it. remainingCapacity is decremented in place as
+  // students are placed, and capacityWarnings collects a one-time notice for
+  // every division that turns out to be full (whether it started that way
+  // or filled up partway through this pass).
+  private static void distributeSequentially(
     List<Student> studentList,
     List<Division__c> divisions,
     Map<Id, DivisionState> stateMap,
-    Map<Id, Id> assignments
+    Map<Id, Id> assignments,
+    Map<Id, Integer> remainingCapacity,
+    List<String> capacityWarnings
   ) {
     Integer divCount = divisions.size();
-    Integer studentIndex = 0;
+    if (divCount == 0) {
+      return;
+    }
 
-    while (studentIndex < studentList.size()) {
-      // Forward pass: 0 -> N-1
-      for (Integer i = 0; i < divCount && studentIndex < studentList.size(); i++) {
-        assignStudent(studentList[studentIndex], divisions[i].Id, stateMap, assignments);
-        studentIndex++;
+    Set<Id> reportedFull = new Set<Id>();
+
+    // Divisions that already have no room before this pass even starts
+    // (from previously committed enrollments) - report and skip up front.
+    for (Division__c d : divisions) {
+      if (remainingCapacity.get(d.Id) <= 0) {
+        reportedFull.add(d.Id);
+        capacityWarnings.add(
+          'Division "' + d.Division_Name__c + '" has reached capacity and was skipped.'
+        );
       }
-      // Backward pass: N-1 -> 0
-      for (Integer i = divCount - 1; i >= 0 && studentIndex < studentList.size(); i--) {
-        assignStudent(studentList[studentIndex], divisions[i].Id, stateMap, assignments);
-        studentIndex++;
+    }
+
+    Integer cursor = 0;
+    Integer unassignedCount = 0;
+
+    for (Integer i = 0; i < studentList.size(); i++) {
+      Id chosenDivisionId = null;
+      Integer chosenIdx = -1;
+
+      for (Integer offset = 0; offset < divCount; offset++) {
+        Integer idx = Math.mod(cursor + offset, divCount);
+        Id candidateId = divisions[idx].Id;
+        if (remainingCapacity.get(candidateId) > 0) {
+          chosenDivisionId = candidateId;
+          chosenIdx = idx;
+          break;
+        }
       }
+
+      if (chosenDivisionId == null) {
+        // Every division is full - nothing left to allocate to.
+        unassignedCount = studentList.size() - i;
+        break;
+      }
+
+      assignStudent(studentList[i], chosenDivisionId, stateMap, assignments);
+
+      Integer remaining = remainingCapacity.get(chosenDivisionId) - 1;
+      remainingCapacity.put(chosenDivisionId, remaining);
+
+      if (remaining <= 0 && !reportedFull.contains(chosenDivisionId)) {
+        reportedFull.add(chosenDivisionId);
+        capacityWarnings.add(
+          'Division "' + divisions[chosenIdx].Division_Name__c + '" has reached capacity.'
+        );
+      }
+
+      // Continue the round-robin from the division right after the one just
+      // used, so it still alternates A -> B -> C rather than always
+      // re-searching from the same starting point.
+      cursor = Math.mod(chosenIdx + 1, divCount);
+    }
+
+    if (unassignedCount > 0) {
+      capacityWarnings.add(
+        'All divisions are at capacity - ' + unassignedCount +
+        ' student(s) could not be allocated.'
+      );
     }
   }
 
@@ -277,420 +455,73 @@ public with sharing class StudentDivisionDistributorV2 {
     stateMap.get(divisionId).addStudent(s);
   }
 
-  private static Id findBestDivisionByScore(
-    Student s,
-    List<Division__c> divisions,
-    Map<Id, DivisionState> stateMap,
-    DistributionTargets targets
-  ) {
-    Id bestDivisionId = null;
-    Decimal bestScore = -999999;
-
-    for (Division__c d : divisions) {
-      DivisionState state = stateMap.get(d.Id);
-      Decimal score = calculateDivisionScore(s, state, targets);
-
-      if (bestDivisionId == null || score > bestScore) {
-        bestScore = score;
-        bestDivisionId = d.Id;
-      }
-    }
-
-    return bestDivisionId;
-  }
-
-  private static Decimal calculateDivisionScore(
-    Student s,
-    DivisionState state,
-    DistributionTargets targets
-  ) {
-    Decimal score = 0;
-
-    // RULE 1: Gender balance scoring (highest priority)
-    if (s.gender == MALE) {
-      Decimal deviation = Math.abs((state.male + 1) - targets.avgMale);
-      score -= deviation * GENDER_WEIGHT;
-    } else if (s.gender == FEMALE) {
-      Decimal deviation = Math.abs((state.female + 1) - targets.avgFemale);
-      score -= deviation * GENDER_WEIGHT;
-    }
-
-    // RULE 2: Work experience balance (second priority)
-    if (s.gender == MALE && state.male > 0) {
-      Decimal newAvgExp = (state.maleExpTotal + s.workExp) / (state.male + 1);
-      Decimal deviation = Math.abs(newAvgExp - targets.avgMaleExp);
-      score -= deviation * EXP_WEIGHT;
-    } else if (s.gender == FEMALE && state.female > 0) {
-      Decimal newAvgExp =
-        (state.femaleExpTotal + s.workExp) / (state.female + 1);
-      Decimal deviation = Math.abs(newAvgExp - targets.avgFemaleExp);
-      score -= deviation * EXP_WEIGHT;
-    }
-
-    // RULE 3: Graduation type balance (third priority)
-    if (s.gradType == TECH) {
-      Decimal deviation = Math.abs((state.tech + 1) - targets.avgTech);
-      score -= deviation * GRAD_TYPE_WEIGHT;
-    } else if (s.gradType == NON_TECH) {
-      Decimal deviation = Math.abs((state.nonTech + 1) - targets.avgNonTech);
-      score -= deviation * GRAD_TYPE_WEIGHT;
-    }
-
-    // RULE 4: Specialisation balance (fourth priority)
-    if (s.specialisationId != null && targets.avgSpecialisation.containsKey(s.specialisationId)) {
-      Decimal avgSpec = targets.avgSpecialisation.get(s.specialisationId);
-      Integer currentCount = state.getSpecialisationCount(s.specialisationId);
-      Decimal deviation = Math.abs((currentCount + 1) - avgSpec);
-      score -= deviation * SPECIALISATION_WEIGHT;
-    }
-
-    // Total count balance (lower priority)
-    Decimal totalDeviation = Math.abs((state.total + 1) - targets.avgTotal);
-    score -= totalDeviation * TOTAL_WEIGHT;
-
-    return score;
-  }
-
-  private static void optimizeGraduationBalance(
-    List<Student> allStudents,
-    List<Division__c> divisions,
-    Map<Id, DivisionState> stateMap,
-    Map<Id, Id> assignments,
-    DistributionTargets targets
-  ) {
-    // Create a map of enrollment ID to Student for quick lookup
-    Map<Id, Student> studentMap = new Map<Id, Student>();
-    for (Student s : allStudents) {
-      studentMap.put(s.enrollmentId, s);
-    }
-
-    // Perform multiple passes of optimization
-    Integer maxIterations = 20;
-    Integer iteration = 0;
-    Boolean improved = true;
-    Integer swapsPerIteration = 0;
-
-    while (improved && iteration < maxIterations) {
-      improved = false;
-      iteration++;
-      swapsPerIteration = 0;
-
-      // Find divisions with imbalance
-      List<DivisionImbalance> imbalances = findGraduationImbalances(divisions, stateMap, targets);
-
-      if (imbalances.isEmpty()) break; // No imbalances found
-
-      // Try to find beneficial swaps - allow multiple swaps per iteration
-      for (Integer i = 0; i < imbalances.size() - 1 && swapsPerIteration < 5; i++) {
-        DivisionImbalance imbalance1 = imbalances[i];
-        for (Integer j = i + 1; j < imbalances.size() && swapsPerIteration < 5; j++) {
-          DivisionImbalance imbalance2 = imbalances[j];
-
-          // Try swapping Tech students (Tech from div1 <-> Non-Tech from div2)
-          if (imbalance1.techSurplus > 0 && imbalance2.techDeficit > 0) {
-            if (trySwapStudents(
-                imbalance1.divisionId, imbalance2.divisionId,
-                TECH, stateMap, assignments, studentMap)) {
-              improved = true;
-              swapsPerIteration++;
-              // Continue to find more swaps in this iteration
-            }
-          }
-
-          // Try swapping Non-Tech students (Non-Tech from div1 <-> Tech from div2)
-          if (imbalance1.nonTechSurplus > 0 && imbalance2.nonTechDeficit > 0) {
-            if (trySwapStudents(
-                imbalance1.divisionId, imbalance2.divisionId,
-                NON_TECH, stateMap, assignments, studentMap)) {
-              improved = true;
-              swapsPerIteration++;
-              // Continue to find more swaps in this iteration
-            }
-          }
-
-          // Also try reverse swaps
-          if (imbalance2.techSurplus > 0 && imbalance1.techDeficit > 0) {
-            if (trySwapStudents(
-                imbalance2.divisionId, imbalance1.divisionId,
-                TECH, stateMap, assignments, studentMap)) {
-              improved = true;
-              swapsPerIteration++;
-            }
-          }
-
-          if (imbalance2.nonTechSurplus > 0 && imbalance1.nonTechDeficit > 0) {
-            if (trySwapStudents(
-                imbalance2.divisionId, imbalance1.divisionId,
-                NON_TECH, stateMap, assignments, studentMap)) {
-              improved = true;
-              swapsPerIteration++;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private class DivisionImbalance {
-    Id divisionId;
-    Integer techSurplus = 0;
-    Integer techDeficit = 0;
-    Integer nonTechSurplus = 0;
-    Integer nonTechDeficit = 0;
-  }
-
-  private static List<DivisionImbalance> findGraduationImbalances(
-    List<Division__c> divisions,
-    Map<Id, DivisionState> stateMap,
-    DistributionTargets targets
-  ) {
-    List<DivisionImbalance> imbalances = new List<DivisionImbalance>();
-
-    for (Division__c div : divisions) {
-      DivisionState state = stateMap.get(div.Id);
-      DivisionImbalance imbalance = new DivisionImbalance();
-      imbalance.divisionId = div.Id;
-
-      Integer techDiff = state.tech - Integer.valueOf(targets.avgTech.round(System.RoundingMode.HALF_UP));
-      Integer nonTechDiff = state.nonTech - Integer.valueOf(targets.avgNonTech.round(System.RoundingMode.HALF_UP));
-
-      if (techDiff > 0) {
-        imbalance.techSurplus = techDiff;
-      } else if (techDiff < 0) {
-        imbalance.techDeficit = Math.abs(techDiff);
+  // Steps 2-5 of the process document, expressed as a single composite sort.
+  private class StudentAllocationComparator implements Comparator<Student> {
+    public Integer compare(Student a, Student b) {
+      Integer genderCmp = genderRank(a.gender) - genderRank(b.gender);
+      if (genderCmp != 0) {
+        return genderCmp;
       }
 
-      if (nonTechDiff > 0) {
-        imbalance.nonTechSurplus = nonTechDiff;
-      } else if (nonTechDiff < 0) {
-        imbalance.nonTechDeficit = Math.abs(nonTechDiff);
+      Integer specCmp = specRank(a.specialisationName) - specRank(b.specialisationName);
+      if (specCmp != 0) {
+        return specCmp;
       }
 
-      // Only add if there's an imbalance
-      if (imbalance.techSurplus > 0 || imbalance.techDeficit > 0 ||
-          imbalance.nonTechSurplus > 0 || imbalance.nonTechDeficit > 0) {
-        imbalances.add(imbalance);
+      Integer weCmp = a.weBucket - b.weBucket;
+      if (weCmp != 0) {
+        return weCmp;
       }
-    }
 
-    // Sort by severity of imbalance
-    imbalances.sort(new DivisionImbalanceComparator());
-    return imbalances;
-  }
+      Integer eduCmp = eduRank(a.gradType) - eduRank(b.gradType);
+      if (eduCmp != 0) {
+        return eduCmp;
+      }
 
-  private class DivisionImbalanceComparator implements Comparator<DivisionImbalance> {
-    public Integer compare(DivisionImbalance d1, DivisionImbalance d2) {
-      Integer severity1 = d1.techSurplus + d1.techDeficit + d1.nonTechSurplus + d1.nonTechDeficit;
-      Integer severity2 = d2.techSurplus + d2.techDeficit + d2.nonTechSurplus + d2.nonTechDeficit;
-      if (severity1 > severity2) return -1;
-      if (severity1 < severity2) return 1;
+      String nameA = a.studentName;
+      String nameB = b.studentName;
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
       return 0;
     }
   }
 
-  private static Boolean trySwapStudents(
-    Id div1Id,
-    Id div2Id,
-    String gradType,
-    Map<Id, DivisionState> stateMap,
-    Map<Id, Id> assignments,
-    Map<Id, Student> studentMap
-  ) {
-    // Collect all students of the specified gradType in div1
-    List<Student> candidates1 = new List<Student>();
-    List<Id> candidateIds1 = new List<Id>();
-    for (Id enrollmentId : assignments.keySet()) {
-      if (assignments.get(enrollmentId) == div1Id) {
-        Student s = studentMap.get(enrollmentId);
-        if (s != null && s.gradType == gradType) {
-          candidates1.add(s);
-          candidateIds1.add(enrollmentId);
-        }
-      }
+  // Step 2: Male before Female. Anything else (blank/other) sorts last.
+  private static Integer genderRank(String gender) {
+    if (gender == MALE) {
+      return 0;
     }
-
-    if (candidates1.isEmpty()) return false;
-
-    // Collect all students of the opposite gradType in div2
-    String oppositeGradType = (gradType == TECH) ? NON_TECH : TECH;
-    List<Student> candidates2 = new List<Student>();
-    List<Id> candidateIds2 = new List<Id>();
-    for (Id enrollmentId : assignments.keySet()) {
-      if (assignments.get(enrollmentId) == div2Id) {
-        Student s = studentMap.get(enrollmentId);
-        if (s != null && s.gradType == oppositeGradType) {
-          candidates2.add(s);
-          candidateIds2.add(enrollmentId);
-        }
-      }
+    if (gender == FEMALE) {
+      return 1;
     }
-
-    if (candidates2.isEmpty()) return false;
-
-    // Try to find a good match - prefer students with similar work experience
-    // to maintain work experience balance
-    DivisionState state1 = stateMap.get(div1Id);
-    DivisionState state2 = stateMap.get(div2Id);
-    
-    Decimal avgExp1 = state1.male > 0 || state1.female > 0 
-      ? (state1.maleExpTotal + state1.femaleExpTotal) / (state1.male + state1.female) 
-      : 0;
-    Decimal avgExp2 = state2.male > 0 || state2.female > 0
-      ? (state2.maleExpTotal + state2.femaleExpTotal) / (state2.male + state2.female)
-      : 0;
-
-    // Find best match (students with similar work experience)
-    Integer bestIdx1 = 0;
-    Integer bestIdx2 = 0;
-    Decimal bestScore = 999999;
-
-    for (Integer i = 0; i < candidates1.size(); i++) {
-      for (Integer j = 0; j < candidates2.size(); j++) {
-        // Calculate how swapping would affect work experience balance
-        Decimal newAvg1 = calculateNewAvgExp(state1, candidates1[i], candidates2[j]);
-        Decimal newAvg2 = calculateNewAvgExp(state2, candidates2[j], candidates1[i]);
-        
-        // Score based on how close the new averages are to the original
-        Decimal score = Math.abs(newAvg1 - avgExp1) + Math.abs(newAvg2 - avgExp2);
-        
-        if (score < bestScore) {
-          bestScore = score;
-          bestIdx1 = i;
-          bestIdx2 = j;
-        }
-      }
-    }
-
-    // Perform the swap with best match
-    Student s1 = candidates1[bestIdx1];
-    Student s2 = candidates2[bestIdx2];
-    Id student1Id = candidateIds1[bestIdx1];
-    Id student2Id = candidateIds2[bestIdx2];
-
-    // Remove from old divisions
-    removeStudentFromState(s1, state1);
-    removeStudentFromState(s2, state2);
-
-    // Add to new divisions
-    addStudentToState(s1, state2);
-    addStudentToState(s2, state1);
-
-    // Update assignments
-    assignments.put(student1Id, div2Id);
-    assignments.put(student2Id, div1Id);
-
-    return true;
+    return 2;
   }
 
-  private static Decimal calculateNewAvgExp(DivisionState state, Student remove, Student add) {
-    Integer total = state.male + state.female;
-    Decimal totalExp = state.maleExpTotal + state.femaleExpTotal;
-    
-    // Remove old student's experience
-    if (remove.gender == MALE) {
-      totalExp -= remove.workExp;
-    } else if (remove.gender == FEMALE) {
-      totalExp -= remove.workExp;
-    }
-    
-    // Add new student's experience
-    if (add.gender == MALE) {
-      totalExp += add.workExp;
-    } else if (add.gender == FEMALE) {
-      totalExp += add.workExp;
-    }
-    
-    return total > 0 ? totalExp / total : 0;
+  // Step 3: Fin -> IM -> Mkt -> OSC (SPEC_ORDER). Unrecognised specialisation
+  // names sort after those four.
+  private static Integer specRank(String specName) {
+    String key = specName != null ? specName.trim().toUpperCase() : '';
+    Integer idx = SPEC_ORDER.indexOf(key);
+    return idx >= 0 ? idx : SPEC_ORDER.size();
   }
 
-  private static void removeStudentFromState(Student s, DivisionState state) {
-    state.total--;
-    if (s.gender == MALE) {
-      state.male--;
-      state.maleExpTotal -= s.workExp;
-    } else if (s.gender == FEMALE) {
-      state.female--;
-      state.femaleExpTotal -= s.workExp;
+  // Step 5: Technical before Non-Technical. Anything else sorts last.
+  private static Integer eduRank(String gradType) {
+    if (gradType == TECH) {
+      return 0;
     }
-    if (s.gradType == TECH) {
-      state.tech--;
-    } else if (s.gradType == NON_TECH) {
-      state.nonTech--;
+    if (gradType == NON_TECH) {
+      return 1;
     }
-    if (s.specialisationId != null && state.specialisationCount.containsKey(s.specialisationId)) {
-      Integer currentCount = state.specialisationCount.get(s.specialisationId);
-      if (currentCount > 0) {
-        state.specialisationCount.put(s.specialisationId, currentCount - 1);
-      }
-    }
+    return 2;
   }
 
-  private static void addStudentToState(Student s, DivisionState state) {
-    state.addStudent(s);
-  }
 
-  private static void optimizeSpecialisationBalance(
-    List<Student> allStudents,
-    List<Division__c> divisions,
-    Map<Id, DivisionState> stateMap,
-    Map<Id, Id> assignments,
-    DistributionTargets targets
-  ) {
-    // Group students by specialisation
-    Map<Id, List<Student>> studentsBySpec = new Map<Id, List<Student>>();
-    for (Student s : allStudents) {
-      if (s.specialisationId != null && assignments.containsKey(s.enrollmentId)) {
-        if (!studentsBySpec.containsKey(s.specialisationId)) {
-          studentsBySpec.put(s.specialisationId, new List<Student>());
-        }
-        studentsBySpec.get(s.specialisationId).add(s);
-      }
-    }
-
-    // For each specialisation, redistribute using snake draft within that specialisation
-    // This ensures balanced distribution within each specialisation
-    for (Id specId : studentsBySpec.keySet()) {
-      List<Student> specStudents = studentsBySpec.get(specId);
-      // Sort by work experience for balanced distribution
-      specStudents.sort(new StudentWorkExpComparator());
-      
-      // Remove existing assignments - we'll reassign them
-      for (Student s : specStudents) {
-        if (assignments.containsKey(s.enrollmentId)) {
-          Id oldDivisionId = assignments.get(s.enrollmentId);
-          assignments.remove(s.enrollmentId);
-          // Remove from old division state
-          DivisionState oldState = stateMap.get(oldDivisionId);
-          if (oldState != null) {
-            oldState.total--;
-            if (s.gender == MALE) {
-              oldState.male--;
-              oldState.maleExpTotal -= s.workExp;
-            } else if (s.gender == FEMALE) {
-              oldState.female--;
-              oldState.femaleExpTotal -= s.workExp;
-            }
-            if (s.gradType == TECH) {
-              oldState.tech--;
-            } else if (s.gradType == NON_TECH) {
-              oldState.nonTech--;
-            }
-            if (s.specialisationId != null && oldState.specialisationCount.containsKey(s.specialisationId)) {
-              Integer currentCount = oldState.specialisationCount.get(s.specialisationId);
-              if (currentCount > 0) {
-                oldState.specialisationCount.put(s.specialisationId, currentCount - 1);
-              }
-            }
-          }
-        }
-      }
-      
-      // Redistribute within specialisation using snake draft
-      distributeBySnakeDraft(specStudents, divisions, stateMap, assignments);
-    }
-  }
-
-  /* ================= VALIDATION ================= */
+  /* ================= VALIDATION (against committed data) ================= */
 
   @AuraEnabled(cacheable=true)
   public static ValidationResult validateDistribution(Id termId) {
@@ -790,6 +621,9 @@ public with sharing class StudentDivisionDistributorV2 {
     // RULE 4: Specialisation balance validation (within each specialisation)
     validateSpecialisationBalance(divs, result);
 
+    // RULE 5: Work-experience bucket balance validation
+    validateWeBucketBalance(divs, result);
+
     // Check for zero-gender divisions
     for (DivisionDTO d : divs) {
       if (d.male == 0 || d.female == 0) {
@@ -840,6 +674,46 @@ public with sharing class StudentDivisionDistributorV2 {
     }
   }
 
+  private static void validateWeBucketBalance(
+    List<DivisionDTO> divs,
+    ValidationResult result
+  ) {
+    // Collect all bucket keys ("0".."3") actually in use
+    Set<String> allBuckets = new Set<String>();
+    for (DivisionDTO d : divs) {
+      if (d.weBucketCounts != null) {
+        allBuckets.addAll(d.weBucketCounts.keySet());
+      }
+    }
+
+    // For each WE bucket, check variance across divisions
+    for (String bucketKey : allBuckets) {
+      Integer minCount = null;
+      Integer maxCount = null;
+
+      for (DivisionDTO d : divs) {
+        Integer count = (d.weBucketCounts != null && d.weBucketCounts.containsKey(bucketKey))
+          ? d.weBucketCounts.get(bucketKey) : 0;
+
+        if (minCount == null || count < minCount) {
+          minCount = count;
+        }
+        if (maxCount == null || count > maxCount) {
+          maxCount = count;
+        }
+      }
+
+      if (minCount != null && maxCount != null) {
+        Integer variance = maxCount - minCount;
+        if (variance > GENDER_TOLERANCE) {
+          result.isValid = false;
+          result.warnings.add('RULE 5 VIOLATION: WE bucket "' + bucketKey +
+            '" distribution variance is ' + variance + ' (exceeds ±' + GENDER_TOLERANCE + ')');
+        }
+      }
+    }
+  }
+
   private static void checkVariance(Integer variance, Integer tolerance, 
     String message, ValidationResult result) {
     if (variance > tolerance) {
@@ -857,107 +731,33 @@ public with sharing class StudentDivisionDistributorV2 {
     }
   }
 
-  /* ================= HELPER CLASSES ================= */
-
-  private class DistributionTargets {
-    Decimal avgTotal;
-    Decimal avgMale;
-    Decimal avgFemale;
-    Decimal avgTech;
-    Decimal avgNonTech;
-    Decimal avgMaleExp;
-    Decimal avgFemaleExp;
-    Map<Id, Decimal> avgSpecialisation = new Map<Id, Decimal>();
-  }
-
-  private static DistributionTargets calculateTargets(
-    List<Student> students,
-    Integer divCount
-  ) {
-    DistributionTargets targets = new DistributionTargets();
-
-    Integer totalMale = 0;
-    Integer totalFemale = 0;
-    Integer totalTech = 0;
-    Integer totalNonTech = 0;
-    Decimal totalMaleExp = 0;
-    Decimal totalFemaleExp = 0;
-    Map<Id, Integer> specCounts = new Map<Id, Integer>();
-
-    for (Student s : students) {
-      if (s.gender == MALE) {
-        totalMale++;
-        totalMaleExp += s.workExp;
-      } else if (s.gender == FEMALE) {
-        totalFemale++;
-        totalFemaleExp += s.workExp;
-      }
-
-      if (s.gradType == TECH) {
-        totalTech++;
-      } else if (s.gradType == NON_TECH) {
-        totalNonTech++;
-      }
-
-      if (s.specialisationId != null) {
-        Integer currentCount = specCounts.containsKey(s.specialisationId) 
-          ? specCounts.get(s.specialisationId) : 0;
-        specCounts.put(s.specialisationId, currentCount + 1);
-      }
-    }
-
-    Decimal divCountDecimal = Decimal.valueOf(divCount);
-    Integer studentSize = students.size();
-
-    targets.avgTotal = Decimal.valueOf(studentSize) / divCountDecimal;
-    targets.avgMale = Decimal.valueOf(totalMale) / divCountDecimal;
-    targets.avgFemale = Decimal.valueOf(totalFemale) / divCountDecimal;
-    targets.avgTech = Decimal.valueOf(totalTech) / divCountDecimal;
-    targets.avgNonTech = Decimal.valueOf(totalNonTech) / divCountDecimal;
-    targets.avgMaleExp = totalMale > 0 ? totalMaleExp / totalMale : 0;
-    targets.avgFemaleExp = totalFemale > 0 ? totalFemaleExp / totalFemale : 0;
-
-    // Calculate average per division for each specialisation
-    for (Id specId : specCounts.keySet()) {
-      Integer count = specCounts.get(specId);
-      targets.avgSpecialisation.put(specId, Decimal.valueOf(count) / divCountDecimal);
-    }
-
-    return targets;
-  }
-
-  private class StudentWorkExpComparator implements Comparator<Student> {
-    public Integer compare(Student s1, Student s2) {
-      // Sort descending by work experience
-      if (s1.workExp > s2.workExp)
-        return -1;
-      if (s1.workExp < s2.workExp)
-        return 1;
-      return 0;
-    }
-  }
-
   /* ================= DATA LOADING METHODS ================= */
 
   private static List<Division__c> loadActiveDivisions(Id termId) {
     return [
-      SELECT Id, Name
+      SELECT Id, Name, Division_Name__c, Capacity__c
       FROM Division__c
-      WHERE Term__c = :termId AND Is_Active__c = TRUE
-      ORDER BY Name
+      WHERE Term__c = :termId
+        AND Is_Active__c = TRUE
+        AND Division_Group__r.Name = 'Fundamental'
+      ORDER BY Division_Name__c
     ];
   }
 
-  private static List<Student> loadStudents(Id termId) {
+  private static StudentLoadResult loadStudents(Id termId) {
+    StudentLoadResult loadResult = new StudentLoadResult();
+    loadResult.students = new List<Student>();
+    loadResult.specialisationIdToName = new Map<Id, String>();
+
     // Get all enrollments for the term with Program Enrollment
     List<AcademicTermEnrollment> allEnrollments = [
-      SELECT Id, LearnerAccountId, LearnerAccount.Gender__c, Program_Enrolled__c
+      SELECT Id, LearnerAccountId, LearnerAccount.Name, LearnerAccount.Gender__c, Program_Enrolled__c
       FROM AcademicTermEnrollment
       WHERE AcademicTermId = :termId
     ];
 
     if (allEnrollments.isEmpty())
-      return new List<Student>();
+      return loadResult;
 
     // Get enrollment IDs that already have division assignments
     Set<Id> enrolledIds = new Set<Id>();
@@ -991,7 +791,7 @@ public with sharing class StudentDivisionDistributorV2 {
     }
 
     if (enrollments.isEmpty())
-      return new List<Student>();
+      return loadResult;
 
     // Get ProgramCohortMember IDs from ProgramEnrollments
     Map<Id, Id> programEnrollmentToCohortMember = new Map<Id, Id>();
@@ -1050,6 +850,7 @@ public with sharing class StudentDivisionDistributorV2 {
     for (AcademicTermEnrollment e : enrollments) {
       students.add(new Student(
           e.Id,
+          e.LearnerAccount.Name,
           e.LearnerAccount.Gender__c,
           gradMap.get(e.LearnerAccountId),
           expMap.get(e.LearnerAccountId),
@@ -1058,7 +859,9 @@ public with sharing class StudentDivisionDistributorV2 {
       ));
     }
 
-    return students;
+    loadResult.students = students;
+    loadResult.specialisationIdToName = specialisationIdToName;
+    return loadResult;
   }
 
   private static Map<Id, String> loadGraduationTypes(Set<Id> accountIds) {
@@ -1082,7 +885,7 @@ public with sharing class StudentDivisionDistributorV2 {
     Map<Id, Decimal> expMap = new Map<Id, Decimal>();
 
     for (AggregateResult ar : [
-      SELECT Student__c acc, SUM(Years_of_Work_Experience__c) exp
+      SELECT Student__c acc, SUM(Total_Work_Experience_In_Years__c) exp
       FROM Work_Experience__c
       WHERE Student__c IN :accountIds
       GROUP BY Student__c
@@ -1091,6 +894,24 @@ public with sharing class StudentDivisionDistributorV2 {
     }
 
     return expMap;
+  }
+
+  // Count of already-committed Division_Enrollment__c records per division
+  // for this term, used to check capacity before a preview is generated.
+  private static Map<Id, Integer> loadExistingEnrollmentCounts(Id termId, Set<Id> divisionIds) {
+    Map<Id, Integer> counts = new Map<Id, Integer>();
+
+    for (AggregateResult ar : [
+      SELECT Division__c divId, COUNT(Id) cnt
+      FROM Division_Enrollment__c
+      WHERE Division__c IN :divisionIds
+        AND Academic_Term_Enrollment__r.AcademicTermId = :termId
+      GROUP BY Division__c
+    ]) {
+      counts.put((Id) ar.get('divId'), (Integer) ar.get('cnt'));
+    }
+
+    return counts;
   }
 
   private static Map<Id, DivisionState> initializeDivisionStates(
@@ -1107,18 +928,63 @@ public with sharing class StudentDivisionDistributorV2 {
     return stateMap;
   }
 
+  // Builds display DTOs straight from the in-memory algorithm state (used by
+  // previewDistribution, before anything is committed).
+  private static List<DivisionDTO> buildDivisionDTOsFromState(
+    List<Division__c> divisions,
+    Map<Id, DivisionState> stateMap,
+    Map<Id, String> specialisationIdToName
+  ) {
+    List<DivisionDTO> dtos = new List<DivisionDTO>();
+
+    for (Division__c d : divisions) {
+      DivisionState state = stateMap.get(d.Id);
+      DivisionDTO dto = new DivisionDTO();
+      dto.divisionId = d.Id;
+      dto.divisionAutoNumber = d.Name;
+      dto.divisionName = d.Division_Name__c;
+      dto.total = state.total;
+      dto.male = state.male;
+      dto.female = state.female;
+      dto.tech = state.tech;
+      dto.nonTech = state.nonTech;
+      dto.avgMaleExp = state.getAvgMaleExp();
+      dto.avgFemaleExp = state.getAvgFemaleExp();
+      dto.specialisationCounts = new Map<String, Integer>();
+
+      for (Id specId : state.specialisationCount.keySet()) {
+        String specName = specialisationIdToName.get(specId);
+        if (specName != null && !String.isBlank(specName)) {
+          dto.specialisationCounts.put(specName, state.specialisationCount.get(specId));
+        }
+      }
+
+      dto.weBucketCounts = new Map<String, Integer>();
+      for (Integer bucket : state.weBucketCount.keySet()) {
+        dto.weBucketCounts.put(String.valueOf(bucket), state.weBucketCount.get(bucket));
+      }
+
+      dtos.add(dto);
+    }
+
+    return dtos;
+  }
+
   private static Map<Id, DivisionDTO> buildDivisionDTOMap(Id termId) {
     Map<Id, DivisionDTO> divisionMap = new Map<Id, DivisionDTO>();
 
     for (Division__c d : [
-      SELECT Id, Name
+      SELECT Id, Name, Division_Name__c
       FROM Division__c
-      WHERE Term__c = :termId AND Is_Active__c = TRUE
-      ORDER BY Name
+      WHERE Term__c = :termId
+        AND Is_Active__c = TRUE
+        AND Division_Group__r.Name = 'Fundamental'
+      ORDER BY Division_Name__c
     ]) {
       DivisionDTO dto = new DivisionDTO();
       dto.divisionId = d.Id;
-      dto.divisionName = d.Name;
+      dto.divisionAutoNumber = d.Name;
+      dto.divisionName = d.Division_Name__c;
       dto.total = 0;
       dto.male = 0;
       dto.female = 0;
@@ -1127,6 +993,7 @@ public with sharing class StudentDivisionDistributorV2 {
       dto.avgMaleExp = 0;
       dto.avgFemaleExp = 0;
       dto.specialisationCounts = new Map<String, Integer>();
+      dto.weBucketCounts = new Map<String, Integer>();
       divisionMap.put(d.Id, dto);
     }
 
@@ -1257,6 +1124,12 @@ public with sharing class StudentDivisionDistributorV2 {
           ? dto.specialisationCounts.get(specName) : 0;
         dto.specialisationCounts.put(specName, currentCount + 1);
       }
+
+      // Track WE bucket counts
+      String bucketKey = String.valueOf(computeWeBucket(exp));
+      Integer currentBucketCount = dto.weBucketCounts.containsKey(bucketKey)
+        ? dto.weBucketCounts.get(bucketKey) : 0;
+      dto.weBucketCounts.put(bucketKey, currentBucketCount + 1);
     }
 
     // Calculate averages
@@ -1271,40 +1144,92 @@ public with sharing class StudentDivisionDistributorV2 {
     }
   }
 
-  private static void updateEnrollments(Map<Id, Id> assignments) {
-    List<Division_Enrollment__c> divisionEnrollments = new List<Division_Enrollment__c>();
-    List<AcademicTermEnrollment> enrollmentsToUpdate = new List<AcademicTermEnrollment>();
+  private static ConfirmResult updateEnrollments(Map<Id, Id> assignments) {
+    ConfirmResult result = new ConfirmResult();
+    result.errors = new List<String>();
+    result.savedCount = 0;
 
-    // Query AcademicTermEnrollment records to update
-    Map<Id, AcademicTermEnrollment> enrollmentMap = new Map<Id, AcademicTermEnrollment>([
-      SELECT Id, Division__c
-      FROM AcademicTermEnrollment
-      WHERE Id IN :assignments.keySet()
-    ]);
+    Savepoint sp = Database.setSavepoint();
 
-    for (Id enrollmentId : assignments.keySet()) {
-      Id divisionId = assignments.get(enrollmentId);
-      
-      // Create Division_Enrollment__c record
-      Division_Enrollment__c de = new Division_Enrollment__c();
-      de.Academic_Term_Enrollment__c = enrollmentId;
-      de.Division__c = divisionId;
-      divisionEnrollments.add(de);
+    try {
+      // Query AcademicTermEnrollment records to update
+      Map<Id, AcademicTermEnrollment> enrollmentMap = new Map<Id, AcademicTermEnrollment>([
+        SELECT Id, Division__c
+        FROM AcademicTermEnrollment
+        WHERE Id IN :assignments.keySet()
+      ]);
 
-      // Update AcademicTermEnrollment.Division__c field
-      AcademicTermEnrollment enrollment = enrollmentMap.get(enrollmentId);
-      if (enrollment != null) {
-        enrollment.Division__c = divisionId;
-        enrollmentsToUpdate.add(enrollment);
+      // Guard: skip any enrollment that already has a Division_Enrollment__c.
+      // Confirming the same preview twice (double click, stale tab, etc.)
+      // would otherwise attempt a duplicate insert, which can fail the WHOLE
+      // batch depending on org validation/duplicate rules and looks to the
+      // user like "nothing saved" with no clear reason.
+      Set<Id> alreadyLinked = new Set<Id>();
+      for (Division_Enrollment__c existing : [
+        SELECT Academic_Term_Enrollment__c
+        FROM Division_Enrollment__c
+        WHERE Academic_Term_Enrollment__c IN :assignments.keySet()
+      ]) {
+        alreadyLinked.add(existing.Academic_Term_Enrollment__c);
       }
-    }
 
-    if (!divisionEnrollments.isEmpty()) {
+      List<Division_Enrollment__c> divisionEnrollments = new List<Division_Enrollment__c>();
+      List<AcademicTermEnrollment> enrollmentsToUpdate = new List<AcademicTermEnrollment>();
+
+      for (Id enrollmentId : assignments.keySet()) {
+        if (alreadyLinked.contains(enrollmentId)) {
+          continue;
+        }
+
+        Id divisionId = assignments.get(enrollmentId);
+
+        // Create Division_Enrollment__c record
+        Division_Enrollment__c de = new Division_Enrollment__c();
+        de.Academic_Term_Enrollment__c = enrollmentId;
+        de.Division__c = divisionId;
+        divisionEnrollments.add(de);
+
+        // Update AcademicTermEnrollment.Division__c field
+        AcademicTermEnrollment enrollment = enrollmentMap.get(enrollmentId);
+        if (enrollment != null) {
+          enrollment.Division__c = divisionId;
+          enrollmentsToUpdate.add(enrollment);
+        }
+      }
+
+      if (divisionEnrollments.isEmpty()) {
+        result.success = false;
+        result.message = 'Nothing to save - the selected students already have a division assigned.';
+        return result;
+      }
+
       insert divisionEnrollments;
-    }
 
-    if (!enrollmentsToUpdate.isEmpty()) {
-      update enrollmentsToUpdate;
+      if (!enrollmentsToUpdate.isEmpty()) {
+        update enrollmentsToUpdate;
+      }
+
+      result.success = true;
+      result.savedCount = divisionEnrollments.size();
+      result.message = 'Saved ' + divisionEnrollments.size() + ' division enrollment(s).';
+      return result;
+    } catch (DmlException dmlEx) {
+      // Roll back BOTH the insert and the update together so we never end up
+      // with a Division_Enrollment__c that has no matching Division__c value
+      // on the enrollment (or vice versa).
+      Database.rollback(sp);
+      for (Integer i = 0; i < dmlEx.getNumDml(); i++) {
+        result.errors.add(dmlEx.getDmlMessage(i));
+      }
+      result.success = false;
+      result.message = 'Save failed: ' + dmlEx.getMessage();
+      return result;
+    } catch (Exception e) {
+      Database.rollback(sp);
+      result.success = false;
+      result.message = 'Save failed: ' + e.getMessage();
+      result.errors.add(e.getMessage());
+      return result;
     }
   }
 

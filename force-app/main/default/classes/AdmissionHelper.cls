@@ -4,20 +4,32 @@ public with sharing class AdmissionHelper implements Queueable{
         this.UserId = userId;
     }
 
-    public void execute(QueueableContext context){
-        List<PermissionSet> permSetList = [SELECT Id FROM PermissionSet 
-        WHERE Name = 'Faculty_Admission_Interviewer_Permission_Set'
-        OR Name = 'ApplicantB2C' LIMIT 2];
+    private static final Set<String> APPLICANT_PERMSET = new Set<String>{
+        'Faculty_Admission_Interviewer_Permission_Set',
+        'ApplicantB2CEducation',
+        'EducationCloudExprcCloudAccess'
+    };
 
-        Insert new PermissionSetAssignment(
-            AssigneeId = this.UserId,
-            PermissionSetId = permSetList[1].Id
-        );
+    public void execute(QueueableContext context) {
 
-        Insert new PermissionSetAssignment(
-            AssigneeId = this.UserId,
-            PermissionSetId = permSetList[0].Id
-        );
+        List<PermissionSet> permissionSets = [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN :APPLICANT_PERMSET
+        ];
+
+        List<PermissionSetAssignment> assignments = new List<PermissionSetAssignment>();
+
+        for (PermissionSet permissionSet : permissionSets) {
+            assignments.add(new PermissionSetAssignment(
+                AssigneeId = this.UserId,
+                PermissionSetId = permissionSet.Id
+            ));
+        }
+
+        if (!assignments.isEmpty()) {
+            insert assignments;
+        }
     }
 
 

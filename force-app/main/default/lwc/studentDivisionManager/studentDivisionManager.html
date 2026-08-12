@@ -1,19 +1,58 @@
 <template>
   <lightning-card title="Student Division Distribution">
     <div class="slds-p-around_medium">
-      <lightning-button
-        label="Distribute Students"
-        variant="brand"
-        onclick={handleDistribute}
-      >
-      </lightning-button>
 
-      <lightning-button
-        label="Validate Distribution"
-        class="slds-m-left_small"
-        onclick={handleValidate}
-      >
-      </lightning-button>
+      <!-- Before a preview exists: generate one, or inspect what's already saved -->
+      <template if:false={isPreviewMode}>
+        <lightning-button
+          label={previewButtonLabel}
+          variant="brand"
+          onclick={handlePreview}
+          disabled={isLoading}
+        ></lightning-button>
+
+        <lightning-button
+          label="View Current Distribution"
+          class="slds-m-left_small"
+          onclick={handleValidate}
+          disabled={isLoading}
+        ></lightning-button>
+      </template>
+
+      <!-- Once a preview has been generated: confirm to save, or cancel/re-run -->
+      <template if:true={isPreviewMode}>
+        <lightning-button
+          label="Confirm & Save"
+          variant="brand"
+          onclick={handleConfirm}
+          disabled={isLoading}
+        ></lightning-button>
+
+        <lightning-button
+          label="Preview Again"
+          class="slds-m-left_small"
+          onclick={handlePreview}
+          disabled={isLoading}
+        ></lightning-button>
+
+        <lightning-button
+          label="Cancel"
+          variant="destructive-text"
+          class="slds-m-left_small"
+          onclick={handleCancel}
+          disabled={isLoading}
+        ></lightning-button>
+      </template>
+
+      <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Working" size="small"></lightning-spinner>
+      </template>
+
+      <template if:true={isPreviewMode}>
+        <div class="slds-m-top_medium">
+          <span class="slds-badge slds-theme_warning">Preview - not yet saved</span>
+        </div>
+      </template>
 
       <template if:true={message}>
         <div class="slds-m-top_medium">
@@ -32,19 +71,17 @@
         </div>
       </template>
 
-      <template if:true={warnings}>
-        <template if:true={warnings.length}>
-          <div class="slds-m-top_medium slds-box slds-theme_warning">
-            <h3 class="slds-text-heading_small slds-m-bottom_small">
-              Validation Warnings
-            </h3>
-            <ul class="slds-list_dotted">
-              <template for:each={warnings} for:item="warning">
-                <li key={warning}>{warning}</li>
-              </template>
-            </ul>
-          </div>
-        </template>
+      <template if:true={hasWarnings}>
+        <div class="slds-m-top_medium slds-box slds-theme_warning">
+          <h3 class="slds-text-heading_small slds-m-bottom_small">
+            Warnings
+          </h3>
+          <ul class="slds-list_dotted">
+            <template for:each={warnings} for:item="warning">
+              <li key={warning}>{warning}</li>
+            </template>
+          </ul>
+        </div>
       </template>
 
       <template if:true={rows}>

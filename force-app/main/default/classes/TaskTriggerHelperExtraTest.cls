@@ -13,6 +13,44 @@ private class TaskTriggerHelperExtraTest {
     }
     
     @isTest
+    static void testEmptySubjectTime(){
+         Id b2c = leadRt('B2C');
+        if (b2c == null) {
+            return;
+        }
+        Lead l1 = new Lead(FirstName = 'Foll', LastName = 'Up', RecordTypeId = b2c);
+        insert l1;
+        Task t1 = new Task(
+            WhoId = l1.Id,
+            Subject = null,
+            TaskSubtype = 'Call',
+            Call_Subtype__c = 'Follow up',
+            Time__c = Time.newInstance(1, 0, 0, 0),
+            ActivityDate = Date.today().addDays(3), // past -> addError
+            Status = 'Not Started'
+        );
+        
+        Lead l2 = new Lead(FirstName = 'Follow', LastName = 'Up 2', RecordTypeId = b2c);
+        insert l2;
+        Task t2 = new Task(
+            WhoId = l2.Id,
+            Subject = 'Call',
+            TaskSubtype = 'Call',
+            Call_Subtype__c = 'Follow up',
+            Time__c = Time.newInstance(1, 0, 0, 0),
+            ActivityDate = null, // past -> addError
+            Status = 'Not Started'
+        );
+        Test.startTest();
+        Database.SaveResult sr = Database.insert(t1, false);
+        Database.SaveResult sr2 = Database.insert(t2, false);
+        Test.stopTest();
+        // The handler addError's past-dated follow-ups; insert should fail.
+        System.assertEquals(false, sr.isSuccess(), 'Empty Subject should be blocked');
+        System.assertEquals(false, sr2.isSuccess(), 'Empty Activity Date should be blocked');
+    }
+    
+    @isTest
     static void testEmptyHandlers(){
         List<Task> emptyList = new List<Task>();
         Map<Id,Task> emptyMap = new Map<Id,Task>();

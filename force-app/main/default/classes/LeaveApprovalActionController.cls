@@ -8,7 +8,7 @@ public without sharing class LeaveApprovalActionController {
         return ex;
     }
 
-    // ================= GET ROLE =================
+    // ================= GET ROLE ===================
     @AuraEnabled
     public static String getCurrentUserRole(Id leaveId){
         try{
@@ -64,7 +64,13 @@ public without sharing class LeaveApprovalActionController {
                 leaveRec.Route_to_Deputy__c = false;
 
                 update leaveRec;
-                LeaveApprovalHistoryController.markStepDecided(leaveId, leaveRec.Current_Role_Name__c + ' Verification', 'Incomplete', UserInfo.getUserId(), remarks); // ✅ THIS LINE
+                // Permanent Incomplete history row (never overwrites past Incomplete rows)
+                LeaveApprovalHistoryController.createIncompleteHistory(
+                    leaveId,
+                    leaveRec.Current_Role_Name__c + ' Verification',
+                    UserInfo.getUserId(),
+                    remarks
+                );
                 return;
             }
 
@@ -162,7 +168,12 @@ public without sharing class LeaveApprovalActionController {
                     leaveRec.Route_to_Deputy__c = false;
 
                     update leaveRec;
-                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', 'Incomplete', UserInfo.getUserId(), remarks);
+                    LeaveApprovalHistoryController.createIncompleteHistory(
+                        leaveId,
+                        'Manager Verification',
+                        UserInfo.getUserId(),
+                        remarks
+                    );
                     return;
                 }
 
@@ -275,7 +286,12 @@ public without sharing class LeaveApprovalActionController {
                     leaveRec.Route_to_Deputy__c = false;
 
                     update leaveRec;
-                    LeaveApprovalHistoryController.markStepDecided(leaveId, 'Deputy Chairperson Verification', 'Incomplete', UserInfo.getUserId(), remarks);
+                    LeaveApprovalHistoryController.createIncompleteHistory(
+                        leaveId,
+                        'Deputy Chairperson Verification',
+                        UserInfo.getUserId(),
+                        remarks
+                    );
                     return;
                 }
 
@@ -439,11 +455,16 @@ public without sharing class LeaveApprovalActionController {
         String remarks
     ){
         Leave_Application__c leaveRec = [
-            SELECT Id, Status__c
+            SELECT Id, Status__c, Current_Role_Name__c
             FROM Leave_Application__c
             WHERE Id = :leaveId
             LIMIT 1
         ];
+
+        Boolean wasIncomplete =
+            String.isNotBlank(leaveRec.Status__c) &&
+            leaveRec.Status__c.equalsIgnoreCase('Incomplete');
+        String roleName = leaveRec.Current_Role_Name__c;
 
         leaveRec.Start_Date__c  = startDate;
         leaveRec.End_Date__c    = endDate;
@@ -452,6 +473,25 @@ public without sharing class LeaveApprovalActionController {
         leaveRec.Status__c      = 'Submitted - Pending Approval';
 
         update leaveRec;
+
+        // After Incomplete, re-submit opens a NEW Pending history row;
+        // previous Incomplete rows stay as separate permanent history.
+        if (wasIncomplete && String.isNotBlank(roleName)) {
+            List<Id> userIds = new List<Id>();
+            for (Program_Team_Members__c ptm : [
+                SELECT User__c
+                FROM Program_Team_Members__c
+                WHERE Role__c = :roleName
+                AND User__c != null
+            ]) {
+                userIds.add(ptm.User__c);
+            }
+            LeaveApprovalHistoryController.createPendingStep(
+                leaveId,
+                roleName + ' Verification',
+                userIds
+            );
+        }
     }
 
     // ================= FILE UPLOAD =================

@@ -34,8 +34,7 @@ public without sharing class StudentAttendanceService {
             FROM Session_Enrollment__c
             WHERE Academic_Term_Enrollment__r.LearnerAccountId = :accId
             AND Academic_Term_Enrollment__r.AcademicTermId = :academicTermId
-            AND Session__r.End_Time__c <= :System.now()
-            AND Session__r.Schedule_Type__c = 'Published'
+            AND Session__r.Is_Completed__c = true
         ]; /*SE-1212*/
         return records;
     }

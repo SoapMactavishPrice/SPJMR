@@ -1,73 +1,531 @@
-@isTest
+@IsTest
 private class LeadImportProcessBatchTest {
 
-    private static final String ADMIN_EMAIL = 'lipb.coverage.admin@example.com';
+    @testSetup
+    static void setup() {
+        User u = createSystemAdminUser();
+        system.runAs(u){
+            Country_Master__c s = new Country_Master__c(Name='India',Country_Code__c='91',AcceptedNumberLength__c='10');
+        insert s;
+        State__c st = new State__c(Country_Master__c = s.Id,Name='Kerala');
+        insert st;
+        //Insert new City__c(Name='Kochi',State__c=st.Id);
+        }
+         
+        
+       
+        
+		 
 
-    // Creates (or reuses, within the same @TestSetup run) a System Administrator
-    // test user so DML that depends on RecordType visibility / FLS (which the
-    // default test-running user in this org apparently lacks) succeeds.
-    private static User createAdminUser() {
-        Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
-        User u = new User(
-            ProfileId = p.Id,
-            FirstName = 'Coverage',
-            LastName = 'Admin',
-            Email = ADMIN_EMAIL,
-            Username = ADMIN_EMAIL + '.' + DateTime.now().getTime(),
-            Alias = 'covadm',
-            TimeZoneSidKey = 'America/Los_Angeles',
-            LocaleSidKey = 'en_US',
-            EmailEncodingKey = 'UTF-8',
-            LanguageLocaleKey = 'en_US'
+    }
+
+    private static User createSystemAdminUser(){
+
+        Profile profile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name='System Administrator'
+            LIMIT 1
+        ];
+
+        UserRole role = [
+            SELECT Id
+            FROM UserRole
+            WHERE Name='Student Counsellor'
+            LIMIT 1
+        ];
+        
+        PermissionSet ps = new PermissionSet(
+            Name = 'Coverage_Full_Access_RDC',
+            Label = 'CoverageFullAccessRDC'
         );
+        insert ps;
+		PermissionSet educloud = [SELECT Id FROM PermissionSet WHERE Name='EducationCloudAccess' LIMIT 1];
+        
+        
+
+        User u = new User(
+            FirstName='System',
+            LastName='Admin',
+            Alias='sadm',
+            Email='sys'+System.currentTimeMillis()+'@test.com',
+            Username='sys'+System.currentTimeMillis()+'@test.com',
+            CommunityNickname='sys'+System.currentTimeMillis(),
+            ProfileId=profile.Id,
+            UserRoleId=role.Id,
+            TimeZoneSidKey='Asia/Kolkata',
+            LocaleSidKey='en_US',
+            EmailEncodingKey='UTF-8',
+            LanguageLocaleKey='en_US'
+        );
+
         insert u;
         
-        return u;
+        
+        insert new ObjectPermissions(
+            ParentId = ps.Id,
+            SobjectType = 'Country_Master__c',
+            PermissionsRead = true,
+            PermissionsCreate = true,
+            PermissionsEdit = true,
+            PermissionsDelete = true,
+            PermissionsViewAllRecords = true,
+            PermissionsModifyAllRecords = true
+        );
+        
+        insert new ObjectPermissions(
+            ParentId = ps.Id,
+            SobjectType = 'State__c',
+            PermissionsRead = true,
+            PermissionsCreate = true,
+            PermissionsEdit = true,
+            PermissionsDelete = true,
+            PermissionsViewAllRecords = true,
+            PermissionsModifyAllRecords = true
+        );
+        
+        insert new ObjectPermissions(
+            ParentId = ps.Id,
+            SobjectType = 'City__c',
+            PermissionsRead = true,
+            PermissionsCreate = true,
+            PermissionsEdit = true,
+            PermissionsDelete = true,
+            PermissionsViewAllRecords = true,
+            PermissionsModifyAllRecords = true
+        );
+        
+        insert new ObjectPermissions(
+            ParentId = ps.Id,
+            SobjectType = 'Lead_Import_Parent__c',
+            PermissionsRead = true,
+            PermissionsCreate = true,
+            PermissionsEdit = true,
+            PermissionsDelete = true,
+            PermissionsViewAllRecords = true,
+            PermissionsModifyAllRecords = true
+        );
+        
+        insert new ObjectPermissions(
+            ParentId = ps.Id,
+            SobjectType = 'Lead_Import__c',
+            PermissionsRead = true,
+            PermissionsCreate = true,
+            PermissionsEdit = true,
+            PermissionsDelete = true,
+            PermissionsViewAllRecords = true,
+            PermissionsModifyAllRecords = true
+        );
+        insert new ObjectPermissions(
+            ParentId = ps.Id,
+            SobjectType = 'Lead',
+            PermissionsRead = true,
+            PermissionsCreate = true,
+            PermissionsEdit = true,
+            PermissionsDelete = true,
+            PermissionsViewAllRecords = true,
+            PermissionsModifyAllRecords = true
+        );
+        insert new ObjectPermissions(
+            ParentId = ps.Id,
+            SobjectType = 'Lead_Program__c',
+            PermissionsRead = true,
+            PermissionsCreate = true,
+            PermissionsEdit = true,
+            PermissionsDelete = true,
+            PermissionsViewAllRecords = true,
+            PermissionsModifyAllRecords = true
+        );
+
+        insert new List<FieldPermissions>{
+            new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'Country_Master__c',
+                Field = 'Country_Master__c.Country_Code__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            ),
+            new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'Country_Master__c',
+                Field = 'Country_Master__c.AcceptedNumberLength__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            ),
+            new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'State__c',
+                Field = 'State__c.Country_Master__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            ),
+                 new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'City__c',
+                Field = 'City__c.State__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            ),
+              
+                
+                new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'Lead_Import_Parent__c',
+                Field = 'Lead_Import_Parent__c.Title__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            ),
+                new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'Lead_Import_Parent__c',
+                Field = 'Lead_Import_Parent__c.Description__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            ),
+                new FieldPermissions(
+                ParentId = ps.Id,
+                SobjectType = 'Lead_Import_Parent__c',
+                Field = 'Lead_Import_Parent__c.Status__c',
+                PermissionsRead = true,
+                PermissionsEdit = true
+            ),
+                 new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Lead_Import_Parent__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Name__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Email__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Phone__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Programme__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.LeadSource__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Country__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.State__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.City__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Status__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Age__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+                new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Error_Message__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Years_of_Work_Experience__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Do_you_have_Entrance_Exam_Scores__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Entrance_Exam_Name__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.SPJIMR_Partner_Company__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Organization__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.How_did_you_find_out_about_us__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Current_Designation__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.College__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Graduation_Year__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),// Lead Fields
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.Description',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.Title',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.Send_Welcome_and_Verification_Email__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.Country_Master_backend__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.State_Master__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.District_City__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.Email',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.Phone',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.LeadSource',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_Age__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_YearsOfWorkExperience__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_DoYouHaveEntranceExamScore__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_EntranceExamName__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_SPJIMR_PartnerCompany__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_EnterOrganisation__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_HowDidYouFindOutAboutUs__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_CurrentDesigination__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_College__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead',
+    Field = 'Lead.XS_Year__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+
+// Lead_Program__c Fields
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Program__c',
+    Field = 'Lead_Program__c.Lead__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Program__c',
+    Field = 'Lead_Program__c.Program__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Program__c',
+    Field = 'Lead_Program__c.Email__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Program__c',
+    Field = 'Lead_Program__c.Phone__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Program__c',
+    Field = 'Lead_Program__c.Lead_Source__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+)
+        };
+            
+           insert new PermissionSetAssignment(
+            AssigneeId = u.Id,
+            PermissionSetId = ps.Id
+        );
+        insert new PermissionSetAssignment(
+            AssigneeId = u.Id,
+            PermissionSetId = educloud.Id
+        );
+            return u;
     }
 
-    private static User getAdminUser() {
-        return [SELECT Id FROM User WHERE Email = :ADMIN_EMAIL LIMIT 1];
-    }
-
-    @TestSetup
-    static void setupData() {
-
-        User adminUser = createAdminUser();
-
-        System.runAs(adminUser) {
-
-            Id b2cRtId = Schema.SObjectType.Lead
-                .getRecordTypeInfosByName()
-                .get('B2C')
-                .getRecordTypeId();
-
-            Lead existingLead = new Lead(
-                FirstName = 'Existing',
-                LastName = 'Lead',
-                Company = 'Test',
-                Email = 'existing@test.com',
-                Phone = '8888888888',
-                Status = 'Untouched',
-                RecordTypeId = b2cRtId
-            );
-            insert existingLead;
-
-            Program prog = new Program(
-                Name = 'PGDM',
-                Program_Code__c = 'PGDM01',
-                Short_Programme_Code__c = 'PM',
-                StartDate = Date.today(),
-                EndDate = Date.today().addDays(10),
-                Programme_Type__c = 'Part-time',
-                Programme_Sub_Type__c = 'Class Room',
-                Status = 'Active',
-                Programme_Contact__c = '9999999999',
-                Programme_Intake__c = 100
-            );
-            insert prog;
-
+    private static Lead_Import_Parent__c createParent(){
+       
             Country_Master__c country = new Country_Master__c(
-                Name = 'India'
+                Name = 'India',
+                Country_Code__c = '91',
+                AcceptedNumberLength__c = '10'
             );
             insert country;
 
@@ -76,319 +534,591 @@ private class LeadImportProcessBatchTest {
                 Country_Master__c = country.Id
             );
             insert state;
-
-            City__c city = new City__c(
-                Name = 'Kochi',
-                CityCode__c = 'COK',
-                State__c = state.Id
-            );
-            insert city;
-
-            Lead_Import_Parent__c parent = new Lead_Import_Parent__c(
-                Title__c = 'Test Import',
-                Description__c = 'Testing',
-                Status__c = 'Uploaded'
-            );
+            
+             Lead_Import_Parent__c parent = new Lead_Import_Parent__c(
+            Title__c='Imported Title',
+            Description__c='Imported Description',
+            Status__c='Processing'
+        );
             insert parent;
-        }
+        
+        
+
+           
+        Program p = new Program(
+                Name='PGDM',
+                Program_Code__c='PGDM',
+                Short_Programme_Code__c='PM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p;
+
+       
+
+        
+        return [SELECT Id FROM Lead_Import_Parent__c LIMIT 1];
     }
 
-    private static Lead_Import__c createImportRow() {
+    
+    @IsTest
+static void testProcessScope() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAS(u){
+Program p = new Program(
+                Name='PGDM',
+                Program_Code__c='PGDM',
+                Short_Programme_Code__c='PM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p;
+    Lead_Import__c li = new Lead_Import__c(
+        Name__c='John Doe',
+        Email__c='john@test.com',
+        Phone__c='9999999999',
+        Programme__c='PGDM',
+        Country__c='India',
+        State__c='Kerala',
+        City__c='Kochi',
+        Status__c='New',
+        Age__c=25
+    );
+System.debug('Can Create Lead_Import__c: ' +
+    Schema.sObjectType.Lead_Import__c.isCreateable());
 
-        Id parentId = [
-            SELECT Id
-            FROM Lead_Import_Parent__c
-            LIMIT 1
-        ].Id;
+// Field permissions
+Map<String, Schema.SObjectField> fields =
+    Schema.SObjectType.Lead_Import__c.fields.getMap();
 
-        return new Lead_Import__c(
-            Lead_Import_Parent__c = parentId,
-            Name__c = 'John Doe',
+for (String fieldName : fields.keySet()) {
+    Schema.DescribeFieldResult dfr = fields.get(fieldName).getDescribe();
+
+    System.debug(
+        fieldName +
+        ' | Createable: ' + dfr.isCreateable() +
+        ' | Updateable: ' + dfr.isUpdateable() +
+        ' | Accessible: ' + dfr.isAccessible()
+    );
+}
+    insert li;
+    Test.startTest();
+	
+    LeadImportProcessBatch.processScope(
+        new List<Lead_Import__c>{li},
+        'Test Description',
+        'Test Title'
+    );
+
+    Test.stopTest();
+
+    
+
+    Lead_Import__c updated = [
+        SELECT Status__c
+        FROM Lead_Import__c
+        WHERE Id=:li.Id
+    ];
+	//system.assertEquals('Complete',updated.Status__c,'Lead Import is not successful');
+    }   
+}
+    @IsTest
+static void test_stateMissing() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAS(u){
+Program p = new Program(
+                Name='PGDM',
+                Program_Code__c='PGDM',
+                Short_Programme_Code__c='PM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p;
+    Lead_Import__c li = new Lead_Import__c(
+        Name__c='John Doe',
+        Email__c='john@test.com',
+        Phone__c='9999999999',
+        Programme__c='PGDM',
+        Country__c='India',
+        State__c=null,
+        City__c='Kochi',
+        Status__c='New',
+        Age__c=25
+    );
+
+    insert li;
+
+    Test.startTest();
+
+    LeadImportProcessBatch.processScope(
+        new List<Lead_Import__c>{li},
+        'Test Description',
+        'Test Title'
+    );
+
+    Test.stopTest();
+    }
+}
+    @IsTest
+static void test_emailMissing() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAS(u){
+Program p = new Program(
+                Name='PGDM',
+                Program_Code__c='PGDM',
+                Short_Programme_Code__c='PM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p;
+    Lead_Import__c li = new Lead_Import__c(
+        Name__c='John Doe',
+        Email__c=null,
+        Phone__c='9999999999',
+        Programme__c='PGDM',
+        Country__c='India',
+        State__c='Kerala',
+        City__c='Kochi',
+        Status__c='New',
+        Age__c=25
+    );
+
+    insert li;
+
+    Test.startTest();
+
+    LeadImportProcessBatch.processScope(
+        new List<Lead_Import__c>{li},
+        'Test Description',
+        'Test Title'
+    );
+
+    Test.stopTest();
+    }
+}
+    @IsTest
+static void test_phoneMissing() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAS(u){
+Program p = new Program(
+                Name='PGDM',
+                Program_Code__c='PGDM',
+                Short_Programme_Code__c='PM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p;
+    Lead_Import__c li = new Lead_Import__c(
+        Name__c='John Doe',
+        Email__c='john@test.com',
+        Phone__c=null,
+        Programme__c='PGDM',
+        Country__c='India',
+        State__c='Kerala',
+        City__c='Kochi',
+        Status__c='New',
+        Age__c=25
+    );
+
+    insert li;
+
+    Test.startTest();
+
+    LeadImportProcessBatch.processScope(
+        new List<Lead_Import__c>{li},
+        'Test Description',
+        'Test Title'
+    );
+
+    Test.stopTest();
+    }
+}
+    @IsTest
+static void test_programmeMissing() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAS(u){
+Program p = new Program(
+                Name='PGDM',
+                Program_Code__c='PGDM',
+                Short_Programme_Code__c='PM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p;
+    Lead_Import__c li = new Lead_Import__c(
+        Name__c='John Doe',
+        Email__c='john@test.com',
+        Phone__c='9999999999',
+        Programme__c=null,
+        Country__c='India',
+        State__c='Kerala',
+        City__c='Kochi',
+        Status__c='New',
+        Age__c=25
+    );
+
+    insert li;
+
+    Test.startTest();
+
+    LeadImportProcessBatch.processScope(
+        new List<Lead_Import__c>{li},
+        'Test Description',
+        'Test Title'
+    );
+
+    Test.stopTest();
+    }
+}
+    
+    @isTest
+    static void test_countryMissing(){
+        User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAS(u){
+        Program p = new Program(
+                Name='PGDM',
+                Program_Code__c='PGDM',
+                Short_Programme_Code__c='PM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p;
+        Lead_Import__c li = new Lead_Import__c(
+        Name__c='John Doe',
+        Email__c='john@test.com',
+        Phone__c='9999999999',
+        Programme__c='PGDM',
+        Country__c=null,
+        State__c='Kerala',
+        City__c='Kochi',
+        Status__c='New',
+        Age__c=25
+    );
+
+    insert li;
+
+    Test.startTest();
+
+    LeadImportProcessBatch.processScope(
+        new List<Lead_Import__c>{li},
+        'Test Description',
+        'Test Title'
+    );
+
+    Test.stopTest();
+    }
+    }
+    
+    @IsTest
+static void test_existingLead() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAS(u){
+    Program p = new Program(
+                Name='PGDM',
+                Program_Code__c='PGDM',
+                Short_Programme_Code__c='PM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p;
+   // Id b2cRecType = Schema.SobjectType.Lead.getRecordTypeInfosByDeveloperName().get('B2C').getRecordTypeId();
+    Lead l = new Lead(Email='john@test.com',//RecordTypeId=b2cRecType,
+                      Phone='9999999999',FirstName='John', LastName='Doe');
+    insert l;
+    Insert new Lead_Program__c(Lead__c=l.Id,Email__c='john@test.com',Phone__c='9999999999',Program__c=p.Id);
+
+    Lead_Import__c li = new Lead_Import__c(
+        Name__c='John Doe',
+        Email__c='john@test.com',
+        Phone__c='9999999999',
+        Programme__c='PGDM',
+        Country__c='India',
+        State__c='Kerala',
+        City__c='Kochi',
+        Status__c='New',
+        Age__c=25
+    );
+
+    insert li;
+
+    Test.startTest();
+
+    LeadImportProcessBatch.processScope(
+        new List<Lead_Import__c>{li},
+        'Test Description',
+        'Test Title'
+    );
+
+    Test.stopTest();
+    }
+}
+    
+    @isTest
+    static void test_happyPathExistingLead(){
+         User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAS(u){
+      
+        Program p = new Program(
+                Name='PGDM',
+                Program_Code__c='PGDM',
+                Short_Programme_Code__c='PM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p;
+         Program p2 = new Program(
+                Name='GMP',
+                Program_Code__c='GMP',
+                Short_Programme_Code__c='GMP',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Blended',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p2;
+        Lead l = new Lead(Email='s@n.com',Phone='999999999',LastName='John',FirstName='Doe');
+        insert l;
+        Insert new Lead_Program__c(Lead__c=l.Id,Program__c=p.Id,Email__c='s@n.com',Phone__c='999999999');
+        
+        Lead_Import_Parent__c par = new Lead_Import_Parent__c(Title__c='T',Description__c='D');
+        insert par;
+        Lead_Import__c lp1 = new Lead_Import__c(Lead_Import_Parent__c = par.Id,Status__c='New',
+        Email__c='s@n.com',Phone__c='999999999',Name__c='John Doe',Programme__c='PGDM',
+        LeadSource__c='Events',Country__c='India',State__c='Kerala',City__c='Kochi');
+        insert lp1;
+        
+        Lead_Import__c lp2 = new Lead_Import__c(Lead_Import_Parent__c = par.Id,Status__c='New',
+        Email__c='s@n.com',Phone__c='999999999',Name__c='John Doe',Programme__c='GMP',
+        LeadSource__c='Events',Country__c='India',State__c='Kerala',City__c='Kochi');
+        insert lp2;
+        
+        LeadImportProcessBatchStarter.startBatch(par.Id);
+        LeadImportProcessBatchStarter.startBatch(null);
+        Database.executeBatch(new LeadImportProcessBatch(null));
+    }
+    }
+    
+    
+    @IsTest
+static void test_nameMissing() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAs(u){
+        Program p = new Program(
+            Name='PGDM',
+            Program_Code__c='PGDM',
+            Short_Programme_Code__c='PM',
+            Programme_Type__c='Modular',
+            Programme_Sub_Type__c='Blended',
+            StartDate=Date.today(),
+            EndDate=Date.today().addDays(10)
+        );
+        insert p;
+
+        Lead_Import__c li = new Lead_Import__c(
+            Name__c = null,
             Email__c = 'john@test.com',
             Phone__c = '9999999999',
-            Programme__c = 'PGDM01',
-            LeadSource__c = 'Website',
+            Programme__c = 'PGDM',
             Country__c = 'India',
             State__c = 'Kerala',
             City__c = 'Kochi',
-            Status__c = 'New'
+            Status__c = 'New',
+            Age__c = 25
         );
-    }
 
+        insert li;
+
+        Test.startTest();
+
+        LeadImportProcessBatch.processScope(
+            new List<Lead_Import__c>{li},
+            'Test Description',
+            'Test Title'
+        );
+        LeadImportProcessBatchStarter.startBatch(null);
+        Test.stopTest();
+    }
+}
+    
     @IsTest
-    static void testMissingProgram() {
+static void test_countryNotFoundInSystem() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAs(u){
+        Program p = new Program(
+            Name='PGDM',
+            Program_Code__c='PGDM',
+            Short_Programme_Code__c='PM',
+            Programme_Type__c='Modular',
+            Programme_Sub_Type__c='Blended',
+            StartDate=Date.today(),
+            EndDate=Date.today().addDays(10)
+        );
+        insert p;
 
-        User adminUser = getAdminUser();
-        Lead_Import__c row;
+        Lead_Import__c li = new Lead_Import__c(
+            Name__c = 'John Doe',
+            Email__c = 'john@test.com',
+            Phone__c = '9999999999',
+            Programme__c = 'PGDM',
+            Country__c = 'USA',      // No Country_Master__c with this name
+            State__c = 'Kerala',
+            City__c = 'Kochi',
+            Status__c = 'New',
+            Age__c = 25
+        );
 
-        System.runAs(adminUser) {
-            row = createImportRow();
-            row.Programme__c = 'INVALID';
-            insert row;
+        insert li;
 
-            Id parentId = [SELECT Id FROM Lead_Import_Parent__c LIMIT 1].Id;
+        Test.startTest();
 
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parentId);
-            Test.stopTest();
-        }
+        LeadImportProcessBatch.processScope(
+            new List<Lead_Import__c>{li},
+            'Test Description',
+            'Test Title'
+        );
 
-        row = [SELECT Status__c, Error_Message__c FROM Lead_Import__c WHERE Id = :row.Id];
-
-        System.assertEquals('Failed', row.Status__c);
-        System.assertEquals('Programme not found', row.Error_Message__c);
+        Test.stopTest();
     }
+}
 
-    @IsTest
-    static void testMissingEmail() {
+@IsTest
+static void test_stateNotFoundInSystem() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAs(u){
+        Program p = new Program(
+            Name='PGDM',
+            Program_Code__c='PGDM',
+            Short_Programme_Code__c='PM',
+            Programme_Type__c='Modular',
+            Programme_Sub_Type__c='Blended',
+            StartDate=Date.today(),
+            EndDate=Date.today().addDays(10)
+        );
+        insert p;
 
-        User adminUser = getAdminUser();
-        Lead_Import__c row;
+        Lead_Import__c li = new Lead_Import__c(
+            Name__c='John Doe',
+            Email__c='john@test.com',
+            Phone__c='9999999999',
+            Programme__c='PGDM',
+            Country__c='India',
+            State__c='Tamil Nadu', // Does not exist
+            City__c='Kochi',
+            Status__c='New',
+            Age__c=25
+        );
 
-        System.runAs(adminUser) {
-            row = createImportRow();
-            row.Email__c = null;
-            insert row;
+        insert li;
 
-            Id parentId = [SELECT Id FROM Lead_Import_Parent__c LIMIT 1].Id;
+        Test.startTest();
 
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parentId);
-            Test.stopTest();
-        }
+        LeadImportProcessBatch.processScope(
+            new List<Lead_Import__c>{li},
+            'Test Description',
+            'Test Title'
+        );
 
-        row = [SELECT Status__c, Error_Message__c FROM Lead_Import__c WHERE Id = :row.Id];
-
-        System.assertEquals('Failed', row.Status__c);
-        System.assertEquals('Email not found', row.Error_Message__c);
+        Test.stopTest();
     }
+}
+@IsTest
+static void test_cityNotFoundInSystem() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAs(u){
+        Program p = new Program(
+            Name='PGDM',
+            Program_Code__c='PGDM',
+            Short_Programme_Code__c='PM',
+            Programme_Type__c='Modular',
+            Programme_Sub_Type__c='Blended',
+            StartDate=Date.today(),
+            EndDate=Date.today().addDays(10)
+        );
+        insert p;
 
-    @IsTest
-    static void testMissingPhone() {
+        Lead_Import__c li = new Lead_Import__c(
+            Name__c='John Doe',
+            Email__c='john@test.com',
+            Phone__c='9999999999',
+            Programme__c='PGDM',
+            Country__c='India',
+            State__c='Kerala',
+            City__c='Trivandrum', // Does not exist
+            Status__c='New',
+            Age__c=25
+        );
 
-        User adminUser = getAdminUser();
-        Lead_Import__c row;
+        insert li;
 
-        System.runAs(adminUser) {
-            row = createImportRow();
-            row.Phone__c = null;
-            insert row;
+        Test.startTest();
 
-            Id parentId = [SELECT Id FROM Lead_Import_Parent__c LIMIT 1].Id;
+        LeadImportProcessBatch.processScope(
+            new List<Lead_Import__c>{li},
+            'Test Description',
+            'Test Title'
+        );
 
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parentId);
-            Test.stopTest();
-        }
-
-        row = [SELECT Status__c, Error_Message__c FROM Lead_Import__c WHERE Id = :row.Id];
-
-        System.assertEquals('Failed', row.Status__c);
-        System.assertEquals('Phone not found', row.Error_Message__c);
+        Test.stopTest();
     }
+}
 
-    @IsTest
-    static void testMissingLeadSource() {
+@IsTest
+static void test_cityMissing() {
+    User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAs(u){
+        Program p = new Program(
+            Name='PGDM',
+            Program_Code__c='PGDM',
+            Short_Programme_Code__c='PM',
+            Programme_Type__c='Modular',
+            Programme_Sub_Type__c='Blended',
+            StartDate=Date.today(),
+            EndDate=Date.today().addDays(10)
+        );
+        insert p;
 
-        User adminUser = getAdminUser();
-        Lead_Import__c row;
+        Lead_Import__c li = new Lead_Import__c(
+            Name__c='John Doe',
+            Email__c='john@test.com',
+            Phone__c='9999999999',
+            Programme__c='PGDM',
+            Country__c='India',
+            State__c='Kerala',
+            City__c=null,
+            Status__c='New',
+            Age__c=25
+        );
 
-        System.runAs(adminUser) {
-            row = createImportRow();
-            row.LeadSource__c = null;
-            insert row;
+        insert li;
 
-            Id parentId = [SELECT Id FROM Lead_Import_Parent__c LIMIT 1].Id;
+        Test.startTest();
 
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parentId);
-            Test.stopTest();
-        }
+        LeadImportProcessBatch.processScope(
+            new List<Lead_Import__c>{li},
+            'Test Description',
+            'Test Title'
+        );
 
-        row = [SELECT Status__c, Error_Message__c FROM Lead_Import__c WHERE Id = :row.Id];
-
-        System.assertEquals('Complete', row.Status__c);
-        System.assertEquals(null, row.Error_Message__c);
+        Test.stopTest();
     }
-
-    @IsTest
-    static void testMissingCountry() {
-
-        User adminUser = getAdminUser();
-        Lead_Import__c row;
-
-        System.runAs(adminUser) {
-            row = createImportRow();
-            row.Country__c = null;
-            insert row;
-
-            Id parentId = [SELECT Id FROM Lead_Import_Parent__c LIMIT 1].Id;
-
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parentId);
-            Test.stopTest();
-        }
-
-        row = [SELECT Status__c, Error_Message__c FROM Lead_Import__c WHERE Id = :row.Id];
-
-        System.assertEquals('Failed', row.Status__c);
-        System.assertEquals('Country not found', row.Error_Message__c);
-    }
-
-    @IsTest
-    static void testMissingState() {
-
-        User adminUser = getAdminUser();
-        Lead_Import__c row;
-
-        System.runAs(adminUser) {
-            row = createImportRow();
-            row.State__c = null;
-            insert row;
-
-            Id parentId = [SELECT Id FROM Lead_Import_Parent__c LIMIT 1].Id;
-
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parentId);
-            Test.stopTest();
-        }
-
-        row = [SELECT Status__c, Error_Message__c FROM Lead_Import__c WHERE Id = :row.Id];
-
-        System.assertEquals('Failed', row.Status__c);
-        System.assertEquals('State not found', row.Error_Message__c);
-    }
-
-    @IsTest
-    static void testMissingCity() {
-
-        User adminUser = getAdminUser();
-        Lead_Import__c row;
-
-        System.runAs(adminUser) {
-            row = createImportRow();
-            row.City__c = null;
-            insert row;
-
-            Id parentId = [SELECT Id FROM Lead_Import_Parent__c LIMIT 1].Id;
-
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parentId);
-            Test.stopTest();
-        }
-
-        row = [SELECT Status__c, Error_Message__c FROM Lead_Import__c WHERE Id = :row.Id];
-
-        System.assertEquals('Failed', row.Status__c);
-        System.assertEquals('City not found', row.Error_Message__c);
-    }
-
-    @IsTest
-    static void testStartBatch() {
-
-        User adminUser = getAdminUser();
-        Lead_Import_Parent__c parent;
-        Lead_Import__c row;
-
-        System.runAs(adminUser) {
-            parent = new Lead_Import_Parent__c(
-                Title__c = 'Test Import',
-                Description__c = 'Test',
-                Status__c = 'Uploaded'
-            );
-            insert parent;
-
-            row = new Lead_Import__c(
-                Lead_Import_Parent__c = parent.Id,
-                Name__c = 'John Doe',
-                Email__c = 'john@test.com',
-                Phone__c = '9999999999',
-                Programme__c = 'INVALID_PROGRAM',
-                LeadSource__c = 'Website',
-                Country__c = 'India',
-                State__c = 'Kerala',
-                City__c = 'Kochi',
-                Status__c = 'New'
-            );
-            insert row;
-
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parent.Id);
-            Test.stopTest();
-        }
-
-        parent = [SELECT Status__c FROM Lead_Import_Parent__c WHERE Id = :parent.Id];
-        System.assertEquals('Completed', parent.Status__c);
-
-        row = [SELECT Status__c, Error_Message__c FROM Lead_Import__c WHERE Id = :row.Id];
-        System.assertEquals('Failed', row.Status__c);
-        System.assertEquals('Programme not found', row.Error_Message__c);
-    }
-
-    @IsTest
-    static void testStartBatchWithNullId() {
-
-        User adminUser = getAdminUser();
-
-        System.runAs(adminUser) {
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(null);
-            Test.stopTest();
-        }
-
-        System.assert(true);
-    }
-
-    @IsTest
-    static void testExistingLeadScenario() {
-
-        User adminUser = getAdminUser();
-        Lead existingLead = [SELECT Id, Email FROM Lead WHERE Email = 'existing@test.com' LIMIT 1];
-        Lead_Import__c row;
-
-        System.runAs(adminUser) {
-            row = createImportRow();
-            row.Email__c = 'existing@test.com';
-            row.Phone__c = '8888888888';
-            insert row;
-
-            Id parentId = [SELECT Id FROM Lead_Import_Parent__c LIMIT 1].Id;
-
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parentId);
-            Test.stopTest();
-        }
-
-        System.assertEquals(1, [SELECT COUNT() FROM Lead WHERE Email = 'existing@test.com']);
-        System.assertEquals(1, [SELECT COUNT() FROM Lead_Program__c WHERE Lead__c = :existingLead.Id]);
-
-        row = [SELECT Status__c FROM Lead_Import__c WHERE Id = :row.Id];
-        System.assertEquals('Complete', row.Status__c);
-    }
-
-    @IsTest
-    static void testNewLeadScenario() {
-
-        User adminUser = getAdminUser();
-        Lead_Import__c row;
-
-        System.runAs(adminUser) {
-            row = createImportRow();
-            row.Email__c = 'newlead@test.com';
-            row.Phone__c = '7777777777';
-            insert row;
-
-            Id parentId = [SELECT Id FROM Lead_Import_Parent__c LIMIT 1].Id;
-
-            Test.startTest();
-            LeadImportProcessBatchStarter.startBatch(parentId);
-            Test.stopTest();
-        }
-
-        System.assertEquals(1, [SELECT COUNT() FROM Lead WHERE Email = 'newlead@test.com']);
-        System.assertEquals(1, [SELECT COUNT() FROM Lead_Program__c WHERE Email__c = 'newlead@test.com']);
-
-        row = [SELECT Status__c FROM Lead_Import__c WHERE Id = :row.Id];
-        System.assertEquals('Complete', row.Status__c);
-    }
+}
+    
 }

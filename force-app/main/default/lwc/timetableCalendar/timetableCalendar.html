@@ -1710,7 +1710,7 @@
             <div class="modal-overlay">
                 <div class="month-more-modal-content publish-range-modal" onclick={handleModalClick}>
                     <div class="month-more-modal-header">
-                        <h3>Notify faculty?</h3>
+                        <h3>Send calendar invitation emails?</h3>
                         <button type="button" class="close-btn" onclick={handleFacultyNotifyClose} aria-label="Close">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -1719,7 +1719,11 @@
                         </button>
                     </div>
                     <div class="publish-modal-body">
-                        <p>Would you like to send email and notification to the assigned faculty?</p>
+                        <!-- Relabelled: this choice governs the Google Calendar emails for BOTH
+                             the assigned faculty and the enrolled students, not faculty alone.
+                             Choosing No still updates the Google event silently. -->
+                        <p>Send Google Calendar invitation emails to the assigned faculty and the enrolled students?</p>
+                        <p class="rsvp-message">Choosing <strong>No</strong> still updates the calendar event &mdash; it just does not email anyone. Cancelling a session always notifies its guests.</p>
                     </div>
                     <div class="publish-modal-footer">
                         <lightning-button

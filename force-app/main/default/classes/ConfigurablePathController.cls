@@ -64,12 +64,12 @@ public with sharing class ConfigurablePathController {
     ) {
         ConfigurablePathSaveResult result;
         try {
-            result = ConfigurablePathService.savePathTransition(
-                recordId,
-                configDeveloperName,
-                newPathValue,
-                dependencyValues,
-                perProgramSubStatuses
+             result = ConfigurablePathService.savePathTransition(
+                 recordId,
+                 configDeveloperName,
+                 newPathValue,
+                 dependencyValues,
+                 perProgramSubStatuses
             );
         } catch (Exception e) {
             return saveErrorResult(e.getMessage());

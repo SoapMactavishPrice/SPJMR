@@ -116,11 +116,19 @@ public with sharing class GoogleCalendarHelper {
     public static GoogleCalendarService.GoogleCalendarResponse deleteEventWithStoredCredentials(
         String eventId
     ) {
+        return deleteEventWithStoredCredentials(eventId, GoogleCalendarService.SEND_UPDATES_ALL);
+    }
+
+    public static GoogleCalendarService.GoogleCalendarResponse deleteEventWithStoredCredentials(
+        String eventId,
+        String sendUpdates
+    ) {
         requireConfigured();
         return GoogleCalendarService.deleteCalendarEvent(
             getDefaultCalendarId(CONFIG_NAME),
             eventId,
-            getUserEmail(CONFIG_NAME)
+            getUserEmail(CONFIG_NAME),
+            sendUpdates
         );
     }
 

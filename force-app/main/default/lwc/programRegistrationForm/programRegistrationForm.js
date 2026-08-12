@@ -9,7 +9,7 @@ import getStatesByCountry from '@salesforce/apex/ProgramRegistrationLocationServ
 import getCitiesByState from '@salesforce/apex/ProgramRegistrationLocationService.getCitiesByState';
 import resolveCountryIdByName from '@salesforce/apex/ProgramRegistrationLocationService.resolveCountryIdByName';
 import getPhoneCountryOptions from '@salesforce/apex/ProgramRegistrationLocationService.getPhoneCountryOptions';
-
+import sendManualEmail from '@salesforce/apex/ProgramRegistrationFormController.sendManualEmail'
 
 /** Stable references so c-phone-input is not fed a new [] every render (breaks combobox / options sync). */
 const EMPTY_PICKLIST_OPTS = [];
@@ -39,7 +39,8 @@ export default class ProgramRegistrationForm extends LightningElement {
      * When non-blank, forces brochure vs standard field set (true/false/1/yes). When blank, uses URL {@code isBrochure} / {@code c__isBrochure}.
      */
     @api brochureModeOverride;
-
+    isAccount=false
+    isLead = false
     @track formPayload = {};
     @track captchaState = {};
     /** Stable option arrays per fieldKey — must not be recreated each render (fixes combobox/phone freeze). */
@@ -53,7 +54,11 @@ export default class ProgramRegistrationForm extends LightningElement {
     @track isSaving = false;
     /** When true, load only {@code Is_Brochure_Field__c} metadata rows and prefer {@code Brochure_URL__c} after submit. */
     isBrochureFlow = false;
-
+    showAlreadyRegistered = false
+    alreadyRegisteredMessage = ''
+    isResendingVerification  = false
+    leadOrAccountType = ''
+    leadOrAccountId = ''
     /** Ordered unique program ids from URL or override (comma- or pipe-separated). */
     parsedProgramIds = [];
     /** Programs shown in the multi-select: same ids as the URL (comma- or pipe-separated). */
@@ -86,6 +91,9 @@ export default class ProgramRegistrationForm extends LightningElement {
         case "register":
             this.handleRegisterFromVF();
             break;
+        case "login":
+            this.handleLoginClick();
+            break;
     }
 });
         this.resolveProgramIds();
@@ -116,6 +124,18 @@ export default class ProgramRegistrationForm extends LightningElement {
         void this.initGoogleRecaptcha(host);
     }
 
+    
+
+    async handleResendVerification(){
+       await  sendManualEmail({recordId:this.leadOrAccountId,SObjectName:this.leadOrAccountType})
+         .then((result)=>{
+            console.log('Result is '+result)
+            this.showToast('Email sent!','Please check your inbox','info')
+         })
+         .catch((error)=>{
+            console.log('Error happened: '+JSON.stringify(error))
+         })
+    }
     async handleRegisterFromVF(){
         if (this.isSaving) {
         return;
@@ -154,11 +174,45 @@ async submitRegistration(){
                     brochureMode: this.isBrochureFlow
                 });
                 if (res.alreadyRegistered) {
-                    this.showToast(
+                    console.log('Already Registered: ',JSON.stringify(res))
+                    if(res.existingStatus == '3'){
+                        this.showToast(
+                            'Already Registered',
+                            res.message,
+                            'warning',
+                            'sticky'
+                        )
+                    }
+                    this.showAlreadyRegistered = true;
+                    this.leadOrAccountType = res.leadOrAccountType
+                    this.leadOrAccountId = res.leadOrAccountId
+                    if(this.leadOrAccountType == 'Lead'){
+                        this.isLead=true
+                        this.isAccount=false
+                    }
+
+                    else if(this.leadOrAccountType == 'Account'){
+                        this.isLead=false
+                        this.isAccount = true
+                    }
+                    
+                     this.alreadyRegisteredMessage =
+                        res.message ||
+                        'Your email ID is already registered with us. Click here to receive your credentials email and proceed with your application.';
+
+                   
+                    return;
+                        this.showToast(
                         'Already Registered',
-                        res.message,
+                         'Your email ID is already registered with us. {0} to receive your credentials email and proceed with your application.',
                         'warning',
-                        'sticky'
+                        'sticky',
+                        [
+                            {
+                                url: '#',
+                                label: 'Click here'
+                            }
+                        ]
                     );
                     return;
                 }
@@ -1082,6 +1136,7 @@ get consentRows() {
     }
 
     async handleRegister(event) {
+        this.showAlreadyRegistered = false;
         event.preventDefault();
         await this.submitRegistration();
     }
@@ -1128,7 +1183,7 @@ get consentRows() {
         return msgs;
     }
 
-    handleLoginClick(event) {
+    handleLoginClick() {
         event.preventDefault();
         this.navigateToUrlOrPath(this.loginPath);
     }
@@ -1147,13 +1202,14 @@ get consentRows() {
         window.location.assign(path);
     }
 
-    showToast(title, message, variant,mode) {
+    showToast(title, message, variant,mode,messageData) {
         this.dispatchEvent(
             new ShowToastEvent({
                 title,
                 message,
                 variant,
-                mode
+                mode,
+                messageData
             })
         );
     }

@@ -1,131 +1,234 @@
-import { LightningElement, api, track } from 'lwc';
+import { LightningElement, api } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import getCurrentUserRole from '@salesforce/apex/LeaveApprovalActionController.getCurrentUserRole';
 import processLeaveAction from '@salesforce/apex/LeaveApprovalActionController.processLeaveAction';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { CloseActionScreenEvent } from 'lightning/actions';
 
-export default class LeaveApprovalActionPanel extends LightningElement {
+const APPROVE = 'APPROVE';
+const REJECT = 'REJECT';
+const INCOMPLETE = 'INCOMPLETE';
+const VALID_MODES = [APPROVE, REJECT, INCOMPLETE];
 
-    // ================= RECORD ID =================
+const ROLE_PROGRAMME_OFFICE = 'programme office';
+const ROLE_MANAGER = 'manager';
+const ROLE_DEPUTY = 'deputy chairperson';
+
+/**
+ * Shared approval form for the Leave Application quick actions.
+ * is
+ * This component never guesses which action launched it. A screen quick action
+ * cannot know that — the platform only injects recordId and objectApiName — so
+ * the wrapper component (leaveApprovalApprove / leaveApprovalReject /
+ * leaveApprovalIncomplete) passes `mode` in explicitly.
+ *
+ * If the mode or the approval stage is not one we recognise, the form shows an
+ * error and refuses to submit. It never falls back to a default decision.
+ */
+export default class LeaveApprovalAction extends LightningElement {
+
     _recordId;
+    _mode;
+    _initDone = false;
 
+    // recordId and mode arrive independently and in no guaranteed order, so
+    // both setters funnel through initIfReady() rather than one driving init.
     @api
     set recordId(value) {
         this._recordId = value;
-
-        if (value) {
-            this.initializeComponent();
-        }
+        this.initIfReady();
     }
-
     get recordId() {
         return this._recordId;
     }
 
-    // ================= ACTION NAME =================
-    @api actionName;
+    @api
+    set mode(value) {
+        this._mode = typeof value === 'string' ? value.trim().toUpperCase() : undefined;
+        this.initIfReady();
+    }
+    get mode() {
+        return this._mode;
+    }
 
-    // ================= TRACK VARIABLES =================
-    @track role;
-    @track routeToDeputy = false;
-    @track remarks = '';
-    @track isLoading = false;
+    role;
+    roleLoaded = false;
+    loadError;
 
-    @track eligibleForMakeup = false;
-    @track notEligibleForMakeup = false;
-    @track isIncompleteAction = false;
-    @track isApproveAction = false;
-    @track isRejectAction = false;
+    remarks = '';
+    routeToDeputy = false;
+    eligibleForMakeup = false;
+    notEligibleForMakeup = false;
+    isLoading = false;
 
-    // ================= INIT =================
-    initializeComponent() {
-
-        // Preferred method (safe)
-        this.isApproveAction = this.actionName === 'Approve';
-        this.isRejectAction = this.actionName === 'Reject';
-        this.isIncompleteAction = this.actionName === 'Mark_Incomplete';
-        
-
-        // Fallback (URL-based)
-        const url = window.location.href.toLowerCase();
-
-        if (url.includes('approve')) {
-            this.isApproveAction = true;
+    initIfReady() {
+        if (this._initDone || !this._recordId || !this.isModeValid) {
+            return;
         }
-
-        if (url.includes('reject')) {
-            this.isRejectAction = true;
-        }
-        if (url.includes('mark_incomplete') || url.includes('incomplete')) {
-            this.isIncompleteAction = true;
-        }
+        this._initDone = true;
         this.loadRole();
     }
 
-    // ================= LOAD ROLE =================
     loadRole() {
-        getCurrentUserRole({ leaveId: this.recordId })
+        getCurrentUserRole({ leaveId: this._recordId })
             .then(result => {
                 this.role = result;
+                this.roleLoaded = true;
             })
             .catch(error => {
-                console.error(error);
-                this.showToast('Error', 'Unable to load role', 'error');
+                this.loadError =
+                    error?.body?.message || 'Unable to load the approval stage for this record.';
             });
     }
 
-    // ================= ROLE CHECKS =================
+    // ================= MODE =================
+    get isModeValid() {
+        return VALID_MODES.includes(this._mode);
+    }
+    get isApprove() {
+        return this._mode === APPROVE;
+    }
+    get isReject() {
+        return this._mode === REJECT;
+    }
+    get isIncomplete() {
+        return this._mode === INCOMPLETE;
+    }
+
+    // ================= ROLE =================
+    get normalisedRole() {
+        return typeof this.role === 'string' ? this.role.trim().toLowerCase() : '';
+    }
     get isProgrammeOffice() {
-        return this.role && this.role.toLowerCase() === 'programme office';
+        return this.normalisedRole === ROLE_PROGRAMME_OFFICE;
     }
-
     get isManager() {
-        return this.role && this.role.toLowerCase() === 'manager';
+        return this.normalisedRole === ROLE_MANAGER;
     }
-
     get isDeputy() {
-        return this.role && this.role.toLowerCase() === 'deputy chairperson';
+        return this.normalisedRole === ROLE_DEPUTY;
     }
 
     // ================= UI CONDITIONS =================
+    get showIncompleteUI() {
+        return this.isIncomplete;
+    }
     get showPOApproveUI() {
-        return this.isProgrammeOffice && this.isApproveAction;
+        return this.isProgrammeOffice && this.isApprove;
     }
-
     get showPORejectUI() {
-        return this.isProgrammeOffice && this.isRejectAction;
+        return this.isProgrammeOffice && this.isReject;
     }
-
     get showManagerApproveUI() {
-        return this.isManager && this.isApproveAction;
+        return this.isManager && this.isApprove;
     }
-
     get showDeputyApproveUI() {
-        return this.isDeputy && this.isApproveAction;
+        return this.isDeputy && this.isApprove;
+    }
+    get showManagerRejectUI() {
+        return (this.isManager || this.isDeputy) && this.isReject;
+    }
+    get showMakeupChoice() {
+        return this.showManagerApproveUI || this.showDeputyApproveUI;
     }
 
-    get showManagerRejectUI() {
-        return (this.isManager || this.isDeputy) && this.isRejectAction;
+    /** True only when mode + approval stage map to a decision we understand. */
+    get hasApplicableUI() {
+        if (!this.isModeValid) {
+            return false;
+        }
+        if (this.isIncomplete) {
+            return true;
+        }
+        return (
+            this.showPOApproveUI ||
+            this.showPORejectUI ||
+            this.showManagerApproveUI ||
+            this.showDeputyApproveUI ||
+            this.showManagerRejectUI
+        );
+    }
+
+    get errorMessage() {
+        if (!this.isModeValid) {
+            return 'This action could not be identified, so it cannot be processed. Close the window and try again.';
+        }
+        if (this.loadError) {
+            return this.loadError;
+        }
+        if (this.roleLoaded && !this.hasApplicableUI) {
+            const stage = this.role ? ` (current stage: ${this.role})` : '';
+            return `This action is not available at the current approval stage${stage}.`;
+        }
+        return undefined;
+    }
+    get hasError() {
+        return !!this.errorMessage;
     }
 
     get disableEligible() {
         return this.notEligibleForMakeup;
     }
-    
     get disableNotEligible() {
         return this.eligibleForMakeup;
     }
-    
-    get disableDeputy() {
-        return false; // or based on your logic
+
+    get submitLabel() {
+        if (this.isIncomplete) {
+            return 'Mark Incomplete';
+        }
+        if (this.isReject) {
+            return 'Reject';
+        }
+        return 'Approve';
     }
-    get showIncompleteUI() {
-        return this.isIncompleteAction;
+
+    get isSubmitDisabled() {
+        return this.isLoading || !this.roleLoaded || this.hasError || !this.hasApplicableUI;
     }
+
+    /**
+     * The decision string sent to Apex. Returns undefined for any combination we
+     * do not recognise, so an unknown state can never resolve to 'Approved'.
+     */
+    get decision() {
+        if (this.isIncomplete) {
+            return 'INCOMPLETE';
+        }
+        if (this.isReject) {
+            return this.notEligibleForMakeup ? 'Not Eligible for Makeup' : 'Not Approved';
+        }
+        if (this.isApprove) {
+            if (this.eligibleForMakeup) {
+                return 'Eligible for Makeup';
+            }
+            if (this.notEligibleForMakeup) {
+                return 'Not Eligible for Makeup';
+            }
+            return 'Approved';
+        }
+        return undefined;
+    }
+
+    get actionType() {
+        if (this.isIncomplete) {
+            return 'Incomplete';
+        }
+        return this.isReject ? 'Reject' : 'Approve';
+    }
+
+    get successMessage() {
+        if (this.isIncomplete) {
+            return 'Marked as Incomplete';
+        }
+        if (this.isReject) {
+            return 'Application rejected';
+        }
+        return 'Application approved';
+    }
+
     // ================= HANDLERS =================
     handleEligible(event) {
         this.eligibleForMakeup = event.target.checked;
-
         if (this.eligibleForMakeup) {
             this.notEligibleForMakeup = false;
         }
@@ -133,7 +236,6 @@ export default class LeaveApprovalActionPanel extends LightningElement {
 
     handleNotEligible(event) {
         this.notEligibleForMakeup = event.target.checked;
-
         if (this.notEligibleForMakeup) {
             this.eligibleForMakeup = false;
         }
@@ -141,128 +243,71 @@ export default class LeaveApprovalActionPanel extends LightningElement {
 
     handleDeputy(event) {
         this.routeToDeputy = event.target.checked;
-    
-        // ❌ Prevent deputy routing on reject
-        if (this.isRejectAction) {
-            this.routeToDeputy = false;
-        }
     }
+
     handleRemarks(event) {
         this.remarks = event.target.value;
     }
 
-    // ================= PROCESS =================
-    handleProcess() {
+    handleCancel() {
+        this.close();
+    }
 
+    handleSubmit() {
         if (this.isLoading) {
             return;
         }
-
-        if (!this.recordId) {
-            this.showToast('Error', 'RecordId missing', 'error');
+        if (!this._recordId) {
+            this.toast('Error', 'Record Id is missing', 'error');
             return;
         }
 
-        if (!this.remarks) {
-            this.showToast('Error', 'Remarks are required', 'error');
+        const decision = this.decision;
+        if (!this.hasApplicableUI || !decision) {
+            this.toast(
+                'Error',
+                'This action could not be identified, so nothing was submitted.',
+                'error'
+            );
+            return;
+        }
+        if (!this.remarks || !this.remarks.trim()) {
+            this.toast('Error', 'Remarks are required', 'error');
             return;
         }
 
         this.isLoading = true;
 
-        let finalDecision;
-
-    
-        if (this.isRejectAction) {
-
-            if (this.notEligibleForMakeup) {
-                finalDecision = 'Not Eligible for Makeup';
-            } else {
-                finalDecision = 'Not Approved';
-            }
-        
-        }
-        else if (this.eligibleForMakeup) {
-            finalDecision = 'Eligible for Makeup';
-        }
-        else if (this.notEligibleForMakeup) {
-            finalDecision = 'Not Eligible for Makeup';
-        }
-        else {
-            finalDecision = 'Approved';
-        }
-
-        console.log('Final Decision:', finalDecision);
-
         processLeaveAction({
-            leaveId: this.recordId,
-            decision: finalDecision,
-            actionType: this.isRejectAction ? 'Reject' : 'Approve', 
-            routeToDeputy: this.routeToDeputy,
+            leaveId: this._recordId,
+            decision,
+            actionType: this.actionType,
+            routeToDeputy: this.isApprove ? this.routeToDeputy : false,
             remarks: this.remarks
         })
-        .then(() => {
-            this.showToast('Success', 'Processed successfully', 'success');
-
-            this.dispatchEvent(new CloseActionScreenEvent());
-
-            setTimeout(() => {
-                window.location.reload();
-            }, 500);
-        })
-        .catch(error => {
-            console.error(error);
-            let msg = error?.body?.message || 'Processing failed';
-            this.showToast('Error', msg, 'error');
-        })
-        .finally(() => {
-            this.isLoading = false;
-        });
-    }
-    handleIncompleteAction() {
-
-        if (this.isLoading) return;
-    
-        if (!this.recordId) {
-            this.showToast('Error', 'RecordId missing', 'error');
-            return;
-        }
-    
-        if (!this.remarks) {
-            this.showToast('Error', 'Remarks are required', 'error');
-            return;
-        }
-    
-        this.isLoading = true;
-    
-        processLeaveAction({
-            leaveId: this.recordId,
-            decision: 'INCOMPLETE',
-            routeToDeputy: false,
-            remarks: this.remarks
-        })
-        .then(() => {
-            this.showToast('Success', 'Marked as Incomplete', 'success');
-    
-            this.dispatchEvent(new CloseActionScreenEvent());
-    
-            setTimeout(() => {
-                window.location.reload();
-            }, 500);
-        })
-        .catch(error => {
-            let msg = error?.body?.message || 'Processing failed';
-            this.showToast('Error', msg, 'error');
-        })
-        .finally(() => {
-            this.isLoading = false;
-        });
+            .then(() => {
+                this.toast('Success', this.successMessage, 'success');
+                // Refresh the record in place instead of reloading the browser.
+                return notifyRecordUpdateAvailable([{ recordId: this._recordId }]).catch(
+                    () => undefined
+                );
+            })
+            .then(() => {
+                this.close();
+            })
+            .catch(error => {
+                this.toast('Error', error?.body?.message || 'Processing failed', 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
     }
 
-    // ================= TOAST =================
-    showToast(title, message, variant) {
-        this.dispatchEvent(
-            new ShowToastEvent({ title, message, variant })
-        );
+    close() {
+        this.dispatchEvent(new CustomEvent('close'));
+    }
+
+    toast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 }

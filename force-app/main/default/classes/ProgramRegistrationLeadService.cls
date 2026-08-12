@@ -1,9 +1,13 @@
-/**
+/** 
  * Persists program registration form data to Lead using Program_Registration_Field__mdt mappings.
  * When registering for a child Program, pass registrationConfigProgramId as the parent (or form config key)
  * so field and config metadata match the page the user used, while programId remains the target Program for Lead_Program__c.
  */
 public without sharing class ProgramRegistrationLeadService {
+private static Id existingRecordId;
+private static String existingRecordType;
+    /*
+     
     /**
      * Saves registration: Lead/Lead_Program use programId; metadata lookups use registrationConfigProgramId when set, else programId.
      *
@@ -20,6 +24,8 @@ public without sharing class ProgramRegistrationLeadService {
         String registrationConfigProgramId,
         Boolean brochureMode
     ) {
+        existingRecordId = null;
+        existingRecordType = null;
         ProgramRegistrationFormController.SaveLeadResult result = new ProgramRegistrationFormController.SaveLeadResult();
         result.success = false;
 		system.debug('JSON is :'+formValuesJson);
@@ -110,7 +116,7 @@ public without sharing class ProgramRegistrationLeadService {
                 );
             }
         }
-
+		system.debug('Validation Error is: '+validationErrors);
         if (!validationErrors.isEmpty()) {
             result.message = validationErrors[0];
             return result;
@@ -280,6 +286,7 @@ public without sharing class ProgramRegistrationLeadService {
             }
 
         String phoneValidationError = validatePhoneAgainstCountryRule(lead);
+        system.debug('Phone Validation: '+phoneValidationError);
         if (String.isNotBlank(phoneValidationError)) {
             result.message = phoneValidationError;
             return result;
@@ -299,21 +306,20 @@ public without sharing class ProgramRegistrationLeadService {
                 if (existingStatus == 2) {
                     result.success = true;
                     result.alreadyRegistered = true;
-                    result.message = 'You have already registered for this programme.';
+                    result.leadOrAccountId = existingRecordId;
+                    result.leadOrAccountType = existingRecordType;
+                    result.message = 'Your email ID is already registered with us. '+ 
+                    'Click here to receive your credentials email and proceed with your application.';
                     return result;
                 }
 
-
-                if (existingStatus == 4) {
-                    result.success = true;
-                    result.alreadyRegistered = true;
-                    result.message = 'Already registered, please log into the application portal';
-                    return result;
-                }
 
                 if (existingStatus == 3) {
                     result.success = true;
-                    result.message = 'Successfully Registered, please log into the application portal';
+                    result.alreadyRegistered = true;
+                    result.existingStatus='3';
+                    result.message = 'Your mobile number is already registered with another email ID. '+
+                    'Please use a different mobile number to register';
                     return result;
                 }
 
@@ -322,7 +328,8 @@ public without sharing class ProgramRegistrationLeadService {
                     result.message = 'Registration Successful .Please check your email inbox.';
                     return result;
                 }
-            insert lead;
+            createLeadAndProgram(lead, programSfId, cfg);
+            /*insert lead;
 
             Lead_Program__c leadProgram = new Lead_Program__c(
                 Lead__c = lead.Id,
@@ -337,7 +344,7 @@ public without sharing class ProgramRegistrationLeadService {
             if (String.isNotBlank(lead.Phone)) {
                 leadProgram.Phone__c = lead.Phone;
             }
-            insert leadProgram;
+            insert leadProgram;*/
         } catch (DmlException e) {
             Database.rollback(sp);
             result.message = e.getDmlMessage(0);
@@ -391,6 +398,7 @@ public without sharing class ProgramRegistrationLeadService {
     /**
      * Lead.fields.getMap() uses lowercase keys; metadata may use mixed case.
      */
+    @TestVisible
     private static String resolveLeadFieldMapKey(Map<String, Schema.SObjectField> leadFieldMap, String apiName) {
         if (String.isBlank(apiName)) {
             return null;
@@ -454,7 +462,7 @@ public without sharing class ProgramRegistrationLeadService {
         }
         return String.isBlank(String.valueOf(raw));
     }
-
+	@TestVisible
     private static void putLeadValue(Lead lead, Schema.DescribeFieldResult dfr, Object raw) {
         if (raw == null) {
             return;
@@ -496,7 +504,41 @@ public without sharing class ProgramRegistrationLeadService {
         }
     }
 
+    @TestVisible
+    private static String formatAlternatePhone(Id countryId, String phone) {
+    if (String.isBlank(phone)) {
+        return null;
+    }
 
+    String phoneDigits = digitsOnly(phone);
+
+    if (countryId == null) {
+        return phone;
+    }
+
+    List<Country_Master__c> countries = [
+        SELECT Country_Code__c
+        FROM Country_Master__c
+        WHERE Id = :countryId
+        LIMIT 1
+    ];
+
+    if (countries.isEmpty() ||
+        String.isBlank(countries[0].Country_Code__c)) {
+        return phone;
+    }
+
+    String countryCode = digitsOnly(countries[0].Country_Code__c);
+
+    // Remove country code if already present
+    if (phoneDigits.startsWith(countryCode)) {
+        phoneDigits = phoneDigits.substring(countryCode.length());
+    }
+
+    return '+' + countryCode + ' ' + phoneDigits;
+}
+
+@TestVisible
    private static Integer handleExistingRecords(
     Lead lead,
     Id programId,
@@ -508,16 +550,21 @@ public without sharing class ProgramRegistrationLeadService {
     String phoneRaw = lead.Phone != null ? lead.Phone.trim() : null;
     String phoneDigits = normalizePhone(phoneRaw);
     String leadSource = cfg.Default_Lead_Source__c;
-
+	system.debug('Email:::: '+email);
     if (String.isBlank(email)) {
         return 0;
     }
 
     // 1) If unconverted Lead exists by email: create Lead Program only.
+      /*
+     * SCENARIO 2 / 3
+     * Same email already exists.
+     */
     List<Lead> leadList = [
-        SELECT Id, Email, Phone, FirstName, LastName, IsConverted, ConvertedAccountId
+        SELECT Id, Email, Phone, FirstName, 
+        LastName, IsConverted, ConvertedAccountId,AlternateContactNumber__c
         FROM Lead
-        WHERE (Email = :email OR Phone=:phoneRaw OR Phone=:phoneDigits)
+        WHERE (Email = :email)// OR Phone=:phoneRaw OR Phone=:phoneDigits)
           AND IsConverted = false
         ORDER BY CreatedDate DESC
         LIMIT 1
@@ -525,19 +572,75 @@ public without sharing class ProgramRegistrationLeadService {
 
     if (!leadList.isEmpty()) {
         Lead existingLead = leadList[0];
+        Boolean hasProgram = [
+        SELECT COUNT()
+        FROM Lead_Program__c
+        WHERE Lead__c = :existingLead.Id
+        AND Program__c = :programId
+    ] > 0;
 
-        if (leadProgramExists(existingLead.Id, programId, email, phoneRaw, phoneDigits, leadSource)) {
-        return 2; // Already registered
-            }
+    if (!hasProgram) {
+        // Email is same, but this is a NEW program.
+        // Create another Lead Program under the existing Lead.
+        createLeadProgram(
+            existingLead.Id,
+            programId,
+            email,
+            phoneRaw,
+            cfg
+        );
 
-            createLeadProgram(existingLead.Id, programId, email, phoneRaw, cfg);
+        return 1;
+    }
+
+    
+        String existingPhoneDigits =
+            normalizePhone(existingLead.Phone);
+
+        if (existingPhoneDigits == phoneDigits || existingPhoneDigits == phoneRaw) {
+                    existingRecordId = existingLead.Id;
+                    existingRecordType = 'Lead';
+                    return 2;
+                }
+                if (String.isBlank(existingLead.AlternateContactNumber__c)) {
+                    String alternatePhone = formatAlternatePhone(
+                lead.Country_Master_backend__c,
+                phoneRaw
+            );
+            update new Lead(
+                Id = existingLead.Id,
+                AlternateContactNumber__c = alternatePhone
+            );
             return 1;
+        }
+
+        existingRecordId = existingLead.Id;
+        existingRecordType = 'Lead';
+
+         return 2;
        
     }
 
+    List<Lead> phoneLeads = [
+        SELECT Id, Email, Phone
+        FROM Lead
+        WHERE IsConverted = false
+        AND (
+            Phone = :phoneRaw
+            OR Phone = :phoneDigits
+        )
+        ORDER BY CreatedDate ASC
+        LIMIT 1
+    ];
+
+    if (!phoneLeads.isEmpty()) {
+        return 3;
+    }
+
+
     // 2) If Account exists by email: create Opportunity for new program.
     List<Account> accList = [
-        SELECT Id, FirstName, LastName
+        SELECT Id, FirstName, LastName,PersonOtherPhone,PersonMobilePhone,Country_Master__c,Phone
         FROM Account
         WHERE (PersonEmail = :email
         OR PersonMobilePhone=:phoneRaw
@@ -559,7 +662,17 @@ public without sharing class ProgramRegistrationLeadService {
             email,
             phoneRaw
         );
-        return created ? 3 : 4;
+        if(acc.Phone!=phoneRaw || acc.Phone!=phoneDigits){
+            if(acc.PersonOtherPhone==null){
+                String alternatePhone = formatAlternatePhone(acc.Country_Master__c, phoneRaw);
+                Update new Account(Id=acc.Id,PersonOtherPhone = alternatePhone);   
+            }
+
+        }
+        existingRecordId = acc.Id;
+    existingRecordType = 'Account';
+
+        return 2;
     }
 
     return 0;
@@ -568,6 +681,7 @@ public without sharing class ProgramRegistrationLeadService {
 
 
 
+@TestVisible
 private static Boolean leadProgramExists(
     Id leadId,
     Id programId,
@@ -615,6 +729,20 @@ private static void createLeadProgram(
 
     insert lp;
 }
+
+@TestVisible
+private static Boolean leadProgramExists(
+    Id leadId,
+    Id programId
+) {
+    return [
+        SELECT COUNT()
+        FROM Lead_Program__c
+        WHERE Lead__c = :leadId
+        AND Program__c = :programId
+    ] > 0;
+}
+
 @TestVisible
 private static Boolean createOpportunityAndApplicationIfMissing(
     Id accountId,
@@ -656,6 +784,7 @@ private static Boolean createOpportunityAndApplicationIfMissing(
             newOpp.RecordTypeId = b2cOppRti.getRecordTypeId();
         }
         insert newOpp;
+        UpdateUserRecord(accountId);
         return true;
     }
 
@@ -690,13 +819,14 @@ private static Boolean createOpportunityAndApplicationIfMissing(
             opp.RecordTypeId = b2cOppRti.getRecordTypeId();
         }
         insert opp;
+        UpdateUserRecord(accountId);
     }
-
-     List<User> applicantUserList = [SELECT Id FROM User WHERE ContactId IN (SELECT PersonContactId 
+ List<User> applicantUserList = [SELECT Id,Programs_Applied__c FROM User WHERE ContactId IN (SELECT PersonContactId 
                     FROM Account 
                     WHERE Id = :accountId)];
-        String userId = applicantUserList[0].Id;
-
+     String userId = applicantUserList[0].Id;
+    
+     
     if (opp.Application__c == null) {
         Application__c app = new Application__c();
         app.Applicant__c = accountId;
@@ -720,9 +850,33 @@ private static Boolean createOpportunityAndApplicationIfMissing(
             Application__c = app.Id
         );
     }
+
     return true;
 }
 
+
+@TestVisible
+private static void UpdateUserRecord(Id accountId){
+
+    List<User> applicantUserList = [SELECT Id,Programs_Applied__c FROM User WHERE ContactId IN (SELECT PersonContactId 
+                    FROM Account 
+                    WHERE Id = :accountId)];
+     String userId = applicantUserList[0].Id;
+    if(userId!=null){
+        List<Opportunity> OppList = [SELECT Id,Program__r.Name 
+        FROM Opportunity WHERE AccountId=:accountId];
+        Set<String> programNames = new Set<String>();
+        for(Opportunity opp:OppList){
+            if(String.IsNotBlank(opp.Program__r.Name )){
+                programNames.add(opp.Program__r.Name);
+            }
+        }
+        List<String> programNameList = new List<String>(programNames);
+       String formattedProgrammeNames = ApplicantWelcomeEmailQueue.formatProgrammeList(programNameList);
+       Update new User(Programs_Applied__c=formattedProgrammeNames,Id=userId);
+    }
+
+}
 
  private static void insertApplicationRelatedRecordsFromAccount(
         List<Application__c> applications,
@@ -758,7 +912,7 @@ private static String normalizeEmail(String email) {
 private static String normalizePhone(String phone) {
     return phone != null ? phone.replaceAll('[^0-9]', '') : null;
 }
-
+@TestVisible
 private static String validatePhoneAgainstCountryRule(Lead lead) {
     if (lead == null || String.isBlank(lead.Phone) || lead.Country_Master_backend__c == null) {
         return null;
@@ -825,7 +979,35 @@ private static String validatePhoneAgainstCountryRule(Lead lead) {
         (String.isNotBlank(country.Name) ? '(' + country.Name + ')' : '') +
         '. Allowed digit lengths: ' + String.join(allowedAsText, ', ');
 }
+    
+    @TestVisible
+private static void createLeadAndProgram(
+    Lead lead,
+    Id programSfId,
+    Program_Registration_Config__mdt cfg
+) {
+    insert lead;
 
+    Lead_Program__c leadProgram = new Lead_Program__c(
+        Lead__c = lead.Id,
+        Program__c = programSfId
+    );
+
+    if (String.isNotBlank(cfg.Default_Lead_Source__c)) {
+        leadProgram.Lead_Source__c = cfg.Default_Lead_Source__c.trim();
+    }
+
+    if (String.isNotBlank(lead.Email)) {
+        leadProgram.Email__c = lead.Email;
+    }
+
+    if (String.isNotBlank(lead.Phone)) {
+        leadProgram.Phone__c = lead.Phone;
+    }
+
+    insert leadProgram;
+}
+@TestVisible
 private static Set<Integer> parseAcceptedLengths(String raw) {
     Set<Integer> out = new Set<Integer>();
     if (String.isBlank(raw)) {
@@ -869,10 +1051,11 @@ private static Set<Integer> parseAcceptedLengths(String raw) {
     return out;
 }
 
+    @TestVisible
 private static String digitsOnly(String val) {
     return String.isBlank(val) ? '' : val.replaceAll('[^0-9]', '');
 }
 
-
+    public static void dummy(){}
    
 }

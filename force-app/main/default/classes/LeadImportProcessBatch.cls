@@ -1,5 +1,5 @@
 global without sharing class LeadImportProcessBatch
-implements Database.Batchable<SObject>, Database.Stateful {
+implements Database.Batchable<SObject>, Database.Stateful { 
 
     private Id importParentId;
     private String description;
@@ -8,12 +8,12 @@ implements Database.Batchable<SObject>, Database.Stateful {
     global LeadImportProcessBatch(Id importParentId){
         this.importParentId = importParentId;
 
-        Lead_Import_Parent__c lip = [SELECT Title__c,Description__c
+        List<Lead_Import_Parent__c> lip = [SELECT Title__c,Description__c
         FROM Lead_Import_Parent__c WHERE Id =:importParentId LIMIT 1];
 
-        if(lip!=null){
-            this.description = lip.Description__c;
-            this.Title = lip.Title__c;
+        if(!lip.isEmpty()){
+            this.description = lip[0].Description__c;
+            this.Title = lip[0].Title__c;
         }
         else{
             this.description = '';
@@ -56,10 +56,13 @@ implements Database.Batchable<SObject>, Database.Stateful {
     global void finish(
         Database.BatchableContext bc
     ){
-        update new Lead_Import_Parent__c(
+        if(importParentId!=null){
+            update new Lead_Import_Parent__c(
             Id = importParentId,
             Status__c = 'Completed'
         );
+        }
+        
     }
 
     private static final String RAW_DATA_SOURCE = 'Raw Data';
@@ -76,7 +79,7 @@ implements Database.Batchable<SObject>, Database.Stateful {
         }
         return programMap;
     }
-
+	@TestVisible
     private static Map<String, Country_Master__c> buildCountryMap(Set<String> countries){
         Map<String, Country_Master__c> countryMap = new Map<String, Country_Master__c>();
         List<Country_Master__c> countryRecords = [
@@ -89,7 +92,7 @@ implements Database.Batchable<SObject>, Database.Stateful {
         }
         return countryMap;
     }
-
+	@TestVisible
     private static Map<String, State__c> buildStateMap(Set<String> states){
         Map<String, State__c> stateMap = new Map<String, State__c>();
         List<State__c> stateRecords = [
@@ -103,7 +106,7 @@ implements Database.Batchable<SObject>, Database.Stateful {
         }
         return stateMap;
     }
-
+	@TestVisible
     private static Map<String, City__c> buildCityMap(Set<String> cities){
         Map<String, City__c> cityMap = new Map<String, City__c>();
         List<City__c> cityRecords = [
@@ -117,7 +120,7 @@ implements Database.Batchable<SObject>, Database.Stateful {
         }
         return cityMap;
     }
-
+	@TestVisible
     private static void processScope(List<Lead_Import__c> scope, String description, String title){
 
         Id b2cRecordTypeId = Schema.SObjectType.Lead.getRecordTypeInfosByName().get('B2C').getRecordTypeId();
@@ -371,7 +374,7 @@ implements Database.Batchable<SObject>, Database.Stateful {
                         row.Error_Message__c = null;
                     } else {
                         row.Status__c = 'Failed';
-                        row.Error_Message__c =
+                       row.Error_Message__c =
                             leadInsertResults[i].getErrors()[0].getMessage()
                             + ' Status Code: ' + leadInsertResults[i].getErrors()[0].getStatusCode()
                             + ' Fields : ' + leadInsertResults[i].getErrors()[0].getFields();
@@ -385,9 +388,9 @@ implements Database.Batchable<SObject>, Database.Stateful {
         if(!lpToInsert.isEmpty()){
             Database.SaveResult[] lpResults = Database.insert(lpToInsert, false);
 
-            Id defaultOwnerId = LeadRoutingService.resolveB2cDefaultOwnerUserId();
+            //Id defaultOwnerId = LeadRoutingService.resolveB2cDefaultOwnerUserId();
 
-            List<Lead> leadsToUpdateOwner = new List<Lead>();
+            List<Lead> leadsToUpdateOwner = new List<Lead>(); 
             List<Lead_Program__c> lpToUpdateOwner = new List<Lead_Program__c>();
 
             Set<Id> ownedLeadIds = new Set<Id>();
@@ -395,11 +398,11 @@ implements Database.Batchable<SObject>, Database.Stateful {
                 Lead_Import__c row = lpImportRows[i];
                 if(lpResults[i].isSuccess()){
                     row.Status__c = 'Complete';
-                    row.Error_Message__c = null;
+                   row.Error_Message__c = null;
                 }
                 else{
                     row.Status__c = 'Failed';
-                    row.Error_Message__c = lpResults[i].getErrors()[0].getMessage();
+                   row.Error_Message__c = lpResults[i].getErrors()[0].getMessage();
                 }
                 importUpdateMap.put(row.Id, row);
             }
@@ -424,37 +427,8 @@ implements Database.Batchable<SObject>, Database.Stateful {
 
     private static void markFailed(Lead_Import__c row, String message, Map<Id, Lead_Import__c> importUpdateMap){
         row.Status__c = 'Failed';
-        row.Error_Message__c = message;
+        //row.Error_Message__c = message;
         importUpdateMap.put(row.Id, row);
     }
 
-    private static void insertLeadSharesForRunningUser(Set<Id> leadIds){
-        Id runningUserId = UserInfo.getUserId();
-
-        Set<Id> existingShareLeadIds = new Set<Id>();
-        for(LeadShare ls : [
-            SELECT LeadId
-            FROM LeadShare
-            WHERE LeadId IN :leadIds
-            AND UserOrGroupId = :runningUserId
-        ]){
-            existingShareLeadIds.add(ls.LeadId);
-        }
-
-        List<LeadShare> sharesToInsert = new List<LeadShare>();
-        for(Id leadId : leadIds){
-            if(!existingShareLeadIds.contains(leadId)){
-                sharesToInsert.add(new LeadShare(
-                    LeadId = leadId,
-                    UserOrGroupId = runningUserId,
-                    LeadAccessLevel = 'Edit',
-                    RowCause = Schema.LeadShare.RowCause.Manual
-                ));
-            }
-        }
-
-        if(!sharesToInsert.isEmpty()){
-            Database.insert(sharesToInsert, false);
-        }
-    }
 }

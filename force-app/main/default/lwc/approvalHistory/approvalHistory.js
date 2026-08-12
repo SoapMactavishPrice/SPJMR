@@ -48,8 +48,8 @@ export default class ApprovalHistory extends LightningElement {
         const s = status.toLowerCase();
         if (s.includes('approved')) return 'status-badge status-approved';
         if (s.includes('rejected')) return 'status-badge status-rejected';
-        if (s.includes('pending')) return 'status-badge status-pending';
         if (s.includes('incomplete')) return 'status-badge status-incomplete';
+        if (s.includes('pending')) return 'status-badge status-pending';
         if (s.includes('submitted')) return 'status-badge status-submitted';
         return 'status-badge';
     }
