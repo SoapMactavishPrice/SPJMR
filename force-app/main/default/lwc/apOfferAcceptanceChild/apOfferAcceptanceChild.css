@@ -21,6 +21,26 @@
     margin-bottom: 1rem;
 }
 
+.save-card {
+    background: #ffffff;
+    border: 1px solid var(--spjimr-border);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.save-card .tshirt-row {
+    justify-content: center;
+}
+
+.card {
+    background: #ffffff;
+    border: 1px solid var(--spjimr-border);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1rem;
+}
+
 .stepper {
     padding: 1.4rem 1.5rem 0.6rem;
 }
@@ -184,4 +204,93 @@
     padding: 3rem;
     display: flex;
     justify-content: center;
+}
+
+.card-processing-wrap {
+    position: relative;
+    min-height: 5rem;
+}
+
+.card-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    min-height: 4.5rem;
+    color: var(--spjimr-text-muted);
+}
+
+.card-loader-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--spjimr-purple-dark);
+}
+
+/* ---- Deadline warning (Point 1) ---- */
+.deadline-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #FFF4F4;
+    border: 1px solid #F8BABA;
+    border-left: 3px solid #BA0517;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin-bottom: 0.75rem;
+}
+
+.deadline-text {
+    font-size: 13px;
+    color: #BA0517;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.deadline-icon {
+    flex-shrink: 0;
+}
+
+/* ---- T-shirt size row (combobox + save button) ---- */
+.tshirt-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.tshirt-combobox {
+    flex: 0 0 220px;
+}
+
+.tshirt-save-btn {
+    flex-shrink: 0;
+    margin-bottom: 2px; /* optical alignment with combobox bottom edge */
+}
+
+/* ---- Locked note (shown when isReadOnly) ---- */
+.locked-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 0.6rem;
+    font-size: 12px;
+    color: var(--spjimr-text-muted);
+    font-style: italic;
+}
+
+.locked-icon {
+    --sds-c-icon-color-foreground-default: var(--spjimr-text-muted);
+    flex-shrink: 0;
+}
+
+/* ---- Important document card ---- */
+.important-doc-card {
+    border-left: 3px solid var(--spjimr-purple);
+}
+
+/* Upload area inside an important-doc card */
+.important-doc-upload {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--spjimr-border);
 }

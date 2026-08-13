@@ -1,5 +1,6 @@
 public class AdmissionDecisionTriggerHandler {
     public void beforeInsert(List<Admission_Decision__c> newList) {
+        clearInapplicableFields(newList);
         AdmissionDecisionTriggerHelper.setApplicantEmail(newList);
     }
 
@@ -9,6 +10,7 @@ public class AdmissionDecisionTriggerHandler {
         List<Admission_Decision__c> oldList,
         Map<Id, Admission_Decision__c> oldMap
     ) {
+        clearInapplicableFields(newList);
         AdmissionDecisionTriggerHelper.setApplicantEmail(newList);
     }
 
@@ -19,10 +21,8 @@ public class AdmissionDecisionTriggerHandler {
         AdmissionDecisionTriggerHelper.updateApplicationStateMgmtonInsert(newList);
         AdmissionDecisionTriggerHelper.preventAdditionalRecordCreation(newList);
 
-        if (!AdmissionDecisionImportBatch.isCsvImportInProgress()) {
-            SharingOrchestrator.handleRecords('Admission_Decision__c', newMap.keySet());
-            AdmissionDecisionTriggerHelper.communicateTheDecision(newList);
-        }
+        //SharingOrchestrator.handleRecords('Admission_Decision__c', newMap.keySet());
+        AdmissionDecisionTriggerHelper.communicateTheDecision(newList);
     }
 
     public void afterUpdate(
@@ -48,4 +48,23 @@ public class AdmissionDecisionTriggerHandler {
         List<Admission_Decision__c> newList,
         Map<Id, Admission_Decision__c> newMap
     ) {}
+
+    private static void clearInapplicableFields(List<Admission_Decision__c> decisions) {
+        for (Admission_Decision__c decision : decisions) {
+            if (decision.Result__c != 'Waitlisted') {
+                decision.WaitlistNumber__c = null;
+            }
+
+            if (
+                decision.Result__c == 'Waitlisted' ||
+                decision.Result__c == 'Not Eligible'
+            ) {
+                decision.Offer_Letter_Date__c = null;
+                decision.LastDateOfAcceptance__c = null;
+                decision.SignedLetterOfAcceptanceEta__c = null;
+                decision.PaymentOfTheAcceptanceFeeEta__c = null;
+                decision.PaymentOfTheFirstInstallmentEta__c = null;
+            }
+        }
+    }
 }

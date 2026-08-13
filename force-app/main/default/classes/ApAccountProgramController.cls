@@ -33,37 +33,18 @@ public static String getApplicationStage(Id applicationId) {
 
 
     @AuraEnabled
-    public static String deleteDocument(String contentDocumentId,String entity){
+    public static String deleteDocument(String contentDocumentId, String entity){
         if(String.isEmpty(contentDocumentId) || String.isEmpty(entity)){
             return '';
         }
-        switch on entity{
-            when 'Offer'{
-                List<ContentDocument> contentDocList = [SELECT Id FROM ContentDocument
-                WHERE Id=:contentDocumentId];
-                if(!contentDocList.isEmpty()){
-                    try{
-                        delete contentDocList;
-                        return 'Offer';
-                    }
-                    catch(DMLException e){
-                        system.debug('Could not delete Offer Letter '+e.getMessage());
-                    }
-                }
+        List<ContentDocument> contentDocList = [SELECT Id FROM ContentDocument WHERE Id = :contentDocumentId];
+        if(!contentDocList.isEmpty()){
+            try{
+                delete contentDocList;
+                return entity;
             }
-            when 'Acceptance'{
-                List<ContentDocument> contentDocList = [SELECT Id FROM ContentDocument
-                WHERE Id=:contentDocumentId];
-                
-                if(!contentDocList.isEmpty()){
-                    try{
-                        delete contentDocList;
-                        return 'Acceptance';
-                    }
-                    catch(DMLException e){
-                        system.debug('Could not delete Offer Letter '+e.getMessage());
-                    }
-                }
+            catch(DMLException e){
+                system.debug('Could not delete document [' + entity + ']: ' + e.getMessage());
             }
         }
         return '';
@@ -105,34 +86,22 @@ public static String getApplicationStage(Id applicationId) {
         return '';
     }
 
-    public class OfferUploadConfigWrapper {
-        @AuraEnabled public Boolean showUploadOfferDocuments;
-        @AuraEnabled public Boolean showUploadAcceptDocuments;
-    }
-
     @AuraEnabled(cacheable=true)
-    public static OfferUploadConfigWrapper getOfferUploadConfig(String programCode) {
-        OfferUploadConfigWrapper cfg = new OfferUploadConfigWrapper();
-        cfg.showUploadOfferDocuments = false;
-        cfg.showUploadAcceptDocuments = false;
-
-        if (String.isBlank(programCode)) {
-            return cfg;
-        }
-
-        List<Program_Document__mdt> records = [
-            SELECT ShowOfferDocumentUpload__c, ShowAcceptanceDocumentUpload__c
-            FROM Program_Document__mdt
-            WHERE Program_Code__c = :programCode
+    public static Boolean getOfferDocumentUploadConfig(String programCode) {
+        if (String.isBlank(programCode)) return false;
+        List<ApplicationProgramBasedConfig__mdt> records = [
+            SELECT ConfigValue__c, Type__c
+            FROM ApplicationProgramBasedConfig__mdt
+            WHERE Intent__c      = 'ShowOfferDocumentUpload'
+              AND ProgramCode__c = :programCode
+              AND Active__c      = true
             LIMIT 1
         ];
-
-        if (!records.isEmpty()) {
-            cfg.showUploadOfferDocuments = records[0].ShowOfferDocumentUpload__c;
-            cfg.showUploadAcceptDocuments = records[0].ShowAcceptanceDocumentUpload__c;
+        if (!records.isEmpty() && records[0].Type__c == 'Boolean') {
+            return records[0].ConfigValue__c != null &&
+                   records[0].ConfigValue__c.trim().equalsIgnoreCase('true');
         }
-
-        return cfg;
+        return false;
     }
 
     @AuraEnabled
@@ -243,17 +212,105 @@ public static String getApplicationStage(Id applicationId) {
         }
     }
     
-    
-    public class admissionDecision{
-        @AuraEnabled public string ProgramName;
-        @AuraEnabled public string offerLetterLink;
-        @AuraEnabled public string admissionDecisionId;
-        @AuraEnabled public string contentDocId;
-        @AuraEnabled public string applicationId;
-        @AuraEnabled public string offerAccepted;
-        @AuraEnabled public string offerDeclined;
-        @AuraEnabled public string isOfferWithdrawn;
-        @AuraEnabled public Boolean hasPendingDocuments;
+    @AuraEnabled
+    public static Map<String, Object> getPersonalDetailTShirtSize(Id applicationId) {
+        try {
+            if (applicationId == null) return new Map<String, Object>();
+            List<Personal_Detail__c> pdList = [
+                SELECT Id, TShirtSize__c
+                FROM Personal_Detail__c
+                WHERE Application__c = :applicationId
+                LIMIT 1
+            ];
+            Map<String, Object> result = new Map<String, Object>();
+            if (!pdList.isEmpty()) {
+                result.put('personalDetailId', pdList[0].Id);
+                result.put('tShirtSize', pdList[0].TShirtSize__c);
+            }
+            return result;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static void savePersonalDetailTShirtSize(Id applicationId, String tShirtSize) {
+        try {
+            if (applicationId == null) {
+                throw new AuraHandledException('Missing applicationId');
+            }
+            List<Personal_Detail__c> pdList = [
+                SELECT Id
+                FROM Personal_Detail__c
+                WHERE Application__c = :applicationId
+                LIMIT 1
+            ];
+            if (pdList.isEmpty()) {
+                throw new AuraHandledException('No Personal Detail record found for this application.');
+            }
+            Personal_Detail__c pd = pdList[0];
+            pd.TShirtSize__c = tShirtSize;
+            update pd;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    /**
+     * Returns a map of docCode → {uploaded: true/false, url: '...', contentDocumentId: '...'}
+     * Accepts a list of docCodes to check (supports dynamic Signed_<AnnexureName> codes).
+     */
+    @AuraEnabled
+    public static Map<String, Object> checkUploadedDocumentsByCodes(String applicationId, List<String> docCodes) {
+        Map<String, Object> resultMap = new Map<String, Object>();
+        if (String.isBlank(applicationId) || docCodes == null || docCodes.isEmpty()) {
+            return resultMap;
+        }
+
+        List<Document_Details__c> docDetails = [
+            SELECT Id, Document_Code__c
+            FROM Document_Details__c
+            WHERE Application_No__c = :applicationId
+            AND Document_Code__c IN :docCodes
+        ];
+
+        Map<Id, String> ddToCode = new Map<Id, String>();
+        for (Document_Details__c dd : docDetails) {
+            ddToCode.put(dd.Id, dd.Document_Code__c);
+        }
+
+        if (ddToCode.isEmpty()) return resultMap;
+
+        Map<Id, Id> contentDocToDD = new Map<Id, Id>();
+        for (ContentDocumentLink cdl : [
+            SELECT LinkedEntityId, ContentDocumentId
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId IN :ddToCode.keySet()
+        ]) {
+            contentDocToDD.put(cdl.ContentDocumentId, cdl.LinkedEntityId);
+        }
+
+        if (contentDocToDD.isEmpty()) return resultMap;
+
+        Map<String, Map<String, Object>> codeToResult = new Map<String, Map<String, Object>>();
+        for (ContentDistribution cdist : [
+            SELECT DistributionPublicUrl, ContentDocumentId
+            FROM ContentDistribution
+            WHERE ContentDocumentId IN :contentDocToDD.keySet()
+            ORDER BY CreatedDate DESC
+        ]) {
+            String code = ddToCode.get(contentDocToDD.get(cdist.ContentDocumentId));
+            if (code != null && !codeToResult.containsKey(code)) {
+                codeToResult.put(code, new Map<String, Object>{
+                    'uploaded' => true,
+                    'url' => cdist.DistributionPublicUrl,
+                    'contentDocumentId' => cdist.ContentDocumentId
+                });
+            }
+        }
+
+        resultMap.putAll(codeToResult);
+        return resultMap;
     }
     
     @AuraEnabled
@@ -310,17 +367,9 @@ public static String getApplicationStage(Id applicationId) {
                     }
                 }
                 
-                // Bulk query config & uploaded document details
-                Map<String, Program_Document__mdt> pgmDocConfigMap = new Map<String, Program_Document__mdt>();
-                if(!pgmCodes.isEmpty()){
-                    for(Program_Document__mdt pd : [SELECT Program_Code__c, ShowOfferDocumentUpload__c, ShowAcceptanceDocumentUpload__c FROM Program_Document__mdt WHERE Program_Code__c IN :pgmCodes]){
-                        pgmDocConfigMap.put(pd.Program_Code__c, pd);
-                    }
-                }
-                
                 Map<Id, Set<String>> uploadedDocCodesByAppId = new Map<Id, Set<String>>();
                 if(!appIds.isEmpty()){
-                    List<Document_Details__c> uploadedDocs = [SELECT Application_No__c, Document_Code__c, Id FROM Document_Details__c WHERE Application_No__c IN :appIds AND Document_Code__c IN ('SignedOfferLetter', 'SignedAcceptanceLetter')];
+                    List<Document_Details__c> uploadedDocs = [SELECT Application_No__c, Document_Code__c, Id FROM Document_Details__c WHERE Application_No__c IN :appIds AND Document_Code__c = 'Signed_OfferLetter'];
                     if(!uploadedDocs.isEmpty()){
                         Set<Id> ddIds = new Set<Id>();
                         Map<Id, Id> ddToApp = new Map<Id, Id>();
@@ -337,22 +386,6 @@ public static String getApplicationStage(Id applicationId) {
                                 uploadedDocCodesByAppId.put(appId, new Set<String>());
                             }
                             uploadedDocCodesByAppId.get(appId).add(code);
-                        }
-                    }
-                }
-
-                Set<Id> appsWithAcceptanceLetter = new Set<Id>();
-                if(!appIds.isEmpty()){
-                    List<Document_Details__c> accLetterDocs = [SELECT Application_No__c, Id FROM Document_Details__c WHERE Application_No__c IN :appIds AND Document_Code__c = 'AcceptanceLetter'];
-                    if(!accLetterDocs.isEmpty()){
-                        Set<Id> accDocIds = new Set<Id>();
-                        Map<Id, Id> accDocToApp = new Map<Id, Id>();
-                        for(Document_Details__c dd : accLetterDocs){
-                            accDocIds.add(dd.Id);
-                            accDocToApp.put(dd.Id, dd.Application_No__c);
-                        }
-                        for(ContentDocumentLink cdl : [SELECT LinkedEntityId FROM ContentDocumentLink WHERE LinkedEntityId IN :accDocIds]){
-                            appsWithAcceptanceLetter.add(accDocToApp.get(cdl.LinkedEntityId));
                         }
                     }
                 }
@@ -384,19 +417,16 @@ public static String getApplicationStage(Id applicationId) {
                                 res.offerAccepted = String.valueOf(adm.Offer_Accepted__c);
                                 res.offerDeclined = String.valueOf(adm.Offer_Declined__c);
                                 res.contentDocId = mapAdmissionToOffer.get(adm.Id);
+                                res.applicantStateManagement = app.Applicant_State_Management__c;
 
                                 Boolean isAcc = (adm.Offer_Accepted__c == true);
                                 Boolean hasPending = false;
                                 if (isAcc) {
-                                    Program_Document__mdt cfg = pgmDocConfigMap.get(app.Program_Code__c);
-                                    Set<String> uploadedCodes = uploadedDocCodesByAppId.containsKey(app.Id) ? uploadedDocCodesByAppId.get(app.Id) : new Set<String>();
+                                    Set<String> uploadedCodes = uploadedDocCodesByAppId.containsKey(app.Id)
+                                        ? uploadedDocCodesByAppId.get(app.Id)
+                                        : new Set<String>();
                                     Boolean hasOfferLetterDoc = String.isNotBlank(mapAdmissionToPublicUrl.get(adm.Id));
-                                    Boolean showOfferUpload = (cfg != null && cfg.ShowOfferDocumentUpload__c == true && hasOfferLetterDoc);
-                                    Boolean showAcceptUpload = (cfg != null && cfg.ShowAcceptanceDocumentUpload__c == true && appsWithAcceptanceLetter.contains(app.Id));
-
-                                    Boolean offerMissing = showOfferUpload && !uploadedCodes.contains('SignedOfferLetter');
-                                    Boolean acceptMissing = showAcceptUpload && !uploadedCodes.contains('SignedAcceptanceLetter');
-                                    hasPending = offerMissing || acceptMissing;
+                                    hasPending = hasOfferLetterDoc && !uploadedCodes.contains('Signed_OfferLetter');
                                 }
                                 res.hasPendingDocuments = hasPending;
 
@@ -450,7 +480,7 @@ public static String getApplicationStage(Id applicationId) {
     }
 
     @AuraEnabled
-    public static ProgramDocumentWrapper getProgramSpecificDocuments(String admissionId) {
+    public static ProgramDocumentWrapper getProgramSpecificDocuments(String admissionId, String applicationId) {
         try {
             List<Admission_Decision__c> admList = [
                 SELECT Id, Application__r.Program__r.Program_Code__c
@@ -466,14 +496,44 @@ public static String getApplicationStage(Id applicationId) {
             String pgmCode = admList[0].Application__r.Program__r.Program_Code__c;
 
             List<Program_Document__mdt> pgmMetadataList = [
-                SELECT Id, Program_Code__c, Acceptance_Letter__c,
-                       (SELECT Id, Annexure_Name__c, Annexure_URL__c, Display_Order__c
+                SELECT Id, Program_Code__c,
+                       (SELECT Id, Annexure_Name__c, Annexure_URL__c, Display_Order__c,
+                               DisplayAsImportantDocument__c, IsUploadSectionRequired__c, FilterCondition__c
                         FROM Program_Annexures__r
                         ORDER BY Display_Order__c ASC)
                 FROM Program_Document__mdt
                 WHERE Program_Code__c = :pgmCode
                 LIMIT 1
             ];
+
+            Admission_Decision__c admRecord = null;
+            if (String.isNotBlank(admissionId) && !pgmMetadataList.isEmpty()) {
+                Set<String> fieldNames = new Set<String>{'Id'};
+                for (Program_Annexure__mdt ann : pgmMetadataList[0].Program_Annexures__r) {
+                    String fc = ann.FilterCondition__c;
+                    if (String.isBlank(fc)) continue;
+                    String fcTrimmed = fc.trim();
+                    if (fcTrimmed.equalsIgnoreCase('true') || fcTrimmed.equalsIgnoreCase('false')) continue;
+                    List<String> ops = new List<String>{'>=','<=','==','>','<','='};
+                    for (String op : ops) {
+                        Integer idx = fcTrimmed.indexOf(op);
+                        if (idx > 0) {
+                            String fname = fcTrimmed.substring(0, idx).trim();
+                            if (Schema.SObjectType.Admission_Decision__c.fields.getMap().containsKey(fname)) {
+                                fieldNames.add(fname);
+                            }
+                            break;
+                        }
+                    }
+                }
+                    String soql = 'SELECT ' + String.join(new List<String>(fieldNames), ', ')
+                        + ' FROM Admission_Decision__c WHERE Id = \'' + String.escapeSingleQuotes(admissionId) + '\' LIMIT 1';
+                try {
+                    List<Admission_Decision__c> admList2 = Database.query(soql);
+                    if (!admList2.isEmpty()) admRecord = admList2[0];
+                } catch (Exception ex) {
+                }
+            }
 
             if (pgmMetadataList.isEmpty()) {
                 return null;
@@ -483,7 +543,6 @@ public static String getApplicationStage(Id applicationId) {
 
             ProgramDocumentWrapper result = new ProgramDocumentWrapper();
             result.programCode = pgmMetadata.Program_Code__c;
-            result.acceptanceLetterUrl = pgmMetadata.Acceptance_Letter__c;
             result.annexures = new List<AnnexureWrapper>();
 
             for (Program_Annexure__mdt ann : pgmMetadata.Program_Annexures__r) {
@@ -491,6 +550,13 @@ public static String getApplicationStage(Id applicationId) {
                 aw.annexureName = ann.Annexure_Name__c;
                 aw.annexureUrl = ann.Annexure_URL__c;
                 aw.displayOrder = ann.Display_Order__c;
+                aw.displayAsImportantDocument = ann.DisplayAsImportantDocument__c == true;
+                aw.isUploadSectionRequired = ann.IsUploadSectionRequired__c == true;
+                aw.filterCondition = ann.FilterCondition__c;
+                aw.docCode = buildDocCode(ann.Annexure_Name__c);
+                aw.filterCondition = evaluateFilterCondition(ann.FilterCondition__c, admRecord)
+                    ? null
+                    : 'FILTERED_OUT';
                 result.annexures.add(aw);
             }
 
@@ -498,6 +564,94 @@ public static String getApplicationStage(Id applicationId) {
 
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @TestVisible
+    private static String buildDocCode(String annexureName) {
+        if (String.isBlank(annexureName)) return 'Signed_Unknown';
+        // Remove all non-alphanumeric chars (spaces, hyphens, etc.) → CamelCase style
+        String cleaned = annexureName.replaceAll('[^a-zA-Z0-9]', '');
+        return 'Signed_' + cleaned;
+    }
+
+    @TestVisible
+    private static Boolean evaluateFilterCondition(String condition, Admission_Decision__c admRecord) {
+        if (String.isBlank(condition)) return true;
+
+        String trimmed = condition.trim();
+
+        if (trimmed.equalsIgnoreCase('true'))  return true;
+        if (trimmed.equalsIgnoreCase('false')) return false;
+
+        List<String> operators = new List<String>{'>=', '<=', '==', '>', '<', '='};
+        String foundOp = null;
+        String lhs = null;
+        String rhs = null;
+
+        for (String op : operators) {
+            Integer idx = trimmed.indexOf(op);
+            if (idx > 0) {
+                foundOp = op;
+                lhs = trimmed.substring(0, idx).trim();
+                rhs = trimmed.substring(idx + op.length()).trim();
+                break;
+            }
+        }
+
+        if (foundOp == null || String.isBlank(lhs) || String.isBlank(rhs)) return false;
+
+        Date rhsDate = resolveDateLiteral(rhs);
+        if (rhsDate == null) return false;
+
+        if (admRecord == null) return false;
+        Date lhsDate = resolveAdmissionDateField(lhs, admRecord);
+        if (lhsDate == null) return false;
+
+        switch on foundOp {
+            when '>='  { return lhsDate >= rhsDate; }
+            when '<='  { return lhsDate <= rhsDate; }
+            when '>'   { return lhsDate > rhsDate; }
+            when '<'   { return lhsDate < rhsDate; }
+            when '=', '==' { return lhsDate == rhsDate; }
+        }
+        return false;
+    }
+
+    private static Date resolveDateLiteral(String val) {
+        if (String.isBlank(val)) return null;
+        String v = val.trim();
+        if (v.equalsIgnoreCase('TODAY'))     return Date.today();
+        if (v.equalsIgnoreCase('YESTERDAY')) return Date.today().addDays(-1);
+        if (v.equalsIgnoreCase('TOMORROW'))  return Date.today().addDays(1);
+        v = v.replaceAll('^[\'"]|[\'"]$', '');
+        if (v.length() == 10 && v.substring(2,3) == '/' && v.substring(5,6) == '/') {
+            try {
+                Integer day   = Integer.valueOf(v.substring(0, 2));
+                Integer month = Integer.valueOf(v.substring(3, 5));
+                Integer year  = Integer.valueOf(v.substring(6, 10));
+                return Date.newInstance(year, month, day);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static Date resolveAdmissionDateField(String fieldApiName, Admission_Decision__c admRecord) {
+        try {
+            Schema.SObjectField fld = Schema.SObjectType.Admission_Decision__c.fields.getMap().get(fieldApiName);
+            if (fld == null) return null;
+            Schema.DisplayType fldType = fld.getDescribe().getType();
+            if (fldType != Schema.DisplayType.DATE && fldType != Schema.DisplayType.DATETIME) return null;
+            Object val = admRecord.get(fieldApiName);
+            if (val == null) return null;
+            if (fldType == Schema.DisplayType.DATETIME) {
+                return ((DateTime) val).date();
+            }
+            return (Date) val;
+        } catch (Exception e) {
+            return null;
         }
     }
     
@@ -847,6 +1001,26 @@ public static String getApplicationStage(Id applicationId) {
 
     
     @AuraEnabled(cacheable=true)
+    public static Boolean getTShirtSizeConfig(String programCode) {
+        if (String.isBlank(programCode)) {
+            return true;
+        }
+        List<ApplicationProgramBasedConfig__mdt> records = [
+            SELECT ConfigValue__c, Type__c
+            FROM ApplicationProgramBasedConfig__mdt
+            WHERE Intent__c      = 'ShowTShirtSizeSelection'
+              AND ProgramCode__c = :programCode
+              AND Active__c      = true
+            LIMIT 1
+        ];
+        if (!records.isEmpty() && records[0].Type__c == 'Boolean') {
+            return records[0].ConfigValue__c != null &&
+                   records[0].ConfigValue__c.trim().equalsIgnoreCase('true');
+        }
+        return true;
+    }
+
+    @AuraEnabled(cacheable=true)
     public static String getObjectApiName(Id recordId) {
         if (recordId == null) {
             return null;
@@ -859,6 +1033,10 @@ public static String getApplicationStage(Id applicationId) {
         @AuraEnabled public String annexureName;
         @AuraEnabled public String annexureUrl;
         @AuraEnabled public Decimal displayOrder;
+        @AuraEnabled public Boolean displayAsImportantDocument;
+        @AuraEnabled public Boolean isUploadSectionRequired;
+        @AuraEnabled public String filterCondition;
+        @AuraEnabled public String docCode; // e.g. Signed_OfferLetter or Signed_<AnnexureName>
     }
 
     public class ProgramDocumentWrapper {
@@ -973,6 +1151,19 @@ public static String getApplicationStage(Id applicationId) {
             return cd.DistributionPublicUrl;
         }
         return Site.getBaseCustomUrl() + '/sfc/servlet.shepherd/version/download/' + versions[0].Id;
+    }
+
+    public class admissionDecision{
+        @AuraEnabled public string ProgramName;
+        @AuraEnabled public string offerLetterLink;
+        @AuraEnabled public string admissionDecisionId;
+        @AuraEnabled public string contentDocId;
+        @AuraEnabled public string applicationId;
+        @AuraEnabled public string offerAccepted;
+        @AuraEnabled public string offerDeclined;
+        @AuraEnabled public string isOfferWithdrawn;
+        @AuraEnabled public Boolean hasPendingDocuments;
+        @AuraEnabled public string applicantStateManagement;
     }
     
     

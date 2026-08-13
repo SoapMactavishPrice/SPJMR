@@ -23,7 +23,7 @@
                                     <lightning-icon icon-name="utility:check" size="xx-small" variant="success"></lightning-icon>
                                     Accepted
                                 </span>
-                                <template lwc:if={activeOffer.hasPendingDocuments}>
+                                <template lwc:if={showActivePendingDocuments}>
                                     <span class="status-badge status-doc-pending">
                                         <lightning-icon icon-name="utility:warning" size="xx-small" variant="warning"></lightning-icon>
                                         Pending Documents
@@ -38,7 +38,7 @@
                             class="btn-download" data-id={activeOffer.offerLetterLink} onclick={handleDownload}>
                         </lightning-button>
 
-                        <template lwc:if={activeOffer.offerAccepted}>
+                        <template lwc:if={activeOffer.isOfferAcceptedState}>
                             <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"
                                 data-id={activeOffer.applicationId} data-admid={activeOffer.admissionDecisionId}
                                 onclick={handleWithdraw}>
@@ -51,6 +51,8 @@
                     <c-ap-offer-acceptance-child admission-id={activeOffer.admissionDecisionId}
                         application-id={activeOffer.applicationId}
                         offer-letter-url={activeOffer.offerLetterLink}
+                        is-offer-accepted-state={activeOffer.isOfferAcceptedState}
+                        applicant-state-management={activeOffer.applicantStateManagement}
                         onupdateadmissionaccept={handleUpdateAdmissionAccept}
                         ondocstatuschange={handleDocStatusChange}>
                     </c-ap-offer-acceptance-child>
@@ -112,7 +114,7 @@
                             class="btn-download" data-id={offer.offerLetterLink} onclick={handleDownload}>
                         </lightning-button>
 
-                        <template lwc:if={offer.offerAccepted}>
+                        <template lwc:if={offer.isOfferAcceptedState}>
                             <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"
                                 data-id={offer.applicationId} data-admid={offer.admissionDecisionId}
                                 onclick={handleWithdraw}>

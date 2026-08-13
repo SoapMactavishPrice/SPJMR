@@ -28,9 +28,21 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
     pendingAcceptAdmissionId = '';
     pendingAcceptApplicationId = '';
     activeOffer = null;
+    activeOfferDocStatusReady = false;
+    _initialActiveOfferPending = false;
 
     get isViewingAcceptance() {
         return this.activeOffer !== null;
+    }
+
+    get showActivePendingDocuments() {
+        if (!this.activeOffer) {
+            return false;
+        }
+        if (!this.activeOfferDocStatusReady) {
+            return this._initialActiveOfferPending;
+        }
+        return this.activeOffer.hasPendingDocuments === true;
     }
 
     @wire(getRecord, {recordId:'$userId',fields:[EMAIL_FIELD,FIRST_NAME,LAST_NAME]})
@@ -93,22 +105,31 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                 selectedAccepted: true,
                 selectedRejected: false,
                 showButtons: false,
-                offerAccepted: true
+                offerAccepted: true,
+                isOfferAcceptedState: true,
+                hasPendingDocuments: false,
+                applicantStateManagement: 'Offer Accepted'
             };
         });
         this.activeOffer = this.offers.find((item) => item.admissionDecisionId === admId) || null;
+        this._initialActiveOfferPending = this.activeOffer?.hasPendingDocuments === true;
+        this.activeOfferDocStatusReady = false;
         this.pendingAcceptAdmissionId = '';
         this.pendingAcceptApplicationId = '';
-
     }
 
     handleViewAcceptance(event) {
         const admId = event.currentTarget.dataset.admid;
-        this.activeOffer = this.offers.find((item) => item.admissionDecisionId === admId) || null;
+        const offer = this.offers.find((item) => item.admissionDecisionId === admId) || null;
+        this.activeOffer = offer;
+        this._initialActiveOfferPending = offer?.hasPendingDocuments === true;
+        this.activeOfferDocStatusReady = false;
     }
 
     handleBackToOffers() {
         this.activeOffer = null;
+        this.activeOfferDocStatusReady = false;
+        this._initialActiveOfferPending = false;
     }
 
     async handleReject(event) {
@@ -148,8 +169,19 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                 item.selectedAccepted = false
                 item.showButtons = false
                 item.offerAccepted = true
+                item.isOfferAcceptedState = true
+                item.hasPendingDocuments = false
+                item.applicantStateManagement = 'Offer Accepted'
             }
         })
+        if (this.activeOffer && this.activeOffer.admissionDecisionId === admissionId) {
+            this.activeOffer = {
+                ...this.activeOffer,
+                isOfferAcceptedState: true,
+                applicantStateManagement: 'Offer Accepted',
+                hasPendingDocuments: false
+            };
+        }
     }
     async handleWithdraw(event) {
         const applicationId = event.currentTarget.dataset.id
@@ -217,8 +249,19 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         if(item.applicationId==applicationId){
                             item.isWithdrawDisabled=true
                             item.offerAccepted = false
+                            item.applicantStateManagement = 'Withdrawn'
+                            item.hasPendingDocuments = false
                         }
                     })
+                    if (this.activeOffer && this.activeOffer.applicationId === applicationId) {
+                        this.activeOffer = {
+                            ...this.activeOffer,
+                            isWithdrawDisabled: true,
+                            offerAccepted: false,
+                            applicantStateManagement: 'Withdrawn',
+                            hasPendingDocuments: false
+                        };
+                    }
                     this.showSuccessToastMessage('Success','Offer Withdrawn')
                 }
             })
@@ -287,12 +330,15 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
         const { applicationId, hasPendingDocuments } = event.detail;
         this.offers = this.offers.map((item) => {
             if (item.applicationId === applicationId) {
-                return { ...item, hasPendingDocuments };
+                const newHasPending = (item.applicantStateManagement === 'Offer Accepted' || item.applicantStateManagement === 'Withdrawn') ? false : hasPendingDocuments;
+                return { ...item, hasPendingDocuments: newHasPending };
             }
             return item;
         });
         if (this.activeOffer && this.activeOffer.applicationId === applicationId) {
-            this.activeOffer = { ...this.activeOffer, hasPendingDocuments };
+            const newHasPending = (this.activeOffer.applicantStateManagement === 'Offer Accepted' || this.activeOffer.applicantStateManagement === 'Withdrawn') ? false : hasPendingDocuments;
+            this.activeOffer = { ...this.activeOffer, hasPendingDocuments: newHasPending };
+            this.activeOfferDocStatusReady = true;
         }
     }
 
@@ -306,11 +352,13 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         ...item,
                         offerDeclined: item.offerDeclined === 'true',
                         offerAccepted: item.offerAccepted === 'true',
-                        hasPendingDocuments: item.hasPendingDocuments === true || item.hasPendingDocuments === 'true',
+                        hasPendingDocuments: (item.applicantStateManagement === 'Offer Accepted' || item.applicantStateManagement === 'Withdrawn') ? false : (item.hasPendingDocuments === true || item.hasPendingDocuments === 'true'),
                         selectedAccepted: false,
                         selectedRejected: false,
                         showButtons: item.offerDeclined != 'true' && item.offerAccepted != 'true' && item.isOfferWithdrawn != 'true',
-                        isWithdrawDisabled: item.isOfferWithdrawn === 'true'
+                        isWithdrawDisabled: item.isOfferWithdrawn === 'true',
+                        isOfferAcceptedState: item.applicantStateManagement === 'Offer Accepted',
+                        applicantStateManagement: item.applicantStateManagement || ''
                     }
                 })
 

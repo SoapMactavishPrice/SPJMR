@@ -14,6 +14,7 @@ trigger ApplicationTrigger on Application__c (After Insert ,After Update ) {
             ApplicationTriggerHandler.handleGMPEmail(
                 Trigger.new, Trigger.oldMap
             );
+            ApplicationTriggerHandler.handleApplicationStatusChangeScenarios(Trigger.new, Trigger.oldMap);
         }
     }
 }
