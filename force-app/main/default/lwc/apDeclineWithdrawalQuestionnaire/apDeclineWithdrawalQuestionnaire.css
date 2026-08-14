@@ -1,0 +1,327 @@
+/* ── Design tokens ──────────────────────────────────────────────────────── */
+:host {
+    --qm-brand: #0176d3;
+    --qm-brand-dark: #014486;
+    --qm-brand-soft: #eef6fd;
+    --qm-error: #ba0517;
+    --qm-error-soft: #fef3f2;
+    --qm-text: #181818;
+    --qm-text-muted: #5c5b5a;
+    --qm-border: #dddbda;
+    --qm-border-strong: #c9c7c5;
+    --qm-surface: #ffffff;
+    --qm-surface-muted: #fafaf9;
+    --qm-radius: 8px;
+    --qm-radius-sm: 6px;
+    --qm-transition: 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ── Container ──────────────────────────────────────────────────────────── */
+.questionnaire-container {
+    padding: 0 0.25rem;
+}
+
+/* ── Intro text ─────────────────────────────────────────────────────────── */
+.intro-text {
+    font-size: 0.875rem;
+    color: var(--qm-text-muted);
+    background-color: var(--qm-brand-soft);
+    border-left: 4px solid var(--qm-brand);
+    padding: 0.875rem 1rem;
+    margin: 0 0 1.5rem 0;
+    border-radius: 0 var(--qm-radius-sm) var(--qm-radius-sm) 0;
+    line-height: 1.55;
+}
+
+/* ── Form section ───────────────────────────────────────────────────────── */
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+/* ── Three-column row for read-only fields ──────────────────────────────── */
+.field-row.three-col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    background-color: var(--qm-surface-muted);
+    border: 1px solid var(--qm-border);
+    border-radius: var(--qm-radius);
+    padding: 1rem;
+}
+
+@media (max-width: 768px) {
+    .field-row.three-col {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Field wrap / fieldset reset ────────────────────────────────────────── */
+.field-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.field-wrap.full-width {
+    width: 100%;
+}
+
+fieldset.field-wrap {
+    min-width: 0;
+}
+
+/* ── Labels ─────────────────────────────────────────────────────────────── */
+.field-label,
+legend.field-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--qm-text);
+    padding: 0;
+}
+
+.required-label::after {
+    content: ' *';
+    color: var(--qm-error);
+}
+
+.field-hint {
+    font-weight: 400;
+    color: var(--qm-text-muted);
+    font-size: 0.75rem;
+}
+
+.field-hint-block {
+    font-size: 0.8125rem;
+    color: var(--qm-text-muted);
+    margin: 0.25rem 0 0.5rem 0;
+    font-style: italic;
+}
+
+/* ── Error messages ─────────────────────────────────────────────────────── */
+.field-error {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--qm-error);
+    background-color: var(--qm-error-soft);
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.75rem;
+    margin: 0.25rem 0;
+    border-radius: var(--qm-radius-sm);
+    animation: shakeIn 220ms ease-out;
+}
+
+.field-error::before {
+    content: '⚠';
+    font-size: 0.875rem;
+    line-height: 1;
+}
+
+/* ── Shared option grid ─────────────────────────────────────────────────── */
+.radio-group,
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+    padding: 0.5rem 0 0.25rem;
+}
+
+@media (max-width: 600px) {
+    .radio-group,
+    .checkbox-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Option cards (radio + checkbox) ────────────────────────────────────── */
+.radio-option,
+.checkbox-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    cursor: pointer;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--qm-border);
+    border-radius: var(--qm-radius-sm);
+    background-color: var(--qm-surface);
+    transition: border-color var(--qm-transition), background-color var(--qm-transition),
+        box-shadow var(--qm-transition), transform var(--qm-transition);
+}
+
+.radio-option:hover,
+.checkbox-option:hover {
+    border-color: var(--qm-border-strong);
+    background-color: var(--qm-surface-muted);
+}
+
+.radio-option:active,
+.checkbox-option:active {
+    transform: scale(0.99);
+}
+
+/* Reactive "selected" state driven purely by CSS — modern :has() selector */
+.radio-option:has(input:checked),
+.checkbox-option:has(input:checked) {
+    border-color: var(--qm-brand);
+    background-color: var(--qm-brand-soft);
+    box-shadow: 0 0 0 1px var(--qm-brand);
+}
+
+.radio-option:has(input:focus-visible),
+.checkbox-option:has(input:focus-visible) {
+    outline: 2px solid var(--qm-brand);
+    outline-offset: 2px;
+}
+
+/* Hide native control visually but keep it accessible/interactive */
+.radio-option input[type="radio"],
+.checkbox-option input[type="checkbox"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Custom control indicator */
+.option-control {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 2px solid var(--qm-border-strong);
+    border-radius: 50%;
+    background-color: var(--qm-surface);
+    display: grid;
+    place-items: center;
+    transition: border-color var(--qm-transition), background-color var(--qm-transition);
+}
+
+.option-control::after {
+    content: '';
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background-color: var(--qm-surface);
+    transform: scale(0);
+    transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.option-control_checkbox {
+    border-radius: 5px;
+}
+
+.option-control_checkbox::after {
+    width: 0.65rem;
+    height: 0.55rem;
+    border-radius: 1px;
+    background-color: transparent;
+    clip-path: polygon(14% 44%, 0 63%, 39% 100%, 100% 21%, 84% 6%, 38% 71%);
+}
+
+.radio-option input:checked ~ .option-control,
+.checkbox-option input:checked ~ .option-control {
+    border-color: var(--qm-brand);
+    background-color: var(--qm-brand);
+}
+
+.radio-option input:checked ~ .option-control::after {
+    transform: scale(1);
+}
+
+.checkbox-option input:checked ~ .option-control_checkbox {
+    background-color: var(--qm-brand);
+}
+
+.checkbox-option input:checked ~ .option-control_checkbox::after {
+    background-color: var(--qm-surface);
+    transform: scale(1);
+}
+
+.radio-label,
+.checkbox-label {
+    font-size: 0.875rem;
+    color: var(--qm-text);
+    line-height: 1.4;
+}
+
+/* ── Specify box (conditional textarea) ─────────────────────────────────── */
+.specify-box {
+    margin-top: 0.75rem;
+    padding: 0.9rem 1rem;
+    background-color: var(--qm-surface-muted);
+    border: 1px solid var(--qm-brand);
+    border-left: 3px solid var(--qm-brand);
+    border-radius: var(--qm-radius-sm);
+}
+
+/* Reveal animation — plays every time the block mounts via lwc:if */
+.specify-box_reveal {
+    animation: revealIn 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform-origin: top;
+}
+
+@keyframes revealIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scaleY(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scaleY(1);
+    }
+}
+
+@keyframes shakeIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-4px);
+    }
+    60% {
+        transform: translateX(2px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .specify-box_reveal,
+    .field-error,
+    .radio-option,
+    .checkbox-option,
+    .option-control,
+    .option-control::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ── Loading state ──────────────────────────────────────────────────────── */
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+}
+
+
+/* ── Footer buttons ─────────────────────────────────────────────────────── */
+.footer-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.btn-submit {
+    transition: opacity var(--qm-transition);
+}

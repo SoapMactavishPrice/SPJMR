@@ -256,10 +256,6 @@ public static String getApplicationStage(Id applicationId) {
         }
     }
 
-    /**
-     * Returns a map of docCode → {uploaded: true/false, url: '...', contentDocumentId: '...'}
-     * Accepts a list of docCodes to check (supports dynamic Signed_<AnnexureName> codes).
-     */
     @AuraEnabled
     public static Map<String, Object> checkUploadedDocumentsByCodes(String applicationId, List<String> docCodes) {
         Map<String, Object> resultMap = new Map<String, Object>();
@@ -497,10 +493,10 @@ public static String getApplicationStage(Id applicationId) {
 
             List<Program_Document__mdt> pgmMetadataList = [
                 SELECT Id, Program_Code__c,
-                       (SELECT Id, Annexure_Name__c, Annexure_URL__c, Display_Order__c,
+                       (SELECT Id, AnnexureName__c, AnnexureURL__c, DisplayOrder__c,
                                DisplayAsImportantDocument__c, IsUploadSectionRequired__c, FilterCondition__c
                         FROM Program_Annexures__r
-                        ORDER BY Display_Order__c ASC)
+                        ORDER BY DisplayOrder__c ASC)
                 FROM Program_Document__mdt
                 WHERE Program_Code__c = :pgmCode
                 LIMIT 1
@@ -509,7 +505,7 @@ public static String getApplicationStage(Id applicationId) {
             Admission_Decision__c admRecord = null;
             if (String.isNotBlank(admissionId) && !pgmMetadataList.isEmpty()) {
                 Set<String> fieldNames = new Set<String>{'Id'};
-                for (Program_Annexure__mdt ann : pgmMetadataList[0].Program_Annexures__r) {
+                for (ProgramAnnexure__mdt ann : pgmMetadataList[0].Program_Annexures__r) {
                     String fc = ann.FilterCondition__c;
                     if (String.isBlank(fc)) continue;
                     String fcTrimmed = fc.trim();
@@ -545,15 +541,15 @@ public static String getApplicationStage(Id applicationId) {
             result.programCode = pgmMetadata.Program_Code__c;
             result.annexures = new List<AnnexureWrapper>();
 
-            for (Program_Annexure__mdt ann : pgmMetadata.Program_Annexures__r) {
+            for (ProgramAnnexure__mdt ann : pgmMetadata.Program_Annexures__r) {
                 AnnexureWrapper aw = new AnnexureWrapper();
-                aw.annexureName = ann.Annexure_Name__c;
-                aw.annexureUrl = ann.Annexure_URL__c;
-                aw.displayOrder = ann.Display_Order__c;
+                aw.annexureName = ann.AnnexureName__c;
+                aw.annexureUrl = ann.AnnexureURL__c;
+                aw.displayOrder = ann.DisplayOrder__c;
                 aw.displayAsImportantDocument = ann.DisplayAsImportantDocument__c == true;
                 aw.isUploadSectionRequired = ann.IsUploadSectionRequired__c == true;
                 aw.filterCondition = ann.FilterCondition__c;
-                aw.docCode = buildDocCode(ann.Annexure_Name__c);
+                aw.docCode = buildDocCode(ann.AnnexureName__c);
                 aw.filterCondition = evaluateFilterCondition(ann.FilterCondition__c, admRecord)
                     ? null
                     : 'FILTERED_OUT';
@@ -718,7 +714,7 @@ public static String getApplicationStage(Id applicationId) {
         @AuraEnabled public String applicationStage;
         @AuraEnabled public String applicationName;
         @AuraEnabled public String applicationAcceptanceStatus = 'Open';
-        @AuraEnabled public Boolean allowSchedule;//will be set to true when status is open, Application_c.AllowSelfSchedule__c is true, and no existing active bookings for the application
+        @AuraEnabled public Boolean allowSchedule;
         @AuraEnabled public Map<String,Object> bookingInfo;
         @AuraEnabled public Boolean isScheduled;
         @AuraEnabled public Boolean isRound1;
@@ -1036,7 +1032,7 @@ public static String getApplicationStage(Id applicationId) {
         @AuraEnabled public Boolean displayAsImportantDocument;
         @AuraEnabled public Boolean isUploadSectionRequired;
         @AuraEnabled public String filterCondition;
-        @AuraEnabled public String docCode; // e.g. Signed_OfferLetter or Signed_<AnnexureName>
+        @AuraEnabled public String docCode;
     }
 
     public class ProgramDocumentWrapper {
@@ -1166,5 +1162,72 @@ public static String getApplicationStage(Id applicationId) {
         @AuraEnabled public string applicantStateManagement;
     }
     
+    @AuraEnabled(cacheable=false)
+    public static Map<String, String> getApplicationDetailsForQuestionnaire(Id applicationId) {
+        try {
+            if (applicationId == null) {
+                throw new AuraHandledException('Missing applicationId');
+            }
+            List<Application__c> apps = [
+                SELECT Id, Name, First_Name__c, Last_Name__c, Applicant__r.PersonEmail
+                FROM Application__c
+                WHERE Id = :applicationId
+                LIMIT 1
+            ];
+            if (apps.isEmpty()) {
+                throw new AuraHandledException('Application not found');
+            }
+            Application__c app = apps[0];
+            String fullName = '';
+            if (String.isNotBlank(app.First_Name__c)) {
+                fullName = app.First_Name__c;
+            }
+            if (String.isNotBlank(app.Last_Name__c)) {
+                fullName = String.isNotBlank(fullName)
+                    ? fullName + ' ' + app.Last_Name__c
+                    : app.Last_Name__c;
+            }
+            return new Map<String, String>{
+                'applicantName'  => fullName,
+                'applicationId'  => app.Name,
+                'applicantEmail' => app.Applicant__r?.PersonEmail
+            };
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static void saveDeclineWithdrawalQuestionnaire(
+            Id applicationId,
+            String applicantName,
+            String applicationIdText,
+            String applicantEmailId,
+            String whichInstituteAreYouJoining,
+            String otherInstituteName,
+            String reasonsForYourChoice,
+            String reasonsForChoicePlacementRoles,
+            String reasonsForChoiceOther,
+            String anyOtherInformation,
+            String type
+    ) {
+        try {
+            DeclineWithdrawalQuestionnaire__c rec = new DeclineWithdrawalQuestionnaire__c();
+            rec.Application__c                 = applicationId;
+            rec.ApplicantName__c              = applicantName;
+            rec.ApplicationId__c              = applicationIdText;
+            rec.ApplicantEmailId__c           = applicantEmailId;
+            rec.WhichInstituteAreYouJoining__c = whichInstituteAreYouJoining;
+            rec.Other_Institute_Name__c       = otherInstituteName;
+            rec.ReasonsForYourChoice__c       = reasonsForYourChoice;
+            rec.Reasons_for_Choice_Placement_Roles__c = reasonsForChoicePlacementRoles;
+            rec.Reasons_for_Choice_Other__c   = reasonsForChoiceOther;
+            rec.AnyOtherInformation__c        = anyOtherInformation;
+            rec.Type__c                       = type;
+            insert rec;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
     
 }

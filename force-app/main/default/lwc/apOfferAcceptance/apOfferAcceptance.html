@@ -34,9 +34,11 @@
                     </div>
 
                     <div class="offer-actions">
-                        <lightning-button label="Download offer" icon-name="utility:download" variant="neutral"
-                            class="btn-download" data-id={activeOffer.offerLetterLink} onclick={handleDownload}>
-                        </lightning-button>
+                        <template lwc:if={showActiveOfferDownload}>
+                            <lightning-button label="Download offer" icon-name="utility:download" variant="neutral"
+                                class="btn-download" data-id={activeOffer.offerLetterLink} onclick={handleDownload}>
+                            </lightning-button>
+                        </template>
 
                         <template lwc:if={activeOffer.isOfferAcceptedState}>
                             <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"
@@ -110,9 +112,11 @@
                             </lightning-button>
                         </template>
 
-                        <lightning-button label="Download offer" icon-name="utility:download" variant="neutral"
-                            class="btn-download" data-id={offer.offerLetterLink} onclick={handleDownload}>
-                        </lightning-button>
+                        <template lwc:if={offer.showDownloadOffer}>
+                            <lightning-button label="Download offer" icon-name="utility:download" variant="neutral"
+                                class="btn-download" data-id={offer.offerLetterLink} onclick={handleDownload}>
+                            </lightning-button>
+                        </template>
 
                         <template lwc:if={offer.isOfferAcceptedState}>
                             <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"

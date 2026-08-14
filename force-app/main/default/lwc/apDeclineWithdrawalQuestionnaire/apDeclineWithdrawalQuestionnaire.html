@@ -1,0 +1,179 @@
+<template>
+    <lightning-modal-header label={modalTitle}></lightning-modal-header>
+
+    <lightning-modal-body>
+        <template lwc:if={isLoaded}>
+            <div class="questionnaire-container">
+
+                <!-- Intro text for Withdrawn scenario only -->
+                <template lwc:if={isWithdrawnType}>
+                    <p class="intro-text">
+                        As we process your request for withdrawal of your acceptance and for a refund, request you to
+                        please fill this form. Your responses will be much appreciated. Responses will be used only at
+                        an aggregate level in order to improve processes.
+                    </p>
+                </template>
+
+                <div class="form-section">
+
+                    <!-- Pre-populated non-editable fields -->
+                    <div class="field-row three-col">
+                        <div class="field-wrap">
+                            <label class="field-label">Your Name <span class="field-hint">(as mentioned in the application form)</span></label>
+                            <lightning-input
+                                type="text"
+                                value={applicantName}
+                                disabled
+                                variant="label-hidden">
+                            </lightning-input>
+                        </div>
+
+                        <div class="field-wrap">
+                            <label class="field-label">Your application ID <span class="field-hint">(complete application number starting with 2025xxxxx)</span></label>
+                            <lightning-input
+                                type="text"
+                                value={applicationIdText}
+                                disabled
+                                variant="label-hidden">
+                            </lightning-input>
+                        </div>
+
+                        <div class="field-wrap">
+                            <label class="field-label">Your registered email ID</label>
+                            <lightning-input
+                                type="email"
+                                value={applicantEmail}
+                                disabled
+                                variant="label-hidden">
+                            </lightning-input>
+                        </div>
+                    </div>
+
+                    <!-- Institute Radio Group -->
+                    <fieldset class="field-wrap full-width">
+                        <legend class="field-label required-label">Which institute are you joining?</legend>
+                        <template lwc:if={instituteError}>
+                            <p class="field-error" role="alert">{instituteError}</p>
+                        </template>
+                        <div class="radio-group">
+                            <template for:each={instituteOptions} for:item="opt">
+                                <label key={opt.value} class="radio-option">
+                                    <input
+                                        type="radio"
+                                        name="institute"
+                                        value={opt.value}
+                                        checked={opt.checked}
+                                        onchange={handleInstituteChange}>
+                                    <span class="option-control" aria-hidden="true"></span>
+                                    <span class="radio-label">{opt.label}</span>
+                                </label>
+                            </template>
+                        </div>
+
+                        <!-- Other institute specify box -->
+                        <template lwc:if={isOtherInstitute}>
+                            <div class="specify-box specify-box_reveal">
+                                <lightning-textarea
+                                    label="Please specify"
+                                    value={otherInstituteName}
+                                    onchange={handleOtherInstituteChange}
+                                    required
+                                    max-length="255"
+                                    placeholder="Please specify the institute name...">
+                                </lightning-textarea>
+                            </div>
+                        </template>
+                    </fieldset>
+
+                    <!-- Reasons Checkbox Group -->
+                    <fieldset class="field-wrap full-width">
+                        <legend class="field-label required-label">Reasons for your choice:</legend>
+                        <p class="field-hint-block">Please select two main reasons that impacted your decision.</p>
+                        <template lwc:if={reasonsError}>
+                            <p class="field-error" role="alert">{reasonsError}</p>
+                        </template>
+                        <div class="checkbox-group">
+                            <template for:each={reasonOptions} for:item="opt">
+                                <label key={opt.value} class="checkbox-option">
+                                    <input
+                                        type="checkbox"
+                                        name="reasons"
+                                        value={opt.value}
+                                        checked={opt.checked}
+                                        onchange={handleReasonChange}
+                                        data-value={opt.value}>
+                                    <span class="option-control option-control_checkbox" aria-hidden="true"></span>
+                                    <span class="checkbox-label">{opt.label}</span>
+                                </label>
+                            </template>
+                        </div>
+
+                        <!-- Better placements specify box -->
+                        <template lwc:if={isPlacementSelected}>
+                            <div class="specify-box specify-box_reveal">
+                                <lightning-textarea
+                                    label="Please specify (Better placements — type of roles being offered)"
+                                    value={reasonsForChoicePlacementRoles}
+                                    onchange={handlePlacementSpecifyChange}
+                                    required
+                                    max-length="255"
+                                    placeholder="Please specify the types of roles...">
+                                </lightning-textarea>
+                            </div>
+                        </template>
+
+                        <!-- Any other reason specify box -->
+                        <template lwc:if={isAnyOtherReason}>
+                            <div class="specify-box specify-box_reveal">
+                                <lightning-textarea
+                                    label="Please specify (Any other)"
+                                    value={reasonsForChoiceOther}
+                                    onchange={handleOtherReasonSpecifyChange}
+                                    required
+                                    max-length="255"
+                                    placeholder="Please specify your reason...">
+                                </lightning-textarea>
+                            </div>
+                        </template>
+                    </fieldset>
+
+                    <!-- Any other information -->
+                    <div class="field-wrap full-width">
+                        <lightning-textarea
+                            label="Any other information that you would like to share with us:"
+                            value={anyOtherInformation}
+                            onchange={handleAnyOtherInfoChange}
+                            max-length="1000"
+                            placeholder="Please share any additional information here...">
+                        </lightning-textarea>
+                    </div>
+
+                </div>
+            </div>
+        </template>
+
+        <template lwc:else>
+            <div class="loading-state">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </div>
+        </template>
+    </lightning-modal-body>
+
+    <lightning-modal-footer>
+        <div class="footer-actions">
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                onclick={handleCancel}
+                class="btn-cancel">
+            </lightning-button>
+            <lightning-button
+                variant="brand"
+                label="Submit"
+                onclick={handleSubmit}
+                disabled={isSubmitDisabled}
+                class="btn-submit">
+            </lightning-button>
+        </div>
+    </lightning-modal-footer>
+</template>
