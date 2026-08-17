@@ -336,6 +336,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                     this.offerLetterId   = '';
                 }
                 this._markInitialLoadComplete('signedDoc');
+                this._updateUploadCompletion();
             })
             .catch(err => {
                 console.error(JSON.stringify(err));
@@ -368,6 +369,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                     }
                     return doc;
                 });
+                this._updateUploadCompletion();
             })
             .catch(err => {
                 console.error(JSON.stringify(err));
@@ -538,7 +540,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                 if (d.docCode !== docCode) return d;
                 return { ...d, uploaded: false, uploadedUrl: null, uploadedContentDocumentId: null };
             });
-            this._updateUploadCompletion();
+            this._updateUploadCompletion(true);
         } catch (err) {
             console.error('Error deleting important doc', JSON.stringify(err));
         } finally {
@@ -586,6 +588,8 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                 this.isOfferLetterPresent = false;
                 this.offerLetterLink = '';
                 this.offerLetterId   = '';
+                // Force notify parent immediately that offer letter is no longer present
+                this._updateUploadCompletion(true);
                 this._fetchSignedDocStatus();
             }
         } catch (err) {

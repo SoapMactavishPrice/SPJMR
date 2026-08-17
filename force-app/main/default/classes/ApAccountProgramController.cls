@@ -338,6 +338,12 @@ public static String getApplicationStage(Id applicationId) {
             FROM Account 
             WHERE PersonEmail = :UserInfo.getUserEmail() LIMIT 1
             ];
+            Set<String> allowedApplicantStates = new Set<String>{
+                'Offer Issued',
+                'Offer Accepted',
+                'Offer Not Accepted',
+                'Withdrawn'
+            };
             Set<Id> admissionDecisionIds = new Set<Id>();
             Map<Id,Id> mapAdmissionToOffer = new Map<Id,Id>();
             Map<Id,Id> mapOfferToAdmission = new Map<Id,Id>();
@@ -348,8 +354,11 @@ public static String getApplicationStage(Id applicationId) {
                 Set<Id> appIds = new Set<Id>();
                 for(Account acc: accts){
                     if(acc?.Applications__r.size()>0){
-                        listApplications = acc.Applications__r;
                         for(Application__c app:acc.Applications__r){
+                            if(!allowedApplicantStates.contains(app.Applicant_State_Management__c)){
+                                continue;
+                            }
+                            listApplications.add(app);
                             appIds.add(app.Id);
                             if(String.isNotBlank(app.Program_Code__c)){
                                 pgmCodes.add(app.Program_Code__c);

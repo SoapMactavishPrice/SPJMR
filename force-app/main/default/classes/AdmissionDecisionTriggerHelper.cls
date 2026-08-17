@@ -164,7 +164,152 @@ public class AdmissionDecisionTriggerHelper {
         }
     }
 
-    public static void communicateTheDecision(List<Admission_Decision__c> newList) {
+    @InvocableMethod(
+        label='Build Admission Decision Email Wrappers'
+        description='Builds one email wrapper per Admission Decision from a bulk collection of Admission Decision IDs.'
+    )
+    public static List<AdmissionDecisionEmailWrapperResponse> buildAdmissionDecisionEmailWrappers(
+        List<AdmissionDecisionEmailWrapperRequest> requests
+    ) {
+        List<AdmissionDecisionEmailWrapperResponse> responses =
+            new List<AdmissionDecisionEmailWrapperResponse>();
+        if (requests == null || requests.isEmpty()) {
+            return responses;
+        }
+
+        Set<Id> admissionDecisionIds = new Set<Id>();
+
+        for (AdmissionDecisionEmailWrapperRequest request : requests) {
+            if (request == null || request.admissionDecisionIds == null) {
+                continue;
+            }
+            for (String admissionDecisionIdValue : request.admissionDecisionIds) {
+                Id admissionDecisionId = toAdmissionDecisionId(
+                    admissionDecisionIdValue
+                );
+                if (admissionDecisionId != null) {
+                    admissionDecisionIds.add(admissionDecisionId);
+                }
+            }
+        }
+
+        Map<Id, Admission_Decision__c> decisionsById =
+            new Map<Id, Admission_Decision__c>();
+        if (!admissionDecisionIds.isEmpty()) {
+            decisionsById = new Map<Id, Admission_Decision__c>([
+                SELECT Id,
+                       ApplicantEmail__c,
+                       Application__r.Applicant__r.PersonContactId
+                FROM Admission_Decision__c
+                WHERE Id IN :admissionDecisionIds
+            ]);
+        }
+
+        Map<Id, ContentDocumentLink> latestLinkByDecisionId =
+            new Map<Id, ContentDocumentLink>();
+        if (!admissionDecisionIds.isEmpty()) {
+            for (ContentDocumentLink documentLink : [
+                SELECT LinkedEntityId,
+                       ContentDocumentId,
+                       ContentDocument.CreatedDate,
+                       ContentDocument.LatestPublishedVersionId
+                FROM ContentDocumentLink
+                WHERE LinkedEntityId IN :admissionDecisionIds
+            ]) {
+                ContentDocumentLink current = latestLinkByDecisionId.get(
+                    documentLink.LinkedEntityId
+                );
+                if (
+                    current == null ||
+                    documentLink.ContentDocument.CreatedDate >
+                        current.ContentDocument.CreatedDate
+                ) {
+                    latestLinkByDecisionId.put(
+                        documentLink.LinkedEntityId,
+                        documentLink
+                    );
+                }
+            }
+        }
+
+        for (AdmissionDecisionEmailWrapperRequest request : requests) {
+            AdmissionDecisionEmailWrapperResponse response =
+                new AdmissionDecisionEmailWrapperResponse();
+            response.emailWrappers = new List<AdmissionDecisionEmailFlowWrapper>();
+
+            if (request == null || request.admissionDecisionIds == null) {
+                responses.add(response);
+                continue;
+            }
+
+            for (String admissionDecisionIdValue : request.admissionDecisionIds) {
+                Id admissionDecisionId = toAdmissionDecisionId(
+                    admissionDecisionIdValue
+                );
+                if (admissionDecisionId == null) {
+                    continue;
+                }
+
+                Admission_Decision__c decision = decisionsById.get(
+                    admissionDecisionId
+                );
+                if (decision == null) {
+                    continue;
+                }
+
+                ContentDocumentLink documentLink = latestLinkByDecisionId.get(
+                    decision.Id
+                );
+                AdmissionDecisionEmailFlowWrapper emailWrapper =
+                    new AdmissionDecisionEmailFlowWrapper();
+                emailWrapper.admissionDecisionRecordId = decision.Id;
+                emailWrapper.admissionDecisionEmailId =
+                    decision.ApplicantEmail__c;
+                emailWrapper.recipientId =
+                    decision.Application__r?.Applicant__r.PersonContactId;
+
+                if (documentLink != null) {
+                    emailWrapper.contentDocumentId =
+                        documentLink.ContentDocumentId;
+                    emailWrapper.attachmentVersionId =
+                        documentLink.ContentDocument.LatestPublishedVersionId;
+                }
+
+                response.emailWrappers.add(emailWrapper);
+            }
+
+            responses.add(response);
+        }
+
+        return responses;
+    }
+
+    private static Id toAdmissionDecisionId(String admissionDecisionIdValue) {
+        if (String.isBlank(admissionDecisionIdValue)) {
+            return null;
+        }
+        try {
+            Id admissionDecisionId = (Id) admissionDecisionIdValue.trim();
+            return admissionDecisionId.getSObjectType() ==
+                Admission_Decision__c.SObjectType
+                ? admissionDecisionId
+                : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    public class AdmissionDecisionEmailWrapperRequest {
+        @InvocableVariable(required=true)
+        public List<String> admissionDecisionIds;
+    }
+
+    public class AdmissionDecisionEmailWrapperResponse {
+        @InvocableVariable
+        public List<AdmissionDecisionEmailFlowWrapper> emailWrappers;
+    }
+
+    public static void communicateTheDecision(List<Admission_Decision__c> newList, CommunicationsController.CommunicationScenario scenario) {
         if (newList.isEmpty()) {
             return;
         }
@@ -196,7 +341,7 @@ public class AdmissionDecisionTriggerHelper {
             if (!requestsByProgram.containsKey(application.Program__c)) {
  
                 CommunicationsController.CommunicationRequest request = new CommunicationsController.CommunicationRequest();
-                request.scenario = CommunicationsController.CommunicationScenario.OFFER_AVAILABLE;
+                request.scenario = scenario;
                 request.programId = application.Program__c;
                 request.applicationIdToReferenceRecordId = new Map<Id, Id>();
  
@@ -214,6 +359,38 @@ public class AdmissionDecisionTriggerHelper {
         for (CommunicationsController.CommunicationRequest request : requestsByProgram.values()) {
             CommunicationService.communicate(request);
         }
+    }
+
+    public static void enforceOfferCheckboxExclusivity(List<Admission_Decision__c> newList, Map<Id, Admission_Decision__c> oldMap) {
+        if (newList == null || newList.isEmpty()) {
+            return;
+        }
+
+        for (Admission_Decision__c decision : newList) {
+            Admission_Decision__c oldDecision = oldMap != null ? oldMap.get(decision.Id) : null;
+
+            Boolean offerWithdrawnJustSetTrue = transitionedToTrue(decision.OfferWithdrawn__c, oldDecision?.OfferWithdrawn__c);
+            Boolean offerDeclinedJustSetTrue = transitionedToTrue(decision.Offer_Declined__c, oldDecision?.Offer_Declined__c);
+            Boolean offerAcceptedJustSetTrue = transitionedToTrue(decision.Offer_Accepted__c, oldDecision?.Offer_Accepted__c);
+            Boolean finalOfferAcceptedJustSetTrue = transitionedToTrue(decision.FinalOfferAccepted__c, oldDecision?.FinalOfferAccepted__c);
+
+            if (offerWithdrawnJustSetTrue) {
+                decision.Offer_Accepted__c = false;
+                decision.FinalOfferAccepted__c = false;
+                decision.Offer_Declined__c = false;
+            } else if (offerDeclinedJustSetTrue) {
+                decision.Offer_Accepted__c = false;
+                decision.FinalOfferAccepted__c = false;
+                decision.OfferWithdrawn__c = false;
+            } else if (offerAcceptedJustSetTrue || finalOfferAcceptedJustSetTrue) {
+                decision.OfferWithdrawn__c = false;
+                decision.Offer_Declined__c = false;
+            }
+        }
+    }
+
+    private static Boolean transitionedToTrue(Boolean newValue, Boolean oldValue) {
+        return newValue == true && oldValue != true;
     }
 
 }

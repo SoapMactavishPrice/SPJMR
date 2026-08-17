@@ -15,6 +15,8 @@ trigger ApplicationTrigger on Application__c (After Insert ,After Update ) {
                 Trigger.new, Trigger.oldMap
             );
             ApplicationTriggerHandler.handleApplicationStatusChangeScenarios(Trigger.new, Trigger.oldMap);
+            ApplicationTriggerHandler.handleDeclineWithdrawalQuestionnaireCleanup(Trigger.new, Trigger.oldMap);
+            ApplicationTriggerHandler.handleAdmissionDecisionOfferStatusUpdate(Trigger.new, Trigger.oldMap);
         }
     }
 }

@@ -103,7 +103,7 @@
                             </template>
                             <template lwc:else>
                                 <h2 class="label">Upload Signed Offer Letter</h2>
-                                <p class="message">Make sure the file is clearly named before uploading.</p>
+                                <p class="message">PDF, JPG or PNG. Make sure the file is clearly named before uploading.</p>
                                 <lightning-file-upload
                                     label="Upload Offer Letter"
                                     name="offerLetterUpload"
@@ -139,7 +139,7 @@
                                                 variant="bare"
                                                 size="small"
                                                 class="delete-icon"
-                                                alternative-text="Delete document"
+                                                alternative-text="Delete Document"
                                                 data-doccode={doc.docCode}
                                                 onclick={handleImportantDocDelete}>
                                             </lightning-button-icon>
@@ -160,7 +160,7 @@
                             </template>
                             <template lwc:else>
                                 <h2 class="label">Upload Signed {doc.name}</h2>
-                                <p class="message">Make sure the file is clearly named before uploading.</p>
+                                <p class="message">PDF, JPG or PNG. Make sure the file is clearly named before uploading.</p>
                                 <lightning-file-upload
                                     label="Upload Document"
                                     name={doc.docCode}

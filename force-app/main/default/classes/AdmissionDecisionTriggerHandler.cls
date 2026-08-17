@@ -12,6 +12,7 @@ public class AdmissionDecisionTriggerHandler {
     ) {
         clearInapplicableFields(newList);
         AdmissionDecisionTriggerHelper.setApplicantEmail(newList);
+        AdmissionDecisionTriggerHelper.enforceOfferCheckboxExclusivity(newList, oldMap);
     }
 
     public void afterInsert(
@@ -22,7 +23,7 @@ public class AdmissionDecisionTriggerHandler {
         AdmissionDecisionTriggerHelper.preventAdditionalRecordCreation(newList);
 
         //SharingOrchestrator.handleRecords('Admission_Decision__c', newMap.keySet());
-        AdmissionDecisionTriggerHelper.communicateTheDecision(newList);
+        enqueueOfferLetterGeneration(newList, null);
     }
 
     public void afterUpdate(
@@ -32,6 +33,7 @@ public class AdmissionDecisionTriggerHandler {
         Map<Id, Admission_Decision__c> oldMap
     ) {
         AdmissionDecisionTriggerHelper.updateApplicationStateMgmtonUpdate(newList, oldMap);
+        enqueueOfferLetterGeneration(newList, oldMap);
     }
 
     public void beforeDelete(
@@ -65,6 +67,35 @@ public class AdmissionDecisionTriggerHandler {
                 decision.PaymentOfTheAcceptanceFeeEta__c = null;
                 decision.PaymentOfTheFirstInstallmentEta__c = null;
             }
+        }
+    }
+
+    private static void enqueueOfferLetterGeneration(
+        List<Admission_Decision__c> decisions,
+        Map<Id, Admission_Decision__c> oldMap
+    ) {
+        List<Id> eligibleDecisionIds = new List<Id>();
+        for (Admission_Decision__c decision : decisions) {
+            Admission_Decision__c oldDecision = oldMap == null
+                ? null
+                : oldMap.get(decision.Id);
+            Boolean offerDataChanged = oldDecision == null ||
+                decision.Result__c != oldDecision.Result__c ||
+                decision.Offer_Letter_Date__c != oldDecision.Offer_Letter_Date__c ||
+                decision.LastDateOfAcceptance__c != oldDecision.LastDateOfAcceptance__c ||
+                decision.SignedLetterOfAcceptanceEta__c != oldDecision.SignedLetterOfAcceptanceEta__c ||
+                decision.PaymentOfTheAcceptanceFeeEta__c != oldDecision.PaymentOfTheAcceptanceFeeEta__c ||
+                decision.PaymentOfTheFirstInstallmentEta__c != oldDecision.PaymentOfTheFirstInstallmentEta__c;
+            Boolean becameEligible =
+                decision.Result__c == 'Eligible for Admission' && offerDataChanged;
+
+            if (becameEligible && decision.Id != null) {
+                eligibleDecisionIds.add(decision.Id);
+            }
+        }
+
+        if (!eligibleDecisionIds.isEmpty()) {
+            System.enqueueJob(new OfferLetterGeneratorBulk(eligibleDecisionIds));
         }
     }
 }

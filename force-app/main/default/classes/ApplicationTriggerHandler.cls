@@ -10,6 +10,8 @@ public without sharing class ApplicationTriggerHandler {
     private static final String STAGE_INITIATED = 'Initiated';
     private static final String STAGE_PAID = 'Paid';
 
+    private static final Set<String> DECLINE_WITHDRAWAL_STATUSES = new Set<String>{ 'Withdrawn', 'Offer Not Accepted' };
+
     private static final Map<String, CommunicationsController.CommunicationScenario> STATUS_TO_SCENARIO = new Map<String, CommunicationsController.CommunicationScenario>{
         'Offer Accepted' => CommunicationsController.CommunicationScenario.OFFER_ACCEPTED,
         'Withdrawn'       => CommunicationsController.CommunicationScenario.OFFER_WITHDRAWN
@@ -273,6 +275,151 @@ public without sharing class ApplicationTriggerHandler {
 
         for (CommunicationsController.CommunicationRequest request : requestsByProgramAndScenario.values()) {
             CommunicationService.communicate(request);
+        }
+    }
+
+    /**
+     * After update: when Applicant_State_Management__c moves away from 'Withdrawn' / 'Offer Not Accepted'
+     * to any other status (including blank), delete related DeclineWithdrawalQuestionnaire__c records.
+     * No deletion happens when moving between 'Withdrawn' and 'Offer Not Accepted' themselves.
+     *
+     * @param newList Trigger.new Application rows.
+     * @param oldMap Trigger.oldMap by Application Id.
+     */
+    public static void handleDeclineWithdrawalQuestionnaireCleanup(List<Application__c> newList, Map<Id, Application__c> oldMap) {
+        if (newList == null || newList.isEmpty() || oldMap == null) {
+            return;
+        }
+
+        Set<Id> applicationIds = new Set<Id>();
+        for (Application__c app : newList) {
+            Application__c oldApp = oldMap.get(app.Id);
+            if (oldApp == null) {
+                continue;
+            }
+
+            Boolean wasInDeclineWithdrawalStatus = DECLINE_WITHDRAWAL_STATUSES.contains(oldApp.Applicant_State_Management__c);
+            Boolean statusChanged = app.Applicant_State_Management__c != oldApp.Applicant_State_Management__c;
+            Boolean nowOutsideDeclineWithdrawalStatus = !DECLINE_WITHDRAWAL_STATUSES.contains(app.Applicant_State_Management__c);
+
+            if (wasInDeclineWithdrawalStatus && statusChanged && nowOutsideDeclineWithdrawalStatus) {
+                applicationIds.add(app.Id);
+            }
+        }
+
+        if (applicationIds.isEmpty()) {
+            return;
+        }
+
+        List<DeclineWithdrawalQuestionnaire__c> questionnairesToDelete = [
+            SELECT Id
+            FROM DeclineWithdrawalQuestionnaire__c
+            WHERE Application__c IN :applicationIds
+        ];
+
+        if (!questionnairesToDelete.isEmpty()) {
+            delete questionnairesToDelete;
+        }
+    }
+
+    /**
+     * After update: when Applicant_State_Management__c changes to 'Offer Accepted', 'Withdrawn',
+     * 'Offer Not Accepted', or 'Offer Issued', update the related Admission_Decision__c record(s)
+     * accordingly. 'Offer Issued' resets all four offer-decision checkboxes to false (this is
+     * distinct from the exclusivity rules on AdmissionDecisionTrigger, which only clear
+     * *conflicting* checkboxes when one transitions to true).
+     * Updates all related Admission_Decision__c records if more than one exists for an Application.
+     *
+     * @param newList Trigger.new Application rows.
+     * @param oldMap Trigger.oldMap by Application Id.
+     */
+    public static void handleAdmissionDecisionOfferStatusUpdate(List<Application__c> newList, Map<Id, Application__c> oldMap) {
+        if (newList == null || newList.isEmpty() || oldMap == null) {
+            return;
+        }
+
+        Set<Id> offerAcceptedApplicationIds = new Set<Id>();
+        Set<Id> offerWithdrawnApplicationIds = new Set<Id>();
+        Set<Id> offerNotAcceptedApplicationIds = new Set<Id>();
+        Set<Id> offerIssuedApplicationIds = new Set<Id>();
+
+        for (Application__c app : newList) {
+            Application__c oldApp = oldMap.get(app.Id);
+            if (oldApp == null) {
+                continue;
+            }
+
+            if (changedTo(app.Applicant_State_Management__c, oldApp.Applicant_State_Management__c, 'Offer Accepted')) {
+                offerAcceptedApplicationIds.add(app.Id);
+            } else if (changedTo(app.Applicant_State_Management__c, oldApp.Applicant_State_Management__c, 'Withdrawn')) {
+                offerWithdrawnApplicationIds.add(app.Id);
+            } else if (changedTo(app.Applicant_State_Management__c, oldApp.Applicant_State_Management__c, 'Offer Not Accepted')) {
+                offerNotAcceptedApplicationIds.add(app.Id);
+            } else if (changedTo(app.Applicant_State_Management__c, oldApp.Applicant_State_Management__c, 'Offer Issued')) {
+                offerIssuedApplicationIds.add(app.Id);
+            }
+        }
+
+        if (offerAcceptedApplicationIds.isEmpty() && offerWithdrawnApplicationIds.isEmpty()
+            && offerNotAcceptedApplicationIds.isEmpty() && offerIssuedApplicationIds.isEmpty()) {
+            return;
+        }
+
+        Set<Id> allApplicationIds = new Set<Id>();
+        allApplicationIds.addAll(offerAcceptedApplicationIds);
+        allApplicationIds.addAll(offerWithdrawnApplicationIds);
+        allApplicationIds.addAll(offerNotAcceptedApplicationIds);
+        allApplicationIds.addAll(offerIssuedApplicationIds);
+
+        List<Admission_Decision__c> decisionsToUpdate = new List<Admission_Decision__c>();
+        for (Admission_Decision__c decision : [
+            SELECT Id, Application__c, FinalOfferAccepted__c, OfferWithdrawn__c, Offer_Declined__c, Offer_Accepted__c
+            FROM Admission_Decision__c
+            WHERE Application__c IN :allApplicationIds
+        ]) {
+            Boolean needsUpdate = false;
+
+            if (offerAcceptedApplicationIds.contains(decision.Application__c) && decision.FinalOfferAccepted__c != true) {
+                decision.FinalOfferAccepted__c = true;
+                needsUpdate = true;
+            }
+
+            if (offerWithdrawnApplicationIds.contains(decision.Application__c) && decision.OfferWithdrawn__c != true) {
+                decision.OfferWithdrawn__c = true;
+                needsUpdate = true;
+            }
+
+            if (offerNotAcceptedApplicationIds.contains(decision.Application__c) && decision.Offer_Declined__c != true) {
+                decision.Offer_Declined__c = true;
+                needsUpdate = true;
+            }
+
+            if (offerIssuedApplicationIds.contains(decision.Application__c)) {
+                if (decision.Offer_Accepted__c != false) {
+                    decision.Offer_Accepted__c = false;
+                    needsUpdate = true;
+                }
+                if (decision.FinalOfferAccepted__c != false) {
+                    decision.FinalOfferAccepted__c = false;
+                    needsUpdate = true;
+                }
+                if (decision.OfferWithdrawn__c != false) {
+                    decision.OfferWithdrawn__c = false;
+                    needsUpdate = true;
+                }
+                if (decision.Offer_Declined__c != false) {
+                    decision.Offer_Declined__c = false;
+                    needsUpdate = true;
+                }
+            }
+
+            if (needsUpdate) {
+                decisionsToUpdate.add(decision);
+            }
+        }
+
+        if (!decisionsToUpdate.isEmpty()) {
+            update decisionsToUpdate;
         }
     }
 }

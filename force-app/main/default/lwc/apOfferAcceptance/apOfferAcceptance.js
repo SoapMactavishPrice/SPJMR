@@ -53,6 +53,10 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
         return this.activeOffer.hasPendingDocuments === true;
     }
 
+    get showActiveWithdraw() {
+        return this.activeOffer?.applicantStateManagement === 'Offer Accepted';
+    }
+
     @wire(getRecord, {recordId:'$userId',fields:[EMAIL_FIELD,FIRST_NAME,LAST_NAME]})
     wiredUser({error,data}){
         if(data){
@@ -113,6 +117,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                 selectedAccepted: true,
                 selectedRejected: false,
                 showButtons: false,
+                showWithdrawButton: true,
                 offerAccepted: true,
                 isOfferAcceptedState: true,
                 hasPendingDocuments: false,
@@ -164,6 +169,19 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
             this.updateApplicationRecord(applicationId, 'decline')
             this.showSuccessToastMessage('Offer Declined','')
            this.updateAdmissionRecord(admId, 'decline')
+        } else {
+            this.offers = this.offers.map((item) => {
+                if (item.admissionDecisionId == admId) {
+                    const shouldShowButtons = item.offerDeclined !== true && item.offerAccepted !== true && item.isWithdrawDisabled !== true
+                    return {
+                        ...item,
+                        selectedRejected: false,
+                        selectedAccepted: false,
+                        showButtons: shouldShowButtons
+                    };
+                }
+                return item;
+            });
         }
     }
 
@@ -178,6 +196,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
             if (item.admissionDecisionId == admissionId) {
                 item.selectedAccepted = false
                 item.showButtons = false
+                item.showWithdrawButton = true
                 item.offerAccepted = true
                 item.isOfferAcceptedState = true
                 item.hasPendingDocuments = false
@@ -259,6 +278,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         if(item.applicationId==applicationId){
                             item.applicantStateManagement = 'Offer Not Accepted'
                             item.showDownloadOffer = false
+                            item.showWithdrawButton = false
                         }
                     })
                     if (this.activeOffer && this.activeOffer.applicationId === applicationId) {
@@ -278,6 +298,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                             item.applicantStateManagement = 'Withdrawn'
                             item.hasPendingDocuments = false
                             item.showDownloadOffer = false
+                            item.showWithdrawButton = false
                         }
                     })
                     if (this.activeOffer && this.activeOffer.applicationId === applicationId) {
@@ -328,9 +349,11 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                     if (item.admissionDecisionId == admissionId) {
                         if (action == 'decline') {
                             item.offerDeclined = true
+                            item.showWithdrawButton = false
                         }
                         if (action == 'accept') {
                             item.offerAccepted = true
+                            item.showWithdrawButton = true
                         }
                         
                         
@@ -388,6 +411,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         selectedAccepted: false,
                         selectedRejected: false,
                         showButtons: item.offerDeclined != 'true' && item.offerAccepted != 'true' && item.isOfferWithdrawn != 'true',
+                        showWithdrawButton: applicantState === 'Offer Accepted',
                         showDownloadOffer: !!item.offerLetterLink && !offerDownloadHidden,
                         isWithdrawDisabled: item.isOfferWithdrawn === 'true',
                         isOfferAcceptedState: applicantState === 'Offer Accepted',

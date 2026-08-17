@@ -19,7 +19,7 @@
                     <!-- Pre-populated non-editable fields -->
                     <div class="field-row three-col">
                         <div class="field-wrap">
-                            <label class="field-label">Your Name <span class="field-hint">(as mentioned in the application form)</span></label>
+                            <label class="field-label">Your Name</label>
                             <lightning-input
                                 type="text"
                                 value={applicantName}
@@ -29,7 +29,7 @@
                         </div>
 
                         <div class="field-wrap">
-                            <label class="field-label">Your application ID <span class="field-hint">(complete application number starting with 2025xxxxx)</span></label>
+                            <label class="field-label">Your application ID</label>
                             <lightning-input
                                 type="text"
                                 value={applicationIdText}
@@ -171,7 +171,6 @@
                 variant="brand"
                 label="Submit"
                 onclick={handleSubmit}
-                disabled={isSubmitDisabled}
                 class="btn-submit">
             </lightning-button>
         </div>

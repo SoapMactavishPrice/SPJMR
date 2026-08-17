@@ -47,7 +47,7 @@ const REASON_OPTIONS = [
 const PLACEMENT_VALUE  = 'Better placements - type of roles being offered';
 const ANY_OTHER_VALUE  = 'Any other';
 const OTHER_INSTITUTE  = 'Other';
-const MAX_REASONS      = 2;
+const MIN_REASONS      = 2;
 
 export default class ApDeclineWithdrawalQuestionnaire extends LightningModal {
 
@@ -103,16 +103,10 @@ export default class ApDeclineWithdrawalQuestionnaire extends LightningModal {
 
     // ── Computed: reason options with checked + disabled state ───────────────
     get reasonOptions() {
-        const maxReached = this.selectedReasons.length >= MAX_REASONS;
-        return REASON_OPTIONS.map(o => {
-            const checked = this.selectedReasons.includes(o.value);
-            return {
-                ...o,
-                checked,
-                // disable unchecked options when max is reached
-                disabled: !checked && maxReached
-            };
-        });
+        return REASON_OPTIONS.map(o => ({
+            ...o,
+            checked: this.selectedReasons.includes(o.value)
+        }));
     }
 
     // ── Conditional visibility ───────────────────────────────────────────────
@@ -156,13 +150,7 @@ export default class ApDeclineWithdrawalQuestionnaire extends LightningModal {
     handleReasonChange(event) {
         const val     = event.target.dataset.value;
         const checked = event.target.checked;
-
         if (checked) {
-            if (this.selectedReasons.length >= MAX_REASONS) {
-                // Prevent selecting more than 2 — uncheck it immediately
-                event.target.checked = false;
-                return;
-            }
             this.selectedReasons = [...this.selectedReasons, val];
         } else {
             this.selectedReasons = this.selectedReasons.filter(r => r !== val);
@@ -250,8 +238,8 @@ export default class ApDeclineWithdrawalQuestionnaire extends LightningModal {
         if (this.isOtherInstitute && !this.otherInstituteName?.trim()) {
             valid = false;
         }
-        // At least 1 reason required (spec says "two main reasons" but treating as mandatory selection ≥1)
-        if (this.selectedReasons.length === 0) {
+        // At least MIN_REASONS required
+        if (this.selectedReasons.length < MIN_REASONS) {
             valid = false;
         }
         // Placement roles specify required if that reason is selected
@@ -280,8 +268,8 @@ export default class ApDeclineWithdrawalQuestionnaire extends LightningModal {
             valid = false;
         }
 
-        if (this.selectedReasons.length === 0) {
-            this.reasonsError = 'Please select at least one reason.';
+        if (this.selectedReasons.length < MIN_REASONS) {
+            this.reasonsError = `Please select at least ${MIN_REASONS} reasons.`;
             valid = false;
         } else {
             this.reasonsError = '';

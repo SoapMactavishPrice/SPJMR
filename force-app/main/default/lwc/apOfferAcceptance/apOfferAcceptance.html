@@ -41,10 +41,12 @@
                         </template>
 
                         <template lwc:if={activeOffer.isOfferAcceptedState}>
-                            <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"
-                                data-id={activeOffer.applicationId} data-admid={activeOffer.admissionDecisionId}
-                                onclick={handleWithdraw}>
-                            </lightning-button>
+                                <template lwc:if={showActiveWithdraw}>
+                                    <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"
+                                        data-id={activeOffer.applicationId} data-admid={activeOffer.admissionDecisionId}
+                                        onclick={handleWithdraw}>
+                                    </lightning-button>
+                                </template>
                         </template>
                     </div>
                 </div>
@@ -119,10 +121,12 @@
                         </template>
 
                         <template lwc:if={offer.isOfferAcceptedState}>
-                            <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"
-                                data-id={offer.applicationId} data-admid={offer.admissionDecisionId}
-                                onclick={handleWithdraw}>
-                            </lightning-button>
+                                                <template lwc:if={offer.showWithdrawButton}>
+                                                    <lightning-button label="Withdraw offer" icon-name="utility:undo" variant="destructive-text"
+                                                        data-id={offer.applicationId} data-admid={offer.admissionDecisionId}
+                                                        onclick={handleWithdraw}>
+                                                    </lightning-button>
+                                                </template>
                         </template>
 
                         <template lwc:if={offer.showButtons}>
