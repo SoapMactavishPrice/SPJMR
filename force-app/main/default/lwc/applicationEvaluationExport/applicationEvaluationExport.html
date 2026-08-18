@@ -48,6 +48,25 @@
                         onchange={handleEndDateChange}>
                     </lightning-input>
                 </div>
+
+                <div class="field-cell">
+                    <lightning-input
+                        type="time"
+                        label="Slot Start Time"
+                        value={slotStartTime}
+                        onchange={handleStartTimeChange}>
+                    </lightning-input>
+                </div>
+
+                <div class="field-cell">
+                    <lightning-input
+                        type="time"
+                        label="Slot End Time"
+                        value={slotEndTime}
+                        disabled={isEndTimeDisabled}
+                        onchange={handleEndTimeChange}>
+                    </lightning-input>
+                </div>
             </div>
 
             <div class="email-row">

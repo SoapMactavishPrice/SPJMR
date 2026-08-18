@@ -47,16 +47,14 @@
                         <div class="header-band__divider"></div>
 
                         <div class="header-band__item">
-                            <span class="header-band__label">Panel Master</span>
+                            <span class="header-band__label">Location</span>
                             <span class="header-band__value">
-                                <lightning-record-view-form
-                                    record-id={firstBookingId}
-                                    object-api-name="ApplicationSlotBooking__c">
-                                    <lightning-output-field
-                                        field-name="Panel_Master__c"
-                                        class="panel-field" variant="label-hidden">
-                                    </lightning-output-field>
-                                </lightning-record-view-form>
+                                <template if:true={headerInfo.locationId}>
+                                    {headerInfo.locationName}
+                                </template>
+                                <template if:false={headerInfo.locationId}>
+                                    {headerInfo.locationName}
+                                </template>
                             </span>
                         </div>
 
@@ -69,11 +67,10 @@
                             <tr class="slds-line-height_reset table-head-row">
                                 <th scope="col" class="col-sr"><div class="slds-truncate">Sr. No.</div></th>
                                 <th scope="col"><div class="slds-truncate">Applicant Name</div></th>
+                                <th scope="col"><div class="slds-truncate">Application Number</div></th>
                                 <th scope="col"><div class="slds-truncate">Slot Date</div></th>
                                 <th scope="col"><div class="slds-truncate">Slot Start Time</div></th>
                                 <th scope="col"><div class="slds-truncate">Slot End Time</div></th>
-                                <th scope="col"><div class="slds-truncate">Mode</div></th>
-                                <th scope="col"><div class="slds-truncate">ASB Code</div></th>
                                 <th scope="col"><div class="slds-truncate">My Eval Status</div></th>
                                 <th scope="col"><div class="slds-truncate">Application PDF</div></th>
                             </tr>
@@ -83,11 +80,10 @@
                                 <tr key={b.id}>
                                     <td class="col-sr slds-text-align_center">{b.rowNum}</td>
                                     <td class="col-name">{b.applicantName}</td>
+                                    <td>{b.applicationName}</td>
                                     <td>{b.slotDate}</td>
-                                    <td>{b.slotStartTime}</td>
-                                    <td>{b.slotEndTime}</td>
-                                    <td>{b.mode}</td>
-                                    <td>{b.name}</td>
+                                    <td>{b.formattedSlotStartTime}</td>
+                                    <td>{b.formattedSlotEndTime}</td>
                                     <td>
                                         <span class={b.evalBadgeClass}>{b.evalStatus}</span>
                                     </td>

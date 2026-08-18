@@ -142,16 +142,31 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
     get isCompleteDisabled() { return this.isSaving || this.allFinished; }
 
     get applicantColumns() {
-        return this._bookings.map(b => ({
-            key           : b.id,
-            scoreKey      : `${b.id}-score-hdr`,
-            commentKey    : `${b.id}-comment-hdr`,
-            bookingId     : b.id,
-            applicantName : b.applicantName || 'Applicant',
-            isFinished    : this._getState(b.id).isFinished,
-            evalComment   : this._getState(b.id).evaluatorComment,
-            colSpan       : this.showCriteriaComment ? 2 : 1
-        }));
+        return this._bookings.map(b => {
+            const state = this._getState(b.id);
+            let totalScore = 0;
+            if (state.criteriaResults) {
+                state.criteriaResults.forEach(c => {
+                    const val = parseFloat(c.score);
+                    if (!isNaN(val)) {
+                        totalScore += val;
+                    }
+                });
+            }
+            totalScore = Math.round(totalScore * 100) / 100;
+
+            return {
+                key           : b.id,
+                scoreKey      : `${b.id}-score-hdr`,
+                commentKey    : `${b.id}-comment-hdr`,
+                bookingId     : b.id,
+                applicantName : b.applicantName || 'Applicant',
+                isFinished    : state.isFinished,
+                evalComment   : state.evaluatorComment,
+                colSpan       : this.showCriteriaComment ? 2 : 1,
+                totalScore    : totalScore
+            };
+        });
     }
 
     get criteriaRows() {
@@ -164,6 +179,7 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
         return masterCriteria.map(c => ({
             key         : c.Id,
             criteriaName: c.CriteriaName__c || c.Name || '',
+            criteriaDescription: c.CriteriaDescription__c || '',
             maxScore    : c.Maximum_Score__c,
             cells: this._bookings.map(b => {
                 const state    = this._getState(b.id);

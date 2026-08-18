@@ -14,6 +14,8 @@ export default class ApplicationEvaluationExport extends LightningElement {
     roundId;
     slotStartDate = '';
     slotEndDate = '';
+    slotStartTime = '';
+    slotEndTime = '';
     today = new Date().toISOString().slice(0, 10);
     subscription = null;
     files = [];
@@ -57,6 +59,10 @@ export default class ApplicationEvaluationExport extends LightningElement {
 
     get isEndDateDisabled() {
         return !this.slotStartDate;
+    }
+
+    get isEndTimeDisabled() {
+        return !this.slotStartTime;
     }
 
     get isExportDisabled() {
@@ -108,6 +114,29 @@ export default class ApplicationEvaluationExport extends LightningElement {
         this.showFiles = false;
     }
 
+    handleStartTimeChange(event) {
+        this.slotStartTime = event.detail.value;
+        if (!this.slotStartTime) {
+            this.slotEndTime = '';
+        } else if (this.slotEndTime && this.slotEndTime < this.slotStartTime) {
+            this.slotEndTime = '';
+        }
+        this.files = [];
+        this.showFiles = false;
+    }
+
+    handleEndTimeChange(event) {
+        const selectedTime = event.detail.value;
+        if (selectedTime && this.slotStartTime && selectedTime < this.slotStartTime) {
+            this.slotEndTime = '';
+            this.showToast('Invalid Time', 'Slot End Time cannot be before Slot Start Time.', 'error');
+            return;
+        }
+        this.slotEndTime = selectedTime;
+        this.files = [];
+        this.showFiles = false;
+    }
+
     handleEmailCheckbox(event) {
         this.sendEmail = event.target.checked;
     }
@@ -124,7 +153,9 @@ export default class ApplicationEvaluationExport extends LightningElement {
             programId: this.programId,
             roundId: this.roundId,
             slotStartDate: this.slotStartDate || null,
-            slotEndDate: this.slotEndDate || null
+            slotEndDate: this.slotEndDate || null,
+            slotStartTimeStr: this.slotStartTime || null,
+            slotEndTimeStr: this.slotEndTime || null
         }).then(count => {
             if (count === 0) {
                 this.showToast('No Records Found', 'No evaluations were found for the selected filters.', 'warning');
@@ -150,7 +181,9 @@ export default class ApplicationEvaluationExport extends LightningElement {
             programId: this.programId,
             roundId: this.roundId,
             slotStartDate: this.slotStartDate || null,
-            slotEndDate: this.slotEndDate || null
+            slotEndDate: this.slotEndDate || null,
+            slotStartTimeStr: this.slotStartTime || null,
+            slotEndTimeStr: this.slotEndTime || null
         }).then(() => {
             this.showToast('Export Started', 'Please wait for the job to complete.', 'info');
         }).catch(error => {
@@ -225,6 +258,14 @@ export default class ApplicationEvaluationExport extends LightningElement {
         }
         if (this.slotStartDate && this.slotEndDate && this.slotEndDate < this.slotStartDate) {
             this.showToast('Invalid Date', 'Slot End Date cannot be before Slot Start Date.', 'error');
+            return false;
+        }
+        if (!this.slotStartTime && this.slotEndTime) {
+            this.showToast('Invalid Time', 'Enter Slot Start Time before selecting Slot End Time.', 'error');
+            return false;
+        }
+        if (this.slotStartTime && this.slotEndTime && this.slotEndTime < this.slotStartTime) {
+            this.showToast('Invalid Time', 'Slot End Time cannot be before Slot Start Time.', 'error');
             return false;
         }
         return true;

@@ -96,8 +96,16 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
         return {
             programName     : b.programName     || '—',
             roundMasterName : b.roundMasterName || '—',
-            panelMasterId   : b.panelMasterId   || '—'
+            locationId      : b.locationId      || null,
+            locationName    : b.locationName    || '—'
         };
+    }
+
+    get locationUrl() {
+        if (this._bookings.length && this._bookings[0].locationId) {
+            return '/' + this._bookings[0].locationId;
+        }
+        return '#';
     }
 
     get firstBookingId() {
@@ -108,7 +116,9 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
         return this._bookings.map((b, idx) => ({
             ...b,
             rowNum        : idx + 1,
-            evalBadgeClass: STATUS_VARIANT[b.evalStatus] || 'slds-badge'
+            evalBadgeClass: STATUS_VARIANT[b.evalStatus] || 'slds-badge',
+            formattedSlotStartTime: this.formatTime(b.slotStartTime),
+            formattedSlotEndTime: this.formatTime(b.slotEndTime)
         }));
     }
 
@@ -148,5 +158,29 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
                 variant: 'error'
             }));
         }
+    }
+
+    formatTime(timeInMilliseconds) {
+        if (timeInMilliseconds === null || timeInMilliseconds === undefined || timeInMilliseconds === '') {
+            return '—';
+        }
+
+        const milliseconds = Number(timeInMilliseconds);
+
+        if (isNaN(milliseconds)) {
+            return timeInMilliseconds;
+        }
+
+        const totalMinutes = Math.floor(milliseconds / 60000);
+
+        let hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        const period = hours >= 12 ? 'PM' : 'AM';
+
+        hours = hours % 12;
+        hours = hours === 0 ? 12 : hours;
+
+        return `${hours}:${String(minutes).padStart(2, '0')} ${period}`;
     }
 }

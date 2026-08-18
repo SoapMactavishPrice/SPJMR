@@ -67,6 +67,9 @@
 
                                 <td class="td-criteria-label">
                                     <span class="criteria-name">{row.criteriaName}</span>
+                                    <template if:true={row.criteriaDescription}>
+                                        <span class="criteria-description">{row.criteriaDescription}</span>
+                                    </template>
                                     <span class="criteria-max">Max: {row.maxScore}</span>
                                 </td>
 
@@ -116,6 +119,24 @@
 
                             </tr>
                         </template>
+
+                        <tr class="total-score-row">
+                            <td class="td-criteria-label total-score-label">
+                                <span class="criteria-name">Total Score</span>
+                            </td>
+                            <template for:each={applicantColumns} for:item="col">
+                                <template if:true={showCriteriaComment}>
+                                    <td key={col.key} class="td-total-score" colspan="2">
+                                        <span class="readonly-score">{col.totalScore}</span>
+                                    </td>
+                                </template>
+                                <template if:false={showCriteriaComment}>
+                                    <td key={col.key} class="td-total-score" colspan="1">
+                                        <span class="readonly-score">{col.totalScore}</span>
+                                    </td>
+                                </template>
+                            </template>
+                        </tr>
 
                         <tr class="eval-comment-row">
                             <td class="td-criteria-label eval-comment-label">

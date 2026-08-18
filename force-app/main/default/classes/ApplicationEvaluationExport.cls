@@ -6,6 +6,8 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
     private Id roundId;
     private Date slotStartDate;
     private Date slotEndDate;
+    private Time slotStartTime;
+    private Time slotEndTime;
     private String programName;
     private String roundName;
     private Id batchJobId;
@@ -17,11 +19,13 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
     private List<ScoringTemplate__c> scoringTemplates = new List<ScoringTemplate__c>();
     private List<ExportUtils.GeneratedFile> generatedFiles = new List<ExportUtils.GeneratedFile>();
 
-    public ApplicationEvaluationExport(Id programId, Id roundId, Date slotStartDate, Date slotEndDate) {
+    public ApplicationEvaluationExport(Id programId, Id roundId, Date slotStartDate, Date slotEndDate, Time slotStartTime, Time slotEndTime) {
         this.programId = programId;
         this.roundId = roundId;
         this.slotStartDate = slotStartDate;
         this.slotEndDate = slotEndDate;
+        this.slotStartTime = slotStartTime;
+        this.slotEndTime = slotEndTime;
     }
 
     public Database.QueryLocator start(Database.BatchableContext bc) {
@@ -34,10 +38,14 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
         }
 
         String query =
-            'SELECT Id, EvaluatorComments__c, ' +
+            'SELECT Id, EvaluatorComments__c, Total_Score__c, ' +
             'EvaluatedUser__r.Name, ' +
             'Application_Slot_Booking__r.Application__r.Name, ' +
             'Application_Slot_Booking__r.Applicant_Name__c, ' +
+            'Application_Slot_Booking__r.SlotMaster__r.Name, ' +
+            'Application_Slot_Booking__r.SlotMaster__r.SlotDate__c, ' +
+            'Application_Slot_Booking__r.SlotMaster__r.SlotStartTime__c, ' +
+            'Application_Slot_Booking__r.SlotMaster__r.SlotEndtime__c, ' +
             'Application_Slot_Booking__r.SlotMaster__r.Program_Master__r.Name, ' +
             'Application_Slot_Booking__r.RoundMaster__r.Name, ' +
             'Application_Slot_Booking__r.SlotMaster__r.LocationMaster__r.LocationName__c, ' +
@@ -51,6 +59,12 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
         if (slotStartDate != null) {
             query += ' AND Application_Slot_Booking__r.Slot_Date__c >= :slotStartDate';
             query += ' AND Application_Slot_Booking__r.Slot_Date__c <= :effectiveEndDate';
+        }
+        if (slotStartTime != null) {
+            query += ' AND Application_Slot_Booking__r.SlotMaster__r.SlotStartTime__c >= :slotStartTime';
+        }
+        if (slotEndTime != null) {
+            query += ' AND Application_Slot_Booking__r.SlotMaster__r.SlotEndtime__c <= :slotEndTime';
         }
 
         query += ' ORDER BY Application_Slot_Booking__r.Application__r.Name, EvaluatedUser__r.Name';
@@ -72,6 +86,10 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
                 ExportUtils.csvCell(booking == null || booking.Application__r == null ? null : booking.Application__r.Name),
                 ExportUtils.csvCell(booking == null ? null : booking.Applicant_Name__c),
                 ExportUtils.csvCell(evaluation.EvaluatedUser__r == null ? null : evaluation.EvaluatedUser__r.Name),
+                ExportUtils.csvCell(slotMaster == null ? null : slotMaster.Name),
+                ExportUtils.csvCell(slotMaster == null || slotMaster.SlotDate__c == null ? null : String.valueOf(slotMaster.SlotDate__c)),
+                ExportUtils.csvCell(slotMaster == null || slotMaster.SlotStartTime__c == null ? null : formatTime(slotMaster.SlotStartTime__c)),
+                ExportUtils.csvCell(slotMaster == null || slotMaster.SlotEndtime__c == null ? null : formatTime(slotMaster.SlotEndtime__c)),
                 ExportUtils.csvCell(slotMaster == null || slotMaster.Program_Master__r == null ? programName : slotMaster.Program_Master__r.Name),
                 ExportUtils.csvCell(booking == null || booking.RoundMaster__r == null ? roundName : booking.RoundMaster__r.Name),
                 ExportUtils.csvCell(location == null ? null : location.LocationName__c),
@@ -111,7 +129,7 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
                     row.add(ExportUtils.csvCell(result == null ? null : result.Comments__c));
                 }
             }
-
+            row.add(ExportUtils.csvCell(evaluation.Total_Score__c == null ? null : String.valueOf(evaluation.Total_Score__c)));
             row.add(ExportUtils.csvCell(evaluation.EvaluatorComments__c));
             csvRows.add(String.join(row, ','));
             currentRowCount++;
@@ -164,6 +182,10 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
             ExportUtils.csvCell('Application Number'),
             ExportUtils.csvCell('Applicant Name'),
             ExportUtils.csvCell('Evaluated By'),
+            ExportUtils.csvCell('Slot Code'),
+            ExportUtils.csvCell('Slot Date'),
+            ExportUtils.csvCell('Slot Start Time'),
+            ExportUtils.csvCell('Slot End Time'),
             ExportUtils.csvCell('Program'),
             ExportUtils.csvCell('Round name'),
             ExportUtils.csvCell('Interview location'),
@@ -179,7 +201,7 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
                 headers.add(ExportUtils.csvCell(criteriaName + ' comment'));
             }
         }
-
+        headers.add(ExportUtils.csvCell('Total Score'));
         headers.add(ExportUtils.csvCell('Evaluator comment'));
         return String.join(headers, ',');
     }
@@ -221,5 +243,13 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
             && records[0].Type__c == 'Boolean'
             && records[0].ConfigValue__c != null
             && records[0].ConfigValue__c.trim().equalsIgnoreCase('true');
+    }
+
+    private static String formatTime(Time val) {
+        if (val == null) {
+            return '';
+        }
+        DateTime dt = DateTime.newInstance(Date.newInstance(2000, 1, 1), val);
+        return dt.format('hh:mm a');
     }
 }

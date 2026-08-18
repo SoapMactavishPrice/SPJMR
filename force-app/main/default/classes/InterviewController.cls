@@ -208,7 +208,7 @@ for (ApplicationSlotBooking__c slot : slots) {
     public static List<ScoringTemplate__c> getScoringTemplates(String roundId){
         try {
             List<ScoringTemplate__c> listTemplates =[SELECT Id,CriteriaName__c,Round__r.RoundNumber__c,
-            Maximum_Score__c 
+            Maximum_Score__c, CriteriaDescription__c 
             FROM ScoringTemplate__c 
             WHERE Round__c=:roundId];
             system.debug('List of Templates are '+listTemplates);
@@ -934,6 +934,9 @@ for (ApplicationSlotBooking__c slot : slots) {
         @AuraEnabled public Id      roundMasterId;
         @AuraEnabled public String  roundMasterName;
         @AuraEnabled public String  evalStatus;
+        @AuraEnabled public Id      locationId;
+        @AuraEnabled public String  locationName;
+        @AuraEnabled public String  applicationName;
     }
 
     @AuraEnabled(cacheable=true)
@@ -980,13 +983,16 @@ for (ApplicationSlotBooking__c slot : slots) {
                        Applicant_Name__c,
                        Program_Name__c,
                        Application__c,
+                       Application__r.Name,
                        Slot_Date__c,
                        Slot_Start_Time__c,
                        Slot_End_Time__c,
                        Mode__c,
                        Panel_Master__c,
                        RoundMaster__c,
-                       RoundMaster__r.Name
+                       RoundMaster__r.Name,
+                       SlotMaster__r.LocationMaster__c,
+                       SlotMaster__r.LocationMaster__r.LocationName__c
                 FROM ApplicationSlotBooking__c
                 WHERE SlotMaster__c = :slotMasterId
                 AND Panel_Master__c IN :panelIds
@@ -1010,13 +1016,16 @@ for (ApplicationSlotBooking__c slot : slots) {
                        Applicant_Name__c,
                        Program_Name__c,
                        Application__c,
+                       Application__r.Name,
                        Slot_Date__c,
                        Slot_Start_Time__c,
                        Slot_End_Time__c,
                        Mode__c,
                        Panel_Master__c,
                        RoundMaster__c,
-                       RoundMaster__r.Name
+                       RoundMaster__r.Name,
+                       SlotMaster__r.LocationMaster__c,
+                       SlotMaster__r.LocationMaster__r.LocationName__c
                 FROM ApplicationSlotBooking__c
                 WHERE SlotMaster__c = :slotMasterId
                 AND Panel_Master__c IN :panelIds
@@ -1058,6 +1067,10 @@ for (ApplicationSlotBooking__c slot : slots) {
                 w.evalStatus      = bookingToEvalStatus.containsKey(b.Id)
                                     ? bookingToEvalStatus.get(b.Id)
                                     : 'Not Started';
+                w.applicationName = b.Application__r != null ? b.Application__r.Name : null;
+                w.locationId      = b.SlotMaster__r != null ? b.SlotMaster__r.LocationMaster__c : null;
+                w.locationName    = (b.SlotMaster__r != null && b.SlotMaster__r.LocationMaster__r != null)
+                                    ? b.SlotMaster__r.LocationMaster__r.LocationName__c : null;
                 result.add(w);
             }
             return result;
@@ -1157,7 +1170,7 @@ for (ApplicationSlotBooking__c slot : slots) {
             WHERE EvaluatedUser__r.PersonEmail = :UserInfo.getUserEmail() 
             AND Application_Slot_Booking__c = :applicationSlotBookingId LIMIT 1];
             
-            criteriaList = [SELECT Id,CriteriaName__c,Name,Maximum_Score__c
+            criteriaList = [SELECT Id,CriteriaName__c,Name,Maximum_Score__c,CriteriaDescription__c
                 FROM ScoringTemplate__c 
                 WHERE Round__c = :appSlotBookingList[0].RoundMaster__c];
 

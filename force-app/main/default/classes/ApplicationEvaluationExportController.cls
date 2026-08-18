@@ -1,17 +1,21 @@
 public with sharing class ApplicationEvaluationExportController {
     @AuraEnabled
-    public static String startExport(Id programId, Id roundId, Date slotStartDate, Date slotEndDate) {
-        validateRequest(programId, roundId, slotStartDate, slotEndDate);
+    public static String startExport(Id programId, Id roundId, Date slotStartDate, Date slotEndDate, String slotStartTimeStr, String slotEndTimeStr) {
+        Time slotStartTime = parseTimeFilter(slotStartTimeStr);
+        Time slotEndTime = parseTimeFilter(slotEndTimeStr);
+        validateRequest(programId, roundId, slotStartDate, slotEndDate, slotStartTime, slotEndTime);
 
         return Database.executeBatch(
-            new ApplicationEvaluationExport(programId, roundId, slotStartDate, slotEndDate),
+            new ApplicationEvaluationExport(programId, roundId, slotStartDate, slotEndDate, slotStartTime, slotEndTime),
             1000
         );
     }
 
     @AuraEnabled(cacheable=true)
-    public static Integer getEvaluationCount(Id programId, Id roundId, Date slotStartDate, Date slotEndDate) {
-        validateRequest(programId, roundId, slotStartDate, slotEndDate);
+    public static Integer getEvaluationCount(Id programId, Id roundId, Date slotStartDate, Date slotEndDate, String slotStartTimeStr, String slotEndTimeStr) {
+        Time slotStartTime = parseTimeFilter(slotStartTimeStr);
+        Time slotEndTime = parseTimeFilter(slotEndTimeStr);
+        validateRequest(programId, roundId, slotStartDate, slotEndDate, slotStartTime, slotEndTime);
 
         Date effectiveEndDate = slotEndDate;
         if (slotStartDate != null && effectiveEndDate == null) {
@@ -27,6 +31,12 @@ public with sharing class ApplicationEvaluationExportController {
         if (slotStartDate != null) {
             query += ' AND Application_Slot_Booking__r.Slot_Date__c >= :slotStartDate';
             query += ' AND Application_Slot_Booking__r.Slot_Date__c <= :effectiveEndDate';
+        }
+        if (slotStartTime != null) {
+            query += ' AND Application_Slot_Booking__r.SlotMaster__r.SlotStartTime__c >= :slotStartTime';
+        }
+        if (slotEndTime != null) {
+            query += ' AND Application_Slot_Booking__r.SlotMaster__r.SlotEndtime__c <= :slotEndTime';
         }
 
         return Database.countQuery(query);
@@ -51,7 +61,7 @@ public with sharing class ApplicationEvaluationExportController {
         ] > 0;
     }
 
-    private static void validateRequest(Id programId, Id roundId, Date slotStartDate, Date slotEndDate) {
+    private static void validateRequest(Id programId, Id roundId, Date slotStartDate, Date slotEndDate, Time slotStartTime, Time slotEndTime) {
         if (programId == null) {
             throw new AuraHandledException('Select a program before starting the export.');
         }
@@ -67,8 +77,32 @@ public with sharing class ApplicationEvaluationExportController {
         if (slotStartDate != null && slotEndDate != null && slotEndDate < slotStartDate) {
             throw new AuraHandledException('Slot End Date cannot be before Slot Start Date.');
         }
+        if (slotStartTime != null && slotEndTime != null && slotEndTime < slotStartTime) {
+            throw new AuraHandledException('Slot End Time cannot be before Slot Start Time.');
+        }
         if (!isRoundForProgram(programId, roundId)) {
             throw new AuraHandledException('The selected round does not belong to the selected program.');
+        }
+    }
+
+    private static Time parseTimeFilter(String val) {
+        if (String.isBlank(val)) {
+            return null;
+        }
+        try {
+            if (val.endsWith('Z')) {
+                val = val.substring(0, val.length() - 1);
+            }
+            if (val.contains('.')) {
+                val = val.split('\\.')[0];
+            }
+            List<String> parts = val.split(':');
+            Integer hours = Integer.valueOf(parts[0]);
+            Integer minutes = Integer.valueOf(parts[1]);
+            Integer seconds = parts.size() > 2 ? Integer.valueOf(parts[2]) : 0;
+            return Time.newInstance(hours, minutes, seconds, 0);
+        } catch (Exception e) {
+            return null;
         }
     }
 }
