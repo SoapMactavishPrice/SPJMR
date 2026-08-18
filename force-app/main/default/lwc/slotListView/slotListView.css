@@ -43,3 +43,37 @@
     font-weight: 600;
     margin-bottom: 12px;
 }
+
+/* Tab container */
+.tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid #DFD1EB;
+    margin-bottom: 16px;
+}
+
+/* Reset button styling so it looks like a tab */
+.tab {
+    appearance: none;
+    background: none;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b6b6b;
+    position: relative;
+    top: 2px; /* aligns with the container's bottom border */
+    transition: color 0.2s ease;
+}
+
+.tab:hover {
+    color: #531F75;
+}
+
+/* Active tab highlight */
+.tab.active {
+    color: #531F75;
+    border-bottom: 3px solid #531F75;
+}
