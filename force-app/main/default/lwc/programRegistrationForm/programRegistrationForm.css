@@ -9,6 +9,17 @@
     font-weight: 700;
     margin: 0;
 }
+.close-alert {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    border: 0;
+    background: transparent;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.25rem;
+}
 
 .prf-subtitle {
     font-size: 1rem;

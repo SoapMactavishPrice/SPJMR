@@ -1,5 +1,4 @@
 public without sharing class TimetableSessionController {
-    /** ProgramEnrollment.Status — students with this status are not auto-added to new/updated session enrollments. */
     private static final String PROGRAM_ENROLLMENT_STATUS_WITHDRAWN = 'Withdrawn';
 
     public class SessionFilter {
@@ -8,14 +7,13 @@ public without sharing class TimetableSessionController {
         @AuraEnabled public Id batchGroupId { get; set; }
         @AuraEnabled public Id termId { get; set; }
         @AuraEnabled public String divisionId { get; set; }
-        @AuraEnabled public List<String> divisionIds { get; set; } // Optional: filter multiple divisions
-        @AuraEnabled public List<String> facultyIds { get; set; } // Optional: filter sessions by assigned faculty
+        @AuraEnabled public List<String> divisionIds { get; set; }
+        @AuraEnabled public List<String> facultyIds { get; set; }
         @AuraEnabled public String courseId { get; set; }
         @AuraEnabled public String batchWiseCourseId { get; set; }
         @AuraEnabled public Date startDate { get; set; }
         @AuraEnabled public Date endDate { get; set; }
-        @AuraEnabled public List<String> scheduleTypes { get; set; } // Optional: 'Draft', 'Published' - filter by Schedule_Type__c
-        /** When explicitly false, skip sending faculty email/Google Calendar sync for this publish batch. Defaults to true (send). */
+        @AuraEnabled public List<String> scheduleTypes { get; set; }
         @AuraEnabled public Boolean sendNotifications { get; set; }
     }
 
@@ -24,8 +22,7 @@ public without sharing class TimetableSessionController {
         @AuraEnabled public String sessionName { get; set; }
         @AuraEnabled public String name { get; set; }
         @AuraEnabled public String divisionId { get; set; }
-        @AuraEnabled public List<String> divisionIds { get; set; } // For multiple divisions
-        /** Session Information: from sidebar (Program, Batch, Batch Group, Term). */
+        @AuraEnabled public List<String> divisionIds { get; set; }
         @AuraEnabled public String programId { get; set; }
         @AuraEnabled public String batchId { get; set; }
         @AuraEnabled public String academicYearId { get; set; }
@@ -44,27 +41,15 @@ public without sharing class TimetableSessionController {
         @AuraEnabled public Boolean isJointSession { get; set; }
         @AuraEnabled public List<String> selectedFacultyIds { get; set; }
         @AuraEnabled public List<String> selectedStudentIds { get; set; }
-        
-        /** When set, Session_Faculty__c records will have Faculty_Type__c = 'Lead' for this id, 'Support' for others. */
+
         @AuraEnabled public String leadFacultyId { get; set; }
-        /** When set, Session_Faculty__c records will have Faculty_Type__c = 'Lead' for these ids, 'Support' for others. Takes precedence over leadFacultyId when non-empty. */
         @AuraEnabled public List<String> leadFacultyIds { get; set; }
         @AuraEnabled public String classRoom { get; set; }
         @AuraEnabled public String remark { get; set; }
         @AuraEnabled public String url { get; set; }
-        /** Division Id whose Division_Color__c sets Session Color (parent context when multiple divisions). */
         @AuraEnabled public String colorSourceDivisionId { get; set; }
-        /**
-         * Optional JSON from LWC for division conflict modal ("Your session" labels). Keys: courseName, divisionNames,
-         * programName, batchName, batchGroupName, termName.
-         */
         @AuraEnabled public String proposedConflictContextJson { get; set; }
-        /**
-         * When true, skip hard blocks for division/faculty session conflicts (user confirmed via Submit).
-         * Student overlap warnings still apply as non-blocking.
-         */
         @AuraEnabled public Boolean ignoreConflicts { get; set; }
-        /** When explicitly false, skip sending faculty email/Google Calendar sync for this save. Defaults to true (send). */
         @AuraEnabled public Boolean sendNotifications { get; set; }
     }
 
@@ -85,7 +70,6 @@ public without sharing class TimetableSessionController {
         @AuraEnabled public String courseActivity { get; set; }
         @AuraEnabled public String sessionType { get; set; }
         @AuraEnabled public String color { get; set; }
-        /** Division_Color__c from Session_Division__c.Division__r for this row (calendar tint). */
         @AuraEnabled public String divisionColor { get; set; }
         @AuraEnabled public Boolean isJointSession { get; set; }
         @AuraEnabled public List<String> facultyNames { get; set; }
@@ -100,8 +84,6 @@ public without sharing class TimetableSessionController {
         @AuraEnabled public String scheduleType { get; set; }
         @AuraEnabled public List<String> studentNames { get; set; }
         @AuraEnabled public List<String> selectedStudentIds { get; set; }
-        // RSVP read-back (Target 1): cached attendee response counts from the
-        // Session__c roll-up fields, so the calendar tooltip can show "X yes, Y awaiting".
         @AuraEnabled public Boolean hasGoogleEvent { get; set; }
         @AuraEnabled public Integer attendeesTotal { get; set; }
         @AuraEnabled public Integer attendeesAccepted { get; set; }
@@ -123,7 +105,6 @@ public without sharing class TimetableSessionController {
     @AuraEnabled(cacheable=true)
     public static List<SessionDto> getSessions(String filterJson) {
         SessionFilter filter = parseFilter(filterJson);
-   // Resolve division IDs from filter (supports single divisionId and multi divisionIds)
         Set<Id> divisionFilterIds = new Set<Id>();
 
         if (!String.isBlank(filter.divisionId)) {
@@ -148,13 +129,10 @@ public without sharing class TimetableSessionController {
                 try {
                     divisionFilterIds.add(Id.valueOf(rawId));
                 } catch (Exception ignore) {
-                    // Expect IDs from client; ignore invalid entries
                 }
             }
         }
 
-        // "All divisions" with zero divisions for the term: LWC sends divisionIds=[] and no divisionId.
-        // Without this guard, divisionFilterIds stays empty and we incorrectly query all sessions org-wide.
         if (divisionFilterIds.isEmpty()
             && filter.divisionIds != null
             && filter.divisionIds.isEmpty()
@@ -162,7 +140,6 @@ public without sharing class TimetableSessionController {
             return new List<SessionDto>();
         }
 
-        // If division filter is provided, resolve the session IDs via Session_Division__c
         Set<Id> filteredSessionIds = new Set<Id>();
         if (!divisionFilterIds.isEmpty()) {
             for (Session_Division__c sd : [
@@ -178,7 +155,6 @@ public without sharing class TimetableSessionController {
             }
         }
 
-        // If faculty filter is provided, restrict to sessions that have at least one of the selected faculty
         if (filter.facultyIds != null && !filter.facultyIds.isEmpty()) {
             Set<Id> facultyFilterIds = new Set<Id>();
             for (String fid : filter.facultyIds) {
@@ -207,7 +183,6 @@ public without sharing class TimetableSessionController {
             }
         }
 
-        // Schedule type filter: show Draft/Published/Republished (exclude Rescheduled/Cancelled by default)
         Set<String> scheduleTypeSet = new Set<String>();
         if (filter.scheduleTypes != null && !filter.scheduleTypes.isEmpty()) {
             for (String st : filter.scheduleTypes) {
@@ -216,7 +191,6 @@ public without sharing class TimetableSessionController {
                     if (normalized.equalsIgnoreCase('Draft')) {
                         scheduleTypeSet.add('Draft');
                     } else if (normalized.equalsIgnoreCase('Published')) {
-                        // Treat Republished as part of Published filter (UI only has Draft/Published toggles)
                         scheduleTypeSet.add('Published');
                         scheduleTypeSet.add('Republished');
                     } else if (normalized.equalsIgnoreCase('Republished')) {
@@ -231,7 +205,6 @@ public without sharing class TimetableSessionController {
             scheduleTypeSet.add('Republished');
         }
 
-        // Normalize dates to avoid timezone issues - ensure we're comparing actual calendar dates
         Date normalizedStartDate = filter.startDate != null
             ? Date.newInstance(filter.startDate.year(), filter.startDate.month(), filter.startDate.day())
             : null;
@@ -336,17 +309,14 @@ public without sharing class TimetableSessionController {
 
         Map<Id, Session__c> sessionsById = new Map<Id, Session__c>(sessions);
 
-        // RSVP read-back (Target 1): fetch attendee response roll-up counts + the Google
-        // event id in one keyed query, so the DTO/tooltip can show responses without adding
-        // these fields to every getSessions query variant above.
         Map<Id, Session__c> attendeeStatsById = new Map<Id, Session__c>([
-            SELECT Id, Google_Event_Id__c, Rsvp_Total__c, Rsvp_Accepted__c,
+            SELECT Id, Google_Event_Id__c, Faculty_Google_Event_Id__c,
+                   Rsvp_Total__c, Rsvp_Accepted__c,
                    Rsvp_Declined__c, Rsvp_Tentative__c, Rsvp_Awaiting__c
             FROM   Session__c
             WHERE  Id IN :sessionsById.keySet()
         ]);
 
-        // Query session-faculty for faculty names (for hover tooltip) - Session_Faculty__c points to Account (Faculty record type); order Lead first when Faculty_Type__c is set
         Map<Id, List<String>> sessionIdToFacultyNames = new Map<Id, List<String>>();
         Map<Id, List<String>> sessionIdToLeadFacultyNames = new Map<Id, List<String>>();
         Map<Id, List<String>> sessionIdToSupportFacultyNames = new Map<Id, List<String>>();
@@ -381,13 +351,11 @@ public without sharing class TimetableSessionController {
                     leadIds.add(String.valueOf(sf.Session_Faculty__c));
                 }
             }
-            // Resolve faculty names: Session_Faculty__c can point to Account (Faculty record type) or User
             Map<Id, String> facultyIdToName = new Map<Id, String>();
             if (!facultyIds.isEmpty()) {
                 for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :facultyIds]) {
                     facultyIdToName.put(a.Id, a.Name);
                 }
-                // Fallback: any Id not found in Account may be a User Id (e.g. 005...)
                 Set<Id> missingIds = new Set<Id>();
                 for (Id fid : facultyIds) {
                     if (!facultyIdToName.containsKey(fid)) {
@@ -400,7 +368,6 @@ public without sharing class TimetableSessionController {
                     }
                 }
             }
-            // Build lead vs support faculty name lists by Faculty_Type__c for hover tooltip
             for (Session_Faculty__c sf : sessionFaculties) {
                 String name = facultyIdToName.get(sf.Session_Faculty__c);
                 if (String.isBlank(name)) continue;
@@ -412,7 +379,6 @@ public without sharing class TimetableSessionController {
                     }
                     names.add(name);
                 } else {
-                    // Lead or null/other -> show under Faculty
                     List<String> names = sessionIdToLeadFacultyNames.get(sf.Session__c);
                     if (names == null) {
                         names = new List<String>();
@@ -424,7 +390,6 @@ public without sharing class TimetableSessionController {
             for (Id sessionId : sessionIdToFacultyIds.keySet()) {
                 List<Id> fids = sessionIdToFacultyIds.get(sessionId);
                 String leadId = sessionIdToLeadFacultyId.get(sessionId);
-                // Order so Lead is first when known
                 if (String.isNotBlank(leadId) && fids != null && fids.size() > 1) {
                     List<Id> ordered = new List<Id>();
                     for (Id fid : fids) {
@@ -446,7 +411,7 @@ public without sharing class TimetableSessionController {
         } catch (Exception e) {
             System.debug('Session faculty names not available: ' + e.getMessage());
         }
-        
+
         try {
             Map<Id, Set<Id>> sessionIdToStudentIdSet = new Map<Id, Set<Id>>();
             for (Session_Enrollment__c se : [
@@ -465,19 +430,17 @@ public without sharing class TimetableSessionController {
                 sessionIdToStudentIdSet.put(sessionId, new Set<Id>());
                 }
 
-                // Only add if not already added for this session
                 if (!sessionIdToStudentIdSet.get(sessionId).contains(learnerId)) {
                 sessionIdToStudentIdSet.get(sessionId).add(learnerId);
                 sessionIdToStudentNames.get(sessionId).add(se.Academic_Term_Enrollment__r.LearnerAccount.Name);
                 sessionIdToStudentIds.get(sessionId).add(String.valueOf(learnerId));
                 }
-            }        
-        }    
+            }
+        }
         catch (Exception e) {
             System.debug('Student names not available: ' + e.getMessage());
         }
 
-        // Query session-division associations for returned sessions
         List<Session_Division__c> sessionDivisions;
         if (!divisionFilterIds.isEmpty()) {
             sessionDivisions = [
@@ -520,7 +483,7 @@ public without sharing class TimetableSessionController {
             dto.color = String.isNotBlank(s.Color__c) ? s.Color__c : 'blue';
             dto.divisionColor = (sd.Division__r != null && sd.Division__r.Division_Color__c != null)
                 ? String.valueOf(sd.Division__r.Division_Color__c)
-                : null;   
+                : null;
             dto.isJointSession = s.Is_Joint_Session__c != null ? s.Is_Joint_Session__c : false;
             List<String> facultyNamesForSession = sessionIdToFacultyNames.get(s.Id);
             dto.facultyNames = facultyNamesForSession != null ? facultyNamesForSession : new List<String>();
@@ -551,9 +514,11 @@ dto.selectedStudentIds =
     sessionIdToStudentIds.containsKey(s.Id)
         ? sessionIdToStudentIds.get(s.Id)
         : new List<String>();
-            // RSVP read-back (Target 1): attendee response counts from roll-ups.
             Session__c stat = attendeeStatsById.get(s.Id);
-            dto.hasGoogleEvent   = (stat != null && String.isNotBlank(stat.Google_Event_Id__c));
+            // Either copy counts as synced: a Draft has only the faculty event.
+            dto.hasGoogleEvent   = (stat != null
+                && (String.isNotBlank(stat.Google_Event_Id__c)
+                    || String.isNotBlank(stat.Faculty_Google_Event_Id__c)));
             dto.attendeesTotal     = toInt(stat != null ? stat.Rsvp_Total__c     : null);
             dto.attendeesAccepted  = toInt(stat != null ? stat.Rsvp_Accepted__c  : null);
             dto.attendeesDeclined  = toInt(stat != null ? stat.Rsvp_Declined__c  : null);
@@ -564,20 +529,10 @@ dto.selectedStudentIds =
         return response;
     }
 
-    /** @description Null-safe Decimal→Integer for roll-up counts. */
     private static Integer toInt(Decimal d) {
         return (d == null) ? 0 : d.intValue();
     }
 
-    /**
-     * @description RSVP read-back (Target 1) — on-demand live refresh. Called when a
-     *          Program Manager opens a session: performs a single Events.get against the
-     *          organizer's Google calendar, writes each student's response straight onto
-     *          their Session_Enrollment__c.Invite_Response__c via SessionRsvpSyncService,
-     *          and returns the fresh attendee list + counts. Not cacheable (it performs a callout).
-     * @param sessionId The Session__c to refresh.
-     * @return AttendeeSummary with counts, per-attendee rows, and a status message.
-     */
     @AuraEnabled
     public static AttendeeSummary refreshAttendees(Id sessionId) {
         AttendeeSummary summary = new AttendeeSummary();
@@ -587,15 +542,24 @@ dto.selectedStudentIds =
         }
 
         List<Session__c> sList = [
-            SELECT Id, Google_Event_Id__c FROM Session__c WHERE Id = :sessionId LIMIT 1
+            SELECT Id, Google_Event_Id__c, Faculty_Google_Event_Id__c
+            FROM Session__c WHERE Id = :sessionId LIMIT 1
         ];
         if (sList.isEmpty()) {
             summary.message = 'Session not found.';
             return summary;
         }
-        String eventId = sList[0].Google_Event_Id__c;
+        // Students and faculty sit on separate events, so both have to be read to refresh
+        // everybody's RSVP. Either may be missing: a Draft has no student copy yet.
+        List<String> eventIds = new List<String>();
+        if (String.isNotBlank(sList[0].Google_Event_Id__c)) {
+            eventIds.add(sList[0].Google_Event_Id__c);
+        }
+        if (String.isNotBlank(sList[0].Faculty_Google_Event_Id__c)) {
+            eventIds.add(sList[0].Faculty_Google_Event_Id__c);
+        }
 
-        if (String.isBlank(eventId)) {
+        if (eventIds.isEmpty()) {
             summary.message = 'This session has not been pushed to Google Calendar yet.';
         } else {
             String organizer  = GoogleCalendarHelper.getUserEmail('Default');
@@ -603,32 +567,35 @@ dto.selectedStudentIds =
             if (String.isBlank(organizer)) {
                 summary.message = 'Google Calendar is not configured.';
             } else {
-                try {
-                    GoogleCalendarService.GoogleEventReadResponse resp =
-                        GoogleCalendarService.getCalendarEvent(calendarId, eventId, organizer);
-                    if (resp.success && resp.event != null) {
-                        // Callout done → pure parse → DML (no callout after DML).
-                        // Apply to BOTH students (Session_Enrollment__c) and faculty
-                        // (Session_Faculty__c) so an on-demand refresh updates faculty
-                        // RSVPs immediately, not only via the scheduled batch.
-                        Map<Id, Map<String, String>> parsedResponses =
-                            new Map<Id, Map<String, String>>{
-                                sessionId => SessionRsvpSyncService.parseResponses(resp.event)
-                            };
-                        SessionRsvpSyncService.applyToEnrollments(parsedResponses);
-                        SessionFacultyRsvpService.applyToSessionFaculty(parsedResponses);
-                    } else if (resp.notFound) {
-                        summary.message = 'The Google event no longer exists; showing last synced data.';
-                    } else {
+                Map<String, String> merged = new Map<String, String>();
+                Boolean readAny = false;
+                for (String eventId : eventIds) {
+                    try {
+                        GoogleCalendarService.GoogleEventReadResponse resp =
+                            GoogleCalendarService.getCalendarEvent(calendarId, eventId, organizer);
+                        if (resp.success && resp.event != null) {
+                            merged.putAll(SessionRsvpSyncService.parseResponses(resp.event));
+                            readAny = true;
+                        } else if (resp.notFound) {
+                            summary.message =
+                                'A Google event no longer exists; showing last synced data.';
+                        } else {
+                            summary.message =
+                                'Could not refresh from Google; showing last synced data.';
+                        }
+                    } catch (Exception e) {
                         summary.message = 'Could not refresh from Google; showing last synced data.';
                     }
-                } catch (Exception e) {
-                    summary.message = 'Could not refresh from Google; showing last synced data.';
+                }
+                if (readAny) {
+                    Map<Id, Map<String, String>> parsedResponses =
+                        new Map<Id, Map<String, String>>{ sessionId => merged };
+                    SessionRsvpSyncService.applyToEnrollments(parsedResponses);
+                    SessionFacultyRsvpService.applyToSessionFaculty(parsedResponses);
                 }
             }
         }
 
-        // Build the summary from the enrolled students' stored responses (fresh after the sync).
         for (Session_Enrollment__c e : [
             SELECT Invite_Response__c, Invite_Response_Checked__c, Student_Name__c,
                    Division_Enrollment__r.Academic_Term_Enrollment__r.LearnerAccount.PersonEmail
@@ -657,9 +624,6 @@ dto.selectedStudentIds =
             }
         }
 
-        // Include faculty (Session_Faculty__c) responses so the panel reflects faculty
-        // RSVPs too — previously the summary counted students only, so a faculty-only
-        // session showed "0 of 0 invited" and never displayed the faculty's response.
         for (Session_Faculty__c f : [
             SELECT Invite_Response__c, Invite_Response_Checked__c,
                    Session_Faculty__r.Name, Session_Faculty__r.PersonEmail
@@ -690,7 +654,6 @@ dto.selectedStudentIds =
         return summary;
     }
 
-    /** @description RSVP read-back: attendee response summary for the calendar UI. */
     public class AttendeeSummary {
         @AuraEnabled public Integer total = 0;
         @AuraEnabled public Integer accepted = 0;
@@ -702,7 +665,6 @@ dto.selectedStudentIds =
         @AuraEnabled public List<AttendeeDto> attendees = new List<AttendeeDto>();
     }
 
-    /** @description RSVP read-back: one attendee's identity + response. */
     public class AttendeeDto {
         @AuraEnabled public String email { get; set; }
         @AuraEnabled public String status { get; set; }
@@ -715,8 +677,6 @@ dto.selectedStudentIds =
         SessionFilter filter = parseFilter(filterJson);
         Integer updatedCount = 0;
 
-        // Resolve division IDs from filter (supports single divisionId and multi divisionIds)
-     
         Set<Id> divisionFilterIds = new Set<Id>();
         if (!String.isBlank(filter.divisionId)) {
             try {
@@ -749,7 +709,6 @@ dto.selectedStudentIds =
             return 0;
         }
 
-        // Get session IDs from Session_Division__c if division filter is provided
         Set<Id> filteredSessionIds = new Set<Id>();
         if (!divisionFilterIds.isEmpty()) {
             for (Session_Division__c sd : [
@@ -766,7 +725,7 @@ dto.selectedStudentIds =
 
         Date normalizedStartDate = filter.startDate != null ? normalizeDate(filter.startDate) : null;
         Date normalizedEndDate = filter.endDate != null ? normalizeDate(filter.endDate) : null;
-        
+
         List<Session__c> draftSessions;
         if (!filteredSessionIds.isEmpty()) {
             if (normalizedStartDate != null && normalizedEndDate != null) {
@@ -832,7 +791,7 @@ dto.selectedStudentIds =
                     AND Schedule_Type__c = 'Draft'
                     AND Is_Completed__c = false
                 ];
-             
+
             } else {
                 draftSessions = [
                     SELECT Id, Schedule_Type__c, Session_Date__c,End_Time__c
@@ -842,16 +801,13 @@ dto.selectedStudentIds =
                 ];
             }
         }
-        
-        // Final guard: never publish sessions that are already completed by date,
-        // even if Is_Completed__c is stale.
+
         Boolean callerWantsDraft     = filter.scheduleTypes == null || filter.scheduleTypes.isEmpty()
                                 || new Set<String>(filter.scheduleTypes).contains('Draft');
 		Boolean callerWantsPublished = filter.scheduleTypes != null
                                 && (new Set<String>(filter.scheduleTypes).contains('Published')
                                     || new Set<String>(filter.scheduleTypes).contains('Republished'));
 
-    
         Date today = Date.today();
         Datetime nowTs = Datetime.now();
         Integer pastDraftCount   = 0;
@@ -864,13 +820,11 @@ dto.selectedStudentIds =
         futureDraftCount++;
     }
 }
-        // Scenario 2: only Published filter selected → nothing to publish
 	if (callerWantsPublished && !callerWantsDraft) {
     	throw new AuraHandledException(
         'In the selected date range all sessions are already published.');
 	}
 
-	// Scenario 1: only Draft filter selected, and ALL drafts are past
 	if (callerWantsDraft && !callerWantsPublished
         && pastDraftCount > 0 && futureDraftCount == 0) {
     throw new AuraHandledException(
@@ -879,8 +833,6 @@ dto.selectedStudentIds =
     );
 	}
 
-
-	// Scenario 4: both Draft + Published selected, and past drafts exist in range
 	if (callerWantsDraft && callerWantsPublished && pastDraftCount > 0) {
     throw new AuraHandledException(
 
@@ -889,7 +841,7 @@ dto.selectedStudentIds =
 }
 
 	List<Session__c> publishableSessions = new List<Session__c>();
-      
+
 		for (Session__c sessionRecord : draftSessions) {
  	   	Boolean isPastRecord = (sessionRecord.End_Time__c != null && sessionRecord.End_Time__c < nowTs)
                     || (sessionRecord.End_Time__c == null && sessionRecord.Session_Date__c != null && sessionRecord.Session_Date__c < today);
@@ -906,9 +858,6 @@ dto.selectedStudentIds =
             for (Session__c sessionRecord : publishableSessions) {
                 sessionRecord.Schedule_Type__c = 'Published';
                 publishedIds.add(sessionRecord.Id);
-                // The email must quote the range of the sessions actually published, which can be
-                // narrower than the From/To the user typed (past and already-published sessions
-                // were filtered out above).
                 if (sessionRecord.Session_Date__c != null) {
                     if (rangeStart == null || sessionRecord.Session_Date__c < rangeStart) {
                         rangeStart = sessionRecord.Session_Date__c;
@@ -919,47 +868,58 @@ dto.selectedStudentIds =
                 }
             }
 
-            // Consolidated publish notification.
-            //
-            // The per-session Google Calendar invitation emails are now ALWAYS suppressed on this
-            // path (sendUpdates=none), because Google emails every guest once per event and a
-            // 40-session publish therefore meant 40 emails for each enrolled student. The events
-            // are still created and patched and the students are still attached as guests, so the
-            // sessions land silently on everyone's calendar and RSVP capture is unaffected.
-            //
-            // In place of that flood, answering Yes sends ONE summary email per student and per
-            // faculty member for the whole publication. Answering No sends nothing at all, which
-            // is what it already did. `== false` keeps the established convention that only an
-            // explicit No suppresses: a null means a non-UI caller (Flow, data loader, older
-            // client) rather than a user who chose No.
-            //
-            // Deliberately enqueued BEFORE the DML: the calendar chunker consumes queueable slots
-            // while `update` fires the Session trigger, and on a large publish it can use them all,
-            // so a job enqueued afterwards would silently never run. Enqueuing first reserves the
-            // slot and is still safe — an enqueued job is rolled back with the transaction if the
-            // DML fails, so no email is sent for a publish that did not happen.
-            //
-            // Scoped to this method on purpose: creating a session (saveSession) keeps its own
-            // independent Yes/No behaviour, and nothing here lives in a trigger, so a
-            // Draft -> Published change made any other way cannot send a summary email.
-            Boolean notifyAudience = filter.sendNotifications != false;
+            Boolean notifyFaculty = filter.sendNotifications != false;
             try {
-                SessionCalendarInviteHandler.skipUserNotifications = true;
-                if (notifyAudience) {
-                    System.enqueueJob(
-                        new SessionPublishSummaryEmailQueueable(publishedIds, rangeStart, rangeEnd)
-                    );
-                }
+                // Faculty sit on their own Google event, so the answer only governs their copy.
+                // The students' copy is always pushed silently and they are told once, here.
+                SessionCalendarInviteHandler.skipUserNotifications = !notifyFaculty;
+                SessionCalendarInviteHandler.facultyNotifyRequested = notifyFaculty;
+                System.enqueueJob(
+                    new SessionPublishSummaryEmailQueueable(publishedIds, rangeStart, rangeEnd, true)
+                );
                 update publishableSessions;
                 updatedCount = publishableSessions.size();
             } catch (DmlException ex) {
                 throw new AuraHandledException('Error publishing sessions: ' + ex.getDmlMessage(0));
             } finally {
                 SessionCalendarInviteHandler.skipUserNotifications = false;
+                SessionCalendarInviteHandler.facultyNotifyRequested = false;
             }
         }
-        
+
         return updatedCount;
+    }
+
+    /**
+     * @description Sends the students of a republished session the one consolidated
+     *          "schedule republished" email, on Yes and on No alike. Students sit on their own
+     *          Google event which is always pushed silently, so this email is the only thing that
+     *          tells them their session moved. Faculty are deliberately left out (studentsOnly):
+     *          they are notified by their own event's invitation, or not at all if the user said No.
+     *          No-op for creates and for Draft edits, where no student sits on the calendar event
+     *          yet and the Publish button does the notifying later.
+     *          Enqueued BEFORE the upsert on purpose: the calendar chunker consumes this
+     *          transaction's queueable slots while the trigger runs, so a job enqueued after the
+     *          DML can silently never run. A failed DML rolls this enqueue back with it.
+     * @param sessionRecord The session about to be upserted, already stamped with its new
+     *          Schedule_Type__c.
+     * @param requestedDate The session date being saved, quoted in the email.
+     */
+    @TestVisible
+    private static void enqueueRepublishStudentEmail(Session__c sessionRecord, Date requestedDate) {
+        if (sessionRecord == null
+                || sessionRecord.Id == null
+                || String.isBlank(sessionRecord.Schedule_Type__c)
+                || !sessionRecord.Schedule_Type__c.equalsIgnoreCase('Republished')) {
+            return;
+        }
+        Date onDate = requestedDate;
+        if (onDate == null && sessionRecord.Start_Time__c != null) {
+            onDate = sessionRecord.Start_Time__c.date();
+        }
+        System.enqueueJob(new SessionPublishSummaryEmailQueueable(
+            new Set<Id>{ sessionRecord.Id }, onDate, onDate, true, true
+        ));
     }
 
     @AuraEnabled
@@ -967,10 +927,8 @@ dto.selectedStudentIds =
         SessionInput request = parseSessionInput(requestJson);
         validateInput(request);
 
-        // Resolve course ID - handle "courseName|learningCourseId" format
         Id courseLookupId = null;
         if (String.isNotBlank(request.courseId)) {
-            // Check if it's in the format "courseName|learningCourseId"
             if (request.courseId.contains('|')) {
                 String[] parts = request.courseId.split('\\|');
                 if (parts.size() > 1 && String.isNotBlank(parts[1])) {
@@ -981,7 +939,6 @@ dto.selectedStudentIds =
                     }
                 }
             } else {
-                // Try to resolve as ID or name
                 String courseObject = getLookupObjectApiName('Course__c');
                 courseLookupId = resolveLookupId(request.courseId, courseObject);
             }
@@ -990,19 +947,14 @@ dto.selectedStudentIds =
         System.debug('request.batchId: ' + request.batchId);
         System.debug('request.programId: ' + request.programId);
         Program_Courses__c programCourse = [Select Id, Program_Master__c, IS_Host_Course__c, Batch__c, Batch__r.ProgramId FROM Program_Courses__c WHERE Learning_Course__c = :courseLookupId AND Batch__c = :request.batchId AND Program_Master__c = :request.programId LIMIT 1];
-        
-      
-        
+
         Id ownerLookupId = resolveLookupId(request.ownerId, 'User');
 
-        // Resolve division ID - handle both ID and name (for backward compatibility)
         Id divisionLookupId = null;
         if (String.isNotBlank(request.divisionId)) {
             try {
-                // Try to use as ID directly
                 divisionLookupId = Id.valueOf(request.divisionId);
             } catch (Exception e) {
-                // If not a valid ID, treat as name and look it up (for backward compatibility)
                 List<Division__c> divisions = [
                     SELECT Id
                     FROM Division__c
@@ -1024,7 +976,6 @@ dto.selectedStudentIds =
             }
         }
 
-        // Create or update Session__c record (Session Information lookups included if present in org)
         Id sessionIdForQuery = request.sessionId;
         String sessionQuery = 'SELECT Id, Name,Batch__c, Color__c, Is_Joint_Session__c, Schedule_Type__c, Session_Date__c, Start_Time__c, End_Time__c,' +
             ' Course__c, Description__c, Course_Activity__c,Session_Type__c, OwnerId, Class_Room__c, Remark__c, URL__c';
@@ -1036,8 +987,6 @@ dto.selectedStudentIds =
         Session__c sessionRecord = sessionIdForQuery != null
             ? (Session__c) Database.query(sessionQuery)[0]
             : new Session__c();
-
-        // NOTE: Published sessions are updated in-place (no clone/reschedule record creation).
 
         String normalizedName = getSessionName(request);
         sessionRecord.Name = normalizedName;
@@ -1054,13 +1003,8 @@ dto.selectedStudentIds =
         sessionRecord.URL__c = request.url;
         sessionRecord.LMS_Programme_Course__c = programCourse.Id;
 
-        // Set Is Joint Session
         sessionRecord.Is_Joint_Session__c = request.isJointSession != null ? request.isJointSession : false;
-        
-        // Handle Schedule_Type__c:
-        // - new session -> Draft
-        // - updating Published/Republished session -> Republished (any edit)
-        // - updating Draft session -> keep Draft
+
         if (request.sessionId == null) {
             sessionRecord.Schedule_Type__c = 'Draft';
         } else if (String.isNotBlank(sessionRecord.Schedule_Type__c)) {
@@ -1070,12 +1014,9 @@ dto.selectedStudentIds =
             }
         }
 
-        // Handle multiple divisions if provided, otherwise handle single division
         List<Id> divisionIdsToProcess = new List<Id>();
-            
-        // Check if multiple divisions are provided
+
         if (request.divisionIds != null && !request.divisionIds.isEmpty()) {
-            // Process multiple divisions
             for (String divId : request.divisionIds) {
                 if (String.isNotBlank(divId)) {
                     try {
@@ -1087,13 +1028,11 @@ dto.selectedStudentIds =
                 }
             }
         } else if (divisionLookupId != null) {
-            // Single division (backward compatibility)
             divisionIdsToProcess.add(divisionLookupId);
         }
 
         applySessionColorFromDivision(request, sessionRecord, divisionLookupId, divisionIdsToProcess);
 
-        // Session Information (Program, Batch, Batch Group, Term): set from payload using actual field API names (handles namespaced orgs)
         Id programIdResolved = tryConvertToId(String.isNotBlank(request.programId) ? request.programId.trim() : null);
         if (programIdResolved != null) {
             try { sessionRecord.Program__c = programIdResolved; } catch (Exception e) { }
@@ -1117,7 +1056,6 @@ dto.selectedStudentIds =
 
             Boolean skipHardConflicts = request.ignoreConflicts == true;
 
-            // Division session conflict: get full details and throw with JSON so LWC can show toast + View details
             if (!skipHardConflicts) {
                 List<SessionConflictValidator.DivisionSessionConflictDetail> divisionConflictDetails = SessionConflictValidator.getDivisionSessionConflictDetails(
                     new Set<Id>(divisionIdsToProcess),
@@ -1137,7 +1075,6 @@ dto.selectedStudentIds =
                     throw new AuraHandledException(JSON.serialize(errPayload));
                 }
 
-                // Faculty conflict: get full details and throw with JSON so LWC can show toast + View details
                 List<SessionConflictValidator.FacultyConflictDetail> facultyConflictDetails = SessionConflictValidator.getFacultySessionConflictDetails(
                     facultyIds,
                     request.sessionDate,
@@ -1165,7 +1102,6 @@ dto.selectedStudentIds =
                 request.sessionId,
                 getSessionName(request)
             );
-            // Student conflict: do not block – save proceeds; warning returned so LWC can show toast
             if (!studentConflictDetails.isEmpty()) {
                 studentConflictMessage = 'One or more students have overlapping sessions at this date and time. Consider adjusting the schedule or division.';
                 studentConflictWarningDetails = studentConflictDetails;
@@ -1181,27 +1117,18 @@ dto.selectedStudentIds =
                     : mergedOverlapWarning;
             }
 
-            // See publishSessions: only an explicit No suppresses the Google Calendar emails.
-            //
-            // Deliberately NOT reset after the upsert. Everything below this point — the
-            // Session_Division__c, Session_Enrollment__c and Session_Faculty__c reconciliation —
-            // now fires its own Google Calendar re-push, and those triggers read this same flag.
-            // Clearing it here would have let a save the user answered "No" to go on and email
-            // every guest from the related-record path. One Aura call is one transaction, so the
-            // flag cannot leak into an unrelated save.
             Boolean skipNotify = request.sendNotifications == false;
-            if (skipNotify) {
-                SessionCalendarInviteHandler.skipUserNotifications = true;
-            }
+            SessionCalendarInviteHandler.skipUserNotifications = skipNotify;
+            SessionCalendarInviteHandler.facultyNotifyRequested = !skipNotify;
+            // Students never receive a Google email for a republish now that they have their own
+            // silent event, so the summary email is sent on Yes as well as on No.
+            enqueueRepublishStudentEmail(sessionRecord, request.sessionDate);
             upsert sessionRecord;
         } catch (DmlException ex) {
             System.debug('Error saving session: ' + ex.getMessage());
             throw new AuraHandledException('Error saving session: ' + ex.getDmlMessage(0));
         }
-        
-       
-        
-        // Session_Division__c: on update only add/remove divisions that changed; do not replace all
+
         Set<Id> requestedDivisionIds = new Set<Id>(divisionIdsToProcess);
         if (request.sessionId != null) {
             List<Session_Division__c> existingSessionDivisions = [
@@ -1278,15 +1205,12 @@ dto.selectedStudentIds =
                 }
             }
         } else if (!divisionIdsToProcess.isEmpty()) {
-            // New session: create all Session_Division__c and Session_Enrollment__c
             List<Session_Division__c> sessionDivisions = new List<Session_Division__c>();
             for (Id divId : divisionIdsToProcess) {
                 sessionDivisions.add(new Session_Division__c(Session__c = sessionRecord.Id, Division__c = divId));
             }
             try {
                 insert sessionDivisions;
-                
-              
 
 Set<Id> selectedStudentIds = new Set<Id>();
 
@@ -1302,10 +1226,9 @@ if(request.selectedStudentIds != null) {
         }
     }
 }
-                
+
                 List<Division_Enrollment__c> enrollments;
                 if(request.courseActivity == 'Make Up Exam') {
-                    
 
         enrollments = [
             SELECT Id,
@@ -1367,10 +1290,9 @@ if(request.selectedStudentIds != null) {
                 throw new AuraHandledException('Error creating session divisions: ' + ex.getDmlMessage(0));
             }
         }
-    // Get all division names for this session
 List<String> divisionNames = new List<String>();
 List<String>divisionAutoCode=new List<String>();
-        
+
 for (Session_Division__c sd : [
     SELECT Division__r.Name,Division__r.Division_Name__c
     FROM Session_Division__c
@@ -1382,9 +1304,8 @@ for (Session_Division__c sd : [
     }
 }
 String divisionNameText = String.join(divisionNames, ', ');
-String divisionAutoNameText = String.join(divisionAutoCode, ', '); 
-        
-        // Handle Session_Faculty__c records: update only what changed (insert new, update type, delete removed)
+String divisionAutoNameText = String.join(divisionAutoCode, ', ');
+
         if (request.selectedFacultyIds != null && !request.selectedFacultyIds.isEmpty()) {
             Set<Id> leadIds = new Set<Id>();
             if (request.leadFacultyIds != null && !request.leadFacultyIds.isEmpty()) {
@@ -1403,7 +1324,6 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
             }
 
             if (request.sessionId != null) {
-                // Update existing session: reconcile existing Session_Faculty__c with request (insert/update/delete only what changed)
                 List<Session_Faculty__c> existingList = [
                     SELECT Id, Session_Faculty__c, Faculty_Type__c,Divisions__c,Division_Names__c
                     FROM Session_Faculty__c
@@ -1448,7 +1368,6 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
                 if (!toUpdate.isEmpty()) update toUpdate;
                 if (!toInsert.isEmpty()) insert toInsert;
             } else {
-                // New session: insert all Session_Faculty__c records
                 if (!facultyIds.isEmpty()) {
                     List<Session_Faculty__c> sessionFaculties = new List<Session_Faculty__c>();
                     for (Id facultyId : facultyIds) {
@@ -1468,7 +1387,6 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
                 }
             }
         } else if (request.sessionId != null) {
-            // No faculty selected: delete existing Session_Faculty__c records
             List<Session_Faculty__c> existingSessionFaculties = [
                 SELECT Id
                 FROM Session_Faculty__c
@@ -1479,22 +1397,11 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
             }
         }
 
-        // Google Calendar: the divisions and faculty reconciled above are part of the event —
-        // division names appear in the summary and description, and faculty are guests — but
-        // they live on child objects, so the Session__c trigger never saw them change. Re-push
-        // here, at the end of the save, once every child record is in its final state.
-        //
-        // Called instead of putting triggers on Session_Division__c / Session_Faculty__c: this is
-        // the only path that edits them, so a direct call keeps the component count down and the
-        // ordering deterministic. The handler is PATCH-only (an unsynced session is skipped, never
-        // created), it honours the caller's "No" choice via skipUserNotifications, and it dedupes
-        // per transaction, so a save that already pushed via the status change sends one email.
         SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ sessionRecord.Id });
 
         return new SaveSessionResult(sessionRecord.Id, studentConflictMessage, studentConflictWarningDetails);
     }
 
-    /** Builds Session_Student_Name__c value: SessionTitle_FirstName-LastName (from learner account). */
     private static String buildSessionStudentName(String sessionTitle, String firstName, String lastName) {
         String title = String.isNotBlank(sessionTitle) ? sessionTitle.trim() : '';
         String first = firstName != null ? firstName.trim() : '';
@@ -1505,12 +1412,11 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
         if (String.isBlank(title) && String.isBlank(studentName)) return null;
         if (String.isBlank(studentName)) return title;
         if (String.isBlank(title)) return studentName;
-        //return (title + '_' + studentName).substring(0, 80);
-            String finalName = title + '_' + studentName; /*1015 - Start*/
+            String finalName = title + '_' + studentName;
 
             return finalName.length() > 80
                 ? finalName.substring(0, 80)
-                : finalName;/*1015 - End*/
+                : finalName;
     }
 
     private static Boolean dateOrTimeChanged(Session__c existing, SessionInput request) {
@@ -1574,7 +1480,6 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
                 throw new AuraHandledException(JSON.serialize(errPayload));
             }
         }
-        // Student conflict: do not block reschedule (same as save – warn only)
         List<SessionConflictValidator.StudentSessionConflictDetail> studentConflictDetails = SessionConflictValidator.getStudentSessionConflictDetails(
             divisionIdsForValidation,
             request.sessionDate,
@@ -1583,7 +1488,6 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
             null,
             getSessionName(request)
         );
-        // Proceed with reschedule even if student conflicts exist; no warning returned from this path
 
         existingSession.Schedule_Type__c = 'Rescheduled';
         update existingSession;
@@ -1674,30 +1578,6 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
         return newSession.Id;
     }
 
-    // @AuraEnabled
-    // public static void createGoogleCalendarEvent(String sessionId){
-    //     try {
-    //         Session__c session = [SELECT Id, Name, Session_Date__c, Start_Time__c, End_Time__c FROM Session__c WHERE Id = :sessionId LIMIT 1];
-           
-    //         GoogleCalendarEvent eventdata = new GoogleCalendarEvent();
-    //         eventdata.summary = session.name;
-    //         eventdata.location = 'Test Location';
-    //         eventdata.startDateTime = new Map<String, Object>{
-    //             'dateTime' => session.Start_Time__c.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'')
-    //         };
-    //         eventdata.endDateTime = new Map<String, Object>{
-    //             'dateTime' => session.End_Time__c.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'')
-    //         };
-    //         eventdata.attendees = new List<String>{ 'consultant@quillconsultants.com' };
-
-
-    //         GoogleCalendarService.createCalendarEvent('spjimr-test@spjims.iam.gserviceaccount.com', '084604a114259c3ce13eb14be874139a5dc616f6', 'primary',eventdata );
-    //     System.debug('Google Calendar Event Created');
-    //     } catch (Exception e) {
-    //         throw new AuraHandledException(e.getMessage());
-    //     }
-    // }
-    // 
     public class StudentWrapper {
     @AuraEnabled public Id studentId;
     @AuraEnabled public String studentName;
@@ -1713,8 +1593,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
     List<StudentWrapper> students = new List<StudentWrapper>();
     if(divisionId == null) return students;
 
-    // Step 1: Verify this course runs in this division (via DivisionCourse__c)
-    // If courseId provided but not running in this division, return empty
     if(courseId != null) {
         List<DivisionCourse__c> divCourses = [
             SELECT Id
@@ -1726,7 +1604,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         if(divCourses.isEmpty()) return students;
     }
 
-    // Step 2: Get students with approved makeup leave
     Set<Id> eligibleStudentIds = new Set<Id>();
     for(Leave_Application__c leaveApp : [
         SELECT Student__c
@@ -1739,7 +1616,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
 
     if(eligibleStudentIds.isEmpty()) return students;
 
-    // Step 3: Get students enrolled in this division with approved leave
     for(Division_Enrollment__c de : [
         SELECT Academic_Term_Enrollment__c,
                Academic_Term_Enrollment__r.LearnerAccount.Id,
@@ -1780,11 +1656,7 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         Boolean isDraft = String.isNotBlank(sessionRecord.Schedule_Type__c) &&
             sessionRecord.Schedule_Type__c.equalsIgnoreCase('Draft');
 
-        // Division removal should *not* clone/cancel sessions.
-        // - If session has multiple divisions, remove only the requested division (works for Draft/Published/Republished).
-        // - If it has a single division, fall through to delete the whole session record (existing behavior).
         if (divisionIdToRemove != null && sessionDivisions.size() > 1) {
-            // If removing a division from a Published session, mark it as Republished
             if (String.isNotBlank(sessionRecord.Schedule_Type__c) &&
                 (sessionRecord.Schedule_Type__c.equalsIgnoreCase('Published') ||
                  sessionRecord.Schedule_Type__c.equalsIgnoreCase('Republished'))) {
@@ -1792,9 +1664,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                 update sessionRecord;
             }
             removeDivisionFromSession(sessionId, divisionIdToRemove);
-            // Google Calendar: the removed division's students must drop off the event and the
-            // remaining guests need the corrected summary/description. Deduped against the
-            // Republished stamp above, so the guests get one "Updated invitation", not two.
             SessionCalendarInviteHandler.handleRelatedRecordChange(new Set<Id>{ sessionId });
             return sessionId;
         }
@@ -1835,7 +1704,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         sessionRecord.Schedule_Type__c = 'Cancelled';
         update sessionRecord;
 
-        // Delete all enrollments for this session (across all divisions)
         List<Session_Enrollment__c> enrollments = [
             SELECT Id
             FROM Session_Enrollment__c
@@ -1977,11 +1845,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         return newSession.Id;
     }
 
-    /**
-     * Returns faculty conflict details (date/time and faculty names) for a list of proposed sessions.
-     * Used by Create Sessions modal to show conflicts before save. Does not persist anything.
-     * sessionsJson: JSON array of { sessionName, sessionDate (YYYY-MM-DD), startTime (ISO or HH:mm), endTime (ISO or HH:mm), selectedFacultyIds (array of Id strings), proposedContext (optional object: courseName, divisionNames, programName, batchName, batchGroupName, termName) }
-     */
     @AuraEnabled
     public static List<SessionConflictValidator.FacultyConflictDetail> getFacultyConflictsForSessions(String sessionsJson) {
         List<SessionConflictValidator.FacultyConflictDetail> allConflicts = new List<SessionConflictValidator.FacultyConflictDetail>();
@@ -2008,13 +1871,11 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                 String sessionDateStr = (String) m.get('sessionDate');
                 Object startObj = m.get('startTime');
                 Object endObj = m.get('endTime');
-                /*1002 Start*/
                 Id currentSessionId;
                 Object sessionIdObj = m.get('sessionId');
                 if (sessionIdObj != null && String.isNotBlank(String.valueOf(sessionIdObj))) {
                     currentSessionId = (Id)String.valueOf(sessionIdObj);
                 }
-                /*1002 End*/
                 List<String> facultyIdStrs = extractStringListFromJson(m.get('selectedFacultyIds'));
                 if (String.isBlank(sessionDateStr) || startObj == null || endObj == null || facultyIdStrs == null || facultyIdStrs.isEmpty()) {
                     System.debug('getFacultyConflictsForSessions: Skipping session due to missing data - date: ' + sessionDateStr + ', startTime: ' + startObj + ', endTime: ' + endObj + ', facultyIds: ' + facultyIdStrs);
@@ -2056,7 +1917,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         return allConflicts;
     }
 
-    /** @description A faculty's Google Calendar clash with a proposed session (pre-save check). */
     public class FacultyCalendarConflictDetail {
         @AuraEnabled public String proposedSessionName { get; set; }
         @AuraEnabled public String proposedDateStr { get; set; }
@@ -2066,18 +1926,11 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         @AuraEnabled public String conflictingSummary { get; set; }
         @AuraEnabled public String conflictingTimeStr { get; set; }
         @AuraEnabled public String conflictingEventId { get; set; }
-        @AuraEnabled public Id conflictingSessionId { get; set; }  // set when the Google event maps to a Session__c
+        @AuraEnabled public Id conflictingSessionId { get; set; }
         @AuraEnabled public Boolean isSalesforceSession = false;
         @AuraEnabled public String source = 'Google Calendar';
     }
 
-    /**
-     * Returns Google Calendar conflict details for a list of proposed sessions: for each
-     * session it reads the assigned (lead) faculty's Google Calendar for the session window
-     * and reports any busy overlapping event. Used by the Create Sessions modal to block
-     * double-booking before save. Performs callouts — NOT cacheable. Persists nothing.
-     * sessionsJson: JSON array of { sessionName, sessionDate (YYYY-MM-DD), startTime, endTime, selectedFacultyIds (array; first id = lead faculty) }.
-     */
     @AuraEnabled
     public static List<FacultyCalendarConflictDetail> getFacultyCalendarConflictsForSessions(String sessionsJson) {
         List<FacultyCalendarConflictDetail> allConflicts = new List<FacultyCalendarConflictDetail>();
@@ -2094,7 +1947,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
             return allConflicts;
         }
 
-        // Parse each session and collect ALL its faculty ids (lead + support) — SOQL before callouts.
         List<Map<String, Object>> proposed = new List<Map<String, Object>>();
         Set<Id> facultyIds = new Set<Id>();
         for (Object item : rawList) {
@@ -2123,7 +1975,7 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
             if (sessionFacultyIds.isEmpty()) {
                 continue;
             }
-            Id currentSessionId; // present on edit — used to skip the session's own event
+            Id currentSessionId;
             Object sidObj = m.get('sessionId');
             if (sidObj != null && String.isNotBlank(String.valueOf(sidObj))) {
                 try {
@@ -2143,7 +1995,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
             return allConflicts;
         }
 
-        // Resolve faculty name + email, and (for edits) each session's own Google event id.
         Map<Id, Account> facById = new Map<Id, Account>([
             SELECT Id, Name, PersonEmail FROM Account WHERE Id IN :facultyIds
         ]);
@@ -2153,35 +2004,44 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                 currentSessionIds.add((Id) p.get('sessionId'));
             }
         }
-        Map<Id, String> ownEventIdBySession = new Map<Id, String>();
+        // Both copies of the session's own event must be excluded. The faculty's calendar shows the
+        // FACULTY copy, so excluding only the student copy would report the session clashing with
+        // itself and block the save.
+        Map<Id, Set<String>> ownEventIdsBySession = new Map<Id, Set<String>>();
         if (!currentSessionIds.isEmpty()) {
             for (Session__c s : [
-                SELECT Id, Google_Event_Id__c FROM Session__c WHERE Id IN :currentSessionIds
+                SELECT Id, Google_Event_Id__c, Faculty_Google_Event_Id__c
+                FROM Session__c WHERE Id IN :currentSessionIds
             ]) {
-                ownEventIdBySession.put(s.Id, s.Google_Event_Id__c);
+                Set<String> own = new Set<String>();
+                if (String.isNotBlank(s.Google_Event_Id__c)) {
+                    own.add(s.Google_Event_Id__c);
+                }
+                if (String.isNotBlank(s.Faculty_Google_Event_Id__c)) {
+                    own.add(s.Faculty_Google_Event_Id__c);
+                }
+                ownEventIdsBySession.put(s.Id, own);
             }
         }
 
-        // Callouts: one per (session, faculty); collect conflicts + their Google event ids.
-        // Guard against the 100-callouts/transaction governor limit (leave headroom for token calls).
         final Integer CALLOUT_CAP = 45;
         Integer calloutCount = 0;
         Set<String> conflictEventIds = new Set<String>();
         for (Map<String, Object> p : proposed) {
             Datetime startTime = (Datetime) p.get('start');
             Datetime endTime = (Datetime) p.get('end');
-            String excludeEventId = ownEventIdBySession.get((Id) p.get('sessionId'));
+            Set<String> excludeEventIds = ownEventIdsBySession.get((Id) p.get('sessionId'));
             for (Id fId : (List<Id>) p.get('facultyIds')) {
                 if (calloutCount >= CALLOUT_CAP) {
-                    break; // stop before hitting the governor limit; conflicts found so far still block save
+                    break;
                 }
                 Account fac = facById.get(fId);
                 if (fac == null || String.isBlank(fac.PersonEmail)) {
-                    continue; // no email → can't check this faculty; fail-open
+                    continue;
                 }
                 calloutCount++;
                 List<FacultyCalendarConflictService.BusyEvent> busy =
-                    FacultyCalendarConflictService.findOverlaps(fac.PersonEmail, startTime, endTime, excludeEventId);
+                    FacultyCalendarConflictService.findOverlaps(fac.PersonEmail, startTime, endTime, excludeEventIds);
                 for (FacultyCalendarConflictService.BusyEvent b : busy) {
                     FacultyCalendarConflictDetail d = new FacultyCalendarConflictDetail();
                     d.proposedSessionName = (String) p.get('name');
@@ -2190,10 +2050,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                     d.facultyName = fac.Name;
                     d.facultyEmail = fac.PersonEmail;
                     d.conflictingEventId = b.eventId;
-                    // Privacy: never expose a foreign event's real title. Show "Busy",
-                    // like Google's own free/busy view. When this event maps to one of OUR
-                    // Session__c records, the enrichment block below replaces this with the
-                    // (non-private) session name.
                     d.conflictingSummary = 'Busy';
                     d.conflictingTimeStr = (b.startTime != null ? b.startTime.format('h:mm a') : '?')
                         + ' - ' + (b.endTime != null ? b.endTime.format('h:mm a') : '?');
@@ -2205,15 +2061,22 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
             }
         }
 
-        // Enrich: if a conflicting Google event maps to a Salesforce Session, name that session.
         if (!conflictEventIds.isEmpty()) {
+            // A busy block on a faculty's calendar is their own copy of the session, so match on
+            // either id — otherwise a genuine clash shows as "Busy" with no session name.
             Map<String, Session__c> sfByEventId = new Map<String, Session__c>();
             for (Session__c s : [
-                SELECT Id, Name, Google_Event_Id__c, Course__r.Name
+                SELECT Id, Name, Google_Event_Id__c, Faculty_Google_Event_Id__c, Course__r.Name
                 FROM Session__c
                 WHERE Google_Event_Id__c IN :conflictEventIds
+                   OR Faculty_Google_Event_Id__c IN :conflictEventIds
             ]) {
-                sfByEventId.put(s.Google_Event_Id__c, s);
+                if (String.isNotBlank(s.Google_Event_Id__c)) {
+                    sfByEventId.put(s.Google_Event_Id__c, s);
+                }
+                if (String.isNotBlank(s.Faculty_Google_Event_Id__c)) {
+                    sfByEventId.put(s.Faculty_Google_Event_Id__c, s);
+                }
             }
             for (FacultyCalendarConflictDetail d : allConflicts) {
                 Session__c s = (d.conflictingEventId != null) ? sfByEventId.get(d.conflictingEventId) : null;
@@ -2231,11 +2094,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         return allConflicts;
     }
 
-    /**
-     * Returns division/session conflict details for a list of proposed sessions (same division + overlapping time).
-     * Used by Create Sessions modal to show conflicts before save. Does not persist anything.
-     * sessionsJson: JSON array of { sessionName, sessionDate, startTime, endTime, divisionIds, proposedContext (optional object: courseName, divisionNames, programName, batchName, batchGroupName, termName) }
-     */
     @AuraEnabled
     public static List<SessionConflictValidator.DivisionSessionConflictDetail> getDivisionSessionConflictsForSessions(String sessionsJson) {
         List<SessionConflictValidator.DivisionSessionConflictDetail> allConflicts = new List<SessionConflictValidator.DivisionSessionConflictDetail>();
@@ -2259,7 +2117,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                 String sessionDateStr = (String) m.get('sessionDate');
                 Object startObj = m.get('startTime');
                 Object endObj = m.get('endTime');
-                /*1002 Start*/
                 Id currentSessionId;
                 Object sessionIdObj = m.get('sessionId');
                 if (sessionIdObj != null &&
@@ -2267,7 +2124,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
 
                     currentSessionId = (Id)String.valueOf(sessionIdObj);
                 }
-                /*1002 Start*/
                 List<String> divisionIdStrs = extractStringListFromJson(m.get('divisionIds'));
                 if (String.isBlank(sessionDateStr) || startObj == null || endObj == null || divisionIdStrs == null || divisionIdStrs.isEmpty()) {
                     continue;
@@ -2330,7 +2186,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
     private static Date parseDateFromString(String dateStr) {
         if (String.isBlank(dateStr)) return null;
         try {
-            // Handle ISO date string (e.g., "2026-02-03T00:00:00.000Z") - extract just the date part
             if (dateStr.indexOf('T') >= 0) {
                 dateStr = dateStr.split('T')[0];
             }
@@ -2345,12 +2200,9 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         if (String.isBlank(dateStr) || timeInput == null) return null;
         if (timeInput instanceof String) {
             String s = (String) timeInput;
-            // Handle ISO datetime string (e.g., "2025-02-04T09:00:00.000Z" or "2025-02-04T09:00:00Z")
             if (s.length() > 10 && s.indexOf('T') >= 0) {
                 try {
-                    // Remove 'Z' and milliseconds if present, then parse
                     String cleaned = s.replace('Z', '').replaceAll('\\.\\d+', '');
-                    // Format: YYYY-MM-DDTHH:mm:ss
                     String[] parts = cleaned.split('T');
                     if (parts.size() == 2) {
                         String[] dateParts = parts[0].split('-');
@@ -2367,10 +2219,8 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                     }
                 } catch (Exception e) {
                     System.debug('Error parsing ISO datetime: ' + s + ' - ' + e.getMessage());
-                    // fall through to date + time parsing
                 }
             }
-            // Handle HH:mm or HH:mm:ss format - combine with date
             String timePart = s.length() == 5 ? s + ':00' : (s.length() == 8 ? s : s + ':00');
             String combined = dateStr + ' ' + timePart;
             try {
@@ -2383,7 +2233,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         return null;
     }
 
-    // Wrapper class for existing session divisions
     public class ExistingSessionDivision {
         @AuraEnabled public String divisionId { get; set; }
         @AuraEnabled public String divisionName { get; set; }
@@ -2392,8 +2241,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         @AuraEnabled public String batchGroupName { get; set; }
         @AuraEnabled public String termName { get; set; }
     }
-    
-    
 
     private static void validateInput(SessionInput request) {
         String normalizedName = getSessionName(request);
@@ -2444,12 +2291,8 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         if (isInvalidClassRoomOrRemark(request.remark)) {
             throw new AuraHandledException('Negative values and values starting with \'-\' are not allowed.');
         }
-        // if (String.isBlank(request.divisionId)) {
-        //     throw new AuraHandledException('Division is required.');
-        // }
     }
 
-    /** Returns true if the value is a negative number or starts with '-'. */
     private static Boolean isInvalidClassRoomOrRemark(String val) {
         if (String.isBlank(val)) return false;
         String trimmed = val.trim();
@@ -2466,9 +2309,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         if (dateValue == null) {
             return null;
         }
-        // Format date directly as YYYY-MM-DD string for SOQL
-        // This avoids timezone conversion issues that occur with formatGmt
-        // Use the date's year, month, day directly to ensure no timezone shifts
         String year = String.valueOf(dateValue.year());
         String month = String.valueOf(dateValue.month());
         String day = String.valueOf(dateValue.day());
@@ -2496,11 +2336,9 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
             return new SessionFilter();
         }
         try {
-            // Parse as Map first to handle date strings properly
             Map<String, Object> filterMap = (Map<String, Object>) JSON.deserializeUntyped(filterJson);
             SessionFilter filter = new SessionFilter();
-            
-            // Copy all fields, handling dates and lists specially
+
             if (filterMap.containsKey('programId')) filter.programId = (Id) filterMap.get('programId');
             if (filterMap.containsKey('batchId')) filter.batchId = (Id) filterMap.get('batchId');
             if (filterMap.containsKey('batchGroupId')) filter.batchGroupId = (Id) filterMap.get('batchGroupId');
@@ -2508,8 +2346,7 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
             if (filterMap.containsKey('divisionId')) filter.divisionId = (String) filterMap.get('divisionId');
             if (filterMap.containsKey('courseId')) filter.courseId = (String) filterMap.get('courseId');
             if (filterMap.containsKey('batchWiseCourseId')) filter.batchWiseCourseId = (String) filterMap.get('batchWiseCourseId');
-            
-            // Handle list fields - convert List<Object> to List<String>
+
             if (filterMap.containsKey('divisionIds')) {
                 Object divisionIdsObj = filterMap.get('divisionIds');
                 if (divisionIdsObj != null && divisionIdsObj instanceof List<Object>) {
@@ -2522,7 +2359,7 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                     filter.divisionIds = divisionIdsList;
                 }
             }
-            
+
             if (filterMap.containsKey('facultyIds')) {
                 Object facultyIdsObj = filterMap.get('facultyIds');
                 if (facultyIdsObj != null && facultyIdsObj instanceof List<Object>) {
@@ -2549,8 +2386,7 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                     }
                 }
             }
-            
-            // Handle date strings - convert "YYYY-MM-DD" strings to Date objects
+
             if (filterMap.containsKey('startDate')) {
                 Object startDateObj = filterMap.get('startDate');
                 if (startDateObj != null) {
@@ -2569,7 +2405,7 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                     }
                 }
             }
-            
+
             if (filterMap.containsKey('endDate')) {
                 Object endDateObj = filterMap.get('endDate');
                 if (endDateObj != null) {
@@ -2588,7 +2424,7 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
                     }
                 }
             }
-            
+
             if (filterMap.containsKey('sendNotifications')) {
                 Object sendNotificationsObj = filterMap.get('sendNotifications');
                 if (sendNotificationsObj instanceof Boolean) {
@@ -2602,26 +2438,20 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
             throw new AuraHandledException('Unable to parse filter criteria. ' + ex.getMessage());
         }
     }
-    
-    // Helper method to normalize dates and prevent timezone issues
+
     private static Date normalizeDate(Date inputDate) {
         if (inputDate == null) {
             return null;
         }
-        // Create a new Date using year, month, day to avoid timezone issues
-        // This ensures the date represents the actual calendar date, not a datetime
         return Date.newInstance(inputDate.year(), inputDate.month(), inputDate.day());
     }
 
-    /** True if Session__c has the Session Information lookup fields (Program, Batch, Batch Group, Term). */
     private static Boolean sessionInfoFieldsExist() {
         return Schema.SObjectType.Session__c.fields.getMap().containsKey('Program__c')
-            // && Schema.SObjectType.Session__c.fields.getMap().containsKey('Batch__c')
             && Schema.SObjectType.Session__c.fields.getMap().containsKey('Academic_Year__c')
             && Schema.SObjectType.Session__c.fields.getMap().containsKey('Term__c');
     }
 
-    /** Returns actual API names (with namespace if any) for Session Information fields on Session__c. Used in dynamic SOQL and put() so namespaced orgs work. */
     private static List<String> getSessionInfoFieldApiNames() {
         List<String> out = new List<String>();
         Map<String, Schema.SObjectField> fmap = Schema.SObjectType.Session__c.fields.getMap();
@@ -2637,7 +2467,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         return out;
     }
 
-    /** Returns map localName -> full API name for Session Information fields. */
     private static Map<String, String> getSessionInfoFieldApiNameMap() {
         Map<String, String> out = new Map<String, String>();
         Map<String, Schema.SObjectField> fmap = Schema.SObjectType.Session__c.fields.getMap();
@@ -2692,7 +2521,6 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         }
     }
 
-    /** Resolves Division__c Id from an Id string or Division Name (same as filter helpers). */
     private static Id resolveDivisionIdForQuery(String divisionId) {
         if (String.isBlank(divisionId)) {
             return null;
@@ -2740,7 +2568,7 @@ public static List<StudentWrapper> getEligibleMakeupStudents(Id divisionId, Id c
         }
         return options;
     }
-    
+
     @AuraEnabled(cacheable=true)
 public static List<Map<String, String>> getSessionTypes() {
     List<Map<String, String>> options = new List<Map<String, String>>();
@@ -2764,11 +2592,11 @@ public static List<Map<String, String>> getSessionTypes() {
     @AuraEnabled(cacheable=false)
     public static List<String> getSessionFaculties(Id sessionId) {
         List<String> facultyIds = new List<String>();
-        
+
         if (sessionId == null) {
             return facultyIds;
         }
-        
+
         try {
             List<Session_Faculty__c> sessionFaculties = [
                 SELECT Session_Faculty__c
@@ -2776,7 +2604,7 @@ public static List<Map<String, String>> getSessionTypes() {
                 WHERE Session__c = :sessionId
                 AND Session_Faculty__c != null
             ];
-            
+
             for (Session_Faculty__c sf : sessionFaculties) {
                 facultyIds.add(sf.Session_Faculty__c);
             }
@@ -2784,25 +2612,19 @@ public static List<Map<String, String>> getSessionTypes() {
             System.debug('Error fetching session faculties: ' + ex.getMessage());
             throw new AuraHandledException('Unable to load session faculties: ' + ex.getMessage());
         }
-        
+
         return facultyIds;
     }
 
-    /**
-     * Faculty for session picklists: Instructor__c for the Program Course tied to this division's Course Offering.
-     * When divisionId is set, only that offering's Program_Course__c is used (avoids instructors from other batches
-     * that share the same Learning Course). When divisionId is blank, falls back to all Program Courses for the Learning Course.
-     */
     @AuraEnabled(cacheable=true)
     public static List<PicklistOption> getFacultyForCourse(String courseId, String divisionId) {
         List<PicklistOption> options = new List<PicklistOption>();
-        
+
         if (String.isBlank(courseId)) {
             return options;
         }
-        
+
         try {
-            // Resolve course ID - handle "courseName|learningCourseId" format
             Id courseLookupId = null;
             if (courseId.contains('|')) {
                 String[] parts = courseId.split('\\|');
@@ -2815,10 +2637,9 @@ public static List<Map<String, String>> getSessionTypes() {
                     }
                 }
             } else {
-                // Try to resolve as ID or name
                 courseLookupId = resolveLookupId(courseId, 'LearningCourse');
             }
-            
+
             if (courseLookupId == null) {
                 return options;
             }
@@ -2827,7 +2648,6 @@ public static List<Map<String, String>> getSessionTypes() {
             Id divisionResolvedId = resolveDivisionIdForQuery(divisionId);
 
             if (divisionResolvedId != null) {
-                // Division + Learning Course -> Course_Offering__r.ProgramCourse__c (single Programme Course in context)
                 for (DivisionCourse__c dc : [
                     SELECT Course_Offering__r.ProgramCourse__c
                     FROM DivisionCourse__c
@@ -2840,7 +2660,6 @@ public static List<Map<String, String>> getSessionTypes() {
                     }
                 }
             } else {
-                // No division: all Programme Courses for this Learning Course (legacy / loose match)
                 for (Program_Courses__c pc : [
                     SELECT Id
                     FROM Program_Courses__c
@@ -2871,15 +2690,10 @@ public static List<Map<String, String>> getSessionTypes() {
             System.debug('Error fetching faculty for course: ' + ex.getMessage());
             throw new AuraHandledException('Unable to load faculty: ' + ex.getMessage());
         }
-        
+
         return options;
     }
 
-    /**
-     * Fetch faculties for the left-side filter based on Division -> Course -> Faculty.
-     * When divisionId is set, returns faculties for that division's courses.
-     * When divisionIds is set (e.g. "All Divisions"), returns faculties for all those divisions' courses.
-     */
     @AuraEnabled(cacheable=true)
     public static List<PicklistOption> getFacultiesForFilter(String divisionId, List<String> divisionIds) {
         List<PicklistOption> options = new List<PicklistOption>();
@@ -2981,26 +2795,19 @@ public static List<Map<String, String>> getSessionTypes() {
         }
     }
 
-    /**
-     * Session__c.Color__c is a picklist of hex values. Normalize aliases (e.g. old Brick Red #BF4E4E)
-     * to the exact picklist API value so DML never fails / falls back to steel blue.
-     */
     private static String toSessionColorPicklistValue(String hexOrToken) {
         if (String.isBlank(hexOrToken)) {
             return hexOrToken;
         }
         String raw = hexOrToken.trim();
         String upper = raw.toUpperCase();
-        // Legacy Brick Red hex used in code but not in Color__c picklist
         if (upper == '#BF4E4E') {
             return '#B44E4E';
         }
-        // Light gray picklist entry is mixed-case in metadata
         if (upper == '#AAAFAA') {
             return '#AAAFaa';
         }
         if (raw.startsWith('#') && raw.length() == 7) {
-            // Prefer canonical casing from known map values
             for (String v : divisionColorHexByKey().values()) {
                 if (v != null && v.equalsIgnoreCase(raw)) {
                     return v;
@@ -3057,7 +2864,6 @@ public static List<Map<String, String>> getSessionTypes() {
             'softpeachbeige' => '#FAE3D6',
             'lightsagegreen' => '#9EB094',
             'mutedbrown' => '#B58460',
-            // Must match Session__c.Color__c picklist values exactly
             'brickred' => '#B44E4E',
             'mustardyellow' => '#C99500',
             'teal' => '#54B1AC',
@@ -3073,13 +2879,10 @@ public static List<Map<String, String>> getSessionTypes() {
             'green' => '#9EB094',
             'orange' => '#C99500',
             'red' => '#B44E4E'
-                
+
         };
     }
 
-    /**
-     * Result of saveSession: sessionId plus optional student-overlap warning (session is still created).
-     */
     public class SaveSessionResult {
         @AuraEnabled public Id sessionId { get; set; }
         @AuraEnabled public String warningMessage { get; set; }
@@ -3091,10 +2894,6 @@ public static List<Map<String, String>> getSessionTypes() {
         }
     }
 
-    /**
-     * Test-only: exercise many private helpers / dead paths so RunSpecifiedTests deploys
-     * can clear the 75% class coverage gate without needing full UI flows.
-     */
     @TestVisible
     private static Integer exercisePrivateHelpersForTests(Id sampleDivisionId, Id sampleSessionId) {
         Integer hit = 0;
@@ -3200,7 +2999,6 @@ public static List<Map<String, String>> getSessionTypes() {
         parseFilter(null); hit++;
         parseFilter('{"startDate":"2026-01-01","endDate":"2026-12-31","divisionIds":["x"],"facultyIds":["y"],"scheduleTypes":["Draft","Published"]}'); hit++;
 
-        // Cover refreshAttendees enrollment tally path for the sample session (if present).
         if (sampleSessionId != null) {
             refreshAttendees(sampleSessionId); hit++;
             refreshAttendees(null); hit++;

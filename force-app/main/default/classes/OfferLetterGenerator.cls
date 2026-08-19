@@ -58,9 +58,7 @@ public static void generateOfferLetters(List<Id> applicationIds,Date offerDate,S
         try{
             insert admList;
             system.debug('Offer Created Success');
-            OfferLetterGenerator s = new OfferLetterGenerator(admList);
-            System.enqueueJob(s);
-          //  generateOfferLettersBulk(admList);
+            // AdmissionDecisionTriggerHandler enqueues OfferLetterGeneratorBulk.
         }catch(Exception e){
             System.debug('Exception while inserting Admission Decisions '+e.getMessage());
         

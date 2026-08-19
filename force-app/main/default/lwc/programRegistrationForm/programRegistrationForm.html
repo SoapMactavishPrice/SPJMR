@@ -26,7 +26,14 @@
                                 role="alert"
                             >
                                 <span class="slds-assistive-text">Warning</span>
-
+                                                        <button
+                                type="button"
+                                class="close-alert"
+                                title="Close"
+                                onclick={handleCloseAlreadyRegistered}
+                            >
+                                ×
+                            </button>
                                 <div class="slds-notify__content">
                                     <h2 class="slds-text-heading_small">
                                         Already Registered

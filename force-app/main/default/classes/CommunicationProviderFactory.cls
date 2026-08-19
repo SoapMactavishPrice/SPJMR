@@ -110,6 +110,7 @@ public class CommunicationProviderFactory {
                         Program__r.Id,
                         Program__r.Name,
                         Program__r.Program_Code__c,
+                        Batch__r.Name,
                         (
                             SELECT
                                 Id,
@@ -137,8 +138,7 @@ public class CommunicationProviderFactory {
                 Map<String, Object> data = new Map<String, Object>();
 
                 data.put('ApplicationId', application.Id);
-                data.put('ApplicationNumber', application.Application_Number__c);
-                data.put('ApplicationName', application.Name);
+                data.put('ApplicationNumber', application.Name);
 
                 data.put('ApplicantName', application.Applicant__r.Name);
                 data.put('ApplicantEmail', application.Applicant__r.PersonEmail);
@@ -150,6 +150,7 @@ public class CommunicationProviderFactory {
                 data.put('ProgramId', application.Program__r.Id);
                 data.put('ProgramName', application.Program__r.Name);
                 data.put('ProgramCode', application.Program__r.Program_Code__c);
+                data.put('BatchName', application.Batch__r.Name);
 
                 data.put('AdmissionDecisionId', decision.Id);
                 data.put('AdmissionResult', decision.Result__c);
@@ -319,6 +320,7 @@ public class CommunicationProviderFactory {
                         SlotMaster__r.LocationMaster__r.AddressInformation__c,
                         Application__r.Id,
                         Application__r.Name,
+                        Application__r.Batch__r.Name,
                         Application__r.Application_Number__c,
                         Application__r.Applicant__r.Name,
                         Application__r.Applicant__r.PersonEmail,
@@ -375,6 +377,7 @@ public class CommunicationProviderFactory {
                         Program__r.Id,
                         Program__r.Name,
                         Program__r.Program_Code__c,
+                        Batch__r.Name,
                         (
                             SELECT
                                 Id,
@@ -421,8 +424,7 @@ public class CommunicationProviderFactory {
             Map<String, Object> data = new Map<String, Object>();
 
             data.put('ApplicationId', application.Id);
-            data.put('ApplicationNumber', application.Application_Number__c);
-            data.put('ApplicationName', application.Name);
+            data.put('ApplicationNumber', application.Name);
 
             data.put('ApplicantName', application.Applicant__r.Name);
             data.put('ApplicantEmail', application.Applicant__r.PersonEmail);
@@ -430,6 +432,7 @@ public class CommunicationProviderFactory {
             data.put('ProgramId', application.Program__r.Id);
             data.put('ProgramName', application.Program__r.Name);
             data.put('ProgramCode', application.Program__r.Program_Code__c);
+            data.put('BatchName', application.Batch__r.Name);
 
             data.put('BookingId', booking.Id);
             data.put('BookingState', booking.BookingState__c);

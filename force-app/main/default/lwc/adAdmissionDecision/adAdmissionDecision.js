@@ -35,10 +35,9 @@ export default class AdmissionDecision extends NavigationMixin(LightningElement)
         return getFieldValue(this.applicationInfo.data,STATE_MGMT_FILED) =='Withdrawn'
     }
 
-    get isGmp(){
+    get programCode(){
         if(!this.applicationInfo?.data) return false;
-        console.log('PGM Code is ',getFieldValue(this.applicationInfo.data,PGM_CODE_FIELD))
-        return getFieldValue(this.applicationInfo.data,PGM_CODE_FIELD) == 'GMP'
+        return getFieldValue(this.applicationInfo.data,PGM_CODE_FIELD);
     }
         
 
@@ -72,9 +71,6 @@ export default class AdmissionDecision extends NavigationMixin(LightningElement)
                     this.offerAcceptedDate = record.Offer_Acceptance_Date__c?.value
                 }
             }
-            console.log('Records:', JSON.stringify(data.records));
-            console.log('GMP Value ',this.isGMP)
-            
         } else if (error) {
             console.error('Error:', error);
         }
@@ -92,23 +88,19 @@ export default class AdmissionDecision extends NavigationMixin(LightningElement)
         }
 
         async handleCreateOffer() {
-                console.log('Offer Ceration clicked.Values are ',this.isGMP)
-        await AdAdmissionDecisionCreateModal.open({
+        const result = await AdAdmissionDecisionCreateModal.open({
             applicationId: this.recordId,
-            isGmp: this.isGmp
-        }).then((result)=>{
-            console.log('Modal closed',result,'H')
-            if(result && result.lenght!=0){
-                this[NavigationMixin.Navigate]({
-            type: 'standard__recordPage',
-            attributes: {
-                recordId: result,
-                actionName: 'view',
-            },
-        })
-            }
-        })
+            programCode: this.programCode
+        });
 
-
+        if (result) {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: result,
+                    actionName: 'view'
+                }
+            });
         }
+    }
 }

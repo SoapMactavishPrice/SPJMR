@@ -1,4 +1,4 @@
-public without sharing class ImportSlotMaster {
+public with sharing class ImportSlotMaster {
     /** Uploads one CSV chunk as a ContentVersion. */
     @AuraEnabled
     public static Id uploadChunk(String fileName, String csvChunk, Integer chunkNumber) {

@@ -1426,5 +1426,124 @@ public static String saveEmergencyContact(String recordId, String name, String r
         }
         return status;
     }
+/**
+     * SE-1156 (superseding getWithdrawalWindowStatus) — Withdrawal Request eligibility.
+     *
+     * Mirrors the exact resolution + query pattern already proven working by
+     * getProfileUploadWindowStatus() / getWithdrawalWindowStatus() in this same class:
+     *   User -> Contact -> Account
+     *   -> ProgramCohortMember (ProgramEnrolleeId = Account, or via ProgramEnrollment.AccountId)
+     *   -> ProgramCohort (Batch), gated on Is_Active__c = true
+     *   -> compare Date.today() to ProgramCohort.StartDate / EndDate (inclusive both ends)
+     *
+     * Returns isEligible=false with the required student-facing message whenever the
+     * batch can't be resolved, isn't active, has no dates configured, or today falls
+     * outside the window - so the LWC can render one consistent "unavailable" state.
+     */
+    private static final String WITHDRAWAL_REQUIRED_WINDOW_MESSAGE =
+        'Request Withdrawal button is visible/enabled only when the current date is within '
+        + 'the Batch Start Date and Batch End Date for the student\'s program.';
 
+    public class WithdrawalEligibilityResult {
+        @AuraEnabled public Boolean isEligible = false;
+        @AuraEnabled public Date startDate;
+        @AuraEnabled public Date endDate;
+        @AuraEnabled public String message;
+    }
+
+    @AuraEnabled(cacheable = true)
+    public static WithdrawalEligibilityResult getWithdrawalEligibility() {
+        WithdrawalEligibilityResult result = new WithdrawalEligibilityResult();
+        result.isEligible = false;
+
+        try {
+            try {
+                if (Auth.CommunitiesUtil.isGuestUser()) {
+                    result.message = 'Please log in to check your withdrawal window.';
+                    return result;
+                }
+            } catch (Exception guestCheckEx) {
+                // Not in a Communities/Experience Cloud context - continue.
+            }
+
+            Id accountId = null;
+            if (Test.isRunningTest() && testAccountIdOverride != null) {
+                accountId = testAccountIdOverride;
+            } else {
+                User currentUser = [
+                    SELECT Id, ContactId
+                    FROM User
+                    WHERE Id = :UserInfo.getUserId()
+                    LIMIT 1
+                ];
+                if (currentUser.ContactId == null) {
+                    result.message = 'We could not locate your student enrollment record. '
+                        + 'Please contact your Programme Office for assistance.';
+                    return result;
+                }
+                Contact userContact = [
+                    SELECT AccountId
+                    FROM Contact
+                    WHERE Id = :currentUser.ContactId
+                    LIMIT 1
+                ];
+                accountId = userContact.AccountId;
+            }
+
+            if (accountId == null) {
+                result.message = 'We could not locate your student enrollment record. '
+                    + 'Please contact your Programme Office for assistance.';
+                return result;
+            }
+
+            List<ProgramCohortMember> memberRows = [
+                SELECT
+                    ProgramCohort.Is_Active__c,
+                    ProgramCohort.StartDate,
+                    ProgramCohort.EndDate
+                FROM ProgramCohortMember
+                WHERE ProgramEnrolleeId = :accountId
+                   OR ProgramEnrollment.AccountId = :accountId
+                LIMIT 1
+            ];
+
+            if (memberRows.isEmpty() || memberRows[0].ProgramCohort == null) {
+                result.message = WITHDRAWAL_REQUIRED_WINDOW_MESSAGE;
+                return result;
+            }
+
+            ProgramCohort cohort = memberRows[0].ProgramCohort;
+
+            if (cohort.Is_Active__c != true) {
+                result.message = WITHDRAWAL_REQUIRED_WINDOW_MESSAGE;
+                return result;
+            }
+
+            result.startDate = cohort.StartDate;
+            result.endDate = cohort.EndDate;
+
+            if (result.startDate == null || result.endDate == null) {
+                result.message = WITHDRAWAL_REQUIRED_WINDOW_MESSAGE;
+                return result;
+            }
+
+            Date today = Date.today();
+
+            if (today >= result.startDate && today <= result.endDate) {
+                result.isEligible = true;
+                result.message = 'Withdrawal Request is currently open. You can submit your request until '
+                    + result.endDate.format() + '.';
+            } else {
+                result.message = WITHDRAWAL_REQUIRED_WINDOW_MESSAGE;
+            }
+
+            return result;
+
+        } catch (Exception e) {
+            System.debug('getWithdrawalEligibility: ' + e.getMessage());
+            result.message = 'We were unable to verify your withdrawal window right now. '
+                + 'Please try again later or contact your Programme Office.';
+            return result;
+        }
+    }
 }

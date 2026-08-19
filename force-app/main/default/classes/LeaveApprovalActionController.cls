@@ -1,5 +1,12 @@
 // Approval actions record per-step remarks into approval history.
+@SuppressWarnings('PMD.ApexCRUDViolation')
+// Justification: system-context approval controller. Approvers act on leave applications, approval
+// work items and programme team setup they do not own; access is gated by Current_Approver_Ids__c
+// (see assertCurrentUserIsApprover) rather than by the running user's object permissions.
 public without sharing class LeaveApprovalActionController {
+
+    /** Last swallowed async deputy-submit error, for test assertions and troubleshooting. */
+    @TestVisible private static String lastDeputySubmitError;
 
     /** AuraHandledException constructor message is often lost; setMessage() is required for LWC. */
     private static AuraHandledException auraError(String message) {
@@ -8,7 +15,7 @@ public without sharing class LeaveApprovalActionController {
         return ex;
     }
 
-    // ================= GET ROLE ===================
+    // ================= GET ROLE =================
     @AuraEnabled
     public static String getCurrentUserRole(Id leaveId){
         try{
@@ -32,6 +39,100 @@ public without sharing class LeaveApprovalActionController {
         }
     }
 
+    /**
+     * True when logged-in user Id is present in Current_Approver_Ids__c.
+     * Used by LWC action buttons (Approve / Reject / Mark Incomplete).
+     */
+    @AuraEnabled
+    public static Boolean isCurrentUserApprover(Id leaveId) {
+        try {
+            if (leaveId == null) {
+                throw auraError('Record Id is missing');
+            }
+            Leave_Application__c rec = [
+                SELECT Current_Approver_Ids__c
+                FROM Leave_Application__c
+                WHERE Id = :leaveId
+                LIMIT 1
+            ];
+            return isUserInApproverIds(rec.Current_Approver_Ids__c, UserInfo.getUserId());
+        } catch (AuraHandledException ahe) {
+            throw ahe;
+        } catch (Exception e) {
+            throw auraError('Approver check failed: ' + e.getMessage());
+        }
+    }
+
+    /** Which Approve / Reject / Incomplete buttons the logged-in user may see. */
+    public class ApproverActionVisibility {
+        @AuraEnabled public Boolean isApprover;
+        @AuraEnabled public Boolean showApprove;
+        @AuraEnabled public Boolean showReject;
+        @AuraEnabled public Boolean showIncomplete;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static ApproverActionVisibility getApproverActionVisibility(Id leaveId) {
+        ApproverActionVisibility vis = new ApproverActionVisibility();
+        vis.isApprover = false;
+        vis.showApprove = false;
+        vis.showReject = false;
+        vis.showIncomplete = false;
+
+        if (leaveId == null) {
+            return vis;
+        }
+
+        Leave_Application__c rec = [
+            SELECT Status__c, Current_Role_Name__c, Current_Approver_Ids__c
+            FROM Leave_Application__c
+            WHERE Id = :leaveId
+            LIMIT 1
+        ];
+
+        Boolean isApprover = isUserInApproverIds(rec.Current_Approver_Ids__c, UserInfo.getUserId());
+        vis.isApprover = isApprover;
+        if (!isApprover) {
+            return vis;
+        }
+
+        Boolean statusOk = rec.Status__c == null || !rec.Status__c.equalsIgnoreCase('Incomplete');
+        vis.showApprove = statusOk;
+        vis.showReject = statusOk;
+        vis.showIncomplete =
+            rec.Current_Role_Name__c == null ||
+            !rec.Current_Role_Name__c.equalsIgnoreCase('Deputy Chairperson');
+        return vis;
+    }
+
+    private static void assertCurrentUserIsApprover(String approverIdsCsv) {
+        if (!isUserInApproverIds(approverIdsCsv, UserInfo.getUserId())) {
+            throw auraError('You are not a current approver for this leave application.');
+        }
+    }
+
+    @TestVisible
+    private static Boolean isUserInApproverIds(String approverIds, String userId) {
+        if (String.isBlank(approverIds) || String.isBlank(userId)) {
+            return false;
+        }
+        String userId15 = userId.length() >= 15 ? userId.substring(0, 15) : userId;
+        String normalized = approverIds.replace('\n', ';').replace(',', ';');
+        for (String token : normalized.split(';')) {
+            if (String.isBlank(token)) {
+                continue;
+            }
+            String idToken = token.trim();
+            if (idToken.equals(userId) || idToken.equals(userId15)) {
+                return true;
+            }
+            if (idToken.startsWith(userId15) || userId.startsWith(idToken)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ================= MAIN APPROVAL METHOD =================
     @AuraEnabled
     public static void processLeaveAction(
@@ -47,11 +148,19 @@ public without sharing class LeaveApprovalActionController {
             List<Id> deputyUserIds       = new List<Id>();
 
             Leave_Application__c leaveRec = [
-                SELECT Id, Status__c, Current_Role_Name__c, Current_Approver_User__c, Route_to_Deputy__c
+                SELECT Id, Status__c, Current_Role_Name__c, Current_Approver_User__c,
+                       Current_Approver_Ids__c, Route_to_Deputy__c,
+                       Batch_Enrollment__c, Term_Enrollment__c
                 FROM Leave_Application__c
                 WHERE Id = :leaveId
                 LIMIT 1
             ];
+
+            // Programme of the applying student — drives every approver lookup below.
+            Id leaveProgramId = LeaveApproverResolver.resolveProgramId(leaveRec);
+
+            // Only users listed in Current_Approver_Ids__c may process actions
+            assertCurrentUserIsApprover(leaveRec.Current_Approver_Ids__c);
 
             // 🔥 HANDLE INCOMPLETE (DO NOT FORWARD) — top-level catch before work item
             if(decision == 'INCOMPLETE'){
@@ -110,24 +219,20 @@ public without sharing class LeaveApprovalActionController {
 
                     req.setAction('Approve');
 
-                    // ✅ GET ALL Managers
-                    List<Program_Team_Members__c> managers = [
-                        SELECT User__c
-                        FROM Program_Team_Members__c
-                        WHERE Role__c = 'Manager'
-                        AND User__c != null
-                    ];
+                    // ✅ GET Managers OF THIS STUDENT'S PROGRAMME ONLY
+                    List<Id> managerUserIds = LeaveApproverResolver.getApprovers(
+                        leaveProgramId,
+                        'Manager'
+                    );
 
-                    if(managers.isEmpty()){
-                        throw auraError('No Manager found');
+                    if(managerUserIds.isEmpty()){
+                        throw auraError('No Manager found for this programme.');
                     }
 
                     // ✅ BUILD list of all Manager IDs
-                    List<Id> managerUserIds       = new List<Id>();
                     List<String> managerIdStrings = new List<String>();
-                    for(Program_Team_Members__c m : managers){
-                        managerUserIds.add(m.User__c);
-                        managerIdStrings.add(String.valueOf(m.User__c));
+                    for(Id managerUserId : managerUserIds){
+                        managerIdStrings.add(String.valueOf(managerUserId));
                     }
 
                     req.setNextApproverIds(managerUserIds);
@@ -214,23 +319,20 @@ public without sharing class LeaveApprovalActionController {
                     // 👉 SEND TO DEPUTY (NOT FINAL)
                     if(routeToDeputy){
 
-                        // ✅ GET ALL Deputy Chairpersons
-                        List<Program_Team_Members__c> deputies = [
-                            SELECT User__c
-                            FROM Program_Team_Members__c
-                            WHERE Role__c = 'Deputy Chairperson'
-                            AND User__c != null
-                        ];
+                        // ✅ GET Deputy Chairpersons OF THIS STUDENT'S PROGRAMME ONLY
+                        deputyUserIds = LeaveApproverResolver.getApprovers(
+                            leaveProgramId,
+                            'Deputy Chairperson'
+                        );
 
-                        if(deputies.isEmpty()){
-                            throw auraError('No Deputy found');
+                        if(deputyUserIds.isEmpty()){
+                            throw auraError('No Deputy found for this programme.');
                         }
 
                         // ✅ BUILD list of all Deputy IDs
                         List<String> deputyIdStrings = new List<String>();
-                        for(Program_Team_Members__c d : deputies){
-                            deputyUserIds.add(d.User__c);
-                            deputyIdStrings.add(String.valueOf(d.User__c));
+                        for(Id deputyUserId : deputyUserIds){
+                            deputyIdStrings.add(String.valueOf(deputyUserId));
                         }
 
                         sendToDeputy = true;
@@ -455,7 +557,7 @@ public without sharing class LeaveApprovalActionController {
         String remarks
     ){
         Leave_Application__c leaveRec = [
-            SELECT Id, Status__c, Current_Role_Name__c
+            SELECT Id, Status__c, Current_Role_Name__c, Batch_Enrollment__c, Term_Enrollment__c
             FROM Leave_Application__c
             WHERE Id = :leaveId
             LIMIT 1
@@ -477,15 +579,11 @@ public without sharing class LeaveApprovalActionController {
         // After Incomplete, re-submit opens a NEW Pending history row;
         // previous Incomplete rows stay as separate permanent history.
         if (wasIncomplete && String.isNotBlank(roleName)) {
-            List<Id> userIds = new List<Id>();
-            for (Program_Team_Members__c ptm : [
-                SELECT User__c
-                FROM Program_Team_Members__c
-                WHERE Role__c = :roleName
-                AND User__c != null
-            ]) {
-                userIds.add(ptm.User__c);
-            }
+            // Re-open the pending step against this programme's approvers for that role only.
+            List<Id> userIds = LeaveApproverResolver.getApprovers(
+                LeaveApproverResolver.resolveProgramId(leaveRec),
+                roleName
+            );
             LeaveApprovalHistoryController.createPendingStep(
                 leaveId,
                 roleName + ' Verification',
@@ -539,7 +637,9 @@ public without sharing class LeaveApprovalActionController {
             LIMIT 1
         ];
 
-        if(u.Email == null) return;
+        if(u.Email == null){
+            return;
+        }
 
         String subject = 'Leave Application Update - ' + leaveRec.Name;
 
@@ -571,7 +671,9 @@ public without sharing class LeaveApprovalActionController {
                 }
             }
 
-            if(deputyIds.isEmpty()) return;
+            if(deputyIds.isEmpty()){
+                return;
+            }
 
             Approval.ProcessSubmitRequest req = new Approval.ProcessSubmitRequest();
             req.setObjectId(leaveId);
@@ -580,7 +682,9 @@ public without sharing class LeaveApprovalActionController {
             Approval.process(req);
 
         } catch(Exception e){
-            System.debug('Future Error: ' + e.getMessage());
+            // Best-effort async submit: the leave is already routed to the deputies via
+            // Current_Approver_Ids__c, so a failed work-item creation must not fail the job.
+            lastDeputySubmitError = e.getMessage();
         }
     }
 }

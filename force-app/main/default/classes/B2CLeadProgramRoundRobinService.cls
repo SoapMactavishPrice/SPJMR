@@ -1,7 +1,7 @@
 /**
  * B2C lead round robin: when the first {@code Lead_Program__c} row links a B2C lead to a programme,
  * updates <em>only</em> {@code Lead_Program__c.OwnerId}—the parent {@code Lead} is not changed here;
- * the lead’s owner stays the default B2C user from {@code LeadRoutingService} on insert. Assigns
+ * the lead’s owner stays the default B2C user from {@code LeadRoutingService} on insert. Assigns 
  * the Lead Program owner to the eligible Student Counselor on that programme’s team who has been
  * waiting the longest (fair FIFO: oldest {@code Last_Lead_Assigned_DateTime__c}, never-assigned
  * first, then name tiebreak). If no counsellor qualifies, {@code Lead_Program__c} owner falls back

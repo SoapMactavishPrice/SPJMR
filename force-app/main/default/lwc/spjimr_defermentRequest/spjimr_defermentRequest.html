@@ -1,4 +1,18 @@
 <template>
+
+    <template if:true={isLoadingRequest}>
+    <p>Loading...</p>
+    </template>
+
+    <template if:false={isLoadingRequest}>
+    <template if:false={hasActiveRequest}>
+        <p class="no-active-request">
+            Deferment Request is not currently available. It will be enabled once
+            your Programme Manager opens a deferment window for you.
+        </p>
+    </template>
+
+     <template if:true={showDefermentForm}>
     <div class="deferment-form">
 
         <!-- Success Message -->
@@ -191,59 +205,66 @@
             </div>
 
             <!-- Transaction Details -->
-            <div class="field-block field-block_half">
+<div class="field-block field-block_half">
 
-                <label class="field-label">
-                    Transaction Details (Screenshot)
-                    <span class="required-mark">*</span>
-                </label>
+    <label class="field-label">
+        Transaction Details (Screenshot)
+        <span class="required-mark">*</span>
+    </label>
 
-                <template if:true={isFeeApplicable}>
+    <template if:true={isFeeApplicable}>
 
-                    <label class={transactionBoxClass}>
+        <div class={transactionBoxClass}>
 
-                        <span class="transaction-placeholder">
+            <p class="upload-title">
+                Upload Document
+            </p>
 
-                            <template if:false={transactionFile}>
-                                Browse Files
-                            </template>
+            <label class="upload-browse">
+                Browse Files
 
-                            <template if:true={transactionFile}>
-                                {transactionFile.name}
-                            </template>
+                <input
+                    type="file"
+                    data-field="transaction"
+                    accept=".pdf,.jpg,.jpeg"
+                    onchange={handleFileChange}
+                    class="upload-input"
+                />
+            </label>
 
-                        </span>
+            <p class="upload-hint">
+                Must be .pdf, .jpg file and not exceeding
+                <strong>15mb</strong> file size
+            </p>
 
-                        <input
-                            type="file"
-                            data-field="transaction"
-                            accept=".pdf,.jpg,.jpeg"
-                            onchange={handleFileChange}
-                            class="upload-input"
-                        />
+            <template if:true={transactionFile}>
+                <p class="upload-filename">
+                    {transactionFile.name}
+                </p>
+            </template>
 
-                    </label>
+        </div>
 
-                </template>
+    </template>
 
-                <template if:false={isFeeApplicable}>
+    <template if:false={isFeeApplicable}>
 
-                    <input
-                        type="text"
-                        class="fee-input"
-                        value="Not Applicable"
-                        readonly
-                    />
+        <input
+            type="text"
+            class="fee-input"
+            value="Not Applicable"
+            readonly
+        />
 
-                </template>
+    </template>
 
-                <template if:true={transactionHasError}>
-                    <p class="field-error">
-                        This field is required.
-                    </p>
-                </template>
+    <template if:true={transactionHasError}>
+        <p class="field-error">
+            This field is required.
+        </p>
+    </template>
 
-            </div>
+</div>
         </div>
 
         <!-- Submit -->
@@ -256,4 +277,50 @@
         </button>
 
     </div>
+</template>
+   <template if:true={showTracker}>
+        <div class="tracker-card">
+            <div class="tracker-header">Deferment Status Tracker</div>
+
+            <div class="status-pill">{trackerStatusLabel}</div>
+
+            <div class="tracker-row">
+                <template for:each={trackerSteps} for:item="step">
+                    <div class="tracker-step" key={step.key}>
+                        <div class={step.circleClass}>{step.number}</div>
+                        <div class={step.labelClass}>{step.label}</div>
+                    </div>
+                </template>
+            </div>
+
+            <div class="tracker-table-wrap">
+                <table class="tracker-table">
+                    <thead>
+                        <tr>
+                            <th>Request No.</th>
+                            <th>Submitted Date</th>
+                            <th>Reason</th>
+                            <th>Application Fee</th>
+                            <th>Status</th>
+                            <th>Approved / Rejected</th>
+                            <th>L1 Remark</th>
+                            <th>L2 Remark</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{trackerRequestNumberDisplay}</td>
+                            <td>{trackerSubmittedDateDisplay}</td>
+                            <td>{trackerReasonDisplay}</td>
+                            <td>{trackerApplicationFeeDisplay}</td>
+                            <td><span class="status-badge">{trackerStatusLabel}</span></td>
+                            <td>Pending submission</td>
+                            <td>—</td>
+                            <td>—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div> 
+    </template>    
 </template>

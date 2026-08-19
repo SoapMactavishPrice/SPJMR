@@ -95,7 +95,9 @@ public class AdmissionDecisionTriggerHandler {
         }
 
         if (!eligibleDecisionIds.isEmpty()) {
-            System.enqueueJob(new OfferLetterGeneratorBulk(eligibleDecisionIds));
+            OfferLetterGenerationDispatcher.requestGeneration(
+                eligibleDecisionIds
+            );
         }
     }
 }

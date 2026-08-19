@@ -1,4 +1,4 @@
-public without sharing class AdmissionDecisionImportBatch
+public with sharing class AdmissionDecisionImportBatch
     implements Database.Batchable<SObject>, Database.Stateful {
 
     private class ImportException extends Exception {}
@@ -34,7 +34,6 @@ public without sharing class AdmissionDecisionImportBatch
 
     private Id errorContentDocumentId;
     private List<Id> successContentDocumentIds = new List<Id>();
-    private static Boolean isCsvImport = false;
 
     public AdmissionDecisionImportBatch(
         List<Id> contentVersionIds,
@@ -43,11 +42,6 @@ public without sharing class AdmissionDecisionImportBatch
         this.contentVersionIds = contentVersionIds;
         this.emailReports = emailReports;
     }
-
-    public static Boolean isCsvImportInProgress() {
-        return isCsvImport;
-    }
-
 
         public Database.QueryLocator start(Database.BatchableContext context){
 
@@ -71,25 +65,22 @@ public without sharing class AdmissionDecisionImportBatch
         Database.BatchableContext context,
         List<SObject> scope
     ){
-
-        for(SObject obj : scope){
-
-            try{
-
-                processFile((ContentVersion)obj);
-
+        OfferLetterGenerationDispatcher.beginDeferredDispatch();
+        try {
+            for(SObject obj : scope){
+                try{
+                    processFile((ContentVersion)obj);
+                }
+                catch(Exception ex){
+                    addFileError(
+                        ((ContentVersion)obj).Title,
+                        ex.getMessage()
+                    );
+                }
             }
-            catch(Exception ex){
-
-                addFileError(
-                    ((ContentVersion)obj).Title,
-                    ex.getMessage()
-                );
-
-            }
-
+        } finally {
+            OfferLetterGenerationDispatcher.endDeferredDispatch();
         }
-
     }
 
 
@@ -343,10 +334,49 @@ public without sharing class AdmissionDecisionImportBatch
 
         }
 
-        List<PendingDecision> pending =
+        Set<Id> applicationIds = new Set<Id>();
+        for (Application__c application : applicationByNumber.values()) {
+            applicationIds.add(application.Id);
+        }
+
+        Map<Id, List<Admission_Decision__c>> decisionsByApplicationId =
+            new Map<Id, List<Admission_Decision__c>>();
+
+        for (Admission_Decision__c existingDecision : [
+            SELECT Id, Application__c
+            FROM Admission_Decision__c
+            WHERE Application__c IN :applicationIds
+        ]) {
+            if (!decisionsByApplicationId.containsKey(existingDecision.Application__c)) {
+                decisionsByApplicationId.put(
+                    existingDecision.Application__c,
+                    new List<Admission_Decision__c>()
+                );
+            }
+            decisionsByApplicationId.get(existingDecision.Application__c).add(existingDecision);
+        }
+
+        List<PendingDecision> pendingInserts =
+            new List<PendingDecision>();
+        List<PendingDecision> pendingUpdates =
             new List<PendingDecision>();
 
-        for (Row row : rows) {
+        Map<String, Integer> rowCountByApplicationNumber =
+            new Map<String, Integer>();
+
+        for (Integer rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
+            String applicationNumber = rows[rowIndex].values.get('Application Number');
+            if (!String.isBlank(applicationNumber)) {
+                Integer rowCount = rowCountByApplicationNumber.containsKey(applicationNumber)
+                    ? rowCountByApplicationNumber.get(applicationNumber)
+                    : 0;
+                rowCountByApplicationNumber.put(applicationNumber, rowCount + 1);
+            }
+        }
+
+        for (Integer rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
+
+            Row row = rows[rowIndex];
 
             try {
 
@@ -356,6 +386,13 @@ public without sharing class AdmissionDecisionImportBatch
                         'Application Number'
                     );
 
+                if (rowCountByApplicationNumber.get(applicationNumber) > 1) {
+                    throw new ImportException(
+                        'Duplicate Application Number in CSV: ' + applicationNumber +
+                        '. Each Application Number must appear only once.'
+                    );
+                }
+
                 if (!applicationByNumber.containsKey(applicationNumber)) {
 
                     throw new ImportException(
@@ -363,6 +400,17 @@ public without sharing class AdmissionDecisionImportBatch
                         applicationNumber
                     );
 
+                }
+
+                Id applicationId = applicationByNumber.get(applicationNumber).Id;
+
+                List<Admission_Decision__c> existingDecisions =
+                    decisionsByApplicationId.get(applicationId);
+
+                if (existingDecisions != null && existingDecisions.size() > 1) {
+                    throw new ImportException(
+                        'Multiple Admission Decision records already exist for this Application. Resolve the duplicates before importing.'
+                    );
                 }
 
                 String admissionDecision = normaliseAdmissionDecision(
@@ -377,14 +425,11 @@ public without sharing class AdmissionDecisionImportBatch
 
                 }
 
-                Admission_Decision__c decision =
-                    new Admission_Decision__c();
+                Admission_Decision__c decision = existingDecisions == null || existingDecisions.isEmpty()
+                    ? new Admission_Decision__c(Application__c = applicationId)
+                    : new Admission_Decision__c(Id = existingDecisions[0].Id);
 
-                decision.Application__c =
-                    applicationByNumber.get(applicationNumber).Id;
-
-                decision.Result__c =
-                    admissionDecision;
+                decision.Result__c = admissionDecision;
 
                 if (admissionDecision == 'Waitlisted') {
 
@@ -395,6 +440,10 @@ public without sharing class AdmissionDecisionImportBatch
                         );
 
                     decision.WaitlistNumber__c = Decimal.valueOf(waitlistNumber);
+
+                } else {
+
+                    decision.WaitlistNumber__c = null;
 
                 }
 
@@ -440,16 +489,18 @@ public without sharing class AdmissionDecisionImportBatch
                             )
                         );
 
+                } else {
+
+                    clearAdmissionDates(decision);
+
                 }
 
-                pending.add(
-
-                    new PendingDecision(
-                        row,
-                        decision
-                    )
-
-                );
+                PendingDecision pendingDecision = new PendingDecision(row, decision);
+                if (decision.Id == null) {
+                    pendingInserts.add(pendingDecision);
+                } else {
+                    pendingUpdates.add(pendingDecision);
+                }
 
             }
             catch (Exception ex) {
@@ -463,15 +514,22 @@ public without sharing class AdmissionDecisionImportBatch
 
         }
 
-        insertAdmissionDecisions(
-            pending
-        );
+        saveAdmissionDecisions(pendingInserts, false);
+        saveAdmissionDecisions(pendingUpdates, true);
 
     }
 
+    private static void clearAdmissionDates(Admission_Decision__c decision) {
+        decision.Offer_Letter_Date__c = null;
+        decision.LastDateOfAcceptance__c = null;
+        decision.SignedLetterOfAcceptanceEta__c = null;
+        decision.PaymentOfTheAcceptanceFeeEta__c = null;
+        decision.PaymentOfTheFirstInstallmentEta__c = null;
+    }
 
-    private void insertAdmissionDecisions(
-        List<PendingDecision> pending
+    private void saveAdmissionDecisions(
+        List<PendingDecision> pending,
+        Boolean isUpdate
     ) {
 
         if (pending.isEmpty()) {
@@ -486,14 +544,11 @@ public without sharing class AdmissionDecisionImportBatch
         }
 
         Database.SaveResult[] results;
-        isCsvImport = true;
-        try {
-            results = Database.insert(decisions, false);
-        } finally {
-            isCsvImport = false;
-        }
+        results = isUpdate
+            ? Database.update(decisions, false)
+            : Database.insert(decisions, false);
 
-        processInsertResults(
+        processSaveResults(
             results,
             pending
         );
@@ -516,7 +571,7 @@ public without sharing class AdmissionDecisionImportBatch
         return null;
     }
 
-    private void processInsertResults(
+    private void processSaveResults(
         Database.SaveResult[] results,
         List<PendingDecision> pending
     ) {
@@ -559,13 +614,13 @@ public without sharing class AdmissionDecisionImportBatch
 
         }
 
-        addInsertedSuccessRows(
+        addSuccessRows(
             pendingById
         );
 
     }
 
-    private void addInsertedSuccessRows(
+    private void addSuccessRows(
         Map<Id, PendingDecision> pendingById
     ) {
 

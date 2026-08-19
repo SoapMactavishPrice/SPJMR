@@ -1,0 +1,144 @@
+<apex:page controller="GeneratePGPMOfferLetterController"
+           renderAs="pdf"
+           showHeader="false"
+           sidebar="false"
+           applyHtmlTag="false"
+           applyBodyTag="false"
+           cache="false"
+           contentType="application/pdf">
+<html>
+<head>
+    <style type="text/css">
+        @page {
+            size: A4;
+            margin: 35.5pt;
+        }
+        body {
+            margin: 0;
+            color: #000;
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.78;
+        }
+        .letter-date {
+            text-align: right;
+            margin-bottom: 4pt;
+        }
+        .address-block {
+            line-height: 1.78;
+            margin-bottom: 20pt;
+        }
+        .paragraph {
+            margin: 0 0 18pt 0;
+            text-align: justify;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .signature-image {
+            display: block;
+            width: 80pt;
+            height: 51pt;
+            margin: 4pt 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="letter-date">{!letterDate}</div>
+
+    <div class="address-block">
+        <div>Application No: {!applicationNumber}</div>
+        <div>{!applicantName}</div>
+        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(correspondenceAddressLine1))}">
+            {!correspondenceAddressLine1}
+        </apex:outputPanel>
+        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(correspondenceAddressLine2))}">
+            {!correspondenceAddressLine2}
+        </apex:outputPanel>
+        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(correspondenceAddressLine3))}">
+            {!correspondenceAddressLine3}
+        </apex:outputPanel>
+        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(correspondenceAddressLine4))}">
+            {!correspondenceAddressLine4}
+        </apex:outputPanel>
+    </div>
+
+    <p class="paragraph">Dear {!firstName},</p>
+
+    <p class="paragraph">Congratulations!</p>
+
+    <p class="paragraph">
+        We are delighted to welcome you to S.P Jain Institute of Management &amp; Research.
+        You have been selected for admission to our Post Graduate Programme in Management
+        (PGPM) {!batchName}.
+    </p>
+
+    <p class="paragraph">
+        We look forward to your confirmation and acceptance of the offer of admission with
+        deposit of admission fees of Rs. 65,000/- latest by {!offerDeadline}. The signed
+        letter of acceptance (as detailed in Annexure 1) needs to be uploaded to the
+        admission portal by {!offerDeadline}. The 1st installment of fees of Rs.10,85,000
+        is payable by {!firstInstallmentDeadline} and the balance amount of Rs. 10,00,000
+        needs to be paid by January 2, 2025. All fee payments as per Annexure 2 are to be
+        made through wire/NEFT/RTGS transfer.
+    </p>
+
+    <p class="paragraph">
+        Should you choose to withdraw your acceptance, the refund will be in accordance
+        with the refund policy, as detailed in Annexure 3. Please refer to the offer details
+        document and annexures for more information on the admission requirements.
+    </p>
+
+    <p class="paragraph">
+        The programme will commence on {!programmeStartDate}. The instructions for online
+        registration will be sent to you separately. The programme will be in conformance
+        with the required safety measures undertaken by the institute. SPJIMR reserves the
+        right to conduct sessions/classes on an online or on-campus mode as deemed fit by
+        the Institute in light of Central &amp; State Government directives to comply with
+        procedures that do not endanger public health safety norms.
+    </p>
+
+    <p class="paragraph">
+        We request you to keep the following important points in mind:
+    </p>
+
+    <p class="paragraph">
+        As a participant, you should have completed 3 years of work experience on the day
+        of the commencement of the programme to be eligible for the programme. If at any
+        point in time, it is discovered that the above condition is not met, the Institute
+        reserves the right to cancel the admission. In such an event, the refund rules as
+        per the Annexure 3 will apply. Further any change in your role or current employment
+        including resignation from your job, must be duly brought to the notice of the
+        Admissions Office. The Institute reserves the right to re-examine your candidature
+        in light of the above-mentioned changes.
+    </p>
+
+    <p class="paragraph">
+        This admission offer is also subject to your meeting all eligibility requirements
+        including entrance test scores (CAT/GMAT) as entered in the application form being
+        validated by the concerned testing authority.
+    </p>
+
+    <div class="page-break"></div>
+
+    <p class="paragraph">
+        Your acceptance of this Offer of Admission implies your agreement to all
+        stipulations, terms &amp; conditions, etc. as conveyed through this offer letter,
+        offer details and its annexures. SPJIMR reserves the right to withdraw the Offer
+        of Admission at any stage if it is found that you are not meeting the eligibility
+        criteria and/or have misrepresented any fact about your candidature at any point
+        of time. All claims/disputes must be settled under Mumbai jurisdiction only.
+    </p>
+
+    <p class="paragraph">We look forward to you joining the SPJIMR community.</p>
+
+    <div>Best Wishes,</div>
+    <img src="{!URLFOR($Resource.PGPMOfferLetterSignature)}"
+         class="signature-image"
+         alt="Dr. Renuka Kamath signature" />
+    <div>Dr. Renuka Kamath</div>
+    <div>Associate Dean - Full Time Programmes; Professor of Marketing</div>
+    <div>S.P. Jain Institute of Management and Research, Mumbai</div>
+</body>
+</html>
+</apex:page>

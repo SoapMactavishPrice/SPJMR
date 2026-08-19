@@ -1,6 +1,6 @@
 /**
  * Builds Lead / Lead_Program__c rows from API payload and classifies the business scenario.
- */
+  */
 public without sharing class LeadPublicAPIHelper {
     public enum Scenario {
         LEAD_CREATED,
@@ -175,7 +175,7 @@ public without sharing class LeadPublicAPIHelper {
             ? fn + ' ' + ln + ' (Individual)'
             : fn + ' (Individual)';
     }
-
+	@TestVisible
     private static String normalizeYesNo(String raw) {
         if (String.isBlank(raw)) {
             return null;

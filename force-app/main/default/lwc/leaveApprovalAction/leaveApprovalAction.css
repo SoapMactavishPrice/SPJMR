@@ -1,24 +1,38 @@
 /* ================= MAIN CONTAINER ================= */
 .container {
-    position: relative;
-    padding: 4px 2px;
-    min-height: 60px;
+    padding: 16px;
 }
 
-/* ================= ACTION SUMMARY ===================== */
-.action-summary {
-    margin-bottom: 16px;
-    line-height: 1.4;
+/* ================= PAGE ACTION BUTTONS (compact) ================= */
+.page-actions-card {
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.25rem;
+    background: #ffffff;
 }
 
-/* ================= ERROR ================= */
-.error-box {
-    margin-bottom: 16px;
-    padding: 12px;
-    border-left: 3px solid #ba0517;
-    background: #fef1ee;
-    color: #8e030f;
-    line-height: 1.4;
+.page-actions-row {
+    min-height: 0;
+}
+
+/* ================= CONTENT WRAPPER ================= */
+.shift-right {
+    margin-left:6px;
+}
+
+/* ================= TITLE ================= */
+.custom-title {
+    margin-left: 10px;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* ================= REDUCE TITLE GAP ================= */
+.slds-card__header {
+    padding-bottom: 6px !important;
+}
+
+.slds-card__body {
+    padding-top: 6px !important;
 }
 
 /* ================= SECTION ================= */
@@ -39,10 +53,8 @@
     width: 100%;
 }
 
-/* ================= BUTTONS ================= */
+/* ================= BUTTON ================= */
 .button-container {
-    display: flex;
-    justify-content: flex-end;
     margin-top: 20px;
 }
 

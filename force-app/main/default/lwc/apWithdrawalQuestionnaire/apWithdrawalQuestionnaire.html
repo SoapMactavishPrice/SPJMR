@@ -1,0 +1,117 @@
+<template>
+    <lightning-modal-header label="Withdrawal Questionnaire"></lightning-modal-header>
+
+    <lightning-modal-body>
+        <template lwc:if={isLoaded}>
+            <div class="slds-p-around_medium slds-grid slds-wrap slds-gutters">
+
+                <!-- Top row -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                    <lightning-input
+                        type="text"
+                        label="Application"
+                        value={applicationName}
+                        disabled>
+                    </lightning-input>
+                </div>
+
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                    <lightning-input
+                        type="text"
+                        label="Applicant Name"
+                        value={applicantName}
+                        disabled>
+                    </lightning-input>
+                </div>
+
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                    <lightning-input
+                        type="email"
+                        label="Registered Email"
+                        value={registeredEmail}
+                        disabled>
+                    </lightning-input>
+                </div>
+
+                <!-- Institute -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <lightning-combobox
+                        label="Institute You Are Joining"
+                        value={institute}
+                        options={instituteValues}
+                        onchange={handleChange}
+                        data-field="institute">
+                    </lightning-combobox>
+                </div>
+
+                <template lwc:if={isOtherInstitute}>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <lightning-input
+                            type="text"
+                            label="Please Specify Institute"
+                            value={otherInstitute}
+                            onchange={handleChange}
+                            data-field="otherInstitute">
+                        </lightning-input>
+                    </div>
+                </template>
+
+                <!-- Primary Reason -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <lightning-combobox
+                        label="Primary Reason for Withdrawal"
+                        value={reason1}
+                        options={reasonValues}
+                        onchange={handleChange}
+                        data-field="reason1">
+                    </lightning-combobox>
+                </div>
+
+                <template lwc:if={isOther1}>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <lightning-input
+                            type="text"
+                            label="Please Specify Primary Reason"
+                            value={other1}
+                            onchange={handleChange}
+                            data-field="other1">
+                        </lightning-input>
+                    </div>
+                </template>
+
+                <!-- Secondary Reason -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <lightning-combobox
+                        label="Secondary Reason for Withdrawal"
+                        value={reason2}
+                        options={reasonValues}
+                        onchange={handleChange}
+                        data-field="reason2">
+                    </lightning-combobox>
+                </div>
+
+                <template lwc:if={isOther2}>
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <lightning-input
+                            type="text"
+                            label="Please Specify Secondary Reason"
+                            value={other2}
+                            onchange={handleChange}
+                            data-field="other2">
+                        </lightning-input>
+                    </div>
+                </template>
+
+            </div>
+        </template>
+    </lightning-modal-body>
+
+    <lightning-modal-footer>
+        <lightning-button
+            variant="brand"
+            label="Submit"
+            onclick={handleSubmit}
+            disabled={isSubmitDisabled}>
+        </lightning-button>
+    </lightning-modal-footer>
+</template>

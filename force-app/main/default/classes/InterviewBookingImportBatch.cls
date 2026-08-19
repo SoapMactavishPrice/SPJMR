@@ -1,4 +1,4 @@
-public without sharing class InterviewBookingImportBatch implements Database.Batchable<SObject>, Database.Stateful {
+public with sharing class InterviewBookingImportBatch implements Database.Batchable<SObject>, Database.Stateful {
     private static final String WITHOUT_PANEL = 'WITHOUT_PANEL';
     private static final String WITH_PANEL = 'WITH_PANEL';
     private static final String ASSIGN_PANEL = 'ASSIGN_PANEL';

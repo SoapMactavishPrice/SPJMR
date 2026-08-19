@@ -83,7 +83,7 @@ public class Application_PDF {
              FROM Application__c Where id=: qid];
         try{
             PDInfo=[SELECT AadhaarCardNumber__c,Alternate_E_mail__c,Application__c,Are_you_employed_with_one_of_SPJIMR_s_Pa__c,Blood_Group__c,Campus_Applied_For__c,Category__c,
-                    CreatedById,CreatedDate,CurrencyIsoCode,Date_of_Birth_As_Per_10th_Marksheet__c,Do_you_have_Aadhaar_Card__c,HavePassport__c,Employer_Partner_Company__c,
+                    CreatedById,CreatedDate,CurrencyIsoCode,Date_of_Birth_As_Per_10th_Marksheet__c,HaveAadhaar__c,HavePassport__c,Employer_Partner_Company__c,
                     Father_s_Name__c,First_Name__c,Gender__c,Id,Indian_Origin_Card_IOC__c,IsDeleted,LastModifiedById,LastModifiedDate,Last_Name__c,LinkedIn_Profile_URL__c,Marital_Status__c,
                     Middle_Name__c,Mobile_Number__c,Mother_s_Name__c,Name,Nationality__c,OwnerId,Parent_s_Mobile_Number__c,Passport_Issuing_Country__c,PassportNumber__c,
                     Passport_Valid_Till__c,Primary_E_mail__c,SystemModstamp,Title__c,Name_Of_Spouse__c,Contact_No_of_Spouse__c,Alternate_Mobile_Number__c 
@@ -243,7 +243,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW1=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid  and Year_Semester_Name__c = 'Semester 1' limit 1];
                             
         } catch (Exception e) {
@@ -251,7 +251,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW2=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid  and Year_Semester_Name__c = 'Semester 2' limit 1];
                             
         } catch (Exception e) {
@@ -259,7 +259,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW3=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid  and Year_Semester_Name__c = 'Semester 3' limit 1];
                             
         } catch (Exception e) {
@@ -267,7 +267,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW4=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid  and Year_Semester_Name__c = 'Semester 4' limit 1];
                             
         } catch (Exception e) {
@@ -275,7 +275,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW5=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid  and Year_Semester_Name__c = 'Semester 5' limit 1];
                             
         } catch (Exception e) {
@@ -283,7 +283,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW6=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid  and Year_Semester_Name__c = 'Semester 6' limit 1];
                             
         } catch (Exception e) {
@@ -291,7 +291,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW7=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid and Year_Semester_Name__c = 'Semester 7' limit 1];
                             
         } catch (Exception e) {
@@ -299,7 +299,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW8=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid and Year_Semester_Name__c = 'Semester 8' limit 1];
                             
         } catch (Exception e) {
@@ -307,7 +307,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW9=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid and Year_Semester_Name__c = 'Semester 9' limit 1];
                             
         } catch (Exception e) {
@@ -315,7 +315,7 @@ public class Application_PDF {
         }
         try{
             GraduationDSW10=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid and Year_Semester_Name__c = 'Semester 10' limit 1];
                             
         } catch (Exception e) {
@@ -323,7 +323,7 @@ public class Application_PDF {
         }
          try{
             GraduationDSWYear1=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid and Year_Semester_Name__c = 'Year 1' limit 1];
                             
         } catch (Exception e) {
@@ -331,7 +331,7 @@ public class Application_PDF {
         }
          try{
             GraduationDSWYear2=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid and Year_Semester_Name__c = 'Year 2' limit 1];
                             
         } catch (Exception e) {
@@ -339,7 +339,7 @@ public class Application_PDF {
         }
          try{
             GraduationDSWYear3=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid and Year_Semester_Name__c = 'Year 3' limit 1];
                             
         } catch (Exception e) {
@@ -347,7 +347,7 @@ public class Application_PDF {
         }
          try{
             GraduationDSWYear4=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid and Year_Semester_Name__c = 'Year 4' limit 1];
                             
         } catch (Exception e) {
@@ -355,7 +355,7 @@ public class Application_PDF {
         }
          try{
             GraduationDSWYear5=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Application__c=: qid and Year_Semester_Name__c = 'Year 5' limit 1];
                             
         } catch (Exception e) {
@@ -405,7 +405,7 @@ public class Application_PDF {
         }*/
         try{
             ProgramDetails=[SELECT Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,Join_PGEMP_Batch__c,LastActivityDate,LastModifiedById,LastModifiedDate,
-                            Mention_your_Interest_1__c,Mention_your_Interest_2__c,Name,OwnerId,Partner_School_Program__c,Partner_School_Specilisation__c,Partner_School__c,
+                            Name,OwnerId,Partner_School_Program__c,Partner_School_Specilisation__c,Partner_School__c,
                             Please_Note__c,Reasons_I_have_Specialization_1__c,Reasons_I_have_Specialization_2__c,Specialization_1_for__c,Specialization_2_for__c,SystemModstamp,
                             X1st_Programme_Applying_For__c,X2nd_Programme_Applying_For__c,X1st_Programme_Applying_For__r.name,X2nd_Programme_Applying_For__r.name,
                             Specialization_1_for__r.name,Specialization_2_for__r.name

@@ -190,3 +190,157 @@
         gap: 0;
     }
 }
+
+.tracker-card {
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid var(--spjimr-border);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.tracker-header {
+    display: inline-block;
+    background-color: var(--spjimr-primary);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.05rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 6px;
+    margin-bottom: 1.25rem;
+}
+
+.status-pill {
+    display: block;
+    width: fit-content;
+    background-color: var(--spjimr-primary-light);
+    color: var(--spjimr-primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.5rem 1.1rem;
+    border-radius: 999px;
+    margin-top: 0.75rem;
+    margin-bottom: 1.75rem;
+}
+
+.tracker-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+.tracker-row::before {
+    content: '';
+    position: absolute;
+    top: 22px;
+    left: 22px;
+    right: 22px;
+    height: 2px;
+    background-color: var(--spjimr-primary-light);
+    z-index: 0;
+}
+
+.tracker-step {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+}
+
+.step-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--spjimr-primary-light);
+    background-color: #ffffff;
+    color: var(--spjimr-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.step-circle_active {
+    background-color: var(--spjimr-primary);
+    border-color: var(--spjimr-primary);
+    color: #ffffff;
+}
+
+.step-circle_complete {
+    background-color: var(--spjimr-primary-light);
+    border-color: var(--spjimr-primary-light);
+    color: var(--spjimr-primary);
+}
+
+.step-label {
+    font-size: 0.72rem;
+    color: var(--spjimr-muted);
+    line-height: 1.2;
+    max-width: 78px;
+}
+
+.step-label_active {
+    color: var(--spjimr-primary);
+    font-weight: 700;
+}
+
+.tracker-branch-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.75rem;
+}
+
+.tracker-branch-row .tracker-step {
+    flex: none;
+    width: 140px;
+}
+
+.tracker-table-wrap {
+    overflow-x: auto;
+    border-top: 1px solid var(--spjimr-border);
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+}
+
+.tracker-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    min-width: 720px;
+}
+
+.tracker-table thead th {
+    background-color: var(--spjimr-primary);
+    color: #ffffff;
+    font-weight: 700;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+}
+
+.tracker-table tbody td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--spjimr-border);
+    color: var(--spjimr-text);
+    white-space: nowrap;
+}
+
+.status-badge {
+    display: inline-block;
+    background-color: var(--spjimr-primary-light);
+    color: var(--spjimr-primary);
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: normal;
+}

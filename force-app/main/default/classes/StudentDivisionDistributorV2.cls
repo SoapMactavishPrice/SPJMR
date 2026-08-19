@@ -738,7 +738,7 @@ public with sharing class StudentDivisionDistributorV2 {
       SELECT Id, Name, Division_Name__c, Capacity__c
       FROM Division__c
       WHERE Term__c = :termId
-        AND Is_Active__c = TRUE
+        AND IsActive__c = TRUE
         AND Division_Group__r.Name = 'Fundamental'
       ORDER BY Division_Name__c
     ];
@@ -977,7 +977,7 @@ public with sharing class StudentDivisionDistributorV2 {
       SELECT Id, Name, Division_Name__c
       FROM Division__c
       WHERE Term__c = :termId
-        AND Is_Active__c = TRUE
+        AND IsActive__c = TRUE
         AND Division_Group__r.Name = 'Fundamental'
       ORDER BY Division_Name__c
     ]) {

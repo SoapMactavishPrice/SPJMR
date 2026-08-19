@@ -1,5 +1,8 @@
 public without sharing class B2BLeadProcessController {
     private static Id getStandardPricebookId() {
+        if(Test.isRunningTest()){
+            return Test.getStandardPricebookId();
+        }
         return [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1].Id;
     }
 
@@ -497,12 +500,13 @@ public without sharing class B2BLeadProcessController {
     /**
      * Sortable wrapper for ordering company match rows by fuzzy score then name.
      */
+    @TestVisible
     private class CompanyMatchSortable implements Comparable {
         CompanyMatchRow row;
         Integer score;
         String sortKey;
 
-        CompanyMatchSortable(CompanyMatchRow r, String nameForScore, String term) {
+       public CompanyMatchSortable(CompanyMatchRow r, String nameForScore, String term) {
             this.row = r;
             this.score = matchScore(nameForScore, term);
             this.sortKey = nameForScore == null ? '' : nameForScore.toLowerCase();
@@ -602,9 +606,9 @@ public without sharing class B2BLeadProcessController {
             return null;
         }
         List<Lead> rows = [
-            SELECT Id, FirstName, LastName, Email, Phone, MobilePhone, Title, Department__c,Department_Master__c, Company, Website, Street, City, State,
+            SELECT Id, FirstName, LastName, Email, Phone, MobilePhone, Title, Company, Website, Street, City, State,
                    PostalCode, Country, Industry, NumberOfEmployees, AnnualRevenue, LinkedIn__c, Description,
-                   LeadSource, Is_MOU_Contract_Required__c, Reporting_To__c,Country_Master_backend__c,
+                   LeadSource, Is_MOU_Contract_Required__c,Country_Master_backend__c,
                    State_Master__c,District_City__c
             FROM Lead
             WHERE Id = :leadId
@@ -621,7 +625,7 @@ public without sharing class B2BLeadProcessController {
         p.phone = l.Phone;
         p.mobilePhone = l.MobilePhone;
         p.title = l.Title;
-        p.department = l.Department_Master__c;
+        //p.department = l.Department_Master__c;
         p.company = l.Company;
         p.website = l.Website;
         p.street = l.Street;
@@ -636,7 +640,7 @@ public without sharing class B2BLeadProcessController {
         p.description = l.Description;
         p.leadSource = l.LeadSource;
         p.isMouContractRequired = l.Is_MOU_Contract_Required__c;
-        p.reportingToContactId = l.Reporting_To__c != null ? String.valueOf(l.Reporting_To__c) : null;
+        //p.reportingToContactId = l.Reporting_To__c != null ? String.valueOf(l.Reporting_To__c) : null;
         return p;
     }
     
@@ -1159,7 +1163,7 @@ public without sharing class B2BLeadProcessController {
             // Create Contracts (one per opportunity) if MOU Contract is required
             List<Contract> contractsToInsert = new List<Contract>();
             Map<String, Contract> programToContractMap = new Map<String, Contract>();
-            if (isMouContractRequired == true) {
+           /* if (isMouContractRequired == true) {
                 if (programIds != null && !programIds.isEmpty()) {
                     for (String programId : programIds) {
                         Contract newContract = new Contract();
@@ -1195,7 +1199,7 @@ public without sharing class B2BLeadProcessController {
                     }
                 }
             }
-            
+            */
             // Create Opportunities with Contract reference (one contract per opportunity)
             if (programIds != null && !programIds.isEmpty()) {
                 for (String programId : programIds) {
@@ -1315,7 +1319,7 @@ public without sharing class B2BLeadProcessController {
             // Create Contracts (one per opportunity) if MOU Contract is required
             List<Contract> contractsToInsert = new List<Contract>();
             Map<String, Contract> programToContractMap = new Map<String, Contract>();
-            if (isMouContractRequired == true) {
+          /*  if (isMouContractRequired == true) {
                 if (programIds != null && !programIds.isEmpty()) {
                     for (String programId : programIds) {
                         Contract newContract = new Contract();
@@ -1351,6 +1355,7 @@ public without sharing class B2BLeadProcessController {
                     }
                 }
             }
+           */
             
             // Create Opportunities with Contract reference (one contract per opportunity)
             if (programIds != null && !programIds.isEmpty()) {
@@ -1491,237 +1496,7 @@ public without sharing class B2BLeadProcessController {
         return null;
     }
     
-    @AuraEnabled
-    public static ProcessResult convertLeadToAccountContactOpportunity(Id leadId) {
-        ProcessResult result = new ProcessResult();
-        
-        try {
-            // Get Lead with Opportunity fields
-            Lead leadRecord = [
-                SELECT Id, Status, IsConverted, Company, LeadSource,
-                       Opportunity_Name__c, Opportunity_Amount__c, 
-                       Opportunity_Close_Date__c, Opportunity_Stage__c,
-                       Is_MOU_Contract_Required__c,
-                       Minimum_Number_of_Students__c, Maximum_Number_of_Students__c
-                FROM Lead 
-                WHERE Id = :leadId 
-                LIMIT 1
-            ];
-            
-            if (leadRecord.IsConverted) {
-                result.success = false;
-                result.message = 'Lead is already converted.';
-                return result;
-            }
-            
-            // Get Opportunity values from Lead
-            String opportunityName = leadRecord.Opportunity_Name__c;
-            Decimal opportunityAmount = leadRecord.Opportunity_Amount__c;
-            Date closeDate = leadRecord.Opportunity_Close_Date__c;
-            Boolean isMouContractRequired = leadRecord.Is_MOU_Contract_Required__c;
-            String leadSource = leadRecord.LeadSource;
-            String stage = leadRecord.Opportunity_Stage__c;
-            Decimal minStudents = leadRecord.Minimum_Number_of_Students__c;
-            Decimal maxStudents = leadRecord.Maximum_Number_of_Students__c;
-            
-            // Get Programs from Lead_Program__c junction object
-            List<Lead_Program__c> leadPrograms = [
-                SELECT Id, Program__c, Program__r.Name 
-                FROM Lead_Program__c 
-                WHERE Lead__c = :leadId
-            ];
-            
-            List<String> programIds = new List<String>();
-            Map<Id, String> programNameMap = new Map<Id, String>();
-            for (Lead_Program__c lp : leadPrograms) {
-                programIds.add(lp.Program__c);
-                programNameMap.put(lp.Program__c, lp.Program__r.Name);
-            }
-            
-            Id companyRtId = [SELECT Id FROM RecordType
-                            WHERE SobjectType='Account'
-                            AND DeveloperName='LeadCompany'
-                            LIMIT 1].Id;
-            
-            LeadStatus convertStatus = [SELECT Id, MasterLabel FROM LeadStatus WHERE IsConverted = true LIMIT 1];
-            
-            Database.LeadConvert lc = new Database.LeadConvert();
-            lc.setLeadId(leadId);
-            lc.setConvertedStatus(convertStatus.MasterLabel);
-            
-            Boolean hasPrograms = !programIds.isEmpty();
-            lc.setDoNotCreateOpportunity(true);
-            
-            Database.LeadConvertResult lcr = Database.convertLead(lc);
-            
-            if (lcr.isSuccess()) {
-                Id firstOpportunityId = null;
-                Integer totalOpps = 0;
-                
-                // Force Account RecordType after conversion
-                update new Account(
-                    Id = lcr.getAccountId(),
-                    RecordTypeId = companyRtId
-                );
-                
-                if (hasPrograms) {
-                    List<Id> contactIds = new List<Id>();
-                    if (lcr.getContactId() != null) {
-                        contactIds.add(lcr.getContactId());
-                    }
-
-                    if (contactIds.isEmpty()) {
-                        throw new AuraHandledException('No Contact found after conversion. Unable to create Opportunities.');
-                    }
-
-                    // Find matching Slabs for each program based on student range
-                    Map<Id, Id> programToSlabMap = new Map<Id, Id>();
-                    if (minStudents != null && maxStudents != null) {
-                        List<Slab__c> matchingSlabs = [
-                            SELECT Id, Program_Master__c, Start_Range__c, End_Range__c
-                            FROM Slab__c
-                            WHERE Program_Master__c IN :programIds
-                            AND Start_Range__c <= :minStudents
-                            AND End_Range__c >= :maxStudents
-                        ];
-                        for (Slab__c slab : matchingSlabs) {
-                            programToSlabMap.put(slab.Program_Master__c, slab.Id);
-                        }
-                    }
-                    
-                    // Create Contracts (one per contact opportunity) if MOU Contract is required
-                    List<Contract> contractsToInsert = new List<Contract>();
-                    Map<Id, Contract> contactToContractMap = new Map<Id, Contract>();
-                    if (isMouContractRequired == true) {
-                        for (Id contactId : contactIds) {
-                            Contract newContract = new Contract();
-                            newContract.AccountId = lcr.getAccountId();
-                            newContract.Status = 'Draft';
-                            newContract.StartDate = Date.today();
-                            newContract.ContractTerm = 12;
-                            newContract.Minimum_Number_of_Students__c = minStudents;
-                            newContract.Maximum_Number_of_Students__c = maxStudents;
-                            // If multiple programs exist, keep first matching slab on the contract.
-                            for (String programId : programIds) {
-                                if (programToSlabMap.containsKey(programId)) {
-                                    newContract.Slab__c = programToSlabMap.get(programId);
-                                    break;
-                                }
-                            }
-                            contractsToInsert.add(newContract);
-                            contactToContractMap.put(contactId, newContract);
-                        }
-                        insert contractsToInsert;
-                    }
-
-                    Id standardPricebookId = getStandardPricebookId();
-                    Map<Id, PricebookEntry> programToPbe = getProgramPricebookEntries(new Set<Id>((List<Id>)programIds), standardPricebookId);
-                    List<String> missingProgramNames = new List<String>();
-                    for (Lead_Program__c lp : leadPrograms) {
-                        if (!programToPbe.containsKey(lp.Program__c)) {
-                            missingProgramNames.add(lp.Program__r.Name);
-                        }
-                    }
-                    if (!missingProgramNames.isEmpty()) {
-                        throw new AuraHandledException(
-                            'Missing active Pricebook Entry in Standard Price Book for Program product(s): ' +
-                            String.join(missingProgramNames, ', ')
-                        );
-                    }
-
-                    // Create one Opportunity per contact.
-                    List<Opportunity> opportunitiesToInsert = new List<Opportunity>();
-                    Map<Id, Opportunity> contactToOpportunityMap = new Map<Id, Opportunity>();
-                    for (Id contactId : contactIds) {
-                        Opportunity newOpp = new Opportunity();
-                        newOpp.AccountId = lcr.getAccountId();
-                        newOpp.Pricebook2Id = standardPricebookId;
-                        if (isMouContractRequired == true && contactToContractMap.containsKey(contactId)) {
-                            newOpp.ContractId = contactToContractMap.get(contactId).Id;
-                        }
-                        newOpp.Name = String.isNotBlank(opportunityName)
-                            ? opportunityName + ' - ' + String.valueOf(contactId).right(5)
-                            : 'Opportunity - ' + String.valueOf(contactId).right(5);
-                        newOpp.Amount = opportunityAmount;
-                        newOpp.CloseDate = closeDate != null ? closeDate : Date.today().addDays(30);
-                        newOpp.StageName = String.isNotBlank(stage) ? stage : 'Prospecting';
-                        newOpp.LeadSource = leadSource;
-                        if (!programIds.isEmpty()) {
-                            newOpp.Program__c = programIds[0];
-                        }
-                        applyB2BOpportunityRecordType(newOpp);
-                        opportunitiesToInsert.add(newOpp);
-                        contactToOpportunityMap.put(contactId, newOpp);
-                    }
-
-                    insert opportunitiesToInsert;
-
-                    // One OpportunityContactRole per Opportunity (for each contact).
-                    List<OpportunityContactRole> ocrList = new List<OpportunityContactRole>();
-                    for (Id contactId : contactToOpportunityMap.keySet()) {
-                        Opportunity opp = contactToOpportunityMap.get(contactId);
-                        OpportunityContactRole ocr = new OpportunityContactRole();
-                        ocr.OpportunityId = opp.Id;
-                        ocr.ContactId = contactId;
-                        ocr.IsPrimary = true;
-                        ocr.Role = 'Decision Maker';
-                        ocrList.add(ocr);
-                    }
-                    insert ocrList;
-
-                    // For every lead program, create Opportunity Line Item in each contact opportunity.
-                    List<OpportunityLineItem> oliToInsert = new List<OpportunityLineItem>();
-                    for (Opportunity opp : opportunitiesToInsert) {
-                        for (Lead_Program__c lp : leadPrograms) {
-                            PricebookEntry pbe = programToPbe.get(lp.Program__c);
-                            OpportunityLineItem oli = new OpportunityLineItem();
-                            oli.OpportunityId = opp.Id;
-                            oli.PricebookEntryId = pbe.Id;
-                            oli.Quantity = 1;
-                            oli.UnitPrice = pbe.UnitPrice;
-                            oliToInsert.add(oli);
-                        }
-                    }
-                    if (!oliToInsert.isEmpty()) {
-                        insert oliToInsert;
-                    }
-                    
-                    firstOpportunityId = opportunitiesToInsert[0].Id;
-                    totalOpps = opportunitiesToInsert.size();
-                }
-                
-                result.success = true;
-                if (hasPrograms) {
-                    result.message = 'Lead converted successfully. Account, Contact, ' + totalOpps +
-                        ' Opportunity(ies), and Opportunity Line Items for all selected programs created.';
-                    result.opportunityId = firstOpportunityId;
-                    result.recordId = firstOpportunityId;
-                } else {
-                    result.message = 'Lead converted successfully. Account and Contact created.';
-                    result.recordId = lcr.getAccountId();
-                }
-                result.recordType = 'Opportunity';
-                result.accountId = lcr.getAccountId();
-                result.contactId = lcr.getContactId();
-                result.leadId = leadId;
-            } else {
-                result.success = false;
-                String errorMessages = '';
-                for (Database.Error err : lcr.getErrors()) {
-                    errorMessages += err.getMessage() + ' ';
-                }
-                result.message = 'Lead conversion failed: ' + errorMessages;
-            }
-            
-        } catch (Exception e) {
-            System.debug('Exception during lead conversion: ' + e.getMessage() + ' - Stack: ' + e.getStackTraceString());
-            result.success = false;
-            result.message = 'Error converting Lead: ' + e.getMessage();
-        }
-        
-        return result;
-    }
-
+   
     /* Returns all STD Codes of cities based on the parent country selected */
     @AuraEnabled(cacheable=true)
 public static List<String> getStdCodesByCountry(Id countryId) {
@@ -1777,7 +1552,7 @@ public static List<leadProgrammeWrapper> returnLeadProgrammes(Id recordId){
     Map<Id,Contact> leadConMap = new Map<Id,Contact>();
     List<leadProgrammeWrapper> result = new List<leadProgrammeWrapper>();
     Map<Id,List<String>> appliedProgrammes = new Map<Id,List<String>>();
-    for(Contact lc: [SELECT Id,Name,Email,LastName,Designation__c,Is_Primary_Contact__c
+    for(Contact lc: [SELECT Id,Name,FirstName,Email,LastName,Designation__c,Is_Primary_Contact__c
     FROM Contact WHERE Lead__c=:recordId]){
         leadConMap.put(lc.Id,lc);
     }

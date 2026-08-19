@@ -1,232 +1,221 @@
-import { LightningElement, api } from 'lwc';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
+import { LightningElement, api, track, wire } from 'lwc';
+import { refreshApex } from '@salesforce/apex';
 import getCurrentUserRole from '@salesforce/apex/LeaveApprovalActionController.getCurrentUserRole';
+import isCurrentUserApprover from '@salesforce/apex/LeaveApprovalActionController.isCurrentUserApprover';
+import getApproverActionVisibility from '@salesforce/apex/LeaveApprovalActionController.getApproverActionVisibility';
 import processLeaveAction from '@salesforce/apex/LeaveApprovalActionController.processLeaveAction';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { CloseActionScreenEvent } from 'lightning/actions';
 
-const APPROVE = 'APPROVE';
-const REJECT = 'REJECT';
-const INCOMPLETE = 'INCOMPLETE';
-const VALID_MODES = [APPROVE, REJECT, INCOMPLETE];
-
-const ROLE_PROGRAMME_OFFICE = 'programme office';
-const ROLE_MANAGER = 'manager';
-const ROLE_DEPUTY = 'deputy chairperson';
-
-/**
- * Shared approval form for the Leave Application quick actions.
- * is
- * This component never guesses which action launched it. A screen quick action
- * cannot know that — the platform only injects recordId and objectApiName — so
- * the wrapper component (leaveApprovalApprove / leaveApprovalReject /
- * leaveApprovalIncomplete) passes `mode` in explicitly.
- *
- * If the mode or the approval stage is not one we recognise, the form shows an
- * error and refuses to submit. It never falls back to a default decision.
- */
-export default class LeaveApprovalAction extends LightningElement {
+export default class LeaveApprovalActionPanel extends LightningElement {
 
     _recordId;
-    _mode;
-    _initDone = false;
 
-    // recordId and mode arrive independently and in no guaranteed order, so
-    // both setters funnel through initIfReady() rather than one driving init.
     @api
     set recordId(value) {
         this._recordId = value;
-        this.initIfReady();
+        if (value) {
+            this.initializeComponent();
+        }
     }
+
     get recordId() {
         return this._recordId;
     }
 
-    @api
-    set mode(value) {
-        this._mode = typeof value === 'string' ? value.trim().toUpperCase() : undefined;
-        this.initIfReady();
+    @api actionName;
+
+    @track role;
+    @track routeToDeputy = false;
+    @track remarks = '';
+    @track isLoading = false;
+    @track isAuthorized = false;
+
+    @track eligibleForMakeup = false;
+    @track notEligibleForMakeup = false;
+    @track isIncompleteAction = false;
+    @track isApproveAction = false;
+    @track isRejectAction = false;
+
+    @track isPageMode = false;
+    @track showApprove = false;
+    @track showReject = false;
+    @track showIncomplete = false;
+    @track panelOpen = false;
+
+    _wiredVisibility;
+
+    @wire(getApproverActionVisibility, { leaveId: '$recordId' })
+    wiredVisibility(result) {
+        this._wiredVisibility = result;
+        const { data, error } = result;
+        if (data) {
+            this.showApprove = data.showApprove === true;
+            this.showReject = data.showReject === true;
+            this.showIncomplete = data.showIncomplete === true;
+        } else if (error) {
+            this.showApprove = false;
+            this.showReject = false;
+            this.showIncomplete = false;
+        }
     }
-    get mode() {
-        return this._mode;
+
+    get showPageButtons() {
+        return this.isPageMode && !this.panelOpen && (this.showApprove || this.showReject || this.showIncomplete);
     }
 
-    role;
-    roleLoaded = false;
-    loadError;
+    get showActionPanel() {
+        return this.isPageMode && this.panelOpen && this.isAuthorized;
+    }
 
-    remarks = '';
-    routeToDeputy = false;
-    eligibleForMakeup = false;
-    notEligibleForMakeup = false;
-    isLoading = false;
+    initializeComponent() {
+        this.isApproveAction = this.actionName === 'Approve';
+        this.isRejectAction = this.actionName === 'Reject';
+        this.isIncompleteAction = this.actionName === 'Mark_Incomplete';
 
-    initIfReady() {
-        if (this._initDone || !this._recordId || !this.isModeValid) {
+        const url = window.location.href.toLowerCase();
+        if (url.includes('approve')) {
+            this.isApproveAction = true;
+        }
+        if (url.includes('reject')) {
+            this.isRejectAction = true;
+        }
+        if (url.includes('mark_incomplete') || url.includes('/incomplete')) {
+            this.isIncompleteAction = true;
+        }
+
+        // Record page (no quick-action context) → show gated buttons via Apex
+        if (!this.isApproveAction && !this.isRejectAction && !this.isIncompleteAction) {
+            this.isPageMode = true;
+            this.panelOpen = false;
             return;
         }
-        this._initDone = true;
-        this.loadRole();
+
+        this.isPageMode = false;
+        this.verifyApproverThenLoadRole();
     }
 
-    loadRole() {
-        getCurrentUserRole({ leaveId: this._recordId })
-            .then(result => {
-                this.role = result;
-                this.roleLoaded = true;
+    handleSelectApprove() {
+        this.openPanel('Approve');
+    }
+
+    handleSelectReject() {
+        this.openPanel('Reject');
+    }
+
+    handleSelectIncomplete() {
+        this.openPanel('Mark_Incomplete');
+    }
+
+    openPanel(action) {
+        this.isApproveAction = action === 'Approve';
+        this.isRejectAction = action === 'Reject';
+        this.isIncompleteAction = action === 'Mark_Incomplete';
+        this.actionName = action;
+        this.panelOpen = true;
+        this.remarks = '';
+        this.routeToDeputy = false;
+        this.eligibleForMakeup = false;
+        this.notEligibleForMakeup = false;
+        this.verifyApproverThenLoadRole();
+    }
+
+    handleCancelPanel() {
+        this.panelOpen = false;
+        this.isApproveAction = false;
+        this.isRejectAction = false;
+        this.isIncompleteAction = false;
+        this.remarks = '';
+        if (this._wiredVisibility) {
+            refreshApex(this._wiredVisibility);
+        }
+    }
+
+    verifyApproverThenLoadRole() {
+        this.isLoading = true;
+        isCurrentUserApprover({ leaveId: this.recordId })
+            .then((allowed) => {
+                if (!allowed) {
+                    this.isAuthorized = false;
+                    this.showToast('Error', 'You are not a current approver for this leave application.', 'error');
+                    if (this.isPageMode) {
+                        this.panelOpen = false;
+                    } else {
+                        this.dispatchEvent(new CloseActionScreenEvent());
+                    }
+                    return null;
+                }
+                this.isAuthorized = true;
+                return getCurrentUserRole({ leaveId: this.recordId });
             })
-            .catch(error => {
-                this.loadError =
-                    error?.body?.message || 'Unable to load the approval stage for this record.';
+            .then((result) => {
+                if (result !== null && result !== undefined) {
+                    this.role = result;
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+                let msg = error?.body?.message || 'Unable to verify approver access';
+                this.showToast('Error', msg, 'error');
+                if (this.isPageMode) {
+                    this.panelOpen = false;
+                } else {
+                    this.dispatchEvent(new CloseActionScreenEvent());
+                }
+            })
+            .finally(() => {
+                this.isLoading = false;
             });
     }
 
-    // ================= MODE =================
-    get isModeValid() {
-        return VALID_MODES.includes(this._mode);
-    }
-    get isApprove() {
-        return this._mode === APPROVE;
-    }
-    get isReject() {
-        return this._mode === REJECT;
-    }
-    get isIncomplete() {
-        return this._mode === INCOMPLETE;
-    }
-
-    // ================= ROLE =================
-    get normalisedRole() {
-        return typeof this.role === 'string' ? this.role.trim().toLowerCase() : '';
-    }
     get isProgrammeOffice() {
-        return this.normalisedRole === ROLE_PROGRAMME_OFFICE;
+        return this.role && this.role.toLowerCase() === 'programme office';
     }
+
     get isManager() {
-        return this.normalisedRole === ROLE_MANAGER;
+        return this.role && this.role.toLowerCase() === 'manager';
     }
+
     get isDeputy() {
-        return this.normalisedRole === ROLE_DEPUTY;
+        return this.role && this.role.toLowerCase() === 'deputy chairperson';
     }
 
-    // ================= UI CONDITIONS =================
-    get showIncompleteUI() {
-        return this.isIncomplete;
-    }
     get showPOApproveUI() {
-        return this.isProgrammeOffice && this.isApprove;
+        return this.isProgrammeOffice && this.isApproveAction;
     }
+
     get showPORejectUI() {
-        return this.isProgrammeOffice && this.isReject;
+        return this.isProgrammeOffice && this.isRejectAction;
     }
+
     get showManagerApproveUI() {
-        return this.isManager && this.isApprove;
+        return this.isManager && this.isApproveAction;
     }
+
     get showDeputyApproveUI() {
-        return this.isDeputy && this.isApprove;
+        return this.isDeputy && this.isApproveAction;
     }
+
     get showManagerRejectUI() {
-        return (this.isManager || this.isDeputy) && this.isReject;
-    }
-    get showMakeupChoice() {
-        return this.showManagerApproveUI || this.showDeputyApproveUI;
-    }
-
-    /** True only when mode + approval stage map to a decision we understand. */
-    get hasApplicableUI() {
-        if (!this.isModeValid) {
-            return false;
-        }
-        if (this.isIncomplete) {
-            return true;
-        }
-        return (
-            this.showPOApproveUI ||
-            this.showPORejectUI ||
-            this.showManagerApproveUI ||
-            this.showDeputyApproveUI ||
-            this.showManagerRejectUI
-        );
-    }
-
-    get errorMessage() {
-        if (!this.isModeValid) {
-            return 'This action could not be identified, so it cannot be processed. Close the window and try again.';
-        }
-        if (this.loadError) {
-            return this.loadError;
-        }
-        if (this.roleLoaded && !this.hasApplicableUI) {
-            const stage = this.role ? ` (current stage: ${this.role})` : '';
-            return `This action is not available at the current approval stage${stage}.`;
-        }
-        return undefined;
-    }
-    get hasError() {
-        return !!this.errorMessage;
+        return (this.isManager || this.isDeputy) && this.isRejectAction;
     }
 
     get disableEligible() {
         return this.notEligibleForMakeup;
     }
+
     get disableNotEligible() {
         return this.eligibleForMakeup;
     }
 
-    get submitLabel() {
-        if (this.isIncomplete) {
-            return 'Mark Incomplete';
-        }
-        if (this.isReject) {
-            return 'Reject';
-        }
-        return 'Approve';
+    get disableDeputy() {
+        return false;
     }
 
-    get isSubmitDisabled() {
-        return this.isLoading || !this.roleLoaded || this.hasError || !this.hasApplicableUI;
+    get showIncompleteUI() {
+        return this.isIncompleteAction;
     }
 
-    /**
-     * The decision string sent to Apex. Returns undefined for any combination we
-     * do not recognise, so an unknown state can never resolve to 'Approved'.
-     */
-    get decision() {
-        if (this.isIncomplete) {
-            return 'INCOMPLETE';
-        }
-        if (this.isReject) {
-            return this.notEligibleForMakeup ? 'Not Eligible for Makeup' : 'Not Approved';
-        }
-        if (this.isApprove) {
-            if (this.eligibleForMakeup) {
-                return 'Eligible for Makeup';
-            }
-            if (this.notEligibleForMakeup) {
-                return 'Not Eligible for Makeup';
-            }
-            return 'Approved';
-        }
-        return undefined;
-    }
-
-    get actionType() {
-        if (this.isIncomplete) {
-            return 'Incomplete';
-        }
-        return this.isReject ? 'Reject' : 'Approve';
-    }
-
-    get successMessage() {
-        if (this.isIncomplete) {
-            return 'Marked as Incomplete';
-        }
-        if (this.isReject) {
-            return 'Application rejected';
-        }
-        return 'Application approved';
-    }
-
-    // ================= HANDLERS =================
     handleEligible(event) {
         this.eligibleForMakeup = event.target.checked;
         if (this.eligibleForMakeup) {
@@ -243,71 +232,120 @@ export default class LeaveApprovalAction extends LightningElement {
 
     handleDeputy(event) {
         this.routeToDeputy = event.target.checked;
+        if (this.isRejectAction) {
+            this.routeToDeputy = false;
+        }
     }
 
     handleRemarks(event) {
         this.remarks = event.target.value;
     }
 
-    handleCancel() {
-        this.close();
+    closeAfterSuccess() {
+        if (this.isPageMode) {
+            this.panelOpen = false;
+            this.isApproveAction = false;
+            this.isRejectAction = false;
+            this.isIncompleteAction = false;
+            if (this._wiredVisibility) {
+                refreshApex(this._wiredVisibility);
+            }
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        } else {
+            this.dispatchEvent(new CloseActionScreenEvent());
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        }
     }
 
-    handleSubmit() {
+    handleProcess() {
         if (this.isLoading) {
             return;
         }
-        if (!this._recordId) {
-            this.toast('Error', 'Record Id is missing', 'error');
+        if (!this.recordId) {
+            this.showToast('Error', 'RecordId missing', 'error');
             return;
         }
-
-        const decision = this.decision;
-        if (!this.hasApplicableUI || !decision) {
-            this.toast(
-                'Error',
-                'This action could not be identified, so nothing was submitted.',
-                'error'
-            );
-            return;
-        }
-        if (!this.remarks || !this.remarks.trim()) {
-            this.toast('Error', 'Remarks are required', 'error');
+        if (!this.remarks) {
+            this.showToast('Error', 'Remarks are required', 'error');
             return;
         }
 
         this.isLoading = true;
+        let finalDecision;
+
+        if (this.isRejectAction) {
+            if (this.notEligibleForMakeup) {
+                finalDecision = 'Not Eligible for Makeup';
+            } else {
+                finalDecision = 'Not Approved';
+            }
+        } else if (this.eligibleForMakeup) {
+            finalDecision = 'Eligible for Makeup';
+        } else if (this.notEligibleForMakeup) {
+            finalDecision = 'Not Eligible for Makeup';
+        } else {
+            finalDecision = 'Approved';
+        }
 
         processLeaveAction({
-            leaveId: this._recordId,
-            decision,
-            actionType: this.actionType,
-            routeToDeputy: this.isApprove ? this.routeToDeputy : false,
+            leaveId: this.recordId,
+            decision: finalDecision,
+            actionType: this.isRejectAction ? 'Reject' : 'Approve',
+            routeToDeputy: this.routeToDeputy,
             remarks: this.remarks
         })
             .then(() => {
-                this.toast('Success', this.successMessage, 'success');
-                // Refresh the record in place instead of reloading the browser.
-                return notifyRecordUpdateAvailable([{ recordId: this._recordId }]).catch(
-                    () => undefined
-                );
+                this.showToast('Success', 'Processed successfully', 'success');
+                this.closeAfterSuccess();
             })
-            .then(() => {
-                this.close();
-            })
-            .catch(error => {
-                this.toast('Error', error?.body?.message || 'Processing failed', 'error');
+            .catch((error) => {
+                console.error(error);
+                let msg = error?.body?.message || 'Processing failed';
+                this.showToast('Error', msg, 'error');
             })
             .finally(() => {
                 this.isLoading = false;
             });
     }
 
-    close() {
-        this.dispatchEvent(new CustomEvent('close'));
+    handleIncompleteAction() {
+        if (this.isLoading) return;
+        if (!this.recordId) {
+            this.showToast('Error', 'RecordId missing', 'error');
+            return;
+        }
+        if (!this.remarks) {
+            this.showToast('Error', 'Remarks are required', 'error');
+            return;
+        }
+
+        this.isLoading = true;
+        processLeaveAction({
+            leaveId: this.recordId,
+            decision: 'INCOMPLETE',
+            routeToDeputy: false,
+            remarks: this.remarks
+        })
+            .then(() => {
+                this.showToast('Success', 'Marked as Incomplete', 'success');
+                this.closeAfterSuccess();
+            })
+            .catch((error) => {
+                let msg = error?.body?.message || 'Processing failed';
+                this.showToast('Error', msg, 'error');
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
     }
 
-    toast(title, message, variant) {
+    showToast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 }

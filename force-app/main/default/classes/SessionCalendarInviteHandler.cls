@@ -1,7 +1,20 @@
 /**
- * @description Routes Session__c changes to the Google Calendar integration:
- *          creates a faculty-only event on Draft, patches it to add students on
- *          Publish/Republish, patches it on Rescheduled, and deletes it on Cancel.
+ * @description Routes Session__c changes to the Google Calendar integration. Every session that
+ *          reaches a student-facing status carries TWO Google events:
+ *
+ *          - the FACULTY event (Faculty_Google_Event_Id__c), guests = the assigned faculty. Created
+ *            on Draft and kept in step from then on. This is the only event that ever emails
+ *            anybody: the user's Yes/No answer decides whether it is pushed with sendUpdates=all
+ *            (a real "Updated invitation" showing what changed) or silently.
+ *          - the STUDENT event (Google_Event_Id__c), guests = the enrolled students. Created when
+ *            the session is published and ALWAYS pushed with sendUpdates=none, so students' entries
+ *            stay correct without a per-session email. They are told once, by the consolidated
+ *            summary email that TimetableSessionController enqueues.
+ *
+ *          Google's sendUpdates applies to a whole event, not to individual guests, so one shared
+ *          event could never email the faculty without also emailing every student. Splitting the
+ *          audiences onto their own events is what makes the two notification rules independent —
+ *          on publish, republish and reschedule alike.
  *
  *          Also exposes handleRelatedRecordChange() so that a change on a related
  *          record which feeds the event body or the guest list — Session_Division__c
@@ -11,14 +24,21 @@
  *          it never creates an event for a session that was never synced.
  *
  * @note    Notification control: skipUserNotifications is a transaction-scoped flag set by
- *          the caller that performs the DML (see TimetableSessionController). When true the
- *          queueable uses sendUpdates=none so Google updates the event silently. Cancellation
- *          deliberately ignores it — a cancelled session must always notify its guests.
+ *          the caller that performs the DML (see TimetableSessionController). It is the user's No
+ *          answer, and it now governs the FACULTY event only — the student event is silent either
+ *          way. Cancellation deliberately ignores it: a cancelled session must always notify its
+ *          guests, so both events are deleted with notifications on.
  *
  * @note    Google only emails a guest when the event genuinely changed for that guest.
  *          SessionCalendarInviteQueueable.buildEvent therefore includes the schedule state
  *          in the event description, so Draft -> Published is a real change and the faculty
  *          already on the event receive an "Updated invitation" rather than nothing.
+ *
+ * @note    Legacy sessions synced before the split hold one shared event in Google_Event_Id__c.
+ *          The queueable migrates them on the first push: a Draft's event was faculty-only, so its
+ *          id simply moves to Faculty_Google_Event_Id__c; a published session's event keeps the
+ *          students (and their RSVP answers) and a new faculty event is created alongside, with the
+ *          faculty dropping off the student event silently on that same push.
  */
 // Sharing declared explicitly as `without sharing`: this is trigger-driven integration code
 // that must resolve every session, division, faculty and enrolment involved regardless of
@@ -64,8 +84,21 @@ public without sharing class SessionCalendarInviteHandler {
     /** @description Re-entry guard: set while the queueable writes its own sync fields back. */
     public static Boolean suppressInvites = false;
 
-    /** @description When true the Google push uses sendUpdates=none (no guest emails). */
+    /**
+     * @description The user's No answer: when true the faculty event is pushed with
+     *          sendUpdates=none, so nobody is emailed. The student event is silent regardless.
+     */
     public static Boolean skipUserNotifications = false;
+
+    /**
+     * @description The user's Yes answer, set by the same caller that sets skipUserNotifications.
+     *          Only the related-record re-push reads it, and only to tell two cases apart that
+     *          skipUserNotifications alone cannot: a user save where Yes was chosen (the faculty
+     *          SHOULD be emailed, because adding a faculty member to an already-republished session
+     *          fires no session-level push of its own) versus a background flow that never asked
+     *          anybody — enrolment sync, division auto-assign — where emailing faculty is noise.
+     */
+    public static Boolean facultyNotifyRequested = false;
 
     /**
      * @description Transaction-scoped dedupe. A single user action can touch the Session and
@@ -81,11 +114,41 @@ public without sharing class SessionCalendarInviteHandler {
      *          short signature as the number of push options grows.
      */
     private class PushRequest {
-        private Set<Id> publishInviteIds = new Set<Id>();
-        private Set<Id> draftInviteIds = new Set<Id>();
-        private Map<Id, String> cancelEventIdsBySession = new Map<Id, String>();
+        /** Sessions needing BOTH events: the faculty copy and the silent student copy. */
+        private Set<Id> bothAudienceIds = new Set<Id>();
+        /** Sessions needing the faculty event only (Draft — no students are enrolled on it yet). */
+        private Set<Id> facultyOnlyIds = new Set<Id>();
+        /** Session id → every Google event id to delete for it (faculty copy, student copy). */
+        private Map<Id, List<String>> cancelEventIdsBySession = new Map<Id, List<String>>();
         private Boolean suppressNotifications = false;
         private Boolean patchOnly = false;
+    }
+
+    /**
+     * @description Collects the Google event ids to delete for one session — both copies, skipping
+     *          whichever is not populated.
+     * @param s The session being cancelled or deleted.
+     * @return The event ids, or an empty list when the session was never synced.
+     */
+    private static List<String> eventIdsOf(Session__c s) {
+        List<String> ids = new List<String>();
+        if (String.isNotBlank(s.Google_Event_Id__c)) {
+            ids.add(s.Google_Event_Id__c);
+        }
+        if (String.isNotBlank(s.Faculty_Google_Event_Id__c)) {
+            ids.add(s.Faculty_Google_Event_Id__c);
+        }
+        return ids;
+    }
+
+    /**
+     * @description True when either copy of the session's Google event exists.
+     * @param s The session to check.
+     * @return Whether this session has ever been pushed to Google.
+     */
+    private static Boolean hasAnyEvent(Session__c s) {
+        return String.isNotBlank(s.Google_Event_Id__c)
+            || String.isNotBlank(s.Faculty_Google_Event_Id__c);
     }
 
     /**
@@ -103,27 +166,27 @@ public without sharing class SessionCalendarInviteHandler {
 
         Boolean suppressNotifications = skipUserNotifications;
 
-        Set<Id> publishInviteIds = new Set<Id>();
-        Set<Id> draftInviteIds   = new Set<Id>();
-        Map<Id, String> cancelEventIdsBySession = new Map<Id, String>();
+        Set<Id> bothAudienceIds = new Set<Id>();
+        Set<Id> facultyOnlyIds  = new Set<Id>();
+        Map<Id, List<String>> cancelEventIdsBySession = new Map<Id, List<String>>();
 
         for (Session__c s : newMap.values()) {
             Session__c oldRec = (oldMap != null) ? oldMap.get(s.Id) : null;
             String oldStatus  = (oldRec != null) ? oldRec.Schedule_Type__c : null;
             String newStatus  = s.Schedule_Type__c;
-            Boolean hasEvent      = String.isNotBlank(s.Google_Event_Id__c);
+            Boolean hasEvent      = hasAnyEvent(s);
             Boolean statusChanged = (newStatus != oldStatus);
 
             if (newStatus == STATUS_CANCELLED) {
                 if (statusChanged && hasEvent) {
-                    cancelEventIdsBySession.put(s.Id, s.Google_Event_Id__c);
+                    cancelEventIdsBySession.put(s.Id, eventIdsOf(s));
                 }
                 continue;
             }
 
             if (UPDATE_ONLY.contains(newStatus)) {
                 if (hasEvent && (statusChanged || detailsChanged(s, oldRec))) {
-                    publishInviteIds.add(s.Id);
+                    bothAudienceIds.add(s.Id);
                 }
                 continue;
             }
@@ -135,16 +198,16 @@ public without sharing class SessionCalendarInviteHandler {
             }
             if (statusChanged || (hasEvent && detailsChanged(s, oldRec))) {
                 if (isAll) {
-                    publishInviteIds.add(s.Id);
+                    bothAudienceIds.add(s.Id);
                 } else {
-                    draftInviteIds.add(s.Id);
+                    facultyOnlyIds.add(s.Id);
                 }
             }
         }
 
         PushRequest req = new PushRequest();
-        req.publishInviteIds = publishInviteIds;
-        req.draftInviteIds = draftInviteIds;
+        req.bothAudienceIds = bothAudienceIds;
+        req.facultyOnlyIds = facultyOnlyIds;
         req.cancelEventIdsBySession = cancelEventIdsBySession;
         req.suppressNotifications = suppressNotifications;
         enqueueWork(req);
@@ -208,26 +271,29 @@ public without sharing class SessionCalendarInviteHandler {
         }
         relatedQueriesUsed++;
 
-        Set<Id> publishInviteIds = new Set<Id>();
-        Set<Id> draftInviteIds   = new Set<Id>();
+        Set<Id> bothAudienceIds = new Set<Id>();
+        Set<Id> facultyOnlyIds  = new Set<Id>();
 
         for (Session__c s : [
-            SELECT Id, Schedule_Type__c, Google_Event_Id__c
+            SELECT Id, Schedule_Type__c, Google_Event_Id__c, Faculty_Google_Event_Id__c
             FROM   Session__c
             WHERE  Id IN :unseen
-              AND  Google_Event_Id__c != NULL
+              AND  (Google_Event_Id__c != NULL OR Faculty_Google_Event_Id__c != NULL)
         ]) {
             if (AUDIENCE_ALL.contains(s.Schedule_Type__c) || UPDATE_ONLY.contains(s.Schedule_Type__c)) {
-                publishInviteIds.add(s.Id);
+                bothAudienceIds.add(s.Id);
             } else if (AUDIENCE_FACULTY.contains(s.Schedule_Type__c)) {
-                draftInviteIds.add(s.Id);
+                facultyOnlyIds.add(s.Id);
             }
         }
 
         PushRequest req = new PushRequest();
-        req.publishInviteIds = publishInviteIds;
-        req.draftInviteIds = draftInviteIds;
-        req.suppressNotifications = skipUserNotifications;
+        req.bothAudienceIds = bothAudienceIds;
+        req.facultyOnlyIds = facultyOnlyIds;
+        // Silent unless the user answered Yes in this very transaction. Background flows that move
+        // enrolments or auto-assign divisions must not email the faculty an "Updated invitation"
+        // per related-record save.
+        req.suppressNotifications = (facultyNotifyRequested != true);
         req.patchOnly = true;
         enqueueWork(req);
     }
@@ -240,10 +306,11 @@ public without sharing class SessionCalendarInviteHandler {
         if (suppressInvites || oldMap == null || oldMap.isEmpty()) {
             return;
         }
-        Map<Id, String> cancelEventIdsBySession = new Map<Id, String>();
+        Map<Id, List<String>> cancelEventIdsBySession = new Map<Id, List<String>>();
         for (Session__c s : oldMap.values()) {
-            if (String.isNotBlank(s.Google_Event_Id__c)) {
-                cancelEventIdsBySession.put(s.Id, s.Google_Event_Id__c);
+            List<String> ids = eventIdsOf(s);
+            if (!ids.isEmpty()) {
+                cancelEventIdsBySession.put(s.Id, ids);
             }
         }
 
@@ -321,12 +388,12 @@ public without sharing class SessionCalendarInviteHandler {
      * @param req The work to enqueue.
      */
     private static void enqueueWork(PushRequest req) {
-        Set<Id> pubSet = new Set<Id>(req.publishInviteIds);
-        Set<Id> drfSet = new Set<Id>(req.draftInviteIds);
-        pubSet.removeAll(alreadyEnqueued);
-        drfSet.removeAll(alreadyEnqueued);
+        Set<Id> bothSet = new Set<Id>(req.bothAudienceIds);
+        Set<Id> facSet  = new Set<Id>(req.facultyOnlyIds);
+        bothSet.removeAll(alreadyEnqueued);
+        facSet.removeAll(alreadyEnqueued);
 
-        if (pubSet.isEmpty() && drfSet.isEmpty() && req.cancelEventIdsBySession.isEmpty()) {
+        if (bothSet.isEmpty() && facSet.isEmpty() && req.cancelEventIdsBySession.isEmpty()) {
             return;
         }
 
@@ -334,62 +401,95 @@ public without sharing class SessionCalendarInviteHandler {
             return;
         }
 
-        alreadyEnqueued.addAll(pubSet);
-        alreadyEnqueued.addAll(drfSet);
+        alreadyEnqueued.addAll(bothSet);
+        alreadyEnqueued.addAll(facSet);
 
-        req.publishInviteIds = pubSet;
-        req.draftInviteIds = drfSet;
+        req.bothAudienceIds = bothSet;
+        req.facultyOnlyIds = facSet;
         stampDropped(enqueueChunks(req));
     }
 
     /**
-     * @description Fills queueables with up to MAX_CALLOUTS_PER_JOB sessions each until the work
-     *          is exhausted or the transaction runs out of queueable slots.
+     * @description Fills queueables with up to MAX_CALLOUTS_PER_JOB Google callouts each — two per
+     *          student-facing session, one per Draft, one per event copy being cancelled — until the
+     *          work is exhausted or the transaction runs out of queueable slots.
      * @param req The deduped work being enqueued.
      * @return The session ids that could not be enqueued (empty when everything was sent).
      */
     private static Set<Id> enqueueChunks(PushRequest req) {
-        List<Id> pub = new List<Id>(req.publishInviteIds);
-        List<Id> drf = new List<Id>(req.draftInviteIds);
-        List<Id> can = new List<Id>(req.cancelEventIdsBySession.keySet());
+        List<Id> both = new List<Id>(req.bothAudienceIds);
+        List<Id> fac  = new List<Id>(req.facultyOnlyIds);
+        List<Id> can  = new List<Id>(req.cancelEventIdsBySession.keySet());
 
-        Integer pi = 0;
-        Integer di = 0;
+        Integer bi = 0;
+        Integer fi = 0;
         Integer ci = 0;
         Boolean outOfSlots = false;
-        while (pi < pub.size() || di < drf.size() || ci < can.size()) {
+        while (bi < both.size() || fi < fac.size() || ci < can.size()) {
             if (Limits.getLimitQueueableJobs() - Limits.getQueueableJobs() <= 0) {
                 outOfSlots = true;
                 break;
             }
 
-            Set<Id> chunkPub = new Set<Id>();
-            Set<Id> chunkDrf = new Set<Id>();
-            Map<Id, String> chunkCan = new Map<Id, String>();
-            Integer room = MAX_CALLOUTS_PER_JOB;
+            Set<Id> chunkBoth = new Set<Id>();
+            Set<Id> chunkFac  = new Set<Id>();
+            Map<Id, List<String>> chunkCan = new Map<Id, List<String>>();
 
-            while (room > 0 && pi < pub.size()) { chunkPub.add(pub[pi]); pi++; room--; }
-            while (room > 0 && di < drf.size()) { chunkDrf.add(drf[di]); di++; room--; }
-            while (room > 0 && ci < can.size()) {
-                Id cid = can[ci];
-                chunkCan.put(cid, req.cancelEventIdsBySession.get(cid));
-                ci++; room--;
+            // Budget counts CALLOUTS, not sessions: a student-facing session pushes two events
+            // (faculty copy + student copy) and a cancellation deletes however many copies exist.
+            Integer room = MAX_CALLOUTS_PER_JOB;
+            while (room >= 2 && bi < both.size()) { chunkBoth.add(both[bi]); bi++; room -= 2; }
+            while (room >= 1 && fi < fac.size())  { chunkFac.add(fac[fi]);   fi++; room -= 1; }
+            while (ci < can.size()) {
+                Integer cost = cancelCost(req, can[ci]);
+                if (cost > room && !chunkCan.isEmpty()) {
+                    break;
+                }
+                chunkCan.put(can[ci], req.cancelEventIdsBySession.get(can[ci]));
+                ci++;
+                room -= cost;
             }
 
             System.enqueueJob(
                 new SessionCalendarInviteQueueable(
-                    chunkPub, chunkDrf, chunkCan, req.suppressNotifications, req.patchOnly
+                    chunkBoth, chunkFac, chunkCan, req.suppressNotifications, req.patchOnly
                 )
             );
         }
 
+        return outOfSlots
+            ? remainingFrom(
+                new List<List<Id>>{ both, fac, can }, new List<Integer>{ bi, fi, ci })
+            : new Set<Id>();
+    }
+
+    /**
+     * @description Collects the ids each work list still had left when the transaction ran out of
+     *          queueable slots, so they can be stamped Failed rather than vanish.
+     * @param lists The work lists being drained.
+     * @param cursors How far each list got, positionally matching lists.
+     * @return Every id not yet enqueued.
+     */
+    private static Set<Id> remainingFrom(List<List<Id>> lists, List<Integer> cursors) {
         Set<Id> dropped = new Set<Id>();
-        if (outOfSlots) {
-            for (Integer i = pi; i < pub.size(); i++) { dropped.add(pub[i]); }
-            for (Integer i = di; i < drf.size(); i++) { dropped.add(drf[i]); }
-            for (Integer i = ci; i < can.size(); i++) { dropped.add(can[i]); }
+        for (Integer li = 0; li < lists.size(); li++) {
+            List<Id> ids = lists[li];
+            for (Integer i = cursors[li]; i < ids.size(); i++) {
+                dropped.add(ids[i]);
+            }
         }
         return dropped;
+    }
+
+    /**
+     * @description How many delete callouts one cancelled session costs — one per event copy.
+     * @param req The work being chunked.
+     * @param sessionId The cancelled session.
+     * @return The number of callouts needed.
+     */
+    private static Integer cancelCost(PushRequest req, Id sessionId) {
+        List<String> ids = req.cancelEventIdsBySession.get(sessionId);
+        return (ids != null) ? ids.size() : 0;
     }
 
     /**

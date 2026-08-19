@@ -12,7 +12,7 @@ public with sharing class ApplicationSlotBookingTriggerHandler {
     public void afterInsert(List<ApplicationSlotBooking__c> newList, Map<Id,ApplicationSlotBooking__c> newMap) {
         ApplicationSlotBookingTriggerHelper.updateSlotBookedCapacity(newMap);
         ApplicationSlotBookingTriggerHelper.updateApplicationStateManagement(newList);
-        SharingOrchestrator.handleRecords('ApplicationSlotBooking__c', newMap.keySet());
+        //SharingOrchestrator.handleRecords('ApplicationSlotBooking__c', newMap.keySet());
        // ApplicationSlotBookingTriggerHelper.checkForDuplicateRounds(newList,newMap);
      //    ApplicationSlotBookingTriggerHelper.processEvaluations(newList, null);
         

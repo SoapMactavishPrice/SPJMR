@@ -1,4 +1,8 @@
 // Approval history — each decision is a permanent separate row (Incomplete never overwritten).
+@SuppressWarnings('PMD.ApexCRUDViolation')
+// Justification: system-context history builder. It reads approval process/step setup data and
+// writes Approval_History__c audit rows on behalf of students and approvers alike, so it must not
+// depend on the running user's object permissions.
 public without sharing class LeaveApprovalHistoryController {
 
     // =========================================================
@@ -24,11 +28,13 @@ public without sharing class LeaveApprovalHistoryController {
         }
 
         Leave_Application__c leave = [
-            SELECT Current_Role_Name__c, Status__c, Approver_Remarks__c, CreatedBy.Name
+            SELECT Current_Role_Name__c, Status__c, Approver_Remarks__c, CreatedBy.Name,
+                   Batch_Enrollment__c, Term_Enrollment__c
             FROM Leave_Application__c
             WHERE Id = :leaveId
             LIMIT 1
         ];
+        Id leaveProgramId = LeaveApproverResolver.resolveProgramId(leave);
 
         List<Approval_History__c> history = [
             SELECT Step_Name__c, Date__c, Status__c, Assigned_To__c, Approved_By__c, Remark__c, CreatedDate
@@ -65,7 +71,7 @@ public without sharing class LeaveApprovalHistoryController {
                 row.stepDate   = h.Date__c != null ? h.Date__c : h.CreatedDate;
                 row.status     = h.Status__c;
                 // Never show auto names like User176… — use real names
-                row.assignedTo = resolveAssignedToDisplay(h.Assigned_To__c, h.Step_Name__c);
+                row.assignedTo = resolveAssignedToDisplay(h.Assigned_To__c, h.Step_Name__c, leaveProgramId);
                 row.approvedBy = resolvePersonNameDisplay(h.Approved_By__c);
                 // Prefer permanently stored per-step remark (works for Incomplete)
                 row.remark     = String.isNotBlank(h.Remark__c) ? h.Remark__c : '';
@@ -114,14 +120,17 @@ public without sharing class LeaveApprovalHistoryController {
                 incompleteRow.stepDate   = System.now();
                 incompleteRow.approvedBy = '';
                 incompleteRow.remark     = leave.Approver_Remarks__c;
-                incompleteRow.assignedTo = getAssignedNamesForStep(leave.Current_Role_Name__c + ' Verification');
+                incompleteRow.assignedTo = getAssignedNamesForStep(
+                    leave.Current_Role_Name__c + ' Verification',
+                    leaveProgramId
+                );
                 rows.add(incompleteRow);
             }
 
             return rows;
         }
 
-        return buildFromProcessInstance(leaveId, leave);
+        return buildFromProcessInstance(leaveId, leave, leaveProgramId);
     }
 
     private static Boolean hasOpenIncompleteOrPending(List<ApprovalHistoryRow> rows, String stepName) {
@@ -157,7 +166,8 @@ public without sharing class LeaveApprovalHistoryController {
 
     private static List<ApprovalHistoryRow> buildFromProcessInstance(
         Id leaveId,
-        Leave_Application__c leave
+        Leave_Application__c leave,
+        Id leaveProgramId
     ) {
         List<ApprovalHistoryRow> rows = new List<ApprovalHistoryRow>();
 
@@ -217,16 +227,10 @@ public without sharing class LeaveApprovalHistoryController {
             }
 
             if (String.isNotBlank(roleName)) {
-                List<Id> userIds = new List<Id>();
-                for (Program_Team_Members__c ptm : [
-                    SELECT User__c
-                    FROM Program_Team_Members__c
-                    WHERE Role__c = :roleName
-                    AND User__c != null
-                ]) {
-                    userIds.add(ptm.User__c);
-                }
-                row.assignedTo = getUserNames(userIds);
+                // Programme-scoped: only approvers of this student's own programme.
+                row.assignedTo = getUserNames(
+                    LeaveApproverResolver.getApprovers(leaveProgramId, roleName)
+                );
             }
 
             row.stepDate   = step.CreatedDate;
@@ -253,16 +257,9 @@ public without sharing class LeaveApprovalHistoryController {
                 openRow.status = 'Pending';
             }
 
-            List<Id> userIds = new List<Id>();
-            for (Program_Team_Members__c ptm : [
-                SELECT User__c
-                FROM Program_Team_Members__c
-                WHERE Role__c = :leave.Current_Role_Name__c
-                AND User__c != null
-            ]) {
-                userIds.add(ptm.User__c);
-            }
-            openRow.assignedTo = getUserNames(userIds);
+            openRow.assignedTo = getUserNames(
+                LeaveApproverResolver.getApprovers(leaveProgramId, leave.Current_Role_Name__c)
+            );
             rows.add(openRow);
         }
 
@@ -291,7 +288,7 @@ public without sharing class LeaveApprovalHistoryController {
         rec.Status__c      = 'Pending';
         rec.Date__c        = System.now();
         // Prefer team-member names by role (avoids User176… labels); fall back to Id lookup
-        String roleNames = getAssignedNamesForStep(stepName);
+        String roleNames = getAssignedNamesForStep(stepName, programIdFor(leaveId));
         rec.Assigned_To__c = String.isNotBlank(roleNames)
             ? roleNames
             : getUserNames(assignedToIds);
@@ -312,7 +309,7 @@ public without sharing class LeaveApprovalHistoryController {
         String approverName = approverId != null
             ? getUserNames(new List<Id>{ approverId })
             : '';
-        String assignedNames = getAssignedNamesForStep(stepName);
+        String assignedNames = getAssignedNamesForStep(stepName, programIdFor(leaveId));
 
         // Close open Pending for this step (delete — do not convert Pending→Incomplete on same row)
         List<Approval_History__c> openPending = [
@@ -381,7 +378,7 @@ public without sharing class LeaveApprovalHistoryController {
             rec.Status__c      = status;
             rec.Date__c        = System.now();
             rec.Approved_By__c = approverName;
-            rec.Assigned_To__c = getAssignedNamesForStep(stepName);
+            rec.Assigned_To__c = getAssignedNamesForStep(stepName, programIdFor(leaveId));
             rec.Remark__c      = remark;
             insert rec;
             return;
@@ -399,7 +396,22 @@ public without sharing class LeaveApprovalHistoryController {
         update rec;
     }
 
-    private static String getAssignedNamesForStep(String stepName) {
+    /** Programme of a leave application, for programme-scoped approver name lookups. */
+    private static Id programIdFor(Id leaveId) {
+        if (leaveId == null) {
+            return null;
+        }
+        List<Leave_Application__c> leaves = [
+            SELECT Batch_Enrollment__c, Term_Enrollment__c
+            FROM Leave_Application__c
+            WHERE Id = :leaveId
+            LIMIT 1
+        ];
+        return leaves.isEmpty() ? null : LeaveApproverResolver.resolveProgramId(leaves[0]);
+    }
+
+    /** Approver names for a step, restricted to the approvers of that leave's own programme. */
+    private static String getAssignedNamesForStep(String stepName, Id programId) {
         if (String.isBlank(stepName)) {
             return '';
         }
@@ -414,28 +426,19 @@ public without sharing class LeaveApprovalHistoryController {
         if (String.isBlank(roleName)) {
             return '';
         }
-        List<Id> userIds = new List<Id>();
-        for (Program_Team_Members__c ptm : [
-            SELECT User__c
-            FROM Program_Team_Members__c
-            WHERE Role__c = :roleName
-            AND User__c != null
-        ]) {
-            userIds.add(ptm.User__c);
-        }
-        return getUserNames(userIds);
+        return getUserNames(LeaveApproverResolver.getApprovers(programId, roleName));
     }
 
     /** Replace stored User176… labels with real names from the step's team role. */
-    private static String resolveAssignedToDisplay(String stored, String stepName) {
+    private static String resolveAssignedToDisplay(String stored, String stepName, Id programId) {
         if (looksLikeGeneratedUserLabel(stored)) {
-            String fromRole = getAssignedNamesForStep(stepName);
+            String fromRole = getAssignedNamesForStep(stepName, programId);
             if (String.isNotBlank(fromRole)) {
                 return fromRole;
             }
         }
         if (String.isBlank(stored)) {
-            String fromRole = getAssignedNamesForStep(stepName);
+            String fromRole = getAssignedNamesForStep(stepName, programId);
             if (String.isNotBlank(fromRole)) {
                 return fromRole;
             }

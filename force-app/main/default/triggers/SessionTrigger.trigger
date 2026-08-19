@@ -21,10 +21,10 @@ trigger SessionTrigger on Session__c (before insert, before update, after update
 
     if (Trigger.isAfter && Trigger.isUpdate) {
 
-        // SessionTriggerHandler.handleScheduleTypePublished(
-        //     (Map<Id, Session__c>) Trigger.newMap,
-        //     (Map<Id, Session__c>) Trigger.oldMap
-        // );
+         SessionTriggerHandler.handleScheduleTypePublished(
+           (Map<Id, Session__c>) Trigger.newMap,
+           (Map<Id, Session__c>) Trigger.oldMap
+         );
 
         // Missed Sessions: a rescheduled or republished session that no longer falls inside
         // a student's leave period must drop off that Leave Application. Calls the service

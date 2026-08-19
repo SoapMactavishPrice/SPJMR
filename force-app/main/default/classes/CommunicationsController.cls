@@ -12,6 +12,10 @@ public with sharing class CommunicationsController {
 
         OFFER_AVAILABLE,
 
+        OFFER_WAITLISTED,
+
+        OFFER_NOT_ELIGIBLE,
+
         OFFER_ACCEPTED,
 
         OFFER_WITHDRAWN,

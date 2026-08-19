@@ -184,8 +184,9 @@ export default class TimetableCalendar extends LightningElement {
     @track publishToDate = '';
     @track isPublishingSessions = false;
 
-    /** Send-notifications confirmation, shown before Create/Publish/Republish actually saves. */
     @track showFacultyNotifyModal = false;
+    @track isPublishNotifyPrompt = false;
+    @track isRepublishNotifyPrompt = false;
     facultyNotifyResolve = null;
 
     // Event form fields
@@ -267,12 +268,18 @@ export default class TimetableCalendar extends LightningElement {
         return this.isAllDivisionsSelected;
     }
 
-    get saveSessionButtonLabel() {
-        if (!this.isEditMode || !this.selectedEventId) return 'Save Session';
+    // True when the session being edited is already published, so saving it republishes it.
+    // Drives both the button label and which copy the notification prompt shows, because a
+    // republish notifies a different audience than a create or a draft edit.
+    get isRepublishSave() {
+        if (!this.isEditMode || !this.selectedEventId) return false;
         const editingEvent = this.findEventRowForSession(this.selectedEventId, this.clickedTileDivisionId);
         const scheduleType = editingEvent && editingEvent.scheduleType ? String(editingEvent.scheduleType).toLowerCase() : '';
-        const isPublishedLike = scheduleType === 'published' || scheduleType === 'republished';
-        return isPublishedLike ? 'Republish Session' : 'Save Session';
+        return scheduleType === 'published' || scheduleType === 'republished';
+    }
+
+    get saveSessionButtonLabel() {
+        return this.isRepublishSave ? 'Republish Session' : 'Save Session';
     }
 
     // Division context of the session we're editing (the division of the tile user clicked, so we exclude it from "Existing Session Divisions")
@@ -2521,8 +2528,6 @@ export default class TimetableCalendar extends LightningElement {
                 this.buildProposedConflictContextForPayload(sourceEvent, divisionId, divisionIds,sourceEvent.selectedAssignmentKeys)
             ),
             ignoreConflicts: sourceEvent.ignoreConflicts === true || this.pendingConflictOverride === true,
-            // Faculty notification confirmation (Create/Publish/Republish popup). Defaults to true
-            // (send) so callers that don't set it — e.g. drag/drop reschedule — keep existing behavior.
             sendNotifications: sourceEvent.sendNotifications !== false
         };
         return payload;
@@ -4323,11 +4328,13 @@ if (mergedPrograms.length > 0) {
         this.showPublishModal = false;
     }
 
-    /**
-     * Shows the "send email/notification to faculty?" confirmation and resolves
-     * true (Yes) or false (No) once the user picks. Used by Create/Republish/Publish saves.
-     */
-    promptSendFacultyNotifications() {
+    get isPlainNotifyPrompt() {
+        return !this.isPublishNotifyPrompt && !this.isRepublishNotifyPrompt;
+    }
+
+    promptSendFacultyNotifications(isPublish, isRepublish) {
+        this.isPublishNotifyPrompt = isPublish === true;
+        this.isRepublishNotifyPrompt = isPublish !== true && isRepublish === true;
         this.showFacultyNotifyModal = true;
         return new Promise((resolve) => {
             this.facultyNotifyResolve = resolve;
@@ -4405,9 +4412,9 @@ if (mergedPrograms.length > 0) {
         scheduleTypes.push('Published');
         }
 
-        const sendNotifications = await this.promptSendFacultyNotifications();
+        const sendNotifications = await this.promptSendFacultyNotifications(true);
         if (sendNotifications === null) {
-            return; // Closed via X — publish cancelled, no decision was made.
+            return;
         }
 
         const filterPayload = {
@@ -6105,7 +6112,7 @@ if (mergedPrograms.length > 0) {
         const sendNotifications = await this.promptSendFacultyNotifications();
         if (sendNotifications === null) {
             this.isSaving = false;
-            return; // Closed via X — save cancelled, no decision was made.
+            return;
         }
 
         for (const session of mergedSessions) {
@@ -6433,9 +6440,9 @@ if (mergedPrograms.length > 0) {
             return;
         }
 
-        const sendNotifications = await this.promptSendFacultyNotifications();
+        const sendNotifications = await this.promptSendFacultyNotifications(false, this.isRepublishSave);
         if (sendNotifications === null) {
-            return; // Closed via X — save cancelled, no decision was made.
+            return;
         }
 
         const editingEvent = this.isEditMode && this.selectedEventId

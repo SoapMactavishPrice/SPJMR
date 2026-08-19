@@ -1,48 +1,67 @@
-public class LeaveApplicationTriggerHandler {
+/**
+ * @description Trigger handler for Leave_Application__c: seeds the first approval step on insert
+ * and marks the leave's sessions as Sanctioned Leave once the leave is finally approved.
+ */
+@SuppressWarnings('PMD.ApexCRUDViolation')
+// Justification: system-context trigger handler. Routing and attendance sync must run regardless of
+// the submitting student's access to programme team setup or to other students' session enrollments.
+public without sharing class LeaveApplicationTriggerHandler {
 
     private static final Set<String> FINAL_APPROVED_STATUSES = new Set<String>{
         'Approved',
         'Approved - Eligible for Makeup',
         'Approved - Not Eligible for Makeup'
     };
-    
-    /** Active Programme Office users, for assigning the first approval step. */
-    private static List<Id> getProgrammeOfficeUsers() {
 
-        List<Id> userIds = new List<Id>();
+    private static final String ROLE_PROGRAMME_OFFICE = 'Programme Office';
 
-        for(Program_Team_Members__c ptm : [
-            SELECT User__c
-            FROM Program_Team_Members__c
-            WHERE Role__c = 'Programme Office'
-            AND User__c != null
-        ]){
-            userIds.add(ptm.User__c);
-        }
-
-        return userIds;
-    }
-
-    /** Initializes a new leave request into the first approval step. */
+    /**
+     * @description Initializes a new leave request into the first approval step, resolving the
+     * Programme Office approvers of the student's own programme rather than every Programme
+     * Office user in the org.
+     * @param newRecords Leave applications being inserted.
+     */
     public static void beforeInsert(List<Leave_Application__c> newRecords) {
 
-        List<Id> poUserIds = getProgrammeOfficeUsers();
+        // Programme is derived per record; index i of programIds matches index i of newRecords.
+        List<Id> programIds = LeaveApproverResolver.resolveProgramIds(newRecords);
 
-        for (Leave_Application__c rec : newRecords) {
+        Set<Id> distinctProgramIds = new Set<Id>();
+        for (Id programId : programIds) {
+            if (programId != null) {
+                distinctProgramIds.add(programId);
+            }
+        }
+
+        Map<Id, List<Id>> poByProgram =
+            LeaveApproverResolver.getApproversByProgram(distinctProgramIds, ROLE_PROGRAMME_OFFICE);
+
+        for (Integer i = 0; i < newRecords.size(); i++) {
+            Leave_Application__c rec = newRecords[i];
             rec.Status__c            = 'Submitted - Pending Approval';
-            rec.Current_Role_Name__c = 'Programme Office';
+            rec.Current_Role_Name__c = ROLE_PROGRAMME_OFFICE;
             rec.Route_to_Deputy__c   = false;
 
-            if(!poUserIds.isEmpty()){
+            List<Id> poUserIds = poByProgram.get(programIds[i]);
+            if (poUserIds != null && !poUserIds.isEmpty()) {
                 rec.Current_Approver_User__c = poUserIds[0];
             }
         }
     }
 
-    /** No-op: submission is handled by LeaveSubmissionController.SubmitLeaveJob. */
+    /**
+     * @description No-op: submission is handled by LeaveSubmissionController.SubmitLeaveJob.
+     * @param newRecords Leave applications that were inserted.
+     */
+    @SuppressWarnings('PMD.EmptyStatementBlock')
     public static void afterInsert(List<Leave_Application__c> newRecords) {
     }
 
+    /**
+     * @description Re-syncs missed sessions for leaves whose date window moved.
+     * @param newList Leave applications after update.
+     * @param oldMap Leave applications before update, by Id.
+     */
     private static void resyncChangedLeaveWindows(
         List<Leave_Application__c> newList,
         Map<Id, Leave_Application__c> oldMap
@@ -67,7 +86,11 @@ public class LeaveApplicationTriggerHandler {
         }
     }
 
-    /** On final approval, marks the leave's sessions Sanctioned Leave via Missed_Sessions__c. */
+    /**
+     * @description On final approval, marks the leave's sessions Sanctioned Leave via Missed_Sessions__c.
+     * @param newList Leave applications after update.
+     * @param oldMap Leave applications before update, by Id.
+     */
     public static void afterUpdate(List<Leave_Application__c> newList, Map<Id, Leave_Application__c> oldMap) {
 
         if (newList == null || newList.isEmpty() || oldMap == null || oldMap.isEmpty()) {

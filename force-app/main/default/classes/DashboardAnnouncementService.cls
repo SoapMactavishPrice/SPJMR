@@ -11,6 +11,14 @@ public with sharing class DashboardAnnouncementService {
         'Withdrawn'
     };
 
+    private static final Set<String> NOT_ELIGIBLE_STATES = new Set<String>{
+        'Disqualified', 'Reject Round 1', 'Reject Round 2'
+    };
+
+    private static final Set<String> WAITLISTED_STATES = new Set<String>{
+        'Waitlisted'
+    };
+
     public static List<CommunicationsController.DashboardAnnouncement> getAnnouncements(
         Id applicationId
     ) {
@@ -153,6 +161,18 @@ public with sharing class DashboardAnnouncementService {
             );
         }
 
+        if (hasOfferWaitlisted(application)) {
+            scenarios.add(
+                CommunicationsController.CommunicationScenario.OFFER_WAITLISTED
+            );
+        }
+
+        if (hasOfferNotEligible(application)) {
+            scenarios.add(
+                CommunicationsController.CommunicationScenario.OFFER_NOT_ELIGIBLE
+            );
+        }
+
         return scenarios;
     }
 
@@ -194,6 +214,56 @@ public with sharing class DashboardAnnouncementService {
 
         return decision != null
             && decision.Result__c == 'Eligible for Admission';
+    }
+
+    private static Boolean hasOfferWaitlisted(
+        Application__c application
+    ) {
+        if (application == null) {
+            return false;
+        }
+
+        if (!WAITLISTED_STATES.contains(application.Applicant_State_Management__c)) {
+            return false;
+        }
+
+        if (
+            application.Admission_Decisions__r == null ||
+            application.Admission_Decisions__r.isEmpty()
+        ) {
+            return false;
+        }
+
+        Admission_Decision__c decision =
+            application.Admission_Decisions__r[0];
+
+        return decision != null
+            && decision.Result__c == 'Waitlisted';
+    }
+
+    private static Boolean hasOfferNotEligible(
+        Application__c application
+    ) {
+        if (application == null) {
+            return false;
+        }
+
+        if (!NOT_ELIGIBLE_STATES.contains(application.Applicant_State_Management__c)) {
+            return false;
+        }
+
+        if (
+            application.Admission_Decisions__r == null ||
+            application.Admission_Decisions__r.isEmpty()
+        ) {
+            return false;
+        }
+
+        Admission_Decision__c decision =
+            application.Admission_Decisions__r[0];
+
+        return decision != null
+            && decision.Result__c == 'Not Eligible';
     }
 
     private static CommunicationsController.DashboardAnnouncement buildAnnouncement(

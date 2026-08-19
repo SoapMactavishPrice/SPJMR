@@ -39,13 +39,11 @@ private class SessionCalendarInviteHandlerTest {
         return false;
     }
 
-    /** True if any calendar create/update body has a non-empty attendees array. */
     private static Boolean sawNonEmptyAttendeesInBody() {
         for (String body : capturedBodies) {
             if (String.isBlank(body) || !body.contains('attendees')) {
                 continue;
             }
-            // Empty list looks like "attendees":[] (optional spaces)
             if (body.contains('"attendees":[]') || body.contains('"attendees": []')) {
                 continue;
             }
@@ -127,9 +125,13 @@ private class SessionCalendarInviteHandlerTest {
             update s;
             Test.stopTest();
 
-            Session__c after = [SELECT Google_Event_Id__c, Calendar_Sync_Status__c,
+            Session__c after = [SELECT Google_Event_Id__c, Faculty_Google_Event_Id__c,
+                                       Calendar_Sync_Status__c,
                                        Calendar_Last_Synced__c FROM Session__c WHERE Id = :s.Id];
-            System.assertEquals('evt_123', after.Google_Event_Id__c, 'event id should be written back');
+            System.assertEquals('evt_123', after.Faculty_Google_Event_Id__c,
+                'A Draft creates the FACULTY copy of the event, so its id lands in the faculty field.');
+            System.assertEquals(null, after.Google_Event_Id__c,
+                'A Draft has no students enrolled yet, so no student copy may be created.');
             System.assertEquals('Synced', after.Calendar_Sync_Status__c);
             System.assertNotEquals(null, after.Calendar_Last_Synced__c);
         }
@@ -149,8 +151,15 @@ private class SessionCalendarInviteHandlerTest {
             update s;
             Test.stopTest();
 
-            Session__c after = [SELECT Calendar_Sync_Status__c FROM Session__c WHERE Id = :s.Id];
+            Session__c after = [SELECT Calendar_Sync_Status__c, Google_Event_Id__c
+                                FROM Session__c WHERE Id = :s.Id];
             System.assertEquals('Synced', after.Calendar_Sync_Status__c);
+            System.assert(sawEventCalloutWith('pre_existing_evt'),
+                'A pre-split Draft event was faculty-only, so it must be PATCHed as the faculty copy '
+                + 'rather than abandoned and recreated.');
+            System.assertEquals(null, after.Google_Event_Id__c,
+                'Migrating the legacy id must clear the student field, which never held a student '
+                + 'copy for a Draft.');
         }
     }
 
@@ -167,10 +176,13 @@ private class SessionCalendarInviteHandlerTest {
             update s;
             Test.stopTest();
 
-            Session__c after = [SELECT Calendar_Sync_Status__c, Google_Event_Id__c
+            Session__c after = [SELECT Calendar_Sync_Status__c, Google_Event_Id__c,
+                                       Faculty_Google_Event_Id__c
                                 FROM Session__c WHERE Id = :s.Id];
             System.assertEquals('Cancelled', after.Calendar_Sync_Status__c);
             System.assertEquals(null, after.Google_Event_Id__c, 'event id cleared so re-publish creates fresh');
+            System.assertEquals(null, after.Faculty_Google_Event_Id__c,
+                'Both copies must be cleared, or a re-publish would patch a deleted faculty event.');
         }
     }
 
@@ -279,12 +291,12 @@ private class SessionCalendarInviteHandlerTest {
                 new Set<Id>{ s.Id }, new Set<Id>()));
             Test.stopTest();
 
-            Session__c after = [SELECT Calendar_Sync_Status__c, Google_Event_Id__c
+            Session__c after = [SELECT Calendar_Sync_Status__c, Faculty_Google_Event_Id__c
                                 FROM Session__c WHERE Id = :s.Id];
             System.assertEquals('Synced', after.Calendar_Sync_Status__c,
                 'Publish via the legacy constructor should sync the event');
-            System.assertEquals('evt_123', after.Google_Event_Id__c,
-                'Created event id should be written back');
+            System.assertEquals('evt_123', after.Faculty_Google_Event_Id__c,
+                'With no students enrolled only the faculty copy is created, so its id is stamped');
         }
     }
 
@@ -322,7 +334,7 @@ private class SessionCalendarInviteHandlerTest {
             Test.startTest();
             System.enqueueJob(new SessionCalendarInviteQueueable(
                 new Set<Id>(), new Set<Id>(),
-                new Map<Id, String>{ s.Id => 'evt_cancel_fail' }));
+                new Map<Id, List<String>>{ s.Id => new List<String>{ 'evt_cancel_fail' } }));
             Test.stopTest();
 
             Session__c after = [SELECT Calendar_Sync_Status__c FROM Session__c WHERE Id = :s.Id];
@@ -348,36 +360,22 @@ private class SessionCalendarInviteHandlerTest {
             SessionCalendarInviteHandler.skipUserNotifications = false;
             Test.stopTest();
 
-            Session__c after = [SELECT Calendar_Sync_Status__c, Google_Event_Id__c
+            Session__c after = [SELECT Calendar_Sync_Status__c, Faculty_Google_Event_Id__c
                                 FROM Session__c WHERE Id = :s.Id];
             System.assertEquals('Synced', after.Calendar_Sync_Status__c,
                 'Choosing "No" must still create the Google Calendar event.');
-            System.assertNotEquals(null, after.Google_Event_Id__c,
+            System.assertNotEquals(null, after.Faculty_Google_Event_Id__c,
                 'The event id must be stamped even when notifications are suppressed.');
             System.assert(sawEventCalloutWith('sendUpdates=none'),
                 'The callout must use sendUpdates=none so Google emails nobody.');
             System.assert(!sawEventCalloutWith('sendUpdates=all'),
                 'No callout may use sendUpdates=all when the user chose "No".');
-            // EXPECTATION CHANGED (calendar notification ticket). This previously asserted that a
-            // suppressed create must NOT attach faculty, an abandoned workaround that tried to make
-            // faculty "new guests" at publish time so Google would email them.
-            //
-            // The agreed requirement is the opposite: creating with "No" must put the event on the
-            // faculty member's calendar with no email (so they can see it), and publishing with
-            // "Yes" must then send them an *Updated* invitation. Both require faculty to be guests
-            // from the Draft push onwards. Silence is achieved by sendUpdates=none (asserted
-            // above), not by withholding guests.
             System.assertEquals(true, sawNonEmptyAttendeesInBody(),
                 'Creating with "No" must still attach faculty as guests so the event lands on their '
                 + 'calendar; only the email is suppressed. BODIES=' + String.join(capturedBodies, ' || '));
         }
     }
 
-    /**
-     * Ticket path: silent Draft event already exists (no guests / no mail).
-     * Notify=Yes (publish audience) must send faculty in the payload with sendUpdates=all.
-     * Guests-omitted-on-No is covered by skipUserNotificationsStillSyncsButSuppressesEmails.
-     */
     @IsTest
     static void draftNoThenPublishYesIncludesFacultyAndSendsAll() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -395,7 +393,6 @@ private class SessionCalendarInviteHandlerTest {
             capturedBodies.clear();
 
             Test.startTest();
-            // Simulate publish+Yes: full audience, notifications not suppressed
             System.enqueueJob(new SessionCalendarInviteQueueable(
                 new Set<Id>{ s.Id },
                 new Set<Id>(),
@@ -448,27 +445,18 @@ private class SessionCalendarInviteHandlerTest {
                 'sendNotifications=false must still sync the event to Google Calendar.');
             System.assert(sawEventCalloutWith('sendUpdates=none'),
                 'Publishing with sendNotifications=false must use sendUpdates=none.');
+            System.assert(!sawEventCalloutWith('sendUpdates=all'),
+                'Answering No must not notify anybody, on either copy of the event.');
             System.assertEquals(false, SessionCalendarInviteHandler.skipUserNotifications,
                 'The guard flag must be reset once the publish DML completes.');
         }
     }
 
-    /**
-     * @description Publishing now ALWAYS suppresses the per-session Google emails, whatever the
-     *          modal answer was: Google sends one invitation per event, so a multi-session publish
-     *          flooded every student. The Yes answer is served instead by the single consolidated
-     *          email from SessionPublishSummaryEmailQueueable, covered in
-     *          SessionPublishSummaryEmailTest. The event itself must still sync.
-     */
     @IsTest
-    static void publishSessionsDefaultSyncsSilently() {
+    static void publishYesNotifiesFacultyOnTheirOwnEvent() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             seedConfig();
             Test.setMock(HttpCalloutMock.class, new Mock());
-            // Default (no answer) counts as Yes, so publishing enqueues the consolidated summary
-            // email. That job insists on a verified org-wide sender, which no test run has, so the
-            // requirement is switched off here — this test is about the calendar callout, and the
-            // sender rule itself is asserted in SessionPublishSummaryEmailTest.
             SessionPublishSummaryEmailQueueable.requireVerifiedSender = false;
 
             Session__c s = newSession('Draft', null);
@@ -483,23 +471,54 @@ private class SessionCalendarInviteHandlerTest {
             filter.endDate = Date.today().addDays(2);
 
             capturedEndpoints.clear();
+            capturedBodies.clear();
 
             Test.startTest();
             TimetableSessionController.publishSessions(JSON.serialize(filter));
             Test.stopTest();
 
-            Session__c after = [SELECT Calendar_Sync_Status__c FROM Session__c WHERE Id = :s.Id];
+            Session__c after = [SELECT Calendar_Sync_Status__c, Faculty_Google_Event_Id__c
+                                FROM Session__c WHERE Id = :s.Id];
             System.assertEquals('Synced', after.Calendar_Sync_Status__c,
-                'Default (sendNotifications unset) must preserve existing publish-sync behavior.');
-            System.assert(sawEventCalloutWith('sendUpdates=none'),
-                'Publishing must always use sendUpdates=none: the per-session Google invitation '
-                + 'emails are replaced by one consolidated summary email.');
-            System.assert(!sawEventCalloutWith('sendUpdates=all'),
-                'No publish callout may use sendUpdates=all, or students get one email per session.');
+                'Publishing with Yes must still sync the event to Google Calendar.');
+            System.assertNotEquals(null, after.Faculty_Google_Event_Id__c,
+                'Publishing must give the faculty their own event to be notified on.');
+            System.assert(sawEventCalloutWith('sendUpdates=all'),
+                'Publishing with Yes must use sendUpdates=all so faculty get an invitation email.');
+            System.assert(sawEventBodyWith('facPublishYes@example.com'),
+                'The faculty copy must attach faculty as a guest. Bodies='
+                + String.join(capturedBodies, ' || '));
+            System.assertEquals(false, SessionCalendarInviteHandler.facultyNotifyRequested,
+                'The guard flag must be reset once the publish DML completes.');
         }
     }
 
-    /** @description Counts how many calendar event callouts (not token calls) were made. */
+    @IsTest
+    static void notifyingPushCarriesOnlyFaculty() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            seedConfig();
+            Test.setMock(HttpCalloutMock.class, new Mock());
+
+            Session__c s = syncedSession('Published', 'evt_students_silent');
+            addFaculty(s.Id, 'facSilentStudents@example.com');
+
+            capturedEndpoints.clear();
+            capturedBodies.clear();
+
+            Test.startTest();
+            System.enqueueJob(new SessionCalendarInviteQueueable(
+                new Set<Id>{ s.Id }, new Set<Id>(), null, false, false
+            ));
+            Test.stopTest();
+
+            System.assert(sawEventCalloutWith('sendUpdates=all'),
+                'The faculty copy must notify, otherwise faculty get no invitation.');
+            System.assert(!sawEventBodyWith('@student'),
+                'No student may ever be a guest on the notifying copy, or Google emails them once '
+                + 'per session. Bodies=' + String.join(capturedBodies, ' || '));
+        }
+    }
+
     private static Integer eventCalloutCount() {
         Integer n = 0;
         for (String endpoint : capturedEndpoints) {
@@ -510,24 +529,20 @@ private class SessionCalendarInviteHandlerTest {
         return n;
     }
 
-    /**
-     * @description Counts only the calendar calls that CHANGE the event, i.e. one per logical
-     *          push. A PATCH costs two calendar callouts, because GoogleCalendarService first
-     *          GETs the event to preserve each existing guest's responseStatus, and only the
-     *          mutating call carries a request body.
-     * @return The number of POST/PATCH calls made to the Calendar API.
-     */
     private static Integer mutatingEventCalloutCount() {
         return capturedBodies.size();
     }
 
-    /**
-     * @description Creates a session that is already synced to Google, without letting the
-     *          insert itself fire a push.
-     * @param status The Schedule_Type__c to give the session.
-     * @param eventId The Google event id to pretend it already has.
-     * @return The inserted session.
-     */
+    private static Session__c splitSession(String status, String studentEventId, String facultyEventId) {
+        Session__c s = newSession(status, studentEventId);
+        s.Faculty_Google_Event_Id__c = facultyEventId;
+        s.Session_Date__c = Date.today().addDays(1);
+        SessionCalendarInviteHandler.suppressInvites = true;
+        insert s;
+        SessionCalendarInviteHandler.suppressInvites = false;
+        return s;
+    }
+
     private static Session__c syncedSession(String status, String eventId) {
         Session__c s = newSession(status, eventId);
         s.Session_Date__c = Date.today().addDays(1);
@@ -537,19 +552,13 @@ private class SessionCalendarInviteHandlerTest {
         return s;
     }
 
-    /**
-     * @description Fix 1 — the publish PATCH must carry the schedule status in the event body.
-     *          Without it the Draft -> Published PATCH is byte-identical for the faculty already
-     *          on the event (their responseStatus is deliberately re-sent unchanged), so Google
-     *          has no change to announce and they receive no "Updated invitation" at all.
-     */
     @IsTest
     static void publishBodyCarriesPublishedStatusSoFacultyGetAnUpdate() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
             seedConfig();
             Test.setMock(HttpCalloutMock.class, new Mock());
 
-            Session__c s = syncedSession('Published', 'evt_status_line');
+            Session__c s = splitSession('Published', 'evt_status_line_students', 'evt_status_line_faculty');
             addFaculty(s.Id, 'facStatusLine@example.com');
 
             capturedEndpoints.clear();
@@ -565,10 +574,10 @@ private class SessionCalendarInviteHandlerTest {
                 'The publish PATCH body must contain the schedule status, otherwise the PATCH is '
                 + 'a no-op for existing faculty guests and Google emails nobody. Bodies='
                 + String.join(capturedBodies, ' || '));
-            System.assert(sawEventCalloutWith('evt_status_line'),
-                'Publishing must PATCH the event created at Draft time, not create a second one — '
-                + 'otherwise faculty receive a fresh "Invitation" instead of an "Updated '
-                + 'invitation", and the student RSVPs already on the event are lost.');
+            System.assert(sawEventCalloutWith('evt_status_line_faculty'),
+                'Publishing must PATCH the faculty event created at Draft time, not create a second '
+                + 'one — otherwise faculty receive a fresh "Invitation" instead of an "Updated '
+                + 'invitation" and lose their recorded RSVP.');
             System.assert(sawEventCalloutWith('sendUpdates=all'),
                 'Publishing with "Yes" must ask Google to notify the guests.');
             System.assert(sawEventBodyWith('facStatusLine@example.com'),
@@ -576,7 +585,6 @@ private class SessionCalendarInviteHandlerTest {
         }
     }
 
-    /** @description The Draft push must carry the Draft status, so publishing is a real diff. */
     @IsTest
     static void draftBodyCarriesDraftStatus() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -601,12 +609,6 @@ private class SessionCalendarInviteHandlerTest {
         }
     }
 
-    /**
-     * @description Fix 2a — a Name-only edit on an already-Republished session must re-push.
-     *          Republished -> Republished does not change the status, so before the widening this
-     *          fell through to a 9-field comparison that excluded Name and sent nothing, even
-     *          though Name is part of the Google event summary.
-     */
     @IsTest
     static void nameOnlyEditOnRepublishedSessionRePushes() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -630,10 +632,6 @@ private class SessionCalendarInviteHandlerTest {
         }
     }
 
-    /**
-     * @description Fix 2a — an academic-context edit (Is_Joint_Session__c) on an already
-     *          Republished session must also re-push rather than being silently ignored.
-     */
     @IsTest
     static void contextOnlyEditOnRepublishedSessionRePushes() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -655,9 +653,6 @@ private class SessionCalendarInviteHandlerTest {
         }
     }
 
-    /**
-     * @description Fix 2b — a related-record change on a synced, published session patches it.
-     */
     @IsTest
     static void relatedRecordChangePatchesSyncedSession() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -678,11 +673,6 @@ private class SessionCalendarInviteHandlerTest {
         }
     }
 
-    /**
-     * @description Fix 2b — the related-record path is PATCH-only: a session that was never
-     *          pushed to Google must be skipped, never created. Otherwise adding a division or a
-     *          faculty member could publish an unsynced session as a side effect.
-     */
     @IsTest
     static void relatedRecordChangeSkipsUnsyncedSession() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -699,15 +689,11 @@ private class SessionCalendarInviteHandlerTest {
             Test.stopTest();
 
             System.assertEquals(0, eventCalloutCount(),
-                'A session with no Google_Event_Id__c must not be created from the related-record '
-                + 'path; that path may only update an event that already exists.');
+                'A session with neither copy of the event must not be created from the '
+                + 'related-record path; that path may only update events that already exist.');
         }
     }
 
-    /**
-     * @description Fix 2b — a Cancelled session must not be resurrected by the cascade delete of
-     *          its own enrolments, which fires the related-record path in the same transaction.
-     */
     @IsTest
     static void relatedRecordChangeSkipsCancelledSession() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -729,9 +715,6 @@ private class SessionCalendarInviteHandlerTest {
         }
     }
 
-    /**
-     * @description Fix 2b — the trigger-friendly overload collects parent ids off related rows.
-     */
     @IsTest
     static void relatedRecordOverloadCollectsParentIds() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -744,7 +727,6 @@ private class SessionCalendarInviteHandlerTest {
             capturedEndpoints.clear();
 
             Test.startTest();
-            // In-memory rows only: the overload just reads the lookup, no DML needed.
             SessionCalendarInviteHandler.handleRelatedRecordChange(
                 new List<Session_Division__c>{ new Session_Division__c(Session__c = s.Id) },
                 'Session__c'
@@ -756,7 +738,6 @@ private class SessionCalendarInviteHandlerTest {
         }
     }
 
-    /** @description The overload must no-op safely on null/empty input and a blank field name. */
     @IsTest
     static void relatedRecordOverloadHandlesEmptyInput() {
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -778,12 +759,6 @@ private class SessionCalendarInviteHandlerTest {
         }
     }
 
-    /**
-     * @description Fix 2b dedupe — one user action can touch the session AND its related records
-     *          in a single transaction (removing a division stamps the session Republished and
-     *          deletes Session_Division__c rows). Without the transaction guard that enqueued two
-     *          PATCHes and guests received two "Updated invitation" emails for one click.
-     */
     @IsTest
     static void repeatedPushInOneTransactionIsDeduped() {
         System.runAs(new User(Id = UserInfo.getUserId())) {

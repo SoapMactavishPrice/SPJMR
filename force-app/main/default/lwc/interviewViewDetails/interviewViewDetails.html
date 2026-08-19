@@ -68,6 +68,9 @@
                                 <th scope="col" class="col-sr"><div class="slds-truncate">Sr. No.</div></th>
                                 <th scope="col"><div class="slds-truncate">Applicant Name</div></th>
                                 <th scope="col"><div class="slds-truncate">Application Number</div></th>
+                                <template if:true={showSpecialisation}>
+                                    <th scope="col"><div class="slds-truncate">Specialisation</div></th>
+                                </template>
                                 <th scope="col"><div class="slds-truncate">Slot Date</div></th>
                                 <th scope="col"><div class="slds-truncate">Slot Start Time</div></th>
                                 <th scope="col"><div class="slds-truncate">Slot End Time</div></th>
@@ -81,6 +84,9 @@
                                     <td class="col-sr slds-text-align_center">{b.rowNum}</td>
                                     <td class="col-name">{b.applicantName}</td>
                                     <td>{b.applicationName}</td>
+                                    <template if:true={showSpecialisation}>
+                                        <td>{b.specialisation}</td>
+                                    </template>
                                     <td>{b.slotDate}</td>
                                     <td>{b.formattedSlotStartTime}</td>
                                     <td>{b.formattedSlotEndTime}</td>

@@ -16,7 +16,7 @@ private class LeadProgramRoutingServiceTest {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c ='Modular',
-            Programme_Sub_Type__c = 'Blended',
+            Programme_Sub_Type__c = 'Class Room',
             StartDate=System.Today(),
             EndDate = System.Today().AddDays(3)
         );
@@ -49,7 +49,7 @@ private class LeadProgramRoutingServiceTest {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c ='Modular',
-            Programme_Sub_Type__c = 'Blended',
+            Programme_Sub_Type__c = 'Class Room',
             StartDate=System.Today(),
             EndDate = System.Today().AddDays(3)
         );
@@ -97,7 +97,7 @@ private class LeadProgramRoutingServiceTest {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c ='Modular',
-            Programme_Sub_Type__c = 'Blended',
+            Programme_Sub_Type__c = 'Class Room',
             StartDate=System.Today(),
             EndDate = System.Today().AddDays(3)
         );
@@ -130,7 +130,7 @@ private class LeadProgramRoutingServiceTest {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c ='Modular',
-            Programme_Sub_Type__c = 'Blended',
+            Programme_Sub_Type__c = 'Class Room',
             StartDate=System.Today(),
             EndDate = System.Today().AddDays(3)
         );

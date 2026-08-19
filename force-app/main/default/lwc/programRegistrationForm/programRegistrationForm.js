@@ -124,6 +124,9 @@ export default class ProgramRegistrationForm extends LightningElement {
         void this.initGoogleRecaptcha(host);
     }
 
+    handleCloseAlreadyRegistered() {
+    this.showAlreadyRegistered = false;
+}
     
 
     async handleResendVerification(){
@@ -146,7 +149,9 @@ export default class ProgramRegistrationForm extends LightningElement {
 async submitRegistration(){
     if (this.isSaving) {
     return;
-}
+}   
+    this.showAlreadyRegistered = false
+
         const errors = this.validate();
         if (errors.length) {
             this.showToast('Check your entries', errors[0], 'error');

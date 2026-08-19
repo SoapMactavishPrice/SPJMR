@@ -14,9 +14,13 @@
  */
 global class SessionAttendeeSyncScheduler implements Schedulable {
 
-    /** @description Batch scope: sessions per chunk. Kept low for callout limits. */
+    /**
+     * @description Batch scope: sessions per chunk. Kept low for callout limits — each session now
+     *          costs up to TWO callouts, because faculty and students sit on separate Google events
+     *          and both are read, so 30 sessions is a worst case of 60 of the 100 allowed.
+     */
     @TestVisible
-    private static final Integer BATCH_SCOPE = 40;
+    private static final Integer BATCH_SCOPE = 30;
 
     /**
      * @description Scheduled entry point — launches the RSVP read-back batch.

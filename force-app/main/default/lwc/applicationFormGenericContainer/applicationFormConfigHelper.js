@@ -14,6 +14,8 @@ import afCompetitiveExamDetailsContainerPgpm from 'c/afCompetitiveExamDetailsCon
 import afOtherInformationContainerPgpm from 'c/afOtherInformationContainerPgpm';
 import afUploadDocumentsContainerPgpm from 'c/afUploadDocumentsContainerPgpm';
 import afDeclarationContainerPgpm from 'c/afDeclarationContainerPgpm';
+import afProgramDetailsContainerPgdm from 'c/afProgramDetailsContainerPgdm';
+import afBasicDetailsContainerPgdm from 'c/afBasicDetailsContainerPgdm';
 
 export const COMPONENT_REGISTRY = {
     afProgramDetailsContainerGmp,
@@ -31,7 +33,10 @@ export const COMPONENT_REGISTRY = {
     afCompetitiveExamDetailsContainerPgpm,
     afOtherInformationContainerPgpm,
     afUploadDocumentsContainerPgpm,
-    afDeclarationContainerPgpm
+    afDeclarationContainerPgpm,
+
+    afProgramDetailsContainerPgdm,
+    afBasicDetailsContainerPgdm
 };
 
 export const DEFAULT_ICON_STATES = {

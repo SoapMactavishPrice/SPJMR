@@ -36,7 +36,7 @@ public with sharing class FacultyCalendarConflictService {
      * @return Overlapping busy events (empty when none, or on any handled error).
      */
     public static List<BusyEvent> findOverlaps(String facultyEmail, Datetime windowStart, Datetime windowEnd) {
-        return findOverlaps(facultyEmail, windowStart, windowEnd, null);
+        return findOverlaps(facultyEmail, windowStart, windowEnd, (Set<String>) null);
     }
 
     /**
@@ -45,11 +45,13 @@ public with sharing class FacultyCalendarConflictService {
      * @param facultyEmail The faculty's Workspace email (impersonation subject + calendar id).
      * @param windowStart Proposed session start.
      * @param windowEnd Proposed session end.
-     * @param excludeEventId The current session's Google event id to ignore (null on create).
+     * @param excludeEventIds The current session's own Google event ids to ignore — both the
+     *          faculty copy and the student copy, since a legacy session may still have the faculty
+     *          sitting on the student copy. Null or empty on create.
      * @return Overlapping busy events (empty when none, or on any handled error).
      */
     public static List<BusyEvent> findOverlaps(
-        String facultyEmail, Datetime windowStart, Datetime windowEnd, String excludeEventId
+        String facultyEmail, Datetime windowStart, Datetime windowEnd, Set<String> excludeEventIds
     ) {
         List<BusyEvent> result = new List<BusyEvent>();
         if (String.isBlank(facultyEmail) || windowStart == null || windowEnd == null) {
@@ -65,7 +67,7 @@ public with sharing class FacultyCalendarConflictService {
                 return result; // fail-open on transient / API errors
             }
             Object rawItems = ((Map<String, Object>) JSON.deserializeUntyped(res.getBody())).get('items');
-            return overlappingBusy(rawItems, facultyEmail, windowStart, windowEnd, excludeEventId);
+            return overlappingBusy(rawItems, facultyEmail, windowStart, windowEnd, excludeEventIds);
         } catch (Exception e) {
             return result; // fail-open
         }
@@ -83,7 +85,8 @@ public with sharing class FacultyCalendarConflictService {
      */
     @TestVisible
     private static List<BusyEvent> overlappingBusy(
-        Object rawItems, String facultyEmail, Datetime windowStart, Datetime windowEnd, String excludeEventId
+        Object rawItems, String facultyEmail, Datetime windowStart, Datetime windowEnd,
+        Set<String> excludeEventIds
     ) {
         List<BusyEvent> result = new List<BusyEvent>();
         if (!(rawItems instanceof List<Object>) || windowStart == null || windowEnd == null) {
@@ -96,8 +99,8 @@ public with sharing class FacultyCalendarConflictService {
             }
             Map<String, Object> ev = (Map<String, Object>) o;
             String gid = (String) ev.get('id');
-            if (String.isNotBlank(excludeEventId) && excludeEventId == gid) {
-                continue; // the session's own event — not a conflict with itself
+            if (excludeEventIds != null && String.isNotBlank(gid) && excludeEventIds.contains(gid)) {
+                continue; // one of the session's own copies — not a conflict with itself
             }
             if (STATUS_CANCELLED.equalsIgnoreCase((String) ev.get('status'))) {
                 continue;

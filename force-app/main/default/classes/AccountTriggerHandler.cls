@@ -1,6 +1,6 @@
 public class AccountTriggerHandler {
 
-    public static void checkDuplicateStudents(List<Account> newRecords) {
+   public static void checkDuplicateStudents(List<Account> newRecords) {
 
         Id studentRTId = Schema.SObjectType.Account
             .getRecordTypeInfosByName()

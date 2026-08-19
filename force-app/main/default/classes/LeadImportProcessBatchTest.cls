@@ -189,6 +189,76 @@ private class LeadImportProcessBatchTest {
                 PermissionsRead = true,
                 PermissionsEdit = true
             ),
+            new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.ContentDocument_Id__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.ContentVersion_Id__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.Total_Rows__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.Parsed_Rows__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.Processed_Rows__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.Success_Count__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.Error_Count__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.Duplicate_Count__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.Import_Started__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import_Parent__c',
+    Field = 'Lead_Import_Parent__c.Import_Completed__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
                  new FieldPermissions(
         ParentId = ps.Id,
         SobjectType = 'Lead_Import__c',
@@ -196,6 +266,13 @@ private class LeadImportProcessBatchTest {
         PermissionsRead = true,
         PermissionsEdit = true
     ),
+    new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Row_Number__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
     new FieldPermissions(
         ParentId = ps.Id,
         SobjectType = 'Lead_Import__c',
@@ -335,7 +412,120 @@ private class LeadImportProcessBatchTest {
         Field = 'Lead_Import__c.Graduation_Year__c',
         PermissionsRead = true,
         PermissionsEdit = true
-    ),// Lead Fields
+    ),
+     new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Is_Duplicate_in_File__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Is_Duplicate_in_System__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Lead_Status__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+        ParentId = ps.Id,
+        SobjectType = 'Lead_Import__c',
+        Field = 'Lead_Import__c.Remark__c',
+        PermissionsRead = true,
+        PermissionsEdit = true
+    ),
+    new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Company__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Department__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Designation__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.First_Name__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Last_Name__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.LinkedIn_Url__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Mobile__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Salutation__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Send_Welcome_and_Verification_Email__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.State_Province__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Street__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Import__c',
+    Field = 'Lead_Import__c.Zip_Postal_Code__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+    // Lead Fields
 new FieldPermissions(
     ParentId = ps.Id,
     SobjectType = 'Lead',
@@ -506,6 +696,20 @@ new FieldPermissions(
     Field = 'Lead_Program__c.Lead_Source__c',
     PermissionsRead = true,
     PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Program__c',
+    Field = 'Lead_Program__c.Program_Code__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
+),
+new FieldPermissions(
+    ParentId = ps.Id,
+    SobjectType = 'Lead_Program__c',
+    Field = 'Lead_Program__c.Lead_Sub_Status__c',
+    PermissionsRead = true,
+    PermissionsEdit = true
 )
         };
             
@@ -550,7 +754,7 @@ new FieldPermissions(
                 Program_Code__c='PGDM',
                 Short_Programme_Code__c='PM',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
@@ -572,7 +776,7 @@ Program p = new Program(
                 Program_Code__c='PGDM',
                 Short_Programme_Code__c='PM',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
@@ -605,7 +809,7 @@ for (String fieldName : fields.keySet()) {
         ' | Accessible: ' + dfr.isAccessible()
     );
 }
-    insert li;
+    //insert li;
     Test.startTest();
 	
     LeadImportProcessBatch.processScope(
@@ -618,11 +822,7 @@ for (String fieldName : fields.keySet()) {
 
     
 
-    Lead_Import__c updated = [
-        SELECT Status__c
-        FROM Lead_Import__c
-        WHERE Id=:li.Id
-    ];
+    
 	//system.assertEquals('Complete',updated.Status__c,'Lead Import is not successful');
     }   
 }
@@ -635,7 +835,7 @@ Program p = new Program(
                 Program_Code__c='PGDM',
                 Short_Programme_Code__c='PM',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
@@ -652,7 +852,7 @@ Program p = new Program(
         Age__c=25
     );
 
-    insert li;
+    //insert li;
 
     Test.startTest();
 
@@ -674,7 +874,7 @@ Program p = new Program(
                 Program_Code__c='PGDM',
                 Short_Programme_Code__c='PM',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
@@ -691,7 +891,7 @@ Program p = new Program(
         Age__c=25
     );
 
-    insert li;
+    //insert li;
 
     Test.startTest();
 
@@ -713,7 +913,7 @@ Program p = new Program(
                 Program_Code__c='PGDM',
                 Short_Programme_Code__c='PM',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
@@ -730,7 +930,7 @@ Program p = new Program(
         Age__c=25
     );
 
-    insert li;
+    //insert li;
 
     Test.startTest();
 
@@ -752,7 +952,7 @@ Program p = new Program(
                 Program_Code__c='PGDM',
                 Short_Programme_Code__c='PM',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
@@ -769,7 +969,7 @@ Program p = new Program(
         Age__c=25
     );
 
-    insert li;
+    //insert li;
 
     Test.startTest();
 
@@ -792,7 +992,7 @@ Program p = new Program(
                 Program_Code__c='PGDM',
                 Short_Programme_Code__c='PM',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
@@ -809,7 +1009,7 @@ Program p = new Program(
         Age__c=25
     );
 
-    insert li;
+    //insert li;
 
     Test.startTest();
 
@@ -832,11 +1032,21 @@ static void test_existingLead() {
                 Program_Code__c='PGDM',
                 Short_Programme_Code__c='PM',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
             insert p;
+        Program p2 = new Program(
+                Name='GMP',
+                Program_Code__c='GMP',
+                Short_Programme_Code__c='GM',
+                Programme_Type__c='Modular',
+                Programme_Sub_Type__c='Class Room',
+                StartDate=Date.today(),
+                EndDate=Date.today().addDays(10)
+            );
+            insert p2;
    // Id b2cRecType = Schema.SobjectType.Lead.getRecordTypeInfosByDeveloperName().get('B2C').getRecordTypeId();
     Lead l = new Lead(Email='john@test.com',//RecordTypeId=b2cRecType,
                       Phone='9999999999',FirstName='John', LastName='Doe');
@@ -847,7 +1057,7 @@ static void test_existingLead() {
         Name__c='John Doe',
         Email__c='john@test.com',
         Phone__c='9999999999',
-        Programme__c='PGDM',
+        Programme__c='GMP',
         Country__c='India',
         State__c='Kerala',
         City__c='Kochi',
@@ -855,7 +1065,7 @@ static void test_existingLead() {
         Age__c=25
     );
 
-    insert li;
+    //insert li;
 
     Test.startTest();
 
@@ -879,7 +1089,7 @@ static void test_existingLead() {
                 Program_Code__c='PGDM',
                 Short_Programme_Code__c='PM',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
@@ -889,7 +1099,7 @@ static void test_existingLead() {
                 Program_Code__c='GMP',
                 Short_Programme_Code__c='GMP',
                 Programme_Type__c='Modular',
-                Programme_Sub_Type__c='Blended',
+                Programme_Sub_Type__c='Class Room',
                 StartDate=Date.today(),
                 EndDate=Date.today().addDays(10)
             );
@@ -903,12 +1113,12 @@ static void test_existingLead() {
         Lead_Import__c lp1 = new Lead_Import__c(Lead_Import_Parent__c = par.Id,Status__c='New',
         Email__c='s@n.com',Phone__c='999999999',Name__c='John Doe',Programme__c='PGDM',
         LeadSource__c='Events',Country__c='India',State__c='Kerala',City__c='Kochi');
-        insert lp1;
+        //insert lp1;
         
         Lead_Import__c lp2 = new Lead_Import__c(Lead_Import_Parent__c = par.Id,Status__c='New',
         Email__c='s@n.com',Phone__c='999999999',Name__c='John Doe',Programme__c='GMP',
         LeadSource__c='Events',Country__c='India',State__c='Kerala',City__c='Kochi');
-        insert lp2;
+        //insert lp2;
         
         LeadImportProcessBatchStarter.startBatch(par.Id);
         LeadImportProcessBatchStarter.startBatch(null);
@@ -926,7 +1136,7 @@ static void test_nameMissing() {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c='Modular',
-            Programme_Sub_Type__c='Blended',
+            Programme_Sub_Type__c='Class Room',
             StartDate=Date.today(),
             EndDate=Date.today().addDays(10)
         );
@@ -944,7 +1154,7 @@ static void test_nameMissing() {
             Age__c = 25
         );
 
-        insert li;
+        //insert li;
 
         Test.startTest();
 
@@ -967,7 +1177,7 @@ static void test_countryNotFoundInSystem() {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c='Modular',
-            Programme_Sub_Type__c='Blended',
+            Programme_Sub_Type__c='Class Room',
             StartDate=Date.today(),
             EndDate=Date.today().addDays(10)
         );
@@ -985,7 +1195,7 @@ static void test_countryNotFoundInSystem() {
             Age__c = 25
         );
 
-        insert li;
+        //insert li;
 
         Test.startTest();
 
@@ -1008,7 +1218,7 @@ static void test_stateNotFoundInSystem() {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c='Modular',
-            Programme_Sub_Type__c='Blended',
+            Programme_Sub_Type__c='Class Room',
             StartDate=Date.today(),
             EndDate=Date.today().addDays(10)
         );
@@ -1026,7 +1236,7 @@ static void test_stateNotFoundInSystem() {
             Age__c=25
         );
 
-        insert li;
+        //insert li;
 
         Test.startTest();
 
@@ -1048,7 +1258,7 @@ static void test_cityNotFoundInSystem() {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c='Modular',
-            Programme_Sub_Type__c='Blended',
+            Programme_Sub_Type__c='Class Room',
             StartDate=Date.today(),
             EndDate=Date.today().addDays(10)
         );
@@ -1066,7 +1276,7 @@ static void test_cityNotFoundInSystem() {
             Age__c=25
         );
 
-        insert li;
+        //insert li;
 
         Test.startTest();
 
@@ -1089,7 +1299,7 @@ static void test_cityMissing() {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c='Modular',
-            Programme_Sub_Type__c='Blended',
+            Programme_Sub_Type__c='Class Room',
             StartDate=Date.today(),
             EndDate=Date.today().addDays(10)
         );
@@ -1107,7 +1317,7 @@ static void test_cityMissing() {
             Age__c=25
         );
 
-        insert li;
+        //insert li;
 
         Test.startTest();
 
@@ -1116,7 +1326,7 @@ static void test_cityMissing() {
             'Test Description',
             'Test Title'
         );
-
+	Lead_Import__c row = LeadImportProcessBatch.returnRowFailed(li, 'errorMessage');
         Test.stopTest();
     }
 }

@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>65.0</apiVersion>
-    <!--
-        Internal component only. It is composed by leaveApprovalApprove,
-        leaveApprovalReject and leaveApprovalIncomplete, which are the
-        components the quick actions point at.
-    -->
-    <isExposed>false</isExposed>
+    <isExposed>true</isExposed>
+    <masterLabel>Leave Approval Action</masterLabel>
+    <targets>
+        <target>lightning__RecordAction</target>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordAction">
+            <actionType>ScreenAction</actionType>
+        </targetConfig>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>Leave_Application__c</object>
+            </objects>
+        </targetConfig>
+    </targetConfigs>
 </LightningComponentBundle>

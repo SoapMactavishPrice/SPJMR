@@ -1719,11 +1719,18 @@
                         </button>
                     </div>
                     <div class="publish-modal-body">
-                        <!-- Relabelled: this choice governs the Google Calendar emails for BOTH
-                             the assigned faculty and the enrolled students, not faculty alone.
-                             Choosing No still updates the Google event silently. -->
-                        <p>Send Google Calendar invitation emails to the assigned faculty and the enrolled students?</p>
-                        <p class="rsvp-message">Choosing <strong>No</strong> still updates the calendar event &mdash; it just does not email anyone. Cancelling a session always notifies its guests.</p>
+                        <template if:true={isPublishNotifyPrompt}>
+                            <p>Send Google Calendar invitation emails to the assigned faculty?</p>
+                            <p class="rsvp-message">Students always receive one consolidated schedule email either way. Choosing <strong>No</strong> still updates the calendar event &mdash; it just does not email the faculty. Cancelling a session always notifies its guests.</p>
+                        </template>
+                        <template if:true={isRepublishNotifyPrompt}>
+                            <p>Send Google Calendar invitation emails for this republished session?</p>
+                            <p class="rsvp-message">Choosing <strong>Yes</strong> emails an updated invitation to the assigned faculty <em>and</em> to every enrolled student. Choosing <strong>No</strong> emails no faculty and sends the students one summary email instead, telling them the schedule was updated &mdash; the calendar event still updates either way. Cancelling a session always notifies its guests.</p>
+                        </template>
+                        <template if:true={isPlainNotifyPrompt}>
+                            <p>Send Google Calendar invitation emails to the assigned faculty?</p>
+                            <p class="rsvp-message">Choosing <strong>No</strong> still updates the calendar event &mdash; it just does not email anyone. Cancelling a session always notifies its guests.</p>
+                        </template>
                     </div>
                     <div class="publish-modal-footer">
                         <lightning-button

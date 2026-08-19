@@ -460,7 +460,7 @@ public with sharing class AcademicFormController {
         req.setMethod('GET');
         req.setEndpoint(
             'callout:SalesforceUiApiNc' +
-            '/services/data/v59.0/ui-api/object-info/' +
+            '/services/data/v67.0/ui-api/object-info/' +
             EncodingUtil.urlEncode(objectApiName, 'UTF-8') +
             '/picklist-values/' +
             String.valueOf(recordTypeId)
@@ -492,7 +492,7 @@ public with sharing class AcademicFormController {
             // UI API provides controllerValues for dependent picklists.
             fps.controllerValues = toStringIntegerMap(fieldNode.get('controllerValues'));
             fps.controllingValueIndexByValue.putAll(fps.controllerValues);
-            fps.dependent = !String.isBlank(fps.controllingFieldApiName) && !fps.controllerValues.isEmpty();
+            fps.dependent = !fps.controllerValues.isEmpty();
 
             List<Object> values = (List<Object>) fieldNode.get('values');
             if (values == null) {
@@ -508,7 +508,6 @@ public with sharing class AcademicFormController {
                     v.get('active') == false) {
                     continue;
                 }
-
                 List<Integer> validForIndexes = toIntegerList(v.get('validFor'));
                 String validForBase64 = (v.containsKey('validFor') && v.get('validFor') instanceof String)
                     ? (String) v.get('validFor')

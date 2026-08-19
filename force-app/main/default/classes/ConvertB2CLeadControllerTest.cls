@@ -30,7 +30,7 @@ private class ConvertB2CLeadControllerTest {
             Program_Code__c='PGDM',
             Short_Programme_Code__c='PM',
             Programme_Type__c ='Modular',
-            Programme_Sub_Type__c = 'Blended',
+            Programme_Sub_Type__c = 'Class Room',
             StartDate=System.Today(),
             EndDate = System.Today().AddDays(3)
         );
@@ -369,8 +369,11 @@ private static Lead createLeadWithoutPrograms() {
     @IsTest
 static void testConvertLead_WithLeadPrograms() {
 
-    Lead_Program__c l = [SELECT Lead__c,Lead__r.Email FROM Lead_Program__c LIMIT 1];
-
+    Lead_Program__c l = [SELECT Lead__c,Lead__r.Email,Program__c FROM Lead_Program__c LIMIT 1];
+	 Application__c app =  new Application__c(Name='TESTApplicaiton');
+    insert app;
+	Insert new Opportunity(Application__c = app.Id,Program__c=l.Program__c,
+                          Name='TestOpp',StageName='Prospecting',CloseDate=System.Today().addDays(5));
     Test.startTest();
 
     ConvertB2CLeadController.ConversionResult result =
@@ -378,7 +381,8 @@ static void testConvertLead_WithLeadPrograms() {
             l.Lead__c,
             l.Lead__r.Email
         );
-
+   
+   
     Test.stopTest();
 
    system.debug('Result:'+result);

@@ -19,26 +19,21 @@ public with sharing class BreakInStudyController {
             }
 
             ProgramCohortMember pcm = [
-                SELECT Id, ProgramCohortId, ProgramEnrolleeId
+                SELECT Id, ProgramCohortId, ProgramEnrolleeId,ProgramCohort.ProgramId
                 FROM ProgramCohortMember
                 WHERE Id = :programCohortMemberId
-                LIMIT 1
-            ];
-            ProgramCohort pc = [
-                SELECT Id, ProgramId
-                FROM ProgramCohort
-                WHERE Id = :pcm.ProgramCohortId
                 LIMIT 1
             ];
 
             Deferment_Request__c request = new Deferment_Request__c(
                 Program_Cohort_Member__c = pcm.Id,
-                Batch__c = pc.Id,
-                Programme__c = pc.ProgramId,
+                Batch__c = pcm.ProgramCohortId,
+                Programme__c = pcm.ProgramCohort.ProgramId,
                 Account__c = pcm.ProgramEnrolleeId,
                 Break_Start_Date_Time__c = startDate,
                 Break_End_Date_Time__c = endDate,
-                Deferment_Application_Fee__c = fee
+                Deferment_Application_Fee__c = fee,
+                Status__c = 'Deferment Form Enabled'
             );
             insert request;
             return request.Id;

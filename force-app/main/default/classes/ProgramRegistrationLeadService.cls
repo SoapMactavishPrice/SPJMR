@@ -2,11 +2,24 @@
  * Persists program registration form data to Lead using Program_Registration_Field__mdt mappings.
  * When registering for a child Program, pass registrationConfigProgramId as the parent (or form config key)
  * so field and config metadata match the page the user used, while programId remains the target Program for Lead_Program__c.
- */
-public without sharing class ProgramRegistrationLeadService {
+ */ 
+public without sharing class ProgramRegistrationLeadService{
 private static Id existingRecordId;
 private static String existingRecordType;
+    
+    @testVisible
+    private static ProgramRegistrationFormController.SaveLeadResult errorResult(
+    ProgramRegistrationFormController.SaveLeadResult result,
+    String message
+) {
+    result.success = false;
+    result.message = message;
+    return result;
+}
+    
     /*
+     * 
+  
      
     /**
      * Saves registration: Lead/Lead_Program use programId; metadata lookups use registrationConfigProgramId when set, else programId.
@@ -131,11 +144,8 @@ private static String existingRecordType;
             LIMIT 1
         ];
         if (programRows.isEmpty()) {
-            result.message =
-                'No Program found with Program_Code__c \'' +
-                programCode +
-                '\'. Create or align the Program record with this registration id.';
-            return result;
+             return errorResult(result,'No Program found with Program_Code__c \'' +programCode +'\'. Create or align the Program record with this registration id.');
+            
         }
         Id programSfId = programRows[0].Id;
         //Change
@@ -148,8 +158,7 @@ private static String existingRecordType;
         try {
             lead.RecordTypeId = Schema.SObjectType.Lead.getRecordTypeInfosByDeveloperName().get(rtDevName).getRecordTypeId();
         } catch (Exception e) {
-            result.message = 'Lead record type not found: ' + rtDevName;
-            return result;
+            return errorResult(result,'Lead record type not found: ' + rtDevName);
         }
 
         String statusVal = String.isNotBlank(cfg.Lead_Default_Status__c) ? cfg.Lead_Default_Status__c.trim() : 'Untouched';
@@ -347,8 +356,7 @@ private static String existingRecordType;
             insert leadProgram;*/
         } catch (DmlException e) {
             Database.rollback(sp);
-            result.message = e.getDmlMessage(0);
-            return result;
+            return errorResult(result, e.getDmlMessage(0));
         }
 
         result.success = true;
@@ -361,6 +369,7 @@ private static String existingRecordType;
      * How many form fields (excluding full_name→FirstName, booleans on Lead, password/captcha)
      * map to each Lead field. Used to decide labeled vs raw merge text.
      */
+    @TestVisible
     private static Map<String, Integer> buildMergeFieldCountByMapKey(
         List<Program_Registration_Field__mdt> fieldDefs,
         Map<String, Schema.SObjectField> leadFieldMap
@@ -555,6 +564,176 @@ private static String existingRecordType;
         return 0;
     }
 
+    List<Account> emailAccounts = new List<Account>();
+
+    if (String.isNotBlank(email)) {
+        emailAccounts = [
+            SELECT
+                Id,
+                FirstName,
+                LastName,
+                PersonEmail,
+                PersonMobilePhone,
+                PersonOtherPhone,
+                Phone,
+                Country_Master__c
+            FROM Account
+            WHERE PersonEmail = :email
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+    }
+    //Match by Email
+     if (!emailAccounts.isEmpty()) {
+        Account acc = emailAccounts[0];
+
+        existingRecordId = acc.Id;
+        existingRecordType = 'Account';
+
+        /*
+         * The email already belongs to this account.
+         *
+         * If the incoming phone is a new phone and PersonOtherPhone
+         * is empty, store it as the alternate phone.
+         */
+        Boolean alternatePhoneUpdated = false;
+        if (String.isNotBlank(phoneDigits)) {
+            String accountPhoneDigits = normalizePhone(acc.Phone);
+            String mobilePhoneDigits = normalizePhone(acc.PersonMobilePhone);
+            String otherPhoneDigits = normalizePhone(acc.PersonOtherPhone);
+
+            Boolean phoneAlreadyExists =
+                phoneDigits == accountPhoneDigits ||
+                phoneDigits == mobilePhoneDigits ||
+                phoneDigits == otherPhoneDigits;
+
+            Boolean hasProgram = [
+        SELECT COUNT()
+        FROM Opportunity
+        WHERE AccountId = :acc.Id
+        AND Program__c = :programId
+    ] > 0;
+
+            if (hasProgram && !phoneAlreadyExists && String.isBlank(acc.PersonOtherPhone)) {
+                String alternatePhone = formatAlternatePhone(
+                    lead.Country_Master_backend__c,
+                    phoneRaw
+                );
+
+                if (String.isNotBlank(alternatePhone)) {
+                    update new Account(
+                        Id = acc.Id,
+                        PersonOtherPhone = alternatePhone
+                    );
+                    alternatePhoneUpdated = true;
+                }
+            }
+        }
+
+        Boolean created = createOpportunityAndApplicationIfMissing(
+            acc.Id,
+            programId,
+            programName,
+            programCode,
+            leadSource,
+            String.isNotBlank(lead.FirstName) ? lead.FirstName : acc.FirstName,
+            String.isNotBlank(lead.LastName) ? lead.LastName : acc.LastName,
+            email,
+            phoneRaw
+        );
+        if (alternatePhoneUpdated) {
+            return 1;
+        }
+        
+        return 2;
+    }
+
+    //Match by Phone
+    if (String.isNotBlank(phoneDigits)) {
+        List<Account> phoneAccounts = [
+            SELECT
+                Id,
+                FirstName,
+                LastName,
+                PersonEmail,
+                PersonMobilePhone,
+                PersonOtherPhone,
+                Phone,
+                Country_Master__c
+            FROM Account
+            WHERE
+                PersonMobilePhone = :phoneRaw
+                OR PersonMobilePhone = :phoneDigits
+                // OR PersonOtherPhone = :phoneRaw
+                // OR PersonOtherPhone = :phoneDigits
+                OR Phone = :phoneRaw
+                OR Phone = :phoneDigits
+            ORDER BY CreatedDate DESC
+            LIMIT 20
+        ];
+
+        for (Account acc : phoneAccounts) {
+            String accountPhoneDigits = normalizePhone(acc.Phone);
+            String mobilePhoneDigits = normalizePhone(acc.PersonMobilePhone);
+            String otherPhoneDigits = normalizePhone(acc.PersonOtherPhone);
+
+            Boolean phoneMatches =
+                phoneDigits == accountPhoneDigits || phoneDigits == mobilePhoneDigits || phoneDigits == otherPhoneDigits;
+
+            if (phoneMatches) {
+                existingRecordId = acc.Id;
+                existingRecordType = 'Account';
+
+                return 3;
+            }
+        }
+    }
+    // 2) If Account exists by email: create Opportunity for new program.
+    // List<Account> accList = [
+    //     SELECT Id, FirstName, LastName,PersonOtherPhone,PersonMobilePhone,Country_Master__c,Phone,PersonEmail
+    //     FROM Account
+    //     WHERE (PersonEmail = :email
+    //     OR PersonMobilePhone=:phoneRaw
+    //     OR PersonMobilePhone=:phoneDigits
+    //     OR Phone=:phoneRaw OR Phone=:phoneDigits)
+    //     ORDER BY CreatedDate DESC
+    //     LIMIT 1
+    // ];
+    // if (!accList.isEmpty()) {
+    //     Account acc = accList[0];
+    //     existingRecordId = acc.Id;
+    //     existingRecordType = 'Account';
+    //    Boolean created = createOpportunityAndApplicationIfMissing(
+    //         acc.Id,
+    //         programId,
+    //         programName,
+    //         programCode,
+    //         leadSource,
+    //         String.isNotBlank(lead.FirstName) ? lead.FirstName : acc.FirstName,
+    //         String.isNotBlank(lead.LastName) ? lead.LastName : acc.LastName,
+    //         email,
+    //         phoneRaw
+    //     );
+    //     if(acc.Phone!=phoneRaw || acc.Phone!=phoneDigits){
+    //         if(acc.PersonOtherPhone==null){
+    //             String alternatePhone = formatAlternatePhone(acc.Country_Master__c, phoneRaw);
+    //             Update new Account(Id=acc.Id,PersonOtherPhone = alternatePhone);   
+    //         }
+
+    //     }
+    //     if(acc.PersonEmail == email){
+    //         return 2;
+    //     }
+    //     if(acc.PersonMobilePhone==phoneRaw || acc.PersonMobilePhone==phoneDigits ||
+    //     acc.Phone==phoneRaw || acc.Phone==phoneDigits){
+    //         return 3;
+    //     }
+    // existingRecordId = acc.Id;
+    // existingRecordType = 'Account';
+
+    //     return 2;
+    // }
+
     // 1) If unconverted Lead exists by email: create Lead Program only.
       /*
      * SCENARIO 2 / 3
@@ -578,7 +757,7 @@ private static String existingRecordType;
         WHERE Lead__c = :existingLead.Id
         AND Program__c = :programId
     ] > 0;
-
+        
     if (!hasProgram) {
         // Email is same, but this is a NEW program.
         // Create another Lead Program under the existing Lead.
@@ -638,42 +817,7 @@ private static String existingRecordType;
     }
 
 
-    // 2) If Account exists by email: create Opportunity for new program.
-    List<Account> accList = [
-        SELECT Id, FirstName, LastName,PersonOtherPhone,PersonMobilePhone,Country_Master__c,Phone
-        FROM Account
-        WHERE (PersonEmail = :email
-        OR PersonMobilePhone=:phoneRaw
-        OR PersonMobilePhone=:phoneDigits
-        OR Phone=:phoneRaw OR Phone=:phoneDigits)
-        ORDER BY CreatedDate DESC
-        LIMIT 1
-    ];
-    if (!accList.isEmpty()) {
-        Account acc = accList[0];
-       Boolean created = createOpportunityAndApplicationIfMissing(
-            acc.Id,
-            programId,
-            programName,
-            programCode,
-            leadSource,
-            String.isNotBlank(lead.FirstName) ? lead.FirstName : acc.FirstName,
-            String.isNotBlank(lead.LastName) ? lead.LastName : acc.LastName,
-            email,
-            phoneRaw
-        );
-        if(acc.Phone!=phoneRaw || acc.Phone!=phoneDigits){
-            if(acc.PersonOtherPhone==null){
-                String alternatePhone = formatAlternatePhone(acc.Country_Master__c, phoneRaw);
-                Update new Account(Id=acc.Id,PersonOtherPhone = alternatePhone);   
-            }
-
-        }
-        existingRecordId = acc.Id;
-    existingRecordType = 'Account';
-
-        return 2;
-    }
+    
 
     return 0;
 }
@@ -857,7 +1001,8 @@ private static Boolean createOpportunityAndApplicationIfMissing(
 
 @TestVisible
 private static void UpdateUserRecord(Id accountId){
-
+    List<Contact> applicantCon = [SELECT Id FROM Contact WHERE AccountId=:accountId LIMIT 1];
+    
     List<User> applicantUserList = [SELECT Id,Programs_Applied__c FROM User WHERE ContactId IN (SELECT PersonContactId 
                     FROM Account 
                     WHERE Id = :accountId)];
@@ -873,7 +1018,8 @@ private static void UpdateUserRecord(Id accountId){
         }
         List<String> programNameList = new List<String>(programNames);
        String formattedProgrammeNames = ApplicantWelcomeEmailQueue.formatProgrammeList(programNameList);
-       Update new User(Programs_Applied__c=formattedProgrammeNames,Id=userId);
+       //Update new User(Programs_Applied__c=formattedProgrammeNames,Id=userId);
+       Update new Contact(Id=applicantCon[0].Id,Programs_Applied__c=formattedProgrammeNames);
     }
 
 }

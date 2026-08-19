@@ -1,8 +1,9 @@
-/**
+/** 
  * Orchestrates bulk load, routing (Applicant vs Lead), DML, and API response rows for LeadPublicAPI.
  */ 
 public without sharing class LeadPublicAPIService {
-    private class ReferenceData {
+    @TestVisible
+    public class ReferenceData {
         Map<String, Program> programByCode = new Map<String, Program>();
         Map<Id, Campaign> campaignById = new Map<Id, Campaign>();
         Id indiaCountryId;
@@ -96,19 +97,7 @@ public without sharing class LeadPublicAPIService {
             try {
                 Account acc = resolveApplicantAccount(lw, ref);
                 if (acc != null) {
-                    indexToResult.put(
-                        i,
-                        processApplicantPath(
-                            lw,
-                            i,
-                            acc,
-                            ref,
-                            oppsToInsert,
-                            indexToOpp,
-                            indexToAcc,
-                            campaignIndexMap
-                        )
-                    );
+                    indexToResult.put(i,processApplicantPath(lw,i,acc,ref,oppsToInsert,indexToOpp,indexToAcc,campaignIndexMap));
                     continue;
                 }
 
@@ -348,7 +337,26 @@ public without sharing class LeadPublicAPIService {
         }
         return acc;
     }
+    @TestVisible
+private static ReferenceData buildTestReferenceData(
+    Program prog,
+    Id accountId
+) {
+    ReferenceData ref = new ReferenceData();
 
+    ref.programByCode.put(
+        prog.Program_Code__c,
+        prog
+    );
+
+    ref.accountIdToProgramIds.put(
+        accountId,
+        new Set<Id>()
+    );
+
+    return ref;
+}
+	@TestVisible
     private static LeadPublicAPIHelper.ResultWrapper processApplicantPath(
         LeadPublicAPI.LeadWrapper lw,
         Integer rowIndex,
@@ -380,8 +388,7 @@ public without sharing class LeadPublicAPIService {
                 Name = buildOpportunityName(lw, prog.Name),
                 StageName = 'Prospecting',
                 CloseDate = Date.today().addDays(90),
-                LeadSource = ref.campaignById.containsKey((Id)lw.CampaignId)
-        ? ref.campaignById.get((Id)lw.CampaignId).CampaignSource__c
+                LeadSource = ref.campaignById.containsKey((Id)lw.CampaignId)? ref.campaignById.get((Id)lw.CampaignId).CampaignSource__c
         : null
             );
             if (b2cOppRt != null) {
@@ -402,8 +409,7 @@ public without sharing class LeadPublicAPIService {
         LeadPublicAPIHelper.ResultWrapper rw = new LeadPublicAPIHelper.ResultWrapper();
         rw.leadId = acc.Id;
         rw.scenario = createdOpp
-            ? LeadPublicAPIHelper.Scenario.APPLICANT_NEW_OPPORTUNITY
-            : LeadPublicAPIHelper.Scenario.APPLICANT_OPPORTUNITY_ALREADY_EXISTS;
+            ? LeadPublicAPIHelper.Scenario.APPLICANT_NEW_OPPORTUNITY: LeadPublicAPIHelper.Scenario.APPLICANT_OPPORTUNITY_ALREADY_EXISTS;
 
         if (String.isNotBlank(lw.CampaignId) && ref.campaignById.containsKey((Id) lw.CampaignId)) {
             campaignIndexMap.put(rowIndex, (Id) lw.CampaignId);
@@ -415,7 +421,7 @@ public without sharing class LeadPublicAPIService {
         String fn = String.isNotBlank(lw.FirstName) ? lw.FirstName : '';
         return fn + ' ' + lw.LastName + ' - ' + programName;
     }
-
+	@TestVisible
     private static void attachApplicationsInOrder(
         Map<Integer, Opportunity> indexToOpp,
         Map<Integer, Account> indexToAcc,
@@ -572,13 +578,7 @@ public without sharing class LeadPublicAPIService {
             if (acc != null && acc.PersonContactId != null) {
                 String key = String.valueOf(campaignId) + '-' + String.valueOf(acc.PersonContactId);
                 if (!existingCm.containsKey(key) && !processedKeys.contains(key)) {
-                    cmList.add(
-                        new CampaignMember(
-                            CampaignId = campaignId,
-                            ContactId = acc.PersonContactId,
-                            Status = 'Sent'
-                        )
-                    );
+                    cmList.add(new CampaignMember(CampaignId = campaignId,ContactId = acc.PersonContactId,Status = 'Sent'));
                     processedKeys.add(key);
                 }
             } else if (acc == null) {

@@ -36,7 +36,7 @@ export default class ApplicantDashboardMessageParent extends LightningElement {
 
     get applications() {
         return this._data
-            .filter((item) => item?.applicationId && !item?.isRejected)
+            .filter((item) => item?.applicationId)
             .map((item) => ({
                 applicationId: item.applicationId,
                 programName: item.programName || ''

@@ -1,71 +1,28 @@
-/**
- * @description Sends ONE consolidated "schedule published" email per recipient after the Program
- *          Team publishes a date range of sessions from the timetable calendar, replacing the
- *          per-session Google Calendar invitation emails that Google used to send (one per
- *          session, so a 40-session publish meant 40 emails for every enrolled student).
- *
- *          Students are told to check the Participant Portal; faculty are told the sessions were
- *          added to their Google Calendar. Both audiences get exactly one email per publication,
- *          deduplicated across every session in that publication.
- *
- * @note    Scope: this job is enqueued ONLY by TimetableSessionController.publishSessions, i.e.
- *          only by the Publish button. Creating a session (saveSession) keeps its own independent
- *          Yes/No behaviour and never reaches this class, and neither does Republish, Reschedule
- *          or Cancel. Nothing here runs from a trigger, so a Draft -> Published change made any
- *          other way cannot fire a summary email.
- *
- * @note    The per-session Google emails are suppressed separately, by publishSessions forcing
- *          SessionCalendarInviteHandler.skipUserNotifications = true. The Google events are still
- *          created and patched, and students are still attached as guests, so the sessions appear
- *          on everybody's calendar silently and RSVP capture keeps working.
- *
- * @note    Copy is held in the constants below rather than in Custom Metadata or an Email Template.
- *          It is deliberately generic and identical for every publication, so config would have
- *          added ten deployable components (and a per-org setup step) to hold four fixed strings.
- *          Rewording therefore needs a deploy — accepted. The Programme Office already has a
- *          user-facing off switch: answering No on the "Send calendar invitation emails?" modal
- *          publishes silently and sends nothing.
- *
- * @note    Emails send from whoever clicked Publish, so replies reach a real person. If a Programme
- *          Office Organization-Wide Email Address is created later, set SENDER_ADDRESS below.
- */
-// Sharing declared explicitly as `without sharing`: the Program Team member who clicks Publish is
-// not guaranteed sharing visibility of every learner or faculty Person Account in the published
-// divisions, and the notification must reach all of them, exactly like the calendar guest list.
-//
-// ApexCRUDViolation suppressed: this class performs no DML. It reads the enrolment and faculty
-// junctions for the sessions the publish action just committed, purely to resolve email addresses.
-// OperationWithLimitsInLoop suppressed: the Messaging.sendEmail inside sendInChunks' loop IS the
-// mechanism that keeps each call within the per-invocation recipient cap; the loop is bounded by
-// MESSAGES_PER_INVOCATION * MAX_INVOCATIONS and anything beyond it is handed to a chained job.
-// QueueableWithoutFinalizer suppressed for consistency with SessionCalendarInviteQueueable: a
-// failed send is already visible under Setup > Apex Jobs, and the publish it reports on has
-// already committed, so there is no compensating action for a finalizer to take.
-// CyclomaticComplexity suppressed at CLASS level only (total 57, highest single method 9): every
-// method stays inside the per-method limit; the total is simply the sum of many small, single-purpose
-// helpers, which is the shape this ruleset asks for. Same suppression as SessionCalendarInviteHandler.
-// ExcessiveParameterList suppressed for the two 4-parameter members (the continuation constructor
-// and addRecipient), which sit exactly on the threshold. Both take one cohesive tuple — the two
-// audience lists plus the date range, and one recipient's identity — so bundling them into another
-// wrapper object would add indirection without making either call site clearer.
 @SuppressWarnings('PMD.ApexCRUDViolation,PMD.OperationWithLimitsInLoop,PMD.QueueableWithoutFinalizer,PMD.CyclomaticComplexity,PMD.ExcessiveParameterList')
 public without sharing class SessionPublishSummaryEmailQueueable implements Queueable {
 
-    /** @description Date format used for the {0} / {1} placeholders, e.g. "11 Aug 2026". */
     private static final String DATE_FORMAT = 'd MMM yyyy';
 
     private static final String SIGN_OFF =
         '<p>Warm regards,<br />Programme Office<br />'
         + 'S. P. Jain Institute of Management and Research</p>';
 
-    /** @description Subject shared by both audiences. {0} range start, {1} range end. */
     private static final String SUBJECT = 'Session Schedule Published: {0} to {1}';
 
-    /** @description {0} range start, {1} range end, {2} recipient greeting. */
     private static final String STUDENT_BODY =
         '<p>Dear {2},</p>'
         + '<p>The schedule for {0} to {1} has been published. '
         + 'Please check your Participant Portal for details.</p>'
+        + SIGN_OFF;
+
+    // Republish copy. A republish is a single session, so both dates collapse onto {0} and {1} is
+    // left out of the wording rather than reading "20 Aug 2026 to 20 Aug 2026".
+    private static final String SUBJECT_REPUBLISH = 'Session Schedule Republished: {0}';
+
+    private static final String STUDENT_BODY_REPUBLISH =
+        '<p>Dear {2},</p>'
+        + '<p>The schedule for {0} has been Republished. '
+        + 'Please check your Participant Portal for the latest details.</p>'
         + SIGN_OFF;
 
     private static final String FACULTY_BODY =
@@ -77,41 +34,16 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
     private static final String STUDENT_FALLBACK_GREETING = 'Student';
     private static final String FACULTY_FALLBACK_GREETING = 'Faculty Member';
 
-    /**
-     * @description The ONLY address these emails may come from. Must exist as a VERIFIED
-     *          Organization-Wide Email Address (Setup > Organization-Wide Addresses).
-     *
-     *          There is deliberately no fallback to the running user: a Programme Office notice
-     *          must not arrive from whichever staff member happened to click Publish. If the
-     *          verified address is missing the job fails loudly instead, which is visible under
-     *          Setup > Apex Jobs — the publish itself has already committed and is unaffected.
-     */
-    private static final String SENDER_ADDRESS = 'finessedirect@spjimr.org';
-
-    /**
-     * @description Test seam. Apex cannot create an OrgWideEmailAddress, and a test run has no
-     *          verified sender to point at, so tests switch the requirement off and assert the
-     *          audience and copy instead. senderIsRequiredThrowsWhenUnverified covers the on case.
-     */
     @TestVisible
     private static Boolean requireVerifiedSender = true;
 
-    /** @description Recipients per Messaging.sendEmail call. */
+    @TestVisible
+    private static List<OrgWideEmailAddress> senderOverride;
+
     private static final Integer MESSAGES_PER_INVOCATION = 100;
 
-    /**
-     * @description Messaging.sendEmail calls this job may spend. Apex allows 10 email invocations
-     *          per transaction; one is deliberately left unspent so an unrelated retry or a
-     *          platform-side send cannot push the transaction over the limit.
-     */
     private static final Integer MAX_INVOCATIONS = 9;
 
-    /**
-     * @description Every message this transaction handed to Messaging.sendEmail. Recorded so the
-     *          tests can assert the audience, the deduplication and the merged copy — emails are
-     *          not delivered in a test context, so there is nothing else to inspect. Holds
-     *          references to messages that already exist in memory, so it costs no real heap.
-     */
     @TestVisible
     private static List<Messaging.SingleEmailMessage> sentMessages =
         new List<Messaging.SingleEmailMessage>();
@@ -119,31 +51,22 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
     private Set<Id> sessionIds;
     private Date rangeStart;
     private Date rangeEnd;
+    private Boolean studentsOnly;
+    private Boolean isRepublish;
 
-    /**
-     * @description Populated only on a continuation job. When set, the recipients were already
-     *          resolved by the previous link in the chain and must not be re-queried.
-     */
     private List<Recipient> pendingStudents;
     private List<Recipient> pendingFaculty;
 
-    /** @description Raised when no verified org-wide sender is available. */
     public class SenderNotConfiguredException extends Exception {}
 
-    /** @description One resolved addressee: who to send to and how to greet them. */
     public class Recipient {
         public Id contactId;
         public String email;
         public String greeting;
     }
 
-    /**
-     * @description Everything one audience's emails need besides the recipients themselves.
-     *          Bundled into an object, and populated by field assignment, so the message builder
-     *          keeps a short signature — the same shape SessionCalendarInviteHandler.PushRequest
-     *          uses for the calendar push.
-     */
     private class CopySpec {
+        private String subject;
         private String body;
         private String fallbackGreeting;
         private String startText;
@@ -151,27 +74,41 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         private Id senderId;
     }
 
-    /**
-     * @description Primary constructor, used by TimetableSessionController.publishSessions.
-     * @param sessionIds The sessions this publication action just published.
-     * @param rangeStart Earliest Session_Date__c among those sessions.
-     * @param rangeEnd Latest Session_Date__c among those sessions.
-     */
     public SessionPublishSummaryEmailQueueable(Set<Id> sessionIds, Date rangeStart, Date rangeEnd) {
-        this.sessionIds = (sessionIds != null) ? sessionIds : new Set<Id>();
-        this.rangeStart = rangeStart;
-        this.rangeEnd   = rangeEnd;
+        this(sessionIds, rangeStart, rangeEnd, false);
+    }
+
+    public SessionPublishSummaryEmailQueueable(
+        Set<Id> sessionIds,
+        Date rangeStart,
+        Date rangeEnd,
+        Boolean studentsOnly
+    ) {
+        this(sessionIds, rangeStart, rangeEnd, studentsOnly, false);
     }
 
     /**
-     * @description Continuation constructor: carries the recipients a previous link could not fit
-     *          inside its email-invocation budget, so a very large publication still reaches
-     *          everybody without re-resolving or re-sending to anyone.
-     * @param students Students still to be emailed.
-     * @param faculty Faculty still to be emailed.
-     * @param rangeStart Earliest Session_Date__c among the published sessions.
-     * @param rangeEnd Latest Session_Date__c among the published sessions.
+     * @description Builds the summary job.
+     * @param sessionIds The sessions whose students/faculty are to be emailed.
+     * @param rangeStart Earliest session date quoted in the copy.
+     * @param rangeEnd Latest session date quoted in the copy.
+     * @param studentsOnly True to skip the faculty entirely (they are told by Google instead).
+     * @param isRepublish True for the Republish path, which swaps in the "schedule updated" copy.
      */
+    public SessionPublishSummaryEmailQueueable(
+        Set<Id> sessionIds,
+        Date rangeStart,
+        Date rangeEnd,
+        Boolean studentsOnly,
+        Boolean isRepublish
+    ) {
+        this.sessionIds   = (sessionIds != null) ? sessionIds : new Set<Id>();
+        this.rangeStart   = rangeStart;
+        this.rangeEnd     = rangeEnd;
+        this.studentsOnly = (studentsOnly == true);
+        this.isRepublish  = (isRepublish == true);
+    }
+
     @TestVisible
     private SessionPublishSummaryEmailQueueable(
         List<Recipient> students,
@@ -184,25 +121,25 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         this.pendingFaculty  = faculty;
         this.rangeStart      = rangeStart;
         this.rangeEnd        = rangeEnd;
+        this.studentsOnly    = false;
+        this.isRepublish     = false;
     }
 
-    /**
-     * @description Resolves the audiences and sends one email each, chaining if the publication is
-     *          larger than one transaction's email budget.
-     * @param context The queueable context supplied by the platform.
-     */
     public void execute(QueueableContext context) {
         List<Recipient> students = (pendingStudents != null) ? pendingStudents : resolveStudents();
-        List<Recipient> faculty  = (pendingFaculty  != null) ? pendingFaculty  : resolveFaculty();
+        List<Recipient> faculty;
+        if (studentsOnly == true) {
+            faculty = new List<Recipient>();
+        } else {
+            faculty = (pendingFaculty != null) ? pendingFaculty : resolveFaculty();
+        }
 
-        // Resolved before anything is built: if there is no verified Programme Office sender there
-        // is nothing valid to send from, and failing here sends nobody a half-right email.
-        Id senderId = resolveSenderId(SENDER_ADDRESS);
+        Id senderId = resolveSenderId();
         if (senderId == null && requireVerifiedSender && !(students.isEmpty() && faculty.isEmpty())) {
             throw new SenderNotConfiguredException(
-                'Publish summary not sent: no verified Organization-Wide Email Address exists for '
-                + SENDER_ADDRESS + '. Create it under Setup > Organization-Wide Addresses and click '
-                + 'the verification link sent to that mailbox, then re-run the notification. The '
+                'Publish summary not sent: this org has no verified Organization-Wide Email Address '
+                + 'to send from. Create one under Setup > Organization-Wide Addresses and click the '
+                + 'verification link sent to that mailbox, then re-run the notification. The '
                 + 'sessions themselves are already published and are unaffected.'
             );
         }
@@ -210,19 +147,13 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         String startText  = formatDate(rangeStart);
         String endText    = formatDate(rangeEnd);
 
-        CopySpec studentCopy = new CopySpec();
-        studentCopy.body             = STUDENT_BODY;
-        studentCopy.fallbackGreeting = STUDENT_FALLBACK_GREETING;
-        studentCopy.startText        = startText;
-        studentCopy.endText          = endText;
-        studentCopy.senderId         = senderId;
-
-        CopySpec facultyCopy = new CopySpec();
-        facultyCopy.body             = FACULTY_BODY;
-        facultyCopy.fallbackGreeting = FACULTY_FALLBACK_GREETING;
-        facultyCopy.startText        = startText;
-        facultyCopy.endText          = endText;
-        facultyCopy.senderId         = senderId;
+        String studentBody = (isRepublish == true) ? STUDENT_BODY_REPUBLISH : STUDENT_BODY;
+        CopySpec studentCopy = buildCopy(
+            studentBody, STUDENT_FALLBACK_GREETING, startText, endText, senderId
+        );
+        CopySpec facultyCopy = buildCopy(
+            FACULTY_BODY, FACULTY_FALLBACK_GREETING, startText, endText, senderId
+        );
 
         Integer capacity = MESSAGES_PER_INVOCATION * MAX_INVOCATIONS;
         List<Recipient> studentSlice = takeSlice(students, capacity);
@@ -237,11 +168,31 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
     }
 
     /**
-     * @description Resolves the distinct students enrolled in the published sessions. Deliberately
-     *          reads Session_Enrollment__c rather than the divisions, so the email reaches exactly
-     *          the people who were attached to the Google events as guests.
-     * @return One Recipient per distinct student.
+     * @description Assembles one audience's copy, picking the publish or the republish subject.
+     * @param body The body template for this audience.
+     * @param fallbackGreeting Greeting used when the recipient has no first name on file.
+     * @param startText Formatted earliest session date.
+     * @param endText Formatted latest session date.
+     * @param senderId Org-wide email address to send from, or null when none is configured.
+     * @return The assembled copy for this audience.
      */
+    private CopySpec buildCopy(
+        String body,
+        String fallbackGreeting,
+        String startText,
+        String endText,
+        Id senderId
+    ) {
+        CopySpec spec = new CopySpec();
+        spec.subject          = (isRepublish == true) ? SUBJECT_REPUBLISH : SUBJECT;
+        spec.body             = body;
+        spec.fallbackGreeting = fallbackGreeting;
+        spec.startText        = startText;
+        spec.endText          = endText;
+        spec.senderId         = senderId;
+        return spec;
+    }
+
     private List<Recipient> resolveStudents() {
         Map<String, Recipient> byKey = new Map<String, Recipient>();
         if (sessionIds.isEmpty()) {
@@ -263,10 +214,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         return byKey.values();
     }
 
-    /**
-     * @description Resolves the distinct faculty assigned to the published sessions.
-     * @return One Recipient per distinct faculty member.
-     */
     private List<Recipient> resolveFaculty() {
         Map<String, Recipient> byKey = new Map<String, Recipient>();
         if (sessionIds.isEmpty()) {
@@ -292,11 +239,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         return byKey.values();
     }
 
-    /**
-     * @description Walks the enrolment to its learner Person Account, tolerating a broken chain.
-     * @param se The session enrolment row.
-     * @return The learner account, or null when any link in the chain is missing.
-     */
     private static Account learnerOf(Session_Enrollment__c se) {
         if (se.Division_Enrollment__r == null
                 || se.Division_Enrollment__r.Academic_Term_Enrollment__r == null) {
@@ -305,14 +247,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         return se.Division_Enrollment__r.Academic_Term_Enrollment__r.LearnerAccount;
     }
 
-    /**
-     * @description Adds a recipient under a dedupe key, so a student enrolled in twenty of the
-     *          published sessions still receives exactly one email.
-     * @param byKey Accumulator keyed by contact id, falling back to lowercased email.
-     * @param contactId The recipient's PersonContactId, may be null.
-     * @param email The recipient's email address.
-     * @param name The name used to build the greeting, may be blank.
-     */
     private static void addRecipient(
         Map<String, Recipient> byKey,
         Id contactId,
@@ -333,13 +267,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         byKey.put(key, r);
     }
 
-    /**
-     * @description Removes and returns the first `count` recipients, leaving the remainder in the
-     *          source list for the continuation job.
-     * @param source The full recipient list, mutated in place.
-     * @param count How many recipients this transaction can afford.
-     * @return The recipients to email now.
-     */
     private static List<Recipient> takeSlice(List<Recipient> source, Integer count) {
         List<Recipient> taken = new List<Recipient>();
         if (source == null || count <= 0) {
@@ -351,12 +278,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         return taken;
     }
 
-    /**
-     * @description Builds one personalised email per recipient.
-     * @param recipients The audience slice being emailed now.
-     * @param spec The audience's copy, sender and formatted date range.
-     * @return The messages, ready to send.
-     */
     private static List<Messaging.SingleEmailMessage> buildMessages(
         List<Recipient> recipients,
         CopySpec spec
@@ -373,9 +294,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
             String greeting = String.isNotBlank(r.greeting) ? r.greeting : defaultGreeting;
             Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
 
-            // setTargetObjectId is preferred (it is the org's existing idiom and associates the
-            // send with the person record); toAddresses is the fallback for a learner or faculty
-            // Person Account with no contact behind it.
             if (r.contactId != null) {
                 mail.setTargetObjectId(r.contactId);
                 mail.setSaveAsActivity(false);
@@ -386,7 +304,7 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
                 mail.setOrgWideEmailAddressId(spec.senderId);
             }
             String html = mergeCopy(spec.body, spec, greeting);
-            mail.setSubject(mergeCopy(SUBJECT, spec, greeting));
+            mail.setSubject(mergeCopy(spec.subject, spec, greeting));
             mail.setHtmlBody(html);
             mail.setPlainTextBody(toPlainText(html));
             messages.add(mail);
@@ -394,15 +312,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         return messages;
     }
 
-    /**
-     * @description Substitutes the {0} / {1} / {2} placeholders. Uses replace() rather than
-     *          String.format because the copy is admin-editable and an apostrophe in a
-     *          MessageFormat pattern silently swallows the placeholders around it.
-     * @param template The configured copy.
-     * @param spec The audience's copy spec, carrying the formatted dates.
-     * @param greeting The recipient greeting.
-     * @return The merged text.
-     */
     private static String mergeCopy(String template, CopySpec spec, String greeting) {
         if (String.isBlank(template)) {
             return '';
@@ -413,12 +322,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
             .replace('{2}', greeting);
     }
 
-    /**
-     * @description Derives the plain-text alternative from the merged HTML body, so a mail client
-     *          that refuses HTML still shows readable text rather than markup.
-     * @param html The merged HTML body.
-     * @return The stripped plain-text equivalent.
-     */
     private static String toPlainText(String html) {
         return html
             .replaceAll('<br\\s*/?>', '\n')
@@ -427,12 +330,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
             .trim();
     }
 
-    /**
-     * @description Sends the messages in chunks that respect the per-transaction email budget.
-     *          allOrNothing is false so one undeliverable address cannot stop everybody else's
-     *          email, and a partial failure cannot roll back the publish that already committed.
-     * @param messages The messages to send.
-     */
     private static void sendInChunks(List<Messaging.SingleEmailMessage> messages) {
         if (messages.isEmpty()) {
             return;
@@ -452,13 +349,6 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         }
     }
 
-    /**
-     * @description Enqueues a continuation job for recipients that did not fit this transaction's
-     *          email budget. Skipped when nothing is left or the transaction has no queueable slot,
-     *          in which case the publish itself is unaffected and already committed.
-     * @param students Students still unsent.
-     * @param faculty Faculty still unsent.
-     */
     private void chainRemainder(List<Recipient> students, List<Recipient> faculty) {
         Boolean nothingLeft = (students == null || students.isEmpty())
             && (faculty == null || faculty.isEmpty());
@@ -468,40 +358,28 @@ public without sharing class SessionPublishSummaryEmailQueueable implements Queu
         if (Limits.getLimitQueueableJobs() - Limits.getQueueableJobs() <= 0) {
             return;
         }
-        System.enqueueJob(
-            new SessionPublishSummaryEmailQueueable(students, faculty, rangeStart, rangeEnd)
-        );
+        // Carry the copy variant across the chain, or a >900-recipient republish would flip back
+        // to the publish wording halfway through.
+        SessionPublishSummaryEmailQueueable next =
+            new SessionPublishSummaryEmailQueueable(students, faculty, rangeStart, rangeEnd);
+        next.isRepublish = isRepublish;
+        System.enqueueJob(next);
     }
 
-    /**
-     * @description Resolves the configured Organization-Wide Email Address.
-     * @param address The configured sender address, may be blank.
-     * @return Its id, or null to send as the running user.
-     */
     @TestVisible
-    private static Id resolveSenderId(String address) {
-        if (String.isBlank(address)) {
-            return null;
-        }
-        // IsVerified matters: an org-wide address that exists but has not had its verification link
-        // clicked cannot be used as a sender, and passing its id makes the send fail. Filtering here
-        // means an unverified (or misspelt) address degrades to sending as the running user — the
-        // pre-existing behaviour — instead of throwing and losing the notification entirely.
-        List<OrgWideEmailAddress> owas = [
-            SELECT Id
-            FROM   OrgWideEmailAddress
-            WHERE  Address = :address.trim()
-              AND  IsVerified = true
-            LIMIT  1
-        ];
+    private static Id resolveSenderId() {
+        List<OrgWideEmailAddress> owas = (senderOverride != null)
+            ? senderOverride
+            : [
+                SELECT Id
+                FROM   OrgWideEmailAddress
+                WHERE  IsVerified = true
+                ORDER BY Address
+                LIMIT  1
+            ];
         return owas.isEmpty() ? null : owas[0].Id;
     }
 
-    /**
-     * @description Formats a date for the email copy, e.g. "11 Aug 2026".
-     * @param value The date to format.
-     * @return The formatted date, or an empty string when null.
-     */
     private static String formatDate(Date value) {
         if (value == null) {
             return '';

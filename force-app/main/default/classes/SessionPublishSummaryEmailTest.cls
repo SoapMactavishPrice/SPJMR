@@ -1,23 +1,3 @@
-/**
- * @description Tests the consolidated publish notification: publishing a date range of sessions
- *          must send ONE email to each enrolled student and each assigned faculty member for the
- *          whole publication, instead of Google sending one calendar invitation per session.
- *
- *          The Google Calendar push is deliberately switched off in these tests
- *          (GoogleCalendarHelper.configOverride with Active__c = false) so no HTTP mock is needed
- *          and the assertions isolate the email behaviour. That the publish path itself uses
- *          sendUpdates=none is asserted separately in SessionCalendarInviteHandlerTest.
- *
- *          Emails are never delivered in a test context, so assertions read
- *          SessionPublishSummaryEmailQueueable.sentMessages, which records what was handed to
- *          Messaging.sendEmail. Both audiences share one subject line, so the audiences are told
- *          apart by their body text: students are pointed at the Participant Portal, faculty at
- *          their Google Calendar.
- */
-// OperationWithLimitsInLoop suppressed: buildScenario inserts each Session__c and its junction rows
-// one per iteration on purpose. The Session trigger stamps and re-reads a session on insert, so a
-// bulk insert would not produce the per-session graph these tests need, and the loop is bounded by
-// the handful of sessions each scenario asks for.
 @SuppressWarnings('PMD.OperationWithLimitsInLoop')
 @IsTest
 private class SessionPublishSummaryEmailTest {
@@ -25,7 +5,6 @@ private class SessionPublishSummaryEmailTest {
     private static final String STUDENT_MARKER = 'Participant Portal';
     private static final String FACULTY_MARKER = 'Google Calendar';
 
-    /** @description Graph of ids a publish scenario needs. */
     private class Scenario {
         private Id divisionId;
         private Id studentAccountId;
@@ -37,32 +16,14 @@ private class SessionPublishSummaryEmailTest {
         return new User(Id = UserInfo.getUserId());
     }
 
-    /**
-     * @description Silences the Google Calendar integration so publishing performs no callout.
-     */
     private static void disableCalendarPush() {
         GoogleCalendarHelper.configOverride = new Google_Calendar_Config__mdt(Active__c = false);
     }
 
-    /**
-     * @description Apex cannot create an OrgWideEmailAddress and a test run has no verified sender
-     *          to point at, so the org-wide-sender requirement is switched off for the tests that
-     *          assert audience and copy. senderIsRequiredWhenUnverified covers the enforcing path.
-     */
     private static void allowMissingSender() {
         SessionPublishSummaryEmailQueueable.requireVerifiedSender = false;
     }
 
-    /**
-     * @description Builds the faculty Person Account directly rather than through
-     *          SpjimrPortalTestDataFactory.buildLearnerPersonAccount, which stamps the Student
-     *          record type plus a shared Date_Of_Birth__c and PersonMobilePhone — a second learner
-     *          in the same transaction therefore trips AccountTriggerHandler's "Duplicate Student
-     *          found!" check. The Faculty record type is outside that check and is what a faculty
-     *          member should be anyway.
-     * @param tag Uniqueness suffix.
-     * @return The inserted faculty account, or null when the Faculty person record type is absent.
-     */
     private static Account buildFacultyPersonAccount(String tag) {
         Schema.RecordTypeInfo rt = Account.SObjectType
             .getDescribe(SObjectDescribeOptions.DEFERRED)
@@ -81,13 +42,6 @@ private class SessionPublishSummaryEmailTest {
         return faculty;
     }
 
-    /**
-     * @description Builds a division with one enrolled student, one faculty member and the
-     *          requested number of Draft sessions, each linked to the division and to the student.
-     * @param tag Uniqueness suffix.
-     * @param sessionDates Dates of the Draft sessions to create.
-     * @return The populated scenario, or null when the managed EDA graph is unavailable.
-     */
     private static Scenario buildScenario(String tag, List<Date> sessionDates) {
         Scenario sc = new Scenario();
 
@@ -124,11 +78,6 @@ private class SessionPublishSummaryEmailTest {
         return sc;
     }
 
-    /**
-     * @description Runs the publish action over the scenario's division and date window.
-     * @param sc The scenario.
-     * @param sendNotifications The Yes/No answer from the modal.
-     */
     private static void publish(Scenario sc, Boolean sendNotifications) {
         TimetableSessionController.SessionFilter filter =
             new TimetableSessionController.SessionFilter();
@@ -139,11 +88,6 @@ private class SessionPublishSummaryEmailTest {
         TimetableSessionController.publishSessions(JSON.serialize(filter));
     }
 
-    /**
-     * @description Counts messages whose body identifies the given audience.
-     * @param marker Body text unique to that audience.
-     * @return How many messages matched.
-     */
     private static Integer countByBody(String marker) {
         Integer n = 0;
         for (Messaging.SingleEmailMessage m : SessionPublishSummaryEmailQueueable.sentMessages) {
@@ -154,11 +98,6 @@ private class SessionPublishSummaryEmailTest {
         return n;
     }
 
-    /**
-     * @description Returns the first message for an audience.
-     * @param marker Body text unique to that audience.
-     * @return The message, or null when none was sent.
-     */
     private static Messaging.SingleEmailMessage firstByBody(String marker) {
         for (Messaging.SingleEmailMessage m : SessionPublishSummaryEmailQueueable.sentMessages) {
             if (m.getHtmlBody() != null && m.getHtmlBody().contains(marker)) {
@@ -168,21 +107,10 @@ private class SessionPublishSummaryEmailTest {
         return null;
     }
 
-    /**
-     * @description Formats a date the way the queueable does, for subject assertions.
-     * @param value The date.
-     * @return The formatted date.
-     */
     private static String formatted(Date value) {
         return Datetime.newInstance(value, Time.newInstance(0, 0, 0, 0)).format('d MMM yyyy');
     }
 
-    /**
-     * @description Yes must send exactly one email to the student and one to the faculty member for
-     *          the whole publication, even though both are attached to three separate sessions —
-     *          that deduplication is the entire point of the ticket. The quoted range must be the
-     *          min/max Session_Date__c of the sessions actually published.
-     */
     @IsTest
     static void publishYesSendsOneEmailPerRecipientForTheWholeRange() {
         System.runAs(currentUser()) {
@@ -203,8 +131,9 @@ private class SessionPublishSummaryEmailTest {
 
             Assert.areEqual(1, countByBody(STUDENT_MARKER),
                 'Three published sessions must still produce exactly ONE student email.');
-            Assert.areEqual(1, countByBody(FACULTY_MARKER),
-                'Three published sessions must still produce exactly ONE faculty email.');
+            Assert.areEqual(0, countByBody(FACULTY_MARKER),
+                'Faculty are notified by Google Calendar on publish, so the summary job must not '
+                + 'email them as well.');
 
             Messaging.SingleEmailMessage studentMail = firstByBody(STUDENT_MARKER);
             Assert.isTrue(studentMail.getSubject().contains(formatted(first)),
@@ -216,21 +145,16 @@ private class SessionPublishSummaryEmailTest {
             Assert.isTrue(studentMail.getHtmlBody().contains('has been published'),
                 'The student body must carry the ticket wording.');
 
-            Messaging.SingleEmailMessage facultyMail = firstByBody(FACULTY_MARKER);
-            Assert.isNotNull(facultyMail.getPlainTextBody(),
+            Assert.isNotNull(studentMail.getPlainTextBody(),
                 'A plain-text alternative must always be built.');
-            Assert.isFalse(facultyMail.getPlainTextBody().contains('<p>'),
+            Assert.isFalse(studentMail.getPlainTextBody().contains('<p>'),
                 'The plain-text alternative must have its markup stripped. Text='
-                + facultyMail.getPlainTextBody());
+                + studentMail.getPlainTextBody());
         }
     }
 
-    /**
-     * @description No must publish the sessions and email nobody. This is also the Programme
-     *          Office's off switch, which is why the copy needs no separate active flag.
-     */
     @IsTest
-    static void publishNoSendsNothingButStillPublishes() {
+    static void publishNoStillSendsTheStudentSummary() {
         System.runAs(currentUser()) {
             disableCalendarPush();
             allowMissingSender();
@@ -245,8 +169,10 @@ private class SessionPublishSummaryEmailTest {
             publish(sc, false);
             Test.stopTest();
 
-            Assert.areEqual(0, SessionPublishSummaryEmailQueueable.sentMessages.size(),
-                'Answering No must not send any email.');
+            Assert.areEqual(1, countByBody(STUDENT_MARKER),
+                'Answering No must still send the students their consolidated email.');
+            Assert.areEqual(0, countByBody(FACULTY_MARKER),
+                'Answering No must not email the faculty at all.');
             Session__c after = [
                 SELECT Schedule_Type__c FROM Session__c WHERE Id = :sc.sessionIds[0]
             ];
@@ -255,11 +181,78 @@ private class SessionPublishSummaryEmailTest {
         }
     }
 
-    /**
-     * @description A recipient with no contact behind the Person Account falls back to a direct
-     *          to-address, and a recipient with no name falls back to the generic greeting. Also
-     *          covers null dates merging to an empty string rather than throwing.
-     */
+    @IsTest
+    static void republishNoSendsStudentsTheUpdatedScheduleEmail() {
+        System.runAs(currentUser()) {
+            disableCalendarPush();
+            allowMissingSender();
+            Date sessionDate = Date.today().addDays(4);
+            Scenario sc = buildScenario('c', new List<Date>{ sessionDate });
+            if (sc == null) {
+                Assert.isTrue(true, 'Managed EDA setup unavailable; skipping.');
+                return;
+            }
+            Session__c republished = new Session__c(
+                Id = sc.sessionIds[0],
+                Schedule_Type__c = 'Republished'
+            );
+            SessionPublishSummaryEmailQueueable.sentMessages.clear();
+
+            Test.startTest();
+            TimetableSessionController.enqueueRepublishStudentEmail(republished, sessionDate);
+            Test.stopTest();
+
+            Assert.areEqual(1, countByBody(STUDENT_MARKER),
+                'Republishing with No must send the enrolled student exactly one summary email.');
+            Assert.areEqual(0, countByBody(FACULTY_MARKER),
+                'No means the faculty are not emailed at all on a republish.');
+
+            Messaging.SingleEmailMessage studentMail = firstByBody(STUDENT_MARKER);
+            Assert.isTrue(studentMail.getHtmlBody().contains('has been Republished'),
+                'A republish must use the "Republished" wording, not the publish wording. Body='
+                + studentMail.getHtmlBody());
+            Assert.isTrue(studentMail.getSubject().contains('Republished'),
+                'The subject must say the schedule was republished. Subject='
+                + studentMail.getSubject());
+            Assert.isTrue(studentMail.getSubject().contains(formatted(sessionDate)),
+                'The subject must quote the session date being saved. Subject='
+                + studentMail.getSubject());
+            Assert.isFalse(studentMail.getSubject().contains(' to '),
+                'A single republished session must not read as a date range. Subject='
+                + studentMail.getSubject());
+        }
+    }
+
+    @IsTest
+    static void savesThatAreNotRepublishesEmailNobody() {
+        System.runAs(currentUser()) {
+            disableCalendarPush();
+            allowMissingSender();
+            Session__c draft = new Session__c(
+                Name             = 'DraftOnly',
+                Session_Date__c  = Date.today().addDays(6),
+                Schedule_Type__c = 'Draft',
+                Start_Time__c    = Datetime.newInstance(Date.today().addDays(6), Time.newInstance(9, 0, 0, 0)),
+                End_Time__c      = Datetime.newInstance(Date.today().addDays(6), Time.newInstance(10, 0, 0, 0))
+            );
+            insert draft;
+            SessionPublishSummaryEmailQueueable.sentMessages.clear();
+
+            Test.startTest();
+            // A draft edit: Publish will notify later, so this path must stay silent.
+            TimetableSessionController.enqueueRepublishStudentEmail(draft, draft.Session_Date__c);
+            // A brand-new session has no Id yet, so there is nobody enrolled to email.
+            TimetableSessionController.enqueueRepublishStudentEmail(
+                new Session__c(Schedule_Type__c = 'Republished'), Date.today()
+            );
+            TimetableSessionController.enqueueRepublishStudentEmail(null, Date.today());
+            Test.stopTest();
+
+            Assert.areEqual(0, SessionPublishSummaryEmailQueueable.sentMessages.size(),
+                'Only a republish may trigger the summary email; creates and draft edits must not.');
+        }
+    }
+
     @IsTest
     static void fallbackGreetingAddressAndNullDatesAreHandled() {
         System.runAs(currentUser()) {
@@ -292,9 +285,6 @@ private class SessionPublishSummaryEmailTest {
         }
     }
 
-    /**
-     * @description An empty publication must not send anything, and must not throw.
-     */
     @IsTest
     static void emptyPublicationSendsNothing() {
         System.runAs(currentUser()) {
@@ -312,33 +302,46 @@ private class SessionPublishSummaryEmailTest {
         }
     }
 
-    /**
-     * @description An address matching no verified Organization-Wide Email Address must resolve to
-     *          no sender id, rather than throwing at the lookup itself.
-     */
     @IsTest
-    static void unknownSenderAddressResolvesToNoOrgWideId() {
+    static void noVerifiedAddressResolvesToNoOrgWideId() {
         System.runAs(currentUser()) {
+            SessionPublishSummaryEmailQueueable.senderOverride = new List<OrgWideEmailAddress>();
+
             Test.startTest();
-            Id resolved = SessionPublishSummaryEmailQueueable.resolveSenderId(
-                'not-a-real-owa@example.invalid'
-            );
+            Id resolved = SessionPublishSummaryEmailQueueable.resolveSenderId();
             Test.stopTest();
 
             Assert.isNull(resolved,
-                'An unverified or unknown sender address must resolve to null.');
+                'With no verified org-wide address the sender must resolve to null.');
         }
     }
 
-    /**
-     * @description These emails may come ONLY from the Programme Office org-wide address — never
-     *          from whichever staff member happened to click Publish. With no verified sender
-     *          available the job must fail loudly rather than send from a person, so the failure is
-     *          visible under Setup > Apex Jobs and nothing misleading reaches students or faculty.
-     */
+    @IsTest
+    static void verifiedAddressInTheOrgIsUsedAsSender() {
+        List<OrgWideEmailAddress> verified = [
+            SELECT Id FROM OrgWideEmailAddress WHERE IsVerified = true ORDER BY Address LIMIT 1
+        ];
+
+        System.runAs(currentUser()) {
+            Test.startTest();
+            Id resolved = SessionPublishSummaryEmailQueueable.resolveSenderId();
+            Test.stopTest();
+
+            if (verified.isEmpty()) {
+                Assert.isNull(resolved,
+                    'An org with no verified address has no sender to resolve.');
+            } else {
+                Assert.areEqual(verified[0].Id, resolved,
+                    'The org\'s first verified address by address order must be the sender.');
+            }
+        }
+    }
+
     @IsTest
     static void senderIsRequiredWhenUnverified() {
         System.runAs(currentUser()) {
+            SessionPublishSummaryEmailQueueable.senderOverride = new List<OrgWideEmailAddress>();
+
             SessionPublishSummaryEmailQueueable.Recipient r =
                 new SessionPublishSummaryEmailQueueable.Recipient();
             r.email    = 'someone@example.com';

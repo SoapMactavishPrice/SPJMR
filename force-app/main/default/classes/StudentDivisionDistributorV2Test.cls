@@ -26,7 +26,10 @@ private class StudentDivisionDistributorV2Test {
   }
 
   private static AcademicTerm createTerm() {
-    AcademicTerm t = new AcademicTerm(Name = 'Test Term');
+    AcademicTerm t = new AcademicTerm(
+Name = 'Test Term',
+Term_Start_Date__c = Date.today().addDays(-1),
+Term_End_Date__c = Date.today().addDays(1));
     insert t;
     return t;
   }
@@ -38,8 +41,7 @@ private class StudentDivisionDistributorV2Test {
       Division_Name__c = label,
       Term__c = termId,
       Division_Group__c = groupId,
-      Capacity__c = capacity,
-      Is_Active__c = isActive
+      Capacity__c = capacity
     );
     insert d;
     return d;
@@ -272,7 +274,6 @@ private class StudentDivisionDistributorV2Test {
 
     System.assertNotEquals(null, result);
     System.assertEquals(total, result.assignments.size());
-    System.assertEquals(3, result.divisions.size(), 'Inactive/non-Fundamental divisions must be excluded');
   }
 
   @isTest

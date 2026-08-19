@@ -271,15 +271,18 @@ private static ConversionResult handleLeadConversionFailure(
                 PersonMailingCountry = leadRecord.Country_Master_backend__r != null ? leadRecord.Country_Master_backend__r.Name : leadRecord.Country,
                 Country_Master__c = leadRecord.Country_Master_backend__c,
                 State_Master__c = leadRecord.State_Master__c,
-                District_City__c = leadRecord.District_City__c,
+                District_City__c = leadRecord.District_City__c, 
                 Entrance_Exam_Name__c = leadRecord.XS_EntranceExamName__c,
                 Has_Entrance_Exam_Score__c = leadRecord.XS_DoYouHaveEntranceExamScore__c,
-                Publisher_Name__c = leadRecord.Publisher_Name__c
+                Publisher_Name__c = leadRecord.Publisher_Name__c,
+                PersonOtherPhone = leadRecord.AlternateContactNumber__c
                 // Years_Of_Work_Experience__c = String.isNotBlank(leadRecord.XS_YearsOfWorkExperience__c) 
                 //     ? Decimal.valueOf(leadRecord.XS_YearsOfWorkExperience__c) 
                 //     : null
             );
             update acc;
+            //List<Account> listCon = [SELECT PersonContactId FROM Account WHERE
+            //Id =:acc.Id LIMIT 1];
               List<AccountShare> shares = new List<AccountShare>();
             Map<Id, Program> programById = new Map<Id, Program>();
             List<String> orderedProgramIds = new List<String>();
@@ -313,7 +316,7 @@ String formattedProgrammeNames =
                 }
             }
 
-          
+          //update new Contact(Id=listCon[0].PersonContactId,Programs_Applied__c=formattedProgrammeNames);
             Map<String, String> userResult = createCommunityUser(lcr.getAccountId(),formattedProgrammeNames);
             if (userResult.containsKey('ERROR')) {
                 result.isSuccess = false;

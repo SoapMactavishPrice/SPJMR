@@ -47,7 +47,8 @@ private class FacultyCalendarConflictServiceTest {
                 + '"start":{"dateTime":"2026-07-16T02:30:00Z"},'
                 + '"end":{"dateTime":"2026-07-16T03:30:00Z"}}]');
             List<FacultyCalendarConflictService.BusyEvent> r =
-                FacultyCalendarConflictService.overlappingBusy(it, FAC, WIN_START, WIN_END, 'self-evt');
+                FacultyCalendarConflictService.overlappingBusy(
+                    it, FAC, WIN_START, WIN_END, new Set<String>{ 'self-evt' });
             Assert.areEqual(0, r.size(), 'The own session event is not a self-conflict');
         }
     }

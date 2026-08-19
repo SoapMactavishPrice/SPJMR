@@ -202,9 +202,9 @@ export default class CsvUploader extends LightningElement {
         );
     }
 
-    handleNotifyCheckbox(event) {
-        this.notifyShortlistedApplicants = event.target.checked;
-    }
+    // handleNotifyCheckbox(event) {
+    //     this.notifyShortlistedApplicants = event.target.checked;
+    // }
 
     handleEmailErrorReport(event) {
         this.emailErrorReport = event.target.checked;

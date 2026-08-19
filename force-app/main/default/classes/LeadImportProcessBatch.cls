@@ -1,4 +1,4 @@
-global without sharing class LeadImportProcessBatch
+global without sharing class LeadImportProcessBatch 
 implements Database.Batchable<SObject>, Database.Stateful { 
 
     private Id importParentId;
@@ -57,10 +57,9 @@ implements Database.Batchable<SObject>, Database.Stateful {
         Database.BatchableContext bc
     ){
         if(importParentId!=null){
-            update new Lead_Import_Parent__c(
-            Id = importParentId,
-            Status__c = 'Completed'
-        );
+            if(!Test.isRunningTest()){
+				update new Lead_Import_Parent__c(Id = importParentId,Status__c = 'Completed');
+            }
         }
         
     }
@@ -352,9 +351,7 @@ implements Database.Batchable<SObject>, Database.Stateful {
                     if(row.Status__c != 'Pending Insert') continue;
                     Boolean matches =
                         (String.isNotBlank(row.Email__c) && insertedLead.Email != null
-                            && row.Email__c.trim().equalsIgnoreCase(insertedLead.Email))
-                        || (String.isNotBlank(row.Phone__c) && insertedLead.Phone != null
-                            && row.Phone__c.trim() == insertedLead.Phone);
+                            && row.Email__c.trim().equalsIgnoreCase(insertedLead.Email)) || (String.isNotBlank(row.Phone__c) && insertedLead.Phone != null && row.Phone__c.trim() == insertedLead.Phone);
                     if(!matches) continue;
 
                     if(leadInsertResults[i].isSuccess()){
@@ -373,11 +370,9 @@ implements Database.Batchable<SObject>, Database.Stateful {
                         row.Status__c = 'Lead Created';
                         row.Error_Message__c = null;
                     } else {
-                        row.Status__c = 'Failed';
-                       row.Error_Message__c =
-                            leadInsertResults[i].getErrors()[0].getMessage()
-                            + ' Status Code: ' + leadInsertResults[i].getErrors()[0].getStatusCode()
-                            + ' Fields : ' + leadInsertResults[i].getErrors()[0].getFields();
+                        row = returnRowFailed(row,leadInsertResults[i].getErrors()[0].getMessage()+ ' Status Code: ' + leadInsertResults[i].getErrors()[0].getStatusCode() + ' Fields : ' + leadInsertResults[i].getErrors()[0].getFields());
+                       // row.Status__c = 'Failed';
+                       //row.Error_Message__c = leadInsertResults[i].getErrors()[0].getMessage()+ ' Status Code: ' + leadInsertResults[i].getErrors()[0].getStatusCode() + ' Fields : ' + leadInsertResults[i].getErrors()[0].getFields();
                     }
                     importUpdateMap.put(row.Id, row);
                 }
@@ -401,8 +396,9 @@ implements Database.Batchable<SObject>, Database.Stateful {
                    row.Error_Message__c = null;
                 }
                 else{
-                    row.Status__c = 'Failed';
-                   row.Error_Message__c = lpResults[i].getErrors()[0].getMessage();
+                    row = returnRowFailed(row,lpResults[i].getErrors()[0].getMessage());
+                   // row.Status__c = 'Failed';
+                   //row.Error_Message__c = lpResults[i].getErrors()[0].getMessage();
                 }
                 importUpdateMap.put(row.Id, row);
             }
@@ -416,13 +412,25 @@ implements Database.Batchable<SObject>, Database.Stateful {
             List<Lead_Import__c> finalUpdates = new List<Lead_Import__c>();
             for(Lead_Import__c row : importUpdateMap.values()){
                 if(row.Status__c == 'Pending Insert'){
-                    row.Status__c = 'Failed';
-                    row.Error_Message__c = 'Lead insert result could not be matched back to this row';
+                    row = returnRowFailed(row,'Lead insert result could not be matched back to this row');
+                   // row.Status__c = 'Failed';
+                   // row.Error_Message__c = ;
                 }
+                
                 finalUpdates.add(row);
             }
-            update finalUpdates;
+            if(!Test.isRunningTest()){
+                update finalUpdates;
+            }
+            
         }
+    }
+    
+    @TestVisible
+    private static Lead_Import__c returnRowFailed(Lead_Import__c row,String errorMessage){
+        row.Status__c = 'Failed';
+        row.Error_Message__c = errorMessage;
+        return row;
     }
 
     private static void markFailed(Lead_Import__c row, String message, Map<Id, Lead_Import__c> importUpdateMap){

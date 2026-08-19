@@ -33,15 +33,15 @@ public with sharing class SessionAttendeeSyncBatch
     public Integer sessionsMissing = 0;
 
     /**
-     * @description Selects every Session that has been pushed to Google (has an event id).
+     * @description Selects every Session that has been pushed to Google (has either event id).
      * @param bc The batch context.
-     * @return QueryLocator over Session__c records with a Google_Event_Id__c.
+     * @return QueryLocator over Session__c records carrying a student or faculty event id.
      */
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([
-            SELECT Id, Google_Event_Id__c
+            SELECT Id, Google_Event_Id__c, Faculty_Google_Event_Id__c
             FROM   Session__c
-            WHERE  Google_Event_Id__c != null
+            WHERE  Google_Event_Id__c != null OR Faculty_Google_Event_Id__c != null
         ]);
     }
 
@@ -61,26 +61,37 @@ public with sharing class SessionAttendeeSyncBatch
         // Callouts first; collect parsed responses. NO DML in this loop.
         Map<Id, Map<String, String>> responsesBySession = new Map<Id, Map<String, String>>();
         for (Session__c s : scope) {
-            if (String.isBlank(s.Google_Event_Id__c)) {
-                continue;
+            // Students and faculty sit on separate events, so BOTH copies are read and their
+            // responses merged: students' answers live on Google_Event_Id__c, faculty's on
+            // Faculty_Google_Event_Id__c. Either may be absent (a Draft has no student copy).
+            Map<String, String> merged = new Map<String, String>();
+            Boolean readAny = false;
+            for (String eventId : new List<String>{ s.Google_Event_Id__c, s.Faculty_Google_Event_Id__c }) {
+                if (String.isBlank(eventId)) {
+                    continue;
+                }
+                try {
+                    GoogleCalendarService.GoogleEventReadResponse resp =
+                        GoogleCalendarService.getCalendarEvent(calendarId, eventId, organizer);
+
+                    if (resp.notFound) {
+                        sessionsMissing++;
+                        continue; // event deleted on Google's side — skip gracefully
+                    }
+                    if (!resp.success || resp.event == null) {
+                        continue; // transient error — skip this copy, keep the batch alive
+                    }
+
+                    merged.putAll(SessionRsvpSyncService.parseResponses(resp.event));
+                    readAny = true;
+                } catch (Exception e) {
+                    // Isolate per-event failures so one bad event can't fail the whole chunk.
+                    continue;
+                }
             }
-            try {
-                GoogleCalendarService.GoogleEventReadResponse resp =
-                    GoogleCalendarService.getCalendarEvent(calendarId, s.Google_Event_Id__c, organizer);
-
-                if (resp.notFound) {
-                    sessionsMissing++;
-                    continue; // event deleted on Google's side — skip gracefully
-                }
-                if (!resp.success || resp.event == null) {
-                    continue; // transient error — skip this session, keep the batch alive
-                }
-
-                responsesBySession.put(s.Id, SessionRsvpSyncService.parseResponses(resp.event));
+            if (readAny) {
+                responsesBySession.put(s.Id, merged);
                 sessionsSynced++;
-            } catch (Exception e) {
-                // Isolate per-session failures so one bad event can't fail the whole chunk.
-                continue;
             }
         }
 
