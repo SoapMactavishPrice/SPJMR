@@ -1,4 +1,4 @@
-global with sharing class InterviewController {
+global without sharing class InterviewController {
     
     public class CsvEvaluationRow {
         public String applicationNumber;
@@ -47,7 +47,7 @@ global class InterviewMatrixRequest {
     @AuraEnabled public String applicantName;
     @AuraEnabled public String roundName;
     @AuraEnabled public String evaluatedBy;
-    @AuraEnabled public Decimal totalScore;          // ✅ NEW
+    @AuraEnabled public Decimal totalScore;
     @AuraEnabled public Map<String, Decimal> scores;
 }
 
