@@ -84,13 +84,6 @@ export default class ApplicationEvaluationExport extends LightningElement {
 
     handleStartDateChange(event) {
         const selectedDate = event.detail.value;
-        if (selectedDate && selectedDate > this.today) {
-            this.slotStartDate = '';
-            this.slotEndDate = '';
-            this.showToast('Invalid Date', 'Slot Start Date cannot be a future date.', 'error');
-            return;
-        }
-
         this.slotStartDate = selectedDate;
         if (!this.slotStartDate) {
             this.slotEndDate = '';
@@ -246,10 +239,6 @@ export default class ApplicationEvaluationExport extends LightningElement {
     validateInputs() {
         if (!this.programId || !this.roundId) {
             this.showToast('Missing Required Fields', 'Program and Round are required.', 'error');
-            return false;
-        }
-        if (this.slotStartDate && this.slotStartDate > this.today) {
-            this.showToast('Invalid Date', 'Slot Start Date cannot be a future date.', 'error');
             return false;
         }
         if (!this.slotStartDate && this.slotEndDate) {

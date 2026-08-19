@@ -384,8 +384,14 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
         getOfferDocumentUploadConfig({ programCode: this.pgmCode })
             .then(result => {
+
+                console.log('Upload config result:', result);
+
                 if (!isCurrentFetch()) return;
                 this.showUploadOfferDocuments = result === true;
+
+                console.log('Upload config loaded:', this.showUploadOfferDocuments);
+
                 this._markInitialLoadComplete('uploadConfig');
             })
             .catch(err => {

@@ -83,12 +83,15 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
 
     async confirmAcceptOffer() {
         const admId = this.pendingAcceptAdmissionId;
+        
         if (!admId) {
             this.closeAcceptConfirm();
             return;
         }
 
         this.showAcceptConfirm = false;
+        
+        // Update only Admission Decision record - DO NOT update Application State Management
         const fields = {};
         fields[ID_FIELD.fieldApiName] = admId;
         fields[ACCEPT_OFFER.fieldApiName] = true;
@@ -108,22 +111,21 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
             return;
         }
 
+        // Update local state - show withdraw button based on Offer_Accepted__c flag
         this.offers = this.offers.map((item) => {
             if (item.admissionDecisionId !== admId) {
                 return item;
             }
             return {
                 ...item,
-                selectedAccepted: true,
+                selectedAccepted: false,
                 selectedRejected: false,
                 showButtons: false,
                 showWithdrawButton: true,
-                offerAccepted: true,
-                isOfferAcceptedState: true,
-                hasPendingDocuments: false,
-                applicantStateManagement: 'Offer Accepted'
+                offerAccepted: true
             };
         });
+        
         this.activeOffer = this.offers.find((item) => item.admissionDecisionId === admId) || null;
         this._initialActiveOfferPending = this.activeOffer?.hasPendingDocuments === true;
         this.activeOfferDocStatusReady = false;
@@ -190,25 +192,28 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
         const admissionId = event.detail.admissionId
         const applicationId = event.detail.applicationId
         console.log('Received Child Id ', admissionId)
+        
+        // Only update Admission Decision, NOT Application State Management
         this.updateAdmissionRecord(admissionId, 'accept')
-        this.updateApplicationRecord(applicationId, 'accept')
-        this.offers.forEach((item) => {
-            if (item.admissionDecisionId == admissionId) {
-                item.selectedAccepted = false
-                item.showButtons = false
-                item.showWithdrawButton = true
-                item.offerAccepted = true
-                item.isOfferAcceptedState = true
-                item.hasPendingDocuments = false
-                item.applicantStateManagement = 'Offer Accepted'
+        
+        // Update local state - show withdraw button based on Offer_Accepted__c flag
+        this.offers = this.offers.map((item) => {
+            if (item.admissionDecisionId === admissionId) {
+                return {
+                    ...item,
+                    selectedAccepted: false,
+                    showButtons: false,
+                    showWithdrawButton: true,
+                    offerAccepted: true
+                };
             }
-        })
+            return item;
+        });
+        
         if (this.activeOffer && this.activeOffer.admissionDecisionId === admissionId) {
             this.activeOffer = {
                 ...this.activeOffer,
-                isOfferAcceptedState: true,
-                applicantStateManagement: 'Offer Accepted',
-                hasPendingDocuments: false
+                showWithdrawButton: true
             };
         }
     }
@@ -258,29 +263,37 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
     updateApplicationRecord(applicationId, action) {
         const fields = {}
         fields[APPLICATION_ID.fieldApiName] = applicationId
-        if (action == 'accept') {
-            fields[STAGE_MGMT.fieldApiName] = 'Offer Accepted'
-        }
-
+        
+        // Only handle 'decline' and 'withdraw' - NOT 'accept'
+        // 'accept' should NOT change Application State Management
         if (action == 'decline') {
             fields[STAGE_MGMT.fieldApiName] = 'Offer Not Accepted'
         }
-        if (action == 'withdraw') {
+        else if (action == 'withdraw') {
             fields[STAGE_MGMT.fieldApiName] = 'Withdrawn'
         }
+        else {
+            // No update needed for 'accept' action
+            return;
+        }
+        
         console.log('Action is ',action, ' Id is',applicationId)
         const recordInput = { fields };
         updateRecord(recordInput)
             .then(() => {
                 console.log('Updated Application record')
                 if(action=='decline'){
-                    this.offers.forEach((item)=>{
-                        if(item.applicationId==applicationId){
-                            item.applicantStateManagement = 'Offer Not Accepted'
-                            item.showDownloadOffer = false
-                            item.showWithdrawButton = false
+                    this.offers = this.offers.map((item)=>{
+                        if(item.applicationId === applicationId){
+                            return {
+                                ...item,
+                                applicantStateManagement: 'Offer Not Accepted',
+                                showDownloadOffer: false,
+                                showWithdrawButton: false
+                            };
                         }
-                    })
+                        return item;
+                    });
                     if (this.activeOffer && this.activeOffer.applicationId === applicationId) {
                         this.activeOffer = {
                             ...this.activeOffer,
@@ -290,17 +303,21 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                     }
                 }
                 if(action=='withdraw'){
-                    this.offers.forEach((item)=>{
-                        if(item.applicationId==applicationId){
-                            item.isWithdrawDisabled=true
-                            item.offerAccepted = false
-                            item.isOfferAcceptedState = false
-                            item.applicantStateManagement = 'Withdrawn'
-                            item.hasPendingDocuments = false
-                            item.showDownloadOffer = false
-                            item.showWithdrawButton = false
+                    this.offers = this.offers.map((item)=>{
+                        if(item.applicationId === applicationId){
+                            return {
+                                ...item,
+                                isWithdrawDisabled: true,
+                                offerAccepted: false,
+                                isOfferAcceptedState: false,
+                                applicantStateManagement: 'Withdrawn',
+                                hasPendingDocuments: false,
+                                showDownloadOffer: false,
+                                showWithdrawButton: false
+                            };
                         }
-                    })
+                        return item;
+                    });
                     if (this.activeOffer && this.activeOffer.applicationId === applicationId) {
                         this.activeOffer = {
                             ...this.activeOffer,
@@ -345,21 +362,21 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
         updateRecord(recordInput)
             .then(() => {
                 console.log('Updated Admission record')
-                this.offers.forEach((item) => {
-                    if (item.admissionDecisionId == admissionId) {
+                this.offers = this.offers.map((item) => {
+                    if (item.admissionDecisionId === admissionId) {
+                        let updates = { ...item };
                         if (action == 'decline') {
-                            item.offerDeclined = true
-                            item.showWithdrawButton = false
+                            updates.offerDeclined = true;
+                            updates.showWithdrawButton = false;
                         }
                         if (action == 'accept') {
-                            item.offerAccepted = true
-                            item.showWithdrawButton = true
+                            updates.offerAccepted = true;
+                            updates.showWithdrawButton = true;
                         }
-                        
-                        
-
+                        return updates;
                     }
-                })
+                    return item;
+                });
             })
             .catch((error) => {
                 console.log('Could not Update Admission record', JSON.stringify(error))

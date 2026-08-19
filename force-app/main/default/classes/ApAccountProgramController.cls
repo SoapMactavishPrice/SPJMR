@@ -86,7 +86,7 @@ public static String getApplicationStage(Id applicationId) {
         return '';
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled()
     public static Boolean getOfferDocumentUploadConfig(String programCode) {
         if (String.isBlank(programCode)) return false;
         List<ApplicationProgramBasedConfig__mdt> records = [
@@ -235,25 +235,21 @@ public static String getApplicationStage(Id applicationId) {
 
     @AuraEnabled
     public static void savePersonalDetailTShirtSize(Id applicationId, String tShirtSize) {
-        try {
-            if (applicationId == null) {
-                throw new AuraHandledException('Missing applicationId');
-            }
-            List<Personal_Detail__c> pdList = [
-                SELECT Id
-                FROM Personal_Detail__c
-                WHERE Application__c = :applicationId
-                LIMIT 1
-            ];
-            if (pdList.isEmpty()) {
-                throw new AuraHandledException('No Personal Detail record found for this application.');
-            }
-            Personal_Detail__c pd = pdList[0];
-            pd.TShirtSize__c = tShirtSize;
-            update pd;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+        if (applicationId == null) {
+            throw new AuraHandledException('Missing applicationId');
         }
+        List<Personal_Detail__c> pdList = [
+            SELECT Id
+            FROM Personal_Detail__c
+            WHERE Application__c = :applicationId
+            LIMIT 1
+        ];
+        if (pdList.isEmpty()) {
+            throw new AuraHandledException('No Personal Detail record found for this application.');
+        }
+        Personal_Detail__c pd = pdList[0];
+        pd.TShirtSize__c = tShirtSize;
+        update pd;
     }
 
     @AuraEnabled

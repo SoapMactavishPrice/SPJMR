@@ -32,7 +32,6 @@
                         type="date"
                         label="Slot Start Date"
                         value={slotStartDate}
-                        max={today}
                         onchange={handleStartDateChange}>
                     </lightning-input>
                 </div>
@@ -43,7 +42,6 @@
                         label="Slot End Date"
                         value={slotEndDate}
                         min={slotStartDate}
-                        max={today}
                         disabled={isEndDateDisabled}
                         onchange={handleEndDateChange}>
                     </lightning-input>
