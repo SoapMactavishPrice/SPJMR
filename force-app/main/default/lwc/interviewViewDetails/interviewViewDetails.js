@@ -3,7 +3,6 @@ import { CurrentPageReference } from 'lightning/navigation';
 import { refreshApex } from '@salesforce/apex';
 import getSlotBookingsBySlotMaster from '@salesforce/apex/InterviewController.getSlotBookingsBySlotMaster';
 import getStaticPdfConfig from '@salesforce/apex/InterviewController.getStaticPdfConfig';
-import getShowSpecialisationConfig from '@salesforce/apex/InterviewController.getShowSpecialisationConfig';
 import getMerittoExtractFileUrl from '@salesforce/apex/InterviewController.getMerittoExtractFileUrl';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
@@ -25,9 +24,7 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
     @track error              = '';
 
     @track showStaticPdfCol   = false;
-    @track showSpecialisation = false;
     @track _pdfConfigLoaded   = false;
-    _specialConfigLoaded     = false;
     _wiredBookingsResult      = null;
 
     @wire(MessageContext)
@@ -75,10 +72,6 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
                 this._pdfConfigLoaded = true;
                 this._loadStaticPdfConfig(data[0].programCode || '');
             }
-                if (!this._specialConfigLoaded && data.length > 0) {
-                    this._specialConfigLoaded = true;
-                    this._loadSpecialisationConfig(data[0].programCode || '');
-                }
         } else if (error) {
             this.error = error.body?.message || 'Error loading bookings.';
             this._bookings = [];
@@ -92,16 +85,6 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
         } catch (err) {
             console.error('Error loading static PDF config', err);
             this.showStaticPdfCol = false;
-        }
-    }
-
-    async _loadSpecialisationConfig(programCode) {
-        try {
-            const result = await getShowSpecialisationConfig({ programCode });
-            this.showSpecialisation = result === true;
-        } catch (err) {
-            console.error('Error loading specialisation config', err);
-            this.showSpecialisation = false;
         }
     }
 

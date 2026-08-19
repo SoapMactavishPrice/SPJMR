@@ -27,7 +27,6 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
     @track showCriteriaComment = false;
     @track _configLoaded       = false;
     @track componentError      = '';
-    autosaveTimerId = null;
 
     @wire(MessageContext)
     messageContext;
@@ -247,65 +246,6 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
             console.error('Error loading scoring', bookingId, err);
             this.componentError = this._getErrorMessage(err);
             this._mutateState(bookingId, s => { s.calloutDone = true; });
-        }
-    }
-
-    connectedCallback() {
-        this.autosaveTimerId = window.setInterval(() => {
-            this._autoSaveAll();
-        }, 120000);
-    }
-
-    disconnectedCallback() {
-        if (this.autosaveTimerId) {
-            window.clearInterval(this.autosaveTimerId);
-            this.autosaveTimerId = null;
-        }
-    }
-
-    async _autoSaveAll() {
-        if (!this._bookings || this._bookings.length === 0) return;
-
-        for (const b of this._bookings) {
-            try {
-                const state = this._getState(b.id);
-                if (state.isFinished) continue;
-
-                const hasScores = state.criteriaResults
-                    .some(c => c.score !== undefined && c.score !== null && c.score !== '');
-                const hasComment = state.commentDirty;
-                if (!hasScores && !hasComment) continue;
-
-                let invalid = false;
-                for (const c of state.criteriaResults) {
-                    if (c.score === undefined || c.score === null || c.score === '') continue;
-                    const val = Number(c.score);
-                    const max = c.Maximum_Score__c ?? 0;
-                    if (Number.isNaN(val) || val < 0 || val > max) {
-                        invalid = true;
-                        break;
-                    }
-                }
-                if (invalid) {
-                    console.warn('Auto-save skipped for booking due to invalid score', b.id);
-                    continue;
-                }
-
-                try {
-                    await this._saveBookingData(b.id);
-                } catch (err) {
-                    console.error('Auto-save error for booking', b.id, err);
-                }
-            } catch (err) {
-                console.error('Error during auto-save loop', err);
-            }
-        }
-
-        try {
-            let payload = { action: 'refresh' };
-            publish(this.messageContext, INTERVIEW_MESSAGE_CHANNEL, payload);
-        } catch (err) {
-            console.error('Error publishing refresh message after auto-save', err);
         }
     }
 

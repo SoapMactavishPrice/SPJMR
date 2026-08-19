@@ -1,13 +1,10 @@
 import { LightningElement, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
-import getSlotMastersForEvaluator from '@salesforce/apex/InterviewController.getSlotMastersForEvaluator';
+import getSlotMasterList from '@salesforce/apex/FacultyPortal.getSlotMasterList';
 
 export default class SlotListView extends NavigationMixin(LightningElement) {
 
     data = [];
-    activeSlots = [];
-    completedSlots = [];
-    activeTab = 'active';
 
     formatSalesforceTime(sfTimeValue) {
         if (sfTimeValue === null || sfTimeValue === undefined || sfTimeValue === '') return '';
@@ -43,24 +40,19 @@ export default class SlotListView extends NavigationMixin(LightningElement) {
         }
     }
 
-    @wire(getSlotMastersForEvaluator)
+    @wire(getSlotMasterList)
     wiredSlots({ data, error }) {
         if (data) {
-            const mapped = data.map(slot => ({
-                slotId: slot.id,
-                slotCode: slot.name || '',
-                slotDate: slot.slotDate || '',
-                startTime: this.formatSalesforceTime(slot.slotStartTime),
-                endTime: this.formatSalesforceTime(slot.slotEndTime),
-                location: slot.locationName || '',
-                status: slot.status || '',
-                mode: slot.mode || '',
-                isCompleted: slot.isCompleted === true,
-                statusLabel: slot.isCompleted === true ? 'Completed' : 'Active'
+            this.data = data.map(slot => ({
+                slotId: slot.Id,
+                slotCode: slot.Name || '',
+                slotDate: slot.SlotDate__c || '',
+                startTime: this.formatSalesforceTime(slot.SlotStartTime__c),
+                endTime: this.formatSalesforceTime(slot.SlotEndtime__c),
+                location: slot.Location__c || '',
+                status: slot.Status__c || '',
+                mode: slot.Mode__c || ''
             }));
-            this.activeSlots = mapped.filter(s => !s.isCompleted);
-            this.completedSlots = mapped.filter(s => s.isCompleted);
-            this.data = this.activeSlots;
         } else if (error) {
             console.error('Error loading slot list:', error);
         }
@@ -76,19 +68,5 @@ export default class SlotListView extends NavigationMixin(LightningElement) {
                 actionName: 'view'
             }
         });
-    }
-
-    handleTabClick(event) {
-        const tab = event.currentTarget.dataset.tab;
-        this.activeTab = tab;
-        this.data = tab === 'active' ? this.activeSlots : this.completedSlots;
-    }
-
-    get activeTabActiveClass() {
-        return this.activeTab === 'active' ? 'tab active' : 'tab';
-    }
-
-    get activeTabCompletedClass() {
-        return this.activeTab === 'completed' ? 'tab active' : 'tab';
     }
 }

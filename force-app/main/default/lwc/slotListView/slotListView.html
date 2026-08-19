@@ -1,9 +1,5 @@
 <template>
     <div class="table-wrapper">
-        <div class="tabs">
-            <button class={activeTabActiveClass} data-tab="active" onclick={handleTabClick}>Active</button>
-            <button class={activeTabCompletedClass} data-tab="completed" onclick={handleTabClick}>Completed</button>
-        </div>
         <table class="custom-table">
             <thead>
                 <tr>
@@ -28,7 +24,7 @@
                         <td>{row.startTime}</td>
                         <td>{row.endTime}</td>
                         <td>{row.location}</td>
-                        <td>{row.statusLabel}</td>
+                        <td>{row.status}</td>
                         <td>{row.mode}</td>
                     </tr>
                 </template>

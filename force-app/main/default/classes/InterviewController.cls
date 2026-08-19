@@ -937,112 +937,6 @@ for (ApplicationSlotBooking__c slot : slots) {
         @AuraEnabled public Id      locationId;
         @AuraEnabled public String  locationName;
         @AuraEnabled public String  applicationName;
-        @AuraEnabled public String  specialisation;
-    }
-
-    public class SlotMasterWrapper {
-        @AuraEnabled public Id id;
-        @AuraEnabled public String name;
-        @AuraEnabled public Date slotDate;
-        @AuraEnabled public Time slotStartTime;
-        @AuraEnabled public Time slotEndTime;
-        @AuraEnabled public Id locationId;
-        @AuraEnabled public String locationName;
-        @AuraEnabled public String status;
-        @AuraEnabled public String mode;
-        @AuraEnabled public Boolean isCompleted;
-        @AuraEnabled public String programCode;
-    }
-
-    @AuraEnabled(cacheable=true)
-    public static List<SlotMasterWrapper> getSlotMastersForEvaluator() {
-        try {
-            String currentUserEmail = UserInfo.getUserEmail();
-
-            List<Account> accList = [SELECT Id FROM Account WHERE PersonEmail = :currentUserEmail LIMIT 1];
-            if (accList.isEmpty()) return new List<SlotMasterWrapper>();
-            Account accountEmp = accList[0];
-
-            Set<Id> panelIds = new Set<Id>();
-            for (PanelInterviewer__c ptm : [SELECT Id, Account__c, PanelMaster__c FROM PanelInterviewer__c WHERE Account__c = :accountEmp.Id]) {
-                if (ptm.PanelMaster__c != null) panelIds.add(ptm.PanelMaster__c);
-            }
-
-            if (panelIds.isEmpty()) return new List<SlotMasterWrapper>();
-
-            // Find bookings for these panels and group by SlotMaster
-            List<ApplicationSlotBooking__c> bookings = [
-                SELECT Id, SlotMaster__c, RoundMaster__c
-                FROM ApplicationSlotBooking__c
-                WHERE Panel_Master__c IN :panelIds
-            ];
-
-            if (bookings.isEmpty()) return new List<SlotMasterWrapper>();
-
-            Map<Id, List<Id>> slotToBookingIds = new Map<Id, List<Id>>();
-            Set<Id> slotMasterIds = new Set<Id>();
-            Set<Id> bookingIds = new Set<Id>();
-            for (ApplicationSlotBooking__c b : bookings) {
-                if (b.SlotMaster__c == null) continue;
-                slotMasterIds.add(b.SlotMaster__c);
-                bookingIds.add(b.Id);
-                if (!slotToBookingIds.containsKey(b.SlotMaster__c)) slotToBookingIds.put(b.SlotMaster__c, new List<Id>());
-                slotToBookingIds.get(b.SlotMaster__c).add(b.Id);
-            }
-
-            if (slotMasterIds.isEmpty()) return new List<SlotMasterWrapper>();
-
-            // Fetch evaluations for current user for these bookings
-            Map<Id, String> bookingToEvalStatus = new Map<Id, String>();
-            for (Evaluation__c ev : [SELECT Id, Application_Slot_Booking__c, Status__c
-                                     FROM Evaluation__c
-                                     WHERE EvaluatedUser__r.PersonEmail = :currentUserEmail
-                                       AND Application_Slot_Booking__c IN :bookingIds]) {
-                bookingToEvalStatus.put(ev.Application_Slot_Booking__c, ev.Status__c);
-            }
-
-            // Fetch slot master details
-            List<SlotMaster__c> slots = [
-                SELECT Id, Name, SlotDate__c, SlotStartTime__c, SlotEndTime__c, LocationMaster__c,
-                       LocationMaster__r.LocationName__c, Status__c, Mode__c, Program_Master__r.Program_Code__c
-                FROM SlotMaster__c
-                WHERE Id IN :slotMasterIds
-                ORDER BY SlotDate__c DESC, Name ASC
-            ];
-
-            List<SlotMasterWrapper> result = new List<SlotMasterWrapper>();
-            for (SlotMaster__c s : slots) {
-                SlotMasterWrapper w = new SlotMasterWrapper();
-                w.id = s.Id;
-                w.name = s.Name;
-                w.slotDate = s.SlotDate__c;
-                w.slotStartTime = s.SlotStartTime__c;
-                w.slotEndTime = s.SlotEndTime__c;
-                w.locationId = s.LocationMaster__c;
-                w.locationName = (s.LocationMaster__r != null) ? s.LocationMaster__r.LocationName__c : null;
-                w.status = s.Status__c;
-                w.mode = s.Mode__c;
-                w.programCode = (s.Program_Master__r != null) ? s.Program_Master__r.Program_Code__c : null;
-
-                List<Id> bIds = slotToBookingIds.containsKey(s.Id) ? slotToBookingIds.get(s.Id) : new List<Id>();
-                Boolean allComplete = true;
-                Boolean hasAny = false;
-                for (Id bid : bIds) {
-                    hasAny = true;
-                    if (!bookingToEvalStatus.containsKey(bid) || bookingToEvalStatus.get(bid) != 'Complete') {
-                        allComplete = false;
-                        break;
-                    }
-                }
-                // If there are no bookings for this slot for this evaluator, treat as not completed
-                w.isCompleted = hasAny ? allComplete : false;
-
-                result.add(w);
-            }
-            return result;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
     }
 
     @AuraEnabled(cacheable=true)
@@ -1123,7 +1017,6 @@ for (ApplicationSlotBooking__c slot : slots) {
                        Program_Name__c,
                        Application__c,
                        Application__r.Name,
-                       Application__r.Batch_Specialisation__r.Specialisation_Name__r.Name,
                        Slot_Date__c,
                        Slot_Start_Time__c,
                        Slot_End_Time__c,
@@ -1175,9 +1068,6 @@ for (ApplicationSlotBooking__c slot : slots) {
                                     ? bookingToEvalStatus.get(b.Id)
                                     : 'Not Started';
                 w.applicationName = b.Application__r != null ? b.Application__r.Name : null;
-                w.specialisation = (b.Application__r != null && b.Application__r.Batch_Specialisation__r != null
-                                     && b.Application__r.Batch_Specialisation__r.Specialisation_Name__r != null)
-                                    ? b.Application__r.Batch_Specialisation__r.Specialisation_Name__r.Name : null;
                 w.locationId      = b.SlotMaster__r != null ? b.SlotMaster__r.LocationMaster__c : null;
                 w.locationName    = (b.SlotMaster__r != null && b.SlotMaster__r.LocationMaster__r != null)
                                     ? b.SlotMaster__r.LocationMaster__r.LocationName__c : null;
@@ -1324,27 +1214,6 @@ for (ApplicationSlotBooking__c slot : slots) {
                 SELECT Intent__c, Type__c, ProgramCode__c, ConfigValue__c, Active__c
                 FROM ApplicationProgramBasedConfig__mdt
                 WHERE Intent__c      = 'StaticApplicationPdf'
-                  AND ProgramCode__c = :programCode
-                  AND Active__c      = true
-                LIMIT 1
-            ];
-            if (!records.isEmpty() && records[0].Type__c == 'Boolean') {
-                return records[0].ConfigValue__c != null &&
-                       records[0].ConfigValue__c.trim().equalsIgnoreCase('true');
-            }
-            return false;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
-    }
-
-    @AuraEnabled(cacheable=true)
-    public static Boolean getShowSpecialisationConfig(String programCode) {
-        try {
-            List<ApplicationProgramBasedConfig__mdt> records = [
-                SELECT Intent__c, Type__c, ProgramCode__c, ConfigValue__c, Active__c
-                FROM ApplicationProgramBasedConfig__mdt
-                WHERE Intent__c      = 'AdmissionDecisionShowSpecialization'
                   AND ProgramCode__c = :programCode
                   AND Active__c      = true
                 LIMIT 1
