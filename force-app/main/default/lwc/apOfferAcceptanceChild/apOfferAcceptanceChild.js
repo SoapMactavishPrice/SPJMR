@@ -29,6 +29,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     _admissionId;
     _offerLetterUrl = '';
     _isOfferAcceptedState = false;
+    _offerAccepted = false;
     _applicantStateManagement = '';
 
     // ── state ───────────────────────────────────────────────────────────────
@@ -127,11 +128,21 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         const changed = this._isOfferAcceptedState !== newValue;
         this._isOfferAcceptedState = newValue;
         if (changed && this.isLoaded) {
-            // Re-fetch documents to apply the correct filter based on acceptance state
             this._refetchProgramDocuments();
         }
     }
     get isOfferAcceptedState() { return this._isOfferAcceptedState; }
+
+    @api
+    set offerAccepted(value) {
+        const newValue = value === true || value === 'true';
+        const changed = this._offerAccepted !== newValue;
+        this._offerAccepted = newValue;
+        if (changed && this.isLoaded) {
+            this._refetchProgramDocuments();
+        }
+    }
+    get offerAccepted() { return this._offerAccepted; }
 
     @api
     set applicantStateManagement(value) {
@@ -160,8 +171,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
     /** Important documents that require upload (separate section) */
     get importantDocsWithUpload() {
-        // Only show upload sections after acceptance
-        if (!this._isOfferAcceptedState) {
+        if (!this.offerAccepted) {
             return [];
         }
         return this._importantDocs
@@ -180,7 +190,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     }
 
     get showOfferUploadSection() {
-        return this.showUploadOfferDocuments && !!this._offerLetterUrl && this._isOfferAcceptedState;
+        return this.showUploadOfferDocuments && !!this._offerLetterUrl && this.offerAccepted;
     }
 
     get isSaveTShirtDisabled() {
@@ -188,7 +198,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     }
 
     get shouldShowTShirtSection() {
-        return this.showTShirtSize && this._isOfferAcceptedState;
+        return this.showTShirtSize && this.offerAccepted;
     }
 
     // ── Wire: application fields ─────────────────────────────────────────────
@@ -287,7 +297,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                 
                 // Filter documents based on acceptance state and ShowDocumentsBeforeAccept flag
                 let visibleDocs;
-                if (this._isOfferAcceptedState) {
+                if (this.offerAccepted) {
                     // After acceptance: show all documents that passed the filter
                     visibleDocs = passedFilter;
                 } else {
@@ -479,45 +489,45 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                     return Promise.resolve();
                 }
 
-                const all = (result.annexures || []);
-                const passedFilter = all.filter(a => a.filterCondition !== 'FILTERED_OUT');
-                
-                // Filter documents based on acceptance state and ShowDocumentsBeforeAccept flag
-                let visibleDocs;
-                if (this._isOfferAcceptedState) {
-                    // After acceptance: show all documents that passed the filter
-                    visibleDocs = passedFilter;
-                } else {
-                    // Before acceptance: show only documents with ShowDocumentsBeforeAccept = true
-                    visibleDocs = passedFilter.filter(a => a.showDocumentsBeforeAccept === true);
-                }
-                
-                const importantRaw = visibleDocs.filter(a => a.displayAsImportantDocument);
-                const regularRaw   = visibleDocs.filter(a => !a.displayAsImportantDocument);
+                 const all = (result.annexures || []);
+                 const passedFilter = all.filter(a => a.filterCondition !== 'FILTERED_OUT');
+                 
+                 // Filter documents based on acceptance state and ShowDocumentsBeforeAccept flag
+                 let visibleDocs;
+                 if (this.offerAccepted) {
+                     // After acceptance: show all documents that passed the filter
+                     visibleDocs = passedFilter;
+                 } else {
+                     // Before acceptance: show only documents with ShowDocumentsBeforeAccept = true
+                     visibleDocs = passedFilter.filter(a => a.showDocumentsBeforeAccept === true);
+                 }
+                 
+                 const importantRaw = visibleDocs.filter(a => a.displayAsImportantDocument);
+                 const regularRaw   = visibleDocs.filter(a => !a.displayAsImportantDocument);
 
-                this._importantDocs = importantRaw.map((a, idx) => ({
-                    id:               idx + 1,
-                    name:             a.annexureName,
-                    url:              a.annexureUrl,
-                    docCode:          a.docCode,
-                    isUploadRequired: a.isUploadSectionRequired,
-                    uploaded:         false,
-                    uploadedUrl:      null,
-                    uploadedContentDocumentId: null
-                }));
+                 this._importantDocs = importantRaw.map((a, idx) => ({
+                     id:               idx + 1,
+                     name:             a.annexureName,
+                     url:              a.annexureUrl,
+                     docCode:          a.docCode,
+                     isUploadRequired: a.isUploadSectionRequired,
+                     uploaded:         false,
+                     uploadedUrl:      null,
+                     uploadedContentDocumentId: null
+                 }));
 
-                this._annexures = regularRaw.map((a, idx) => ({
-                    Id:    idx + 1,
-                    name:  a.annexureName,
-                    value: a.annexureUrl
-                }));
+                 this._annexures = regularRaw.map((a, idx) => ({
+                     Id:    idx + 1,
+                     name:  a.annexureName,
+                     value: a.annexureUrl
+                 }));
 
-                return this._fetchImportantDocUploadStatus();
-            })
-            .catch(err => {
-                console.error('Error refetching program documents', JSON.stringify(err));
-            });
-    }
+                 return this._fetchImportantDocUploadStatus();
+             })
+             .catch(err => {
+                 console.error('Error refetching program documents', JSON.stringify(err));
+             });
+     }
 
     // ── Upload completion tracker ────────────────────────────────────────────
 
