@@ -18,18 +18,20 @@
                     <div>
                         <div class="title-status-row">
                             <h2 class="offer-name">{activeOffer.ProgramName}</h2>
-                            <div class="status-badge-group">
+                        <div class="status-badge-group">
+                            <template lwc:if={activeOffer.offerAccepted}>
                                 <span class="status-badge status-accepted">
                                     <lightning-icon icon-name="utility:check" size="xx-small" variant="success"></lightning-icon>
                                     Accepted
                                 </span>
-                                <template lwc:if={showActivePendingDocuments}>
-                                    <span class="status-badge status-doc-pending">
-                                        <lightning-icon icon-name="utility:warning" size="xx-small" variant="warning"></lightning-icon>
-                                        Pending Documents
-                                    </span>
-                                </template>
-                            </div>
+                            </template>
+                            <template lwc:if={showActivePendingDocuments}>
+                                <span class="status-badge status-doc-pending">
+                                    <lightning-icon icon-name="utility:warning" size="xx-small" variant="warning"></lightning-icon>
+                                    Pending Documents
+                                </span>
+                            </template>
+                        </div>
                         </div>
                     </div>
 
@@ -37,6 +39,18 @@
                         <template lwc:if={showActiveOfferDownload}>
                             <lightning-button label="Download offer" icon-name="utility:download" variant="neutral"
                                 class="btn-download" data-id={activeOffer.offerLetterLink} onclick={handleDownload}>
+                            </lightning-button>
+                        </template>
+
+                        <template lwc:if={showActiveButtons}>
+                            <lightning-button label="Accept" icon-name="utility:check" variant="success"
+                                class="btn-accept" data-id={activeOffer.applicationId} data-admid={activeOffer.admissionDecisionId}
+                                onclick={handleAccept} disabled={isDisabled}>
+                            </lightning-button>
+
+                            <lightning-button label="Decline" icon-name="utility:close" variant="destructive"
+                                data-id={activeOffer.applicationId} data-admid={activeOffer.admissionDecisionId}
+                                onclick={handleReject} disabled={isDisabled}>
                             </lightning-button>
                         </template>
 
@@ -82,7 +96,7 @@
                                 Declined
                             </span>
                         </template>
-                        <template lwc:elseif={offer.offerAccepted}>
+                        <template lwc:if={offer.offerAccepted}>
                             <div class="status-badge-group">
                                 <span class="status-badge status-accepted">
                                     <lightning-icon icon-name="utility:check" size="xx-small" variant="success"></lightning-icon>

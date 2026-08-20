@@ -47,6 +47,9 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
         if (!this.activeOffer) {
             return false;
         }
+        if (this.activeOffer.offerAccepted !== true) {
+            return false;
+        }
         if (!this.activeOfferDocStatusReady) {
             return this._initialActiveOfferPending;
         }
@@ -54,7 +57,14 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
     }
 
     get showActiveWithdraw() {
-        return this.activeOffer?.applicantStateManagement === 'Offer Accepted';
+        return this.activeOffer?.offerAccepted === true;
+    }
+
+    get showActiveButtons() {
+        if (!this.activeOffer) return false;
+        return this.activeOffer.offerAccepted !== true
+            && this.activeOffer.offerDeclined !== true
+            && this.activeOffer.isOfferWithdrawn !== true;
     }
 
     @wire(getRecord, {recordId:'$userId',fields:[EMAIL_FIELD,FIRST_NAME,LAST_NAME]})
