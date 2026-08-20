@@ -123,7 +123,13 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
     @api
     set isOfferAcceptedState(value) {
-        this._isOfferAcceptedState = value === true || value === 'true';
+        const newValue = value === true || value === 'true';
+        const changed = this._isOfferAcceptedState !== newValue;
+        this._isOfferAcceptedState = newValue;
+        if (changed && this.isLoaded) {
+            // Re-fetch documents to apply the correct filter based on acceptance state
+            this._refetchProgramDocuments();
+        }
     }
     get isOfferAcceptedState() { return this._isOfferAcceptedState; }
 
@@ -154,6 +160,10 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
     /** Important documents that require upload (separate section) */
     get importantDocsWithUpload() {
+        // Only show upload sections after acceptance
+        if (!this._isOfferAcceptedState) {
+            return [];
+        }
         return this._importantDocs
             .filter(d => d.isUploadRequired)
             .map(d => ({
@@ -170,11 +180,15 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     }
 
     get showOfferUploadSection() {
-        return this.showUploadOfferDocuments && !!this._offerLetterUrl;
+        return this.showUploadOfferDocuments && !!this._offerLetterUrl && this._isOfferAcceptedState;
     }
 
     get isSaveTShirtDisabled() {
         return this.isReadOnly || this.isSavingTShirt;
+    }
+
+    get shouldShowTShirtSection() {
+        return this.showTShirtSize && this._isOfferAcceptedState;
     }
 
     // ── Wire: application fields ─────────────────────────────────────────────
@@ -270,8 +284,19 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
                 const all = (result.annexures || []);
                 const passedFilter = all.filter(a => a.filterCondition !== 'FILTERED_OUT');
-                const importantRaw = passedFilter.filter(a => a.displayAsImportantDocument);
-                const regularRaw   = passedFilter.filter(a => !a.displayAsImportantDocument);
+                
+                // Filter documents based on acceptance state and ShowDocumentsBeforeAccept flag
+                let visibleDocs;
+                if (this._isOfferAcceptedState) {
+                    // After acceptance: show all documents that passed the filter
+                    visibleDocs = passedFilter;
+                } else {
+                    // Before acceptance: show only documents with ShowDocumentsBeforeAccept = true
+                    visibleDocs = passedFilter.filter(a => a.showDocumentsBeforeAccept === true);
+                }
+                
+                const importantRaw = visibleDocs.filter(a => a.displayAsImportantDocument);
+                const regularRaw   = visibleDocs.filter(a => !a.displayAsImportantDocument);
 
                 this._importantDocs = importantRaw.map((a, idx) => ({
                     id:               idx + 1,
@@ -438,6 +463,60 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         }
         this._docStatusReady = true;
         this._updateUploadCompletion(true);
+    }
+
+    _refetchProgramDocuments() {
+        if (!this._applicationId || !this._admissionId) return;
+        
+        getProgramSpecificDocuments({
+            admissionId: this._admissionId,
+            applicationId: this._applicationId
+        })
+            .then(result => {
+                if (!result) {
+                    this._importantDocs = [];
+                    this._annexures = [];
+                    return Promise.resolve();
+                }
+
+                const all = (result.annexures || []);
+                const passedFilter = all.filter(a => a.filterCondition !== 'FILTERED_OUT');
+                
+                // Filter documents based on acceptance state and ShowDocumentsBeforeAccept flag
+                let visibleDocs;
+                if (this._isOfferAcceptedState) {
+                    // After acceptance: show all documents that passed the filter
+                    visibleDocs = passedFilter;
+                } else {
+                    // Before acceptance: show only documents with ShowDocumentsBeforeAccept = true
+                    visibleDocs = passedFilter.filter(a => a.showDocumentsBeforeAccept === true);
+                }
+                
+                const importantRaw = visibleDocs.filter(a => a.displayAsImportantDocument);
+                const regularRaw   = visibleDocs.filter(a => !a.displayAsImportantDocument);
+
+                this._importantDocs = importantRaw.map((a, idx) => ({
+                    id:               idx + 1,
+                    name:             a.annexureName,
+                    url:              a.annexureUrl,
+                    docCode:          a.docCode,
+                    isUploadRequired: a.isUploadSectionRequired,
+                    uploaded:         false,
+                    uploadedUrl:      null,
+                    uploadedContentDocumentId: null
+                }));
+
+                this._annexures = regularRaw.map((a, idx) => ({
+                    Id:    idx + 1,
+                    name:  a.annexureName,
+                    value: a.annexureUrl
+                }));
+
+                return this._fetchImportantDocUploadStatus();
+            })
+            .catch(err => {
+                console.error('Error refetching program documents', JSON.stringify(err));
+            });
     }
 
     // ── Upload completion tracker ────────────────────────────────────────────

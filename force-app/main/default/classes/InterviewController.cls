@@ -1,4 +1,4 @@
-global without sharing class InterviewController {
+global with sharing class InterviewController {
     
     public class CsvEvaluationRow {
         public String applicationNumber;

@@ -113,6 +113,11 @@
                                 data-admid={offer.admissionDecisionId} onclick={handleViewAcceptance}>
                             </lightning-button>
                         </template>
+                        <template lwc:elseif={offer.showButtons}>
+                            <lightning-button label="View" icon-name="utility:preview" variant="neutral"
+                                data-admid={offer.admissionDecisionId} onclick={handleViewAcceptance}>
+                            </lightning-button>
+                        </template>
 
                         <template lwc:if={offer.showDownloadOffer}>
                             <lightning-button label="Download offer" icon-name="utility:download" variant="neutral"

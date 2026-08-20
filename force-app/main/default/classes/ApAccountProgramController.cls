@@ -1,4 +1,4 @@
-public without sharing class ApAccountProgramController {
+public with sharing class ApAccountProgramController {
 
     @AuraEnabled 
     public static List<String> checkUserValidity(){
@@ -499,7 +499,8 @@ public static String getApplicationStage(Id applicationId) {
             List<Program_Document__mdt> pgmMetadataList = [
                 SELECT Id, Program_Code__c,
                        (SELECT Id, AnnexureName__c, AnnexureURL__c, DisplayOrder__c,
-                               DisplayAsImportantDocument__c, IsUploadSectionRequired__c, FilterCondition__c
+                               DisplayAsImportantDocument__c, IsUploadSectionRequired__c, FilterCondition__c,
+                               ShowDocumentsBeforeAccept__c
                         FROM Program_Annexures__r
                         ORDER BY DisplayOrder__c ASC)
                 FROM Program_Document__mdt
@@ -555,6 +556,7 @@ public static String getApplicationStage(Id applicationId) {
                 aw.isUploadSectionRequired = ann.IsUploadSectionRequired__c == true;
                 aw.filterCondition = ann.FilterCondition__c;
                 aw.docCode = buildDocCode(ann.AnnexureName__c);
+                aw.showDocumentsBeforeAccept = ann.ShowDocumentsBeforeAccept__c == true;
                 aw.filterCondition = evaluateFilterCondition(ann.FilterCondition__c, admRecord)
                     ? null
                     : 'FILTERED_OUT';
@@ -1038,6 +1040,7 @@ public static String getApplicationStage(Id applicationId) {
         @AuraEnabled public Boolean isUploadSectionRequired;
         @AuraEnabled public String filterCondition;
         @AuraEnabled public String docCode;
+        @AuraEnabled public Boolean showDocumentsBeforeAccept;
     }
 
     public class ProgramDocumentWrapper {
@@ -1174,7 +1177,7 @@ public static String getApplicationStage(Id applicationId) {
                 throw new AuraHandledException('Missing applicationId');
             }
             List<Application__c> apps = [
-                SELECT Id, Name, First_Name__c, Last_Name__c, Applicant__r.PersonEmail
+                SELECT Id, Name, Applicant__r.Name, Applicant__r.PersonEmail
                 FROM Application__c
                 WHERE Id = :applicationId
                 LIMIT 1
@@ -1183,15 +1186,7 @@ public static String getApplicationStage(Id applicationId) {
                 throw new AuraHandledException('Application not found');
             }
             Application__c app = apps[0];
-            String fullName = '';
-            if (String.isNotBlank(app.First_Name__c)) {
-                fullName = app.First_Name__c;
-            }
-            if (String.isNotBlank(app.Last_Name__c)) {
-                fullName = String.isNotBlank(fullName)
-                    ? fullName + ' ' + app.Last_Name__c
-                    : app.Last_Name__c;
-            }
+            String fullName = app.Applicant__r?.Name != null ? app.Applicant__r.Name : '';
             return new Map<String, String>{
                 'applicantName'  => fullName,
                 'applicationId'  => app.Name,

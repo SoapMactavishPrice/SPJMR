@@ -134,6 +134,7 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
             ...b,
             rowNum        : idx + 1,
             evalBadgeClass: STATUS_VARIANT[b.evalStatus] || 'slds-badge',
+            formattedSlotDate: this.formatDate(b.slotDate),
             formattedSlotStartTime: this.formatTime(b.slotStartTime),
             formattedSlotEndTime: this.formatTime(b.slotEndTime)
         }));
@@ -175,6 +176,24 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
                 variant: 'error'
             }));
         }
+    }
+
+    formatDate(dateValue) {
+        if (dateValue === null || dateValue === undefined || dateValue === '') {
+            return '—';
+        }
+
+        const parts = String(dateValue).split('-');
+        if (parts.length !== 3) {
+            return dateValue;
+        }
+
+        const [year, month, day] = parts;
+        if (!year || !month || !day) {
+            return dateValue;
+        }
+
+        return `${day.padStart(2, '0')}-${month.padStart(2, '0')}-${year}`;
     }
 
     formatTime(timeInMilliseconds) {
