@@ -299,7 +299,8 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                                 ...item,
                                 applicantStateManagement: 'Offer Not Accepted',
                                 showDownloadOffer: false,
-                                showWithdrawButton: false
+                                showWithdrawButton: false,
+                                showAwaitingResponse: false
                             };
                         }
                         return item;
@@ -308,7 +309,8 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         this.activeOffer = {
                             ...this.activeOffer,
                             applicantStateManagement: 'Offer Not Accepted',
-                            showDownloadOffer: false
+                            showDownloadOffer: false,
+                            showAwaitingResponse: false
                         };
                     }
                 }
@@ -323,7 +325,8 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                                 applicantStateManagement: 'Withdrawn',
                                 hasPendingDocuments: false,
                                 showDownloadOffer: false,
-                                showWithdrawButton: false
+                                showWithdrawButton: false,
+                                showAwaitingResponse: false
                             };
                         }
                         return item;
@@ -336,7 +339,8 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                             isOfferAcceptedState: false,
                             applicantStateManagement: 'Withdrawn',
                             hasPendingDocuments: false,
-                            showDownloadOffer: false
+                            showDownloadOffer: false,
+                            showAwaitingResponse: false
                         };
                     }
                     this.showSuccessToastMessage('Success','Offer Withdrawn');
@@ -430,19 +434,21 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                 this.offers = this.offers.map((item) => {
                     const applicantState = item.applicantStateManagement || '';
                     const offerDownloadHidden = applicantState === 'Offer Not Accepted' || applicantState === 'Withdrawn';
+                    const isDeclined = item.offerDeclined === 'true';
                     return {
                         ...item,
-                        offerDeclined: item.offerDeclined === 'true',
+                        offerDeclined: isDeclined,
                         offerAccepted: item.offerAccepted === 'true',
                         hasPendingDocuments: (applicantState === 'Offer Accepted' || applicantState === 'Withdrawn') ? false : (item.hasPendingDocuments === true || item.hasPendingDocuments === 'true'),
                         selectedAccepted: false,
                         selectedRejected: false,
-                        showButtons: item.offerDeclined != 'true' && item.offerAccepted != 'true' && item.isOfferWithdrawn != 'true',
+                        showButtons: !isDeclined && item.offerAccepted != 'true' && item.isOfferWithdrawn != 'true',
                         showWithdrawButton: applicantState === 'Offer Accepted',
                         showDownloadOffer: !!item.offerLetterLink && !offerDownloadHidden,
                         isWithdrawDisabled: item.isOfferWithdrawn === 'true',
                         isOfferAcceptedState: applicantState === 'Offer Accepted',
-                        applicantStateManagement: applicantState
+                        applicantStateManagement: applicantState,
+                        showAwaitingResponse: !isDeclined
                     }
                 })
 

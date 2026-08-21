@@ -115,7 +115,7 @@
                                 Withdrawn
                             </span>
                         </template>
-                        <template lwc:else>
+                        <template lwc:elseif={offer.showAwaitingResponse}>
                             <span class="status-badge status-pending">
                                 Awaiting response
                             </span>
