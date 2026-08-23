@@ -178,9 +178,10 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
             },
         });
         if (result) {
-            this.updateApplicationRecord(applicationId, 'decline')
+            await this.updateApplicationRecord(applicationId, 'decline')
             this.showSuccessToastMessage('Offer Declined','')
-           this.updateAdmissionRecord(admId, 'decline')
+            await this.updateAdmissionRecord(admId, 'decline')
+            this.handleBackToOffers()
         } else {
             this.offers = this.offers.map((item) => {
                 if (item.admissionDecisionId == admId) {
@@ -289,7 +290,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
         
         console.log('Action is ',action, ' Id is',applicationId)
         const recordInput = { fields };
-        updateRecord(recordInput)
+        return updateRecord(recordInput)
             .then(() => {
                 console.log('Updated Application record')
                 if(action=='decline'){
@@ -373,7 +374,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
 
         const recordInput = { fields };
 
-        updateRecord(recordInput)
+        return updateRecord(recordInput)
             .then(() => {
                 console.log('Updated Admission record')
                 this.offers = this.offers.map((item) => {
@@ -391,6 +392,13 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                     }
                     return item;
                 });
+                if (action == 'decline' && this.activeOffer && this.activeOffer.admissionDecisionId === admissionId) {
+                    this.activeOffer = {
+                        ...this.activeOffer,
+                        offerDeclined: true,
+                        showWithdrawButton: false
+                    };
+                }
             })
             .catch((error) => {
                 console.log('Could not Update Admission record', JSON.stringify(error))
