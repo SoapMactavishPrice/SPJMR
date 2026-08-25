@@ -958,17 +958,30 @@ for (ApplicationSlotBooking__c slot : slots) {
     public static List<SlotMasterWrapper> getSlotMastersForEvaluator() {
         try {
             String currentUserEmail = UserInfo.getUserEmail();
+            System.debug('getSlotMastersForEvaluator: currentUserEmail = ' + currentUserEmail);
 
             List<Account> accList = [SELECT Id FROM Account WHERE PersonEmail = :currentUserEmail LIMIT 1];
-            if (accList.isEmpty()) return new List<SlotMasterWrapper>();
+            System.debug('getSlotMastersForEvaluator: accList size = ' + accList.size());
+            if (accList.isEmpty()) {
+                System.debug('getSlotMastersForEvaluator: No matching Account found for email, returning empty list');
+                return new List<SlotMasterWrapper>();
+            }
             Account accountEmp = accList[0];
+            System.debug('getSlotMastersForEvaluator: accountEmp.Id = ' + accountEmp.Id);
 
             Set<Id> panelIds = new Set<Id>();
-            for (PanelInterviewer__c ptm : [SELECT Id, Account__c, PanelMaster__c FROM PanelInterviewer__c WHERE Account__c = :accountEmp.Id]) {
+            List<PanelInterviewer__c> panelInterviewers = [SELECT Id, Account__c, PanelMaster__c FROM PanelInterviewer__c WHERE Account__c = :accountEmp.Id];
+            System.debug('getSlotMastersForEvaluator: panelInterviewers size = ' + panelInterviewers.size());
+            System.debug('getSlotMastersForEvaluator: panelInterviewers: ' + panelInterviewers);
+            for (PanelInterviewer__c ptm : panelInterviewers) {
                 if (ptm.PanelMaster__c != null) panelIds.add(ptm.PanelMaster__c);
             }
+            System.debug('getSlotMastersForEvaluator: panelIds = ' + panelIds);
 
-            if (panelIds.isEmpty()) return new List<SlotMasterWrapper>();
+            if (panelIds.isEmpty()) {
+                System.debug('getSlotMastersForEvaluator: No panelIds found, returning empty list');
+                return new List<SlotMasterWrapper>();
+            }
 
             // Find bookings for these panels and group by SlotMaster
             List<ApplicationSlotBooking__c> bookings = [
@@ -976,42 +989,62 @@ for (ApplicationSlotBooking__c slot : slots) {
                 FROM ApplicationSlotBooking__c
                 WHERE Panel_Master__c IN :panelIds
             ];
+            System.debug('getSlotMastersForEvaluator: bookings size = ' + bookings.size());
 
-            if (bookings.isEmpty()) return new List<SlotMasterWrapper>();
+            if (bookings.isEmpty()) {
+                System.debug('getSlotMastersForEvaluator: No bookings found for panelIds, returning empty list');
+                return new List<SlotMasterWrapper>();
+            }
 
             Map<Id, List<Id>> slotToBookingIds = new Map<Id, List<Id>>();
             Set<Id> slotMasterIds = new Set<Id>();
             Set<Id> bookingIds = new Set<Id>();
             for (ApplicationSlotBooking__c b : bookings) {
-                if (b.SlotMaster__c == null) continue;
+                if (b.SlotMaster__c == null) {
+                    System.debug('getSlotMastersForEvaluator: Skipping booking with null SlotMaster__c, bookingId = ' + b.Id);
+                    continue;
+                }
                 slotMasterIds.add(b.SlotMaster__c);
                 bookingIds.add(b.Id);
                 if (!slotToBookingIds.containsKey(b.SlotMaster__c)) slotToBookingIds.put(b.SlotMaster__c, new List<Id>());
                 slotToBookingIds.get(b.SlotMaster__c).add(b.Id);
             }
+            System.debug('getSlotMastersForEvaluator: slotMasterIds = ' + slotMasterIds);
+            System.debug('getSlotMastersForEvaluator: bookingIds = ' + bookingIds);
+            System.debug('getSlotMastersForEvaluator: slotToBookingIds = ' + slotToBookingIds);
 
-            if (slotMasterIds.isEmpty()) return new List<SlotMasterWrapper>();
+            if (slotMasterIds.isEmpty()) {
+                System.debug('getSlotMastersForEvaluator: No slotMasterIds found after processing bookings, returning empty list');
+                return new List<SlotMasterWrapper>();
+            }
 
             // Fetch evaluations for current user for these bookings
             Map<Id, String> bookingToEvalStatus = new Map<Id, String>();
-            for (Evaluation__c ev : [SELECT Id, Application_Slot_Booking__c, Status__c
-                                     FROM Evaluation__c
-                                     WHERE EvaluatedUser__r.PersonEmail = :currentUserEmail
-                                       AND Application_Slot_Booking__c IN :bookingIds]) {
+            List<Evaluation__c> evaluations = [SELECT Id, Application_Slot_Booking__c, Status__c
+                                    FROM Evaluation__c
+                                    WHERE EvaluatedUser__r.PersonEmail = :currentUserEmail
+                                    AND Application_Slot_Booking__c IN :bookingIds];
+            System.debug('getSlotMastersForEvaluator: evaluations size = ' + evaluations.size());
+            for (Evaluation__c ev : evaluations) {
                 bookingToEvalStatus.put(ev.Application_Slot_Booking__c, ev.Status__c);
+                System.debug('getSlotMastersForEvaluator: bookingId = ' + ev.Application_Slot_Booking__c + ', evalStatus = ' + ev.Status__c);
             }
+            System.debug('getSlotMastersForEvaluator: bookingToEvalStatus = ' + bookingToEvalStatus);
 
             // Fetch slot master details
             List<SlotMaster__c> slots = [
                 SELECT Id, Name, SlotDate__c, SlotStartTime__c, SlotEndTime__c, LocationMaster__c,
-                       LocationMaster__r.LocationName__c, Status__c, Mode__c, Program_Master__r.Program_Code__c
+                    LocationMaster__r.LocationName__c, Status__c, Mode__c, Program_Master__r.Program_Code__c
                 FROM SlotMaster__c
                 WHERE Id IN :slotMasterIds
                 ORDER BY SlotDate__c DESC, Name ASC
             ];
+            System.debug('getSlotMastersForEvaluator: slots size = ' + slots.size());
 
             List<SlotMasterWrapper> result = new List<SlotMasterWrapper>();
             for (SlotMaster__c s : slots) {
+                System.debug('getSlotMastersForEvaluator: Processing SlotMaster Id = ' + s.Id + ', Name = ' + s.Name);
+
                 SlotMasterWrapper w = new SlotMasterWrapper();
                 w.id = s.Id;
                 w.name = s.Name;
@@ -1024,23 +1057,36 @@ for (ApplicationSlotBooking__c slot : slots) {
                 w.mode = s.Mode__c;
                 w.programCode = (s.Program_Master__r != null) ? s.Program_Master__r.Program_Code__c : null;
 
+                System.debug('getSlotMastersForEvaluator: Wrapper built - locationName = ' + w.locationName
+                    + ', status = ' + w.status + ', mode = ' + w.mode + ', programCode = ' + w.programCode);
+
                 List<Id> bIds = slotToBookingIds.containsKey(s.Id) ? slotToBookingIds.get(s.Id) : new List<Id>();
+                System.debug('getSlotMastersForEvaluator: SlotMaster Id = ' + s.Id + ', related bookingIds = ' + bIds);
+
                 Boolean allComplete = true;
                 Boolean hasAny = false;
                 for (Id bid : bIds) {
                     hasAny = true;
-                    if (!bookingToEvalStatus.containsKey(bid) || bookingToEvalStatus.get(bid) != 'Complete') {
+                    String evalStatus = bookingToEvalStatus.containsKey(bid) ? bookingToEvalStatus.get(bid) : null;
+                    System.debug('getSlotMastersForEvaluator: bookingId = ' + bid + ', evalStatus = ' + evalStatus);
+                    if (evalStatus != 'Complete') {
                         allComplete = false;
+                        System.debug('getSlotMastersForEvaluator: bookingId = ' + bid + ' not Complete, breaking loop');
                         break;
                     }
                 }
                 // If there are no bookings for this slot for this evaluator, treat as not completed
                 w.isCompleted = hasAny ? allComplete : false;
+                System.debug('getSlotMastersForEvaluator: SlotMaster Id = ' + s.Id + ', hasAny = ' + hasAny
+                    + ', allComplete = ' + allComplete + ', isCompleted = ' + w.isCompleted);
 
                 result.add(w);
             }
+
+            System.debug('getSlotMastersForEvaluator: Final result size = ' + result.size());
             return result;
         } catch (Exception e) {
+            System.debug('getSlotMastersForEvaluator: Exception occurred - ' + e.getMessage() + ' | ' + e.getStackTraceString());
             throw new AuraHandledException(e.getMessage());
         }
     }
