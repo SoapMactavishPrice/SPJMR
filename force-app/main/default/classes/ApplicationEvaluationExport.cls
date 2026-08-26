@@ -55,6 +55,7 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
             'Application_Slot_Booking__r.SlotMaster__r.SlotEndtime__c, ' +
             'Application_Slot_Booking__r.SlotMaster__r.Program_Master__r.Name, ' +
             'Application_Slot_Booking__r.RoundMaster__r.Name, ' +
+            'Application_Slot_Booking__r.Panel_Master__r.Name, ' +
             'Application_Slot_Booking__r.SlotMaster__r.LocationMaster__r.LocationName__c, ' +
             'Application_Slot_Booking__r.SlotMaster__r.LocationMaster__r.AddressInformation__c, ' +
             '(SELECT Id, Score__c, Comments__c, Criteria_Description__c, Scoring_Template__c, Scoring_Template__r.CriteriaName__c ' +
@@ -181,6 +182,7 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
             ExportUtils.csvCell('Slot End Time'),
             ExportUtils.csvCell('Program'),
             ExportUtils.csvCell('Round name'),
+            ExportUtils.csvCell('Panel Name'),
             ExportUtils.csvCell('Interview location'),
             ExportUtils.csvCell('Interview location address')
         };
@@ -224,9 +226,10 @@ public class ApplicationEvaluationExport implements Database.Batchable<SObject>,
             ExportUtils.csvCell(slotMaster == null || slotMaster.SlotEndtime__c == null ? null : formatTime(slotMaster.SlotEndtime__c)),
             ExportUtils.csvCell(slotMaster == null || slotMaster.Program_Master__r == null ? programName : slotMaster.Program_Master__r.Name),
             ExportUtils.csvCell(booking == null || booking.RoundMaster__r == null ? roundName : booking.RoundMaster__r.Name),
+            ExportUtils.csvCell(booking == null || booking.Panel_Master__r == null ? null : booking.Panel_Master__r.Name),
             ExportUtils.csvCell(location == null ? null : location.LocationName__c),
             ExportUtils.csvCell(location == null ? null : location.AddressInformation__c)
-        };
+};
         
         for (Integer n = 0; n < maxEvaluatorsPerApplicant; n++) {
             if (n < currentBookingEvaluations.size()) {
