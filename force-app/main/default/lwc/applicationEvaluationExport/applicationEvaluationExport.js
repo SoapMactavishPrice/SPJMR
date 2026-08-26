@@ -151,7 +151,7 @@ export default class ApplicationEvaluationExport extends LightningElement {
             slotEndTimeStr: this.slotEndTime || null
         }).then(count => {
             if (count === 0) {
-                this.showToast('No Records Found', 'No evaluations were found for the selected filters.', 'warning');
+                this.showToast('No Records Found', 'No applicants with evaluations were found for the selected filters.', 'warning');
                 return;
             }
 
@@ -213,7 +213,7 @@ export default class ApplicationEvaluationExport extends LightningElement {
         if (result.status === 'NoRecords') {
             this.files = [];
             this.showFiles = true;
-            this.showToast('No Records Found', 'No evaluations were found for the selected filters.', 'warning');
+            this.showToast('No Records Found', 'No applicants with evaluations were found for the selected filters.', 'warning');
             return;
         }
 

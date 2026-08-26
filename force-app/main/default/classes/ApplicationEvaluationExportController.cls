@@ -18,7 +18,7 @@ public with sharing class ApplicationEvaluationExportController {
         validateRequest(programId, roundId, slotStartDate, slotEndDate, slotStartTime, slotEndTime);
 
         String query =
-            'SELECT Count() ' +
+            'SELECT COUNT_DISTINCT(Application_Slot_Booking__c) cnt ' +
             'FROM Evaluation__c ' +
             'WHERE Application_Slot_Booking__r.SlotMaster__r.Program_Master__c = :programId ' +
             'AND Application_Slot_Booking__r.RoundMaster__c = :roundId';
@@ -36,7 +36,8 @@ public with sharing class ApplicationEvaluationExportController {
             query += ' AND Application_Slot_Booking__r.SlotMaster__r.SlotEndtime__c <= :slotEndTime';
         }
 
-        return Database.countQuery(query);
+        AggregateResult[] results = Database.query(query);
+        return results.isEmpty() ? 0 : (Integer) results[0].get('cnt');
     }
 
     @AuraEnabled

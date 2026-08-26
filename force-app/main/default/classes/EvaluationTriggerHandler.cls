@@ -6,7 +6,7 @@ public class EvaluationTriggerHandler {
     }
 
     public void beforeUpdate(List<Evaluation__c> newList, Map<Id,Evaluation__c> newMap, List<Evaluation__c> oldList, Map<Id,Evaluation__c> oldMap) {
-        
+        EvaluationTriggerHelper.updateEvaluationDateBasedOnStatus(newList, oldMap);
     }
 
     public void afterInsert(List<Evaluation__c> newList, Map<Id,Evaluation__c> newMap) {

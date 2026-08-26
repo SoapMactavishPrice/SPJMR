@@ -50,4 +50,13 @@ public class EvaluationTriggerHelper {
         }
     }
 
+    public static void updateEvaluationDateBasedOnStatus(List<Evaluation__c> newList, Map<Id, Evaluation__c> oldMap) {
+        for (Evaluation__c newEval : newList) {
+            Evaluation__c oldEval = oldMap.get(newEval.Id);
+            if (newEval.Status__c == 'Complete' && (oldEval == null || oldEval.Status__c != 'Complete')) {
+                newEval.EvaluationDate__c = Date.today();
+            }
+        }
+    }
+
 }
