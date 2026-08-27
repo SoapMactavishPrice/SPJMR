@@ -207,9 +207,105 @@ public static String getApplicationStage(Id applicationId) {
                     Visibility = 'AllUsers'
                 );
             }
+
+            syncAcceptanceLetterUploadStatus(applicationId, docCode);
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
+    }
+
+    @TestVisible
+    public static void syncAcceptanceLetterUploadStatus(Id applicationId, String docCode) {
+        if (applicationId == null || String.isBlank(docCode)) {
+            return;
+        }
+
+        String normalizedCode = normalizeDocCode(docCode);
+        if (!isAcceptanceLetterDocumentCode(normalizedCode)) {
+            return;
+        }
+
+        List<Application__c> apps = [
+            SELECT Id, Program__r.Program_Code__c
+            FROM Application__c
+            WHERE Id = :applicationId
+            LIMIT 1
+        ];
+        if (apps.isEmpty()) {
+            return;
+        }
+
+        String programCode = apps[0].Program__r != null ? apps[0].Program__r.Program_Code__c : null;
+        if (String.isBlank(programCode)) {
+            return;
+        }
+
+        List<Program_Document__mdt> programDocs = [
+            SELECT Id,
+                (SELECT AnnexureName__c, DisplayAsImportantDocument__c, IsUploadSectionRequired__c
+                 FROM Program_Annexures__r)
+            FROM Program_Document__mdt
+            WHERE Program_Code__c = :programCode
+            LIMIT 1
+        ];
+
+        Boolean isConfiguredAcceptanceLetter = false;
+        for (Program_Document__mdt programDoc : programDocs) {
+            for (ProgramAnnexure__mdt annexure : programDoc.Program_Annexures__r) {
+                if (annexure.AnnexureName__c == 'Acceptance Letter'
+                    && annexure.DisplayAsImportantDocument__c == true
+                    && annexure.IsUploadSectionRequired__c == true) {
+                    isConfiguredAcceptanceLetter = true;
+                    break;
+                }
+            }
+            if (isConfiguredAcceptanceLetter) {
+                break;
+            }
+        }
+
+        if (!isConfiguredAcceptanceLetter) {
+            return;
+        }
+
+        List<Admission_Decision__c> decisions = [
+            SELECT Id, IsSignedAcceptanceLetterUploaded__c
+            FROM Admission_Decision__c
+            WHERE Application__c = :applicationId
+              AND Result__c = 'Eligible for Admission'
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+        ];
+
+        if (decisions.isEmpty() || decisions[0].IsSignedAcceptanceLetterUploaded__c == true) {
+            return;
+        }
+
+        decisions[0].IsSignedAcceptanceLetterUploaded__c = true;
+        update decisions[0];
+    }
+
+    @TestVisible
+    private static Boolean isAcceptanceLetterDocumentCode(String docCode) {
+        if (String.isBlank(docCode)) {
+            return false;
+        }
+
+        String normalized = normalizeDocCode(docCode);
+        String acceptedLetterCode = normalizeDocCode('Signed Acceptance Letter');
+        String acceptedLetterCodeWithUnderscore = normalizeDocCode('Signed_AcceptanceLetter');
+
+        return normalized == acceptedLetterCode
+            || normalized == acceptedLetterCodeWithUnderscore
+            || normalized == normalizeDocCode(buildDocCode('Acceptance Letter'));
+    }
+
+    @TestVisible
+    private static String normalizeDocCode(String value) {
+        if (String.isBlank(value)) {
+            return '';
+        }
+        return value.replaceAll('[^a-zA-Z0-9]', '');
     }
     
     @AuraEnabled

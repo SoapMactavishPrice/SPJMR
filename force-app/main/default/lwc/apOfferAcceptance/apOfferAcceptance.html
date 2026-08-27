@@ -19,7 +19,12 @@
                         <div class="title-status-row">
                             <h2 class="offer-name">{activeOffer.ProgramName}</h2>
                         <div class="status-badge-group">
-                            <template lwc:if={activeOffer.offerAccepted}>
+                            <template lwc:if={activeOfferIsWithdrawn}>
+                                <span class="status-badge status-withdrawn">
+                                    Withdrawn
+                                </span>
+                            </template>
+                            <template lwc:elseif={activeOffer.offerAccepted}>
                                 <span class="status-badge status-accepted">
                                     <lightning-icon icon-name="utility:check" size="xx-small" variant="success"></lightning-icon>
                                     Accepted
@@ -96,7 +101,12 @@
                                 Declined
                             </span>
                         </template>
-                        <template lwc:if={offer.offerAccepted}>
+                        <template lwc:elseif={offer.isWithdrawn}>
+                            <span class="status-badge status-withdrawn">
+                                Withdrawn
+                            </span>
+                        </template>
+                        <template lwc:elseif={offer.offerAccepted}>
                             <div class="status-badge-group">
                                 <span class="status-badge status-accepted">
                                     <lightning-icon icon-name="utility:check" size="xx-small" variant="success"></lightning-icon>
@@ -123,13 +133,8 @@
                     </div>
 
                     <div class="offer-actions">
-                        <template lwc:if={offer.offerAccepted}>
-                            <lightning-button label="View" icon-name="utility:preview" variant="brand"
-                                data-admid={offer.admissionDecisionId} onclick={handleViewAcceptance}>
-                            </lightning-button>
-                        </template>
-                        <template lwc:elseif={offer.showButtons}>
-                            <lightning-button label="View" icon-name="utility:preview" variant="neutral"
+                        <template lwc:if={offer.viewVariant}>
+                            <lightning-button label="View" icon-name="utility:preview" variant={offer.viewVariant}
                                 data-admid={offer.admissionDecisionId} onclick={handleViewAcceptance}>
                             </lightning-button>
                         </template>

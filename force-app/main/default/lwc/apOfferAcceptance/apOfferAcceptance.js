@@ -47,6 +47,10 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
         if (!this.activeOffer) {
             return false;
         }
+        // If the application is Withdrawn, treat as no pending documents
+        if (this.activeOfferIsWithdrawn) {
+            return false;
+        }
         if (this.activeOffer.offerAccepted !== true) {
             return false;
         }
@@ -57,14 +61,21 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
     }
 
     get showActiveWithdraw() {
-        return this.activeOffer?.offerAccepted === true;
+        // Show withdraw only when offer is accepted AND the application is not Withdrawn
+        return this.activeOffer?.offerAccepted === true && !this.activeOfferIsWithdrawn;
     }
 
     get showActiveButtons() {
         if (!this.activeOffer) return false;
+        // Don't show acceptance/decline buttons when the application is Withdrawn
         return this.activeOffer.offerAccepted !== true
             && this.activeOffer.offerDeclined !== true
-            && this.activeOffer.isOfferWithdrawn !== true;
+            && this.activeOffer.isOfferWithdrawn !== true
+            && !this.activeOfferIsWithdrawn;
+    }
+
+    get activeOfferIsWithdrawn() {
+        return this.activeOffer && this.activeOffer.applicantStateManagement === 'Withdrawn';
     }
 
     @wire(getRecord, {recordId:'$userId',fields:[EMAIL_FIELD,FIRST_NAME,LAST_NAME]})
@@ -167,6 +178,9 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                 item.selectedRejected = true
                 item.selectedAccepted = false
                 item.showButtons = false
+                // Hide view/download immediately when user starts decline flow
+                item.viewVariant = null;
+                item.showDownloadOffer = false;
             }
         })
         const result = await ApDeclineWithdrawalQuestionnaire.open({
@@ -178,10 +192,34 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
             },
         });
         if (result) {
-            await this.updateApplicationRecord(applicationId, 'decline')
-            this.showSuccessToastMessage('Offer Declined','')
-            await this.updateAdmissionRecord(admId, 'decline')
-            this.handleBackToOffers()
+            // Optimistic local update: mark declined so UI updates instantly
+            this.offers = this.offers.map((item) => {
+                if (item.admissionDecisionId === admId) {
+                    return {
+                        ...item,
+                        offerDeclined: true,
+                        showWithdrawButton: false,
+                        showButtons: false,
+                        viewVariant: null,
+                        showDownloadOffer: false
+                    };
+                }
+                return item;
+            });
+            if (this.activeOffer && this.activeOffer.admissionDecisionId === admId) {
+                this.activeOffer = {
+                    ...this.activeOffer,
+                    offerDeclined: true,
+                    showWithdrawButton: false,
+                    viewVariant: null,
+                    showDownloadOffer: false
+                };
+            }
+
+            await this.updateApplicationRecord(applicationId, 'decline');
+            this.showSuccessToastMessage('Offer Declined','');
+            await this.updateAdmissionRecord(admId, 'decline');
+            this.handleBackToOffers();
         } else {
             this.offers = this.offers.map((item) => {
                 if (item.admissionDecisionId == admId) {
@@ -241,8 +279,41 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                 },
             });    
             if(result){
-                this.updateApplicationRecord(applicationId, 'withdraw')
-                this.updateAdmissionRecord(admId, 'withdraw')
+                // Optimistic UI update: immediately mark offer as Withdrawn locally
+                this.offers = this.offers.map((item) => {
+                    if (item.applicationId === applicationId) {
+                        return {
+                            ...item,
+                            isWithdrawn: true,
+                            isWithdrawDisabled: true,
+                            applicantStateManagement: 'Withdrawn',
+                            hasPendingDocuments: false,
+                            showDownloadOffer: false,
+                            showWithdrawButton: false,
+                            showAwaitingResponse: false,
+                            viewVariant: null,
+                            showButtons: false
+                        };
+                    }
+                    return item;
+                });
+
+                if (this.activeOffer && this.activeOffer.applicationId === applicationId) {
+                    this.activeOffer = {
+                        ...this.activeOffer,
+                        isWithdrawn: true,
+                        isWithdrawDisabled: true,
+                        applicantStateManagement: 'Withdrawn',
+                        hasPendingDocuments: false,
+                        showDownloadOffer: false,
+                        showAwaitingResponse: false,
+                        viewVariant: null
+                    };
+                }
+
+                // Call server updates (fire-and-forget); server handlers will reconcile state if needed
+                this.updateApplicationRecord(applicationId, 'withdraw');
+                this.updateAdmissionRecord(admId, 'withdraw');
             }
             
            
@@ -321,8 +392,6 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                             return {
                                 ...item,
                                 isWithdrawDisabled: true,
-                                offerAccepted: false,
-                                isOfferAcceptedState: false,
                                 applicantStateManagement: 'Withdrawn',
                                 hasPendingDocuments: false,
                                 showDownloadOffer: false,
@@ -336,8 +405,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         this.activeOffer = {
                             ...this.activeOffer,
                             isWithdrawDisabled: true,
-                            offerAccepted: false,
-                            isOfferAcceptedState: false,
+                            // preserve offerAccepted state; do not clear it here
                             applicantStateManagement: 'Withdrawn',
                             hasPendingDocuments: false,
                             showDownloadOffer: false,
@@ -367,7 +435,8 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
             fields[ACCEPTANCE_DATE.fieldApiName] = formattedDate
         }
         if (action == 'withdraw') {
-            fields[ACCEPT_OFFER.fieldApiName] = false
+            // Do not clear Offer_Accepted__c when withdrawing from the client.
+            // Only clear the declined flag so we don't overwrite an acceptance.
             fields[DECLINE_OFFER.fieldApiName] = false
         }
         fields[ID_FIELD.fieldApiName] = admissionId
@@ -383,6 +452,10 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         if (action == 'decline') {
                             updates.offerDeclined = true;
                             updates.showWithdrawButton = false;
+                            // Ensure the view/download buttons are removed after decline
+                            updates.viewVariant = null;
+                            updates.showDownloadOffer = false;
+                            updates.showButtons = false;
                         }
                         if (action == 'accept') {
                             updates.offerAccepted = true;
@@ -438,27 +511,45 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
         getEligibleAdmissionDecisions()
             .then((result) => {
                 console.log('Result is', JSON.stringify(result))
-                this.offers = result
+                this.offers = result;
+
                 this.offers = this.offers.map((item) => {
                     const applicantState = item.applicantStateManagement || '';
-                    const offerDownloadHidden = applicantState === 'Offer Not Accepted' || applicantState === 'Withdrawn';
+                    const offerDownloadHidden = (applicantState === 'Offer Not Accepted' || applicantState === 'Withdrawn');
                     const isDeclined = item.offerDeclined === 'true';
+                    const isWithdrawn = (applicantState === 'Withdrawn');
+                    const acceptedFlag = (item.offerAccepted === 'true');
+                    const computedShowButtons = (!isDeclined && acceptedFlag !== true && item.isOfferWithdrawn != 'true' && !isWithdrawn);
+
+                    // viewVariant: 'brand' when accepted, 'neutral' when view available via showButtons, otherwise null
+                    let viewVariant = null;
+                    if (!isWithdrawn) {
+                        if (acceptedFlag) {
+                            viewVariant = 'brand';
+                        } else if (computedShowButtons) {
+                            viewVariant = 'neutral';
+                        }
+                    }
+
                     return {
                         ...item,
+                        // Normalized flag for template boolean checks
+                        isWithdrawn: isWithdrawn,
                         offerDeclined: isDeclined,
-                        offerAccepted: item.offerAccepted === 'true',
-                        hasPendingDocuments: (applicantState === 'Offer Accepted' || applicantState === 'Withdrawn') ? false : (item.hasPendingDocuments === true || item.hasPendingDocuments === 'true'),
+                        offerAccepted: acceptedFlag,
+                        hasPendingDocuments: ((applicantState === 'Offer Accepted' || applicantState === 'Withdrawn') ? false : (item.hasPendingDocuments === true || item.hasPendingDocuments === 'true')),
                         selectedAccepted: false,
                         selectedRejected: false,
-                        showButtons: !isDeclined && item.offerAccepted != 'true' && item.isOfferWithdrawn != 'true',
-                        showWithdrawButton: applicantState === 'Offer Accepted',
-                        showDownloadOffer: !!item.offerLetterLink && !offerDownloadHidden,
-                        isWithdrawDisabled: item.isOfferWithdrawn === 'true',
-                        isOfferAcceptedState: applicantState === 'Offer Accepted',
+                        showButtons: computedShowButtons,
+                        viewVariant: viewVariant,
+                        showWithdrawButton: (applicantState === 'Offer Accepted'),
+                        showDownloadOffer: (!!item.offerLetterLink && !offerDownloadHidden),
+                        isWithdrawDisabled: (item.isOfferWithdrawn === 'true'),
+                        isOfferAcceptedState: (applicantState === 'Offer Accepted'),
                         applicantStateManagement: applicantState,
                         showAwaitingResponse: !isDeclined
-                    }
-                })
+                    };
+                });
 
                 console.log(JSON.stringify('Offers ', JSON.stringify(this.offers)))
             })

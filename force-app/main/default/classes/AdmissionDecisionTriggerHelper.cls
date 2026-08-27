@@ -375,8 +375,6 @@ public class AdmissionDecisionTriggerHelper {
             Boolean finalOfferAcceptedJustSetTrue = transitionedToTrue(decision.FinalOfferAccepted__c, oldDecision?.FinalOfferAccepted__c);
 
             if (offerWithdrawnJustSetTrue) {
-                decision.Offer_Accepted__c = false;
-                decision.FinalOfferAccepted__c = false;
                 decision.Offer_Declined__c = false;
             } else if (offerDeclinedJustSetTrue) {
                 decision.Offer_Accepted__c = false;
