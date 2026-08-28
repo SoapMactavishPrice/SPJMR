@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ReasonsForYourChoice__c</fullName>
+    <label>Reasons For Your Choice</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Perceived brand</fullName>
+                <default>false</default>
+                <label>Perceived brand</label>
+            </value>
+            <value>
+                <fullName>Ranking</fullName>
+                <default>false</default>
+                <label>Ranking</label>
+            </value>
+            <value>
+                <fullName>Lower fees</fullName>
+                <default>false</default>
+                <label>Lower fees</label>
+            </value>
+            <value>
+                <fullName>Better return on investment</fullName>
+                <default>false</default>
+                <label>Better return on investment</label>
+            </value>
+            <value>
+                <fullName>Better placements - type of roles being offered</fullName>
+                <default>false</default>
+                <label>Better placements - type of roles being offered</label>
+            </value>
+            <value>
+                <fullName>Flexibility of choosing specialization/concentration in the 2nd year</fullName>
+                <default>false</default>
+                <label>Flexibility of choosing specialization/concentration in the 2nd year</label>
+            </value>
+            <value>
+                <fullName>Quality of teaching-learning</fullName>
+                <default>false</default>
+                <label>Quality of teaching-learning</label>
+            </value>
+            <value>
+                <fullName>Extent and nature of international exchange</fullName>
+                <default>false</default>
+                <label>Extent and nature of international exchange</label>
+            </value>
+            <value>
+                <fullName>Want to work, before pursuing MBA education</fullName>
+                <default>false</default>
+                <label>Want to work, before pursuing MBA education</label>
+            </value>
+            <value>
+                <fullName>Got a promotion at work</fullName>
+                <default>false</default>
+                <label>Got a promotion at work</label>
+            </value>
+            <value>
+                <fullName>Closer to home</fullName>
+                <default>false</default>
+                <label>Closer to home</label>
+            </value>
+            <value>
+                <fullName>Financial constraints</fullName>
+                <default>false</default>
+                <label>Financial constraints</label>
+            </value>
+            <value>
+                <fullName>Want to appear for entrance exams next year to improve my scores</fullName>
+                <default>false</default>
+                <label>Want to appear for entrance exams next year to improve my scores</label>
+            </value>
+            <value>
+                <fullName>Any other</fullName>
+                <default>false</default>
+                <label>Any other</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+    <visibleLines>4</visibleLines>
+</CustomField>

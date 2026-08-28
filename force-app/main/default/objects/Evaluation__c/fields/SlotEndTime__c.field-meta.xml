@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SlotEndTime__c</fullName>
+    <formula>Application_Slot_Booking__r.SlotMaster__r.SlotEndtime__c</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Slot End Time</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Time</type>
+</CustomField>

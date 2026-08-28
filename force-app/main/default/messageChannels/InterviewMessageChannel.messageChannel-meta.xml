@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<MessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
     <description>Message channel for interview components</description>
     <isExposed>true</isExposed>
     <masterLabel>Interview Message Channel</masterLabel>
-</MessageChannel>
+</LightningMessageChannel>

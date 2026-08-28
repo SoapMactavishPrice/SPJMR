@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>WhichInstituteAreYouJoining__c</fullName>
+    <label>Which Institute Are You Joining?</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>IIM A</fullName>
+                <default>false</default>
+                <label>IIM A</label>
+            </value>
+            <value>
+                <fullName>IIM B</fullName>
+                <default>false</default>
+                <label>IIM B</label>
+            </value>
+            <value>
+                <fullName>IIM C</fullName>
+                <default>false</default>
+                <label>IIM C</label>
+            </value>
+            <value>
+                <fullName>IIM L</fullName>
+                <default>false</default>
+                <label>IIM L</label>
+            </value>
+            <value>
+                <fullName>IIM K</fullName>
+                <default>false</default>
+                <label>IIM K</label>
+            </value>
+            <value>
+                <fullName>IIM I</fullName>
+                <default>false</default>
+                <label>IIM I</label>
+            </value>
+            <value>
+                <fullName>FMS</fullName>
+                <default>false</default>
+                <label>FMS</label>
+            </value>
+            <value>
+                <fullName>XLRI</fullName>
+                <default>false</default>
+                <label>XLRI</label>
+            </value>
+            <value>
+                <fullName>ISB</fullName>
+                <default>false</default>
+                <label>ISB</label>
+            </value>
+            <value>
+                <fullName>MDI</fullName>
+                <default>false</default>
+                <label>MDI</label>
+            </value>
+            <value>
+                <fullName>New IIMs</fullName>
+                <default>false</default>
+                <label>New IIMs</label>
+            </value>
+            <value>
+                <fullName>IIM Mumbai</fullName>
+                <default>false</default>
+                <label>IIM Mumbai</label>
+            </value>
+            <value>
+                <fullName>Going abroad for further studies</fullName>
+                <default>false</default>
+                <label>Going abroad for further studies</label>
+            </value>
+            <value>
+                <fullName>Joining some other B-School</fullName>
+                <default>false</default>
+                <label>Joining some other B-School</label>
+            </value>
+            <value>
+                <fullName>Not joining a B-School this year</fullName>
+                <default>false</default>
+                <label>Not joining a B-School this year</label>
+            </value>
+            <value>
+                <fullName>None of the above</fullName>
+                <default>false</default>
+                <label>None of the above</label>
+            </value>
+            <value>
+                <fullName>Other</fullName>
+                <default>false</default>
+                <label>Other</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

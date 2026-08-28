@@ -14,7 +14,8 @@ public without sharing class ApplicationTriggerHandler {
 
     private static final Map<String, CommunicationsController.CommunicationScenario> STATUS_TO_SCENARIO = new Map<String, CommunicationsController.CommunicationScenario>{
         'Offer Accepted' => CommunicationsController.CommunicationScenario.OFFER_ACCEPTED,
-        'Withdrawn'       => CommunicationsController.CommunicationScenario.OFFER_WITHDRAWN
+        'Withdrawn'       => CommunicationsController.CommunicationScenario.OFFER_WITHDRAWN,
+        'Offer Not Accepted' => CommunicationsController.CommunicationScenario.OFFER_NOT_ACCEPTED
     };
 
     /**
@@ -174,23 +175,23 @@ public without sharing class ApplicationTriggerHandler {
      * @param oldMap Trigger.oldMap, or null on insert (not used on after update only trigger).
      */
     public static void handleGMPEmail(List<Application__c> newList, Map<Id, Application__c> oldMap) {
-        for (Application__c app : newList) {
-            Application__c oldApp = oldMap != null ? oldMap.get(app.Id) : null;
+        // for (Application__c app : newList) {
+        //     Application__c oldApp = oldMap != null ? oldMap.get(app.Id) : null;
 
-            Boolean statusChanged =
-                oldApp == null || oldApp.Application_Status__c != app.Application_Status__c;
+        //     Boolean statusChanged =
+        //         oldApp == null || oldApp.Application_Status__c != app.Application_Status__c;
 
-            if (statusChanged && app.Application_Status__c == 'Submitted') {
-                Map<String, Object> flowInputs = new Map<String, Object>();
-                flowInputs.put('recordId', app.Id);
+        //     if (statusChanged && app.Application_Status__c == 'Submitted') {
+        //         Map<String, Object> flowInputs = new Map<String, Object>();
+        //         flowInputs.put('recordId', app.Id);
 
-                Flow.Interview.GMP_Application_Submitted_Email_Notification myFlow = new Flow.Interview.GMP_Application_Submitted_Email_Notification(
-                    flowInputs
-                );
+        //         Flow.Interview.GMP_Application_Submitted_Email_Notification myFlow = new Flow.Interview.GMP_Application_Submitted_Email_Notification(
+        //             flowInputs
+        //         );
 
-                myFlow.start();
-            }
-        }
+        //         myFlow.start();
+        //     }
+        // }
     }
 
     public static void handleApplicationStatusChangeScenarios(List<Application__c> newList, Map<Id, Application__c> oldMap) {
