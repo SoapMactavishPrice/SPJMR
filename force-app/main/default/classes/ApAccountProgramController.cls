@@ -70,7 +70,7 @@ public static String getApplicationStage(Id applicationId) {
     @AuraEnabled(cacheable=false)
     public static String getAcceptanceLetterFileUrl(Id applicationId) {
         try {
-            return getDocumentDetailFileUrl(applicationId, 'AcceptanceLetter');
+            return getDocumentDetailFileUrl(applicationId, 'Annexure1LetterofAcceptance');
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -252,7 +252,7 @@ public static String getApplicationStage(Id applicationId) {
         Boolean isConfiguredAcceptanceLetter = false;
         for (Program_Document__mdt programDoc : programDocs) {
             for (ProgramAnnexure__mdt annexure : programDoc.Program_Annexures__r) {
-                if (annexure.AnnexureName__c == 'Acceptance Letter'
+                if (annexure.AnnexureName__c == 'Annexure 1 - Letter of Acceptance'
                     && annexure.DisplayAsImportantDocument__c == true
                     && annexure.IsUploadSectionRequired__c == true) {
                     isConfiguredAcceptanceLetter = true;
@@ -292,12 +292,12 @@ public static String getApplicationStage(Id applicationId) {
         }
 
         String normalized = normalizeDocCode(docCode);
-        String acceptedLetterCode = normalizeDocCode('Signed Acceptance Letter');
-        String acceptedLetterCodeWithUnderscore = normalizeDocCode('Signed_AcceptanceLetter');
+        String acceptedLetterCode = normalizeDocCode('Signed Annexure 1 - Letter of Acceptance');
+        String acceptedLetterCodeWithUnderscore = normalizeDocCode('Signed_Annexure1LetterofAcceptance');
 
         return normalized == acceptedLetterCode
             || normalized == acceptedLetterCodeWithUnderscore
-            || normalized == normalizeDocCode(buildDocCode('Acceptance Letter'));
+            || normalized == normalizeDocCode(buildDocCode('Annexure 1 - Letter of Acceptance'));
     }
 
     @TestVisible
