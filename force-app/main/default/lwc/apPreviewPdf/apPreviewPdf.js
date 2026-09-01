@@ -7,6 +7,9 @@ import getVfPdfBase64 from '@salesforce/apex/VfPdfFetcher.getVfPdfBase64';
 import getApplicationNumber from '@salesforce/apex/ApplicationNumberFetcher.getApplicationNumber';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+import { openInNewTab } from 'c/applicationFormService';
+
 export default class ApPreviewPdf extends LightningElement {
 
     _recordId;
@@ -159,13 +162,13 @@ export default class ApPreviewPdf extends LightningElement {
     }
 
     openPdf(blobUrl) {
-        const previewWindow = window.open(blobUrl, '_blank');
+        openInNewTab(blobUrl);
 
-        if (!previewWindow) {
-            this.showFallbackPrompt = true;
-        }
+        this.previewUrl = blobUrl;
 
-        // Give the browser time to finish loading the blob in the new tab.
+        // Keep the fallback available for long-running/blocked cases.
+        this.showFallbackPrompt = true;
+
         window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     }
 
@@ -174,11 +177,10 @@ export default class ApPreviewPdf extends LightningElement {
             return;
         }
 
-        const previewWindow = window.open(this.previewUrl, '_blank');
-        if (previewWindow) {
-            this.showFallbackPrompt = false;
-            this.dispatchEvent(new CloseActionScreenEvent());
-        }
+        openInNewTab(this.previewUrl);
+
+        this.showFallbackPrompt = false;
+        this.dispatchEvent(new CloseActionScreenEvent());
     }
 
     handleFallbackClose() {

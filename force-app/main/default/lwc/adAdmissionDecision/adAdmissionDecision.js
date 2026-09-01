@@ -39,6 +39,14 @@ export default class AdmissionDecision extends NavigationMixin(LightningElement)
         if(!this.applicationInfo?.data) return false;
         return getFieldValue(this.applicationInfo.data,PGM_CODE_FIELD);
     }
+
+    get decisionActionLabel() {
+        return this.isDecisionPresent ? 'Change Decision' : 'Generate Offer';
+    }
+
+    get decisionActionIcon() {
+        return this.isDecisionPresent ? 'utility:edit' : 'utility:add';
+    }
         
 
     @wire(getRelatedListRecords , {
@@ -51,6 +59,7 @@ export default class AdmissionDecision extends NavigationMixin(LightningElement)
     })
     listInfo({ error, data }) {
         if (data) {
+            this.resetDecisionState();
             if(data.records.length > 0 && data){
                 const record = data.records[0].fields
                 this.isDecisionPresent = true;
@@ -77,6 +86,17 @@ export default class AdmissionDecision extends NavigationMixin(LightningElement)
 
         
     }
+
+    resetDecisionState() {
+        this.isDecisionPresent = false;
+        this.isWaitlisted = false;
+        this.isNotEligible = false;
+        this.isAccepted = false;
+        this.isDeclined = false;
+        this.offerDecision = '';
+        this.offerAcceptedDate = '';
+        this.admId = '';
+    }
     handleDecisionClick(){
             this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
@@ -87,9 +107,10 @@ export default class AdmissionDecision extends NavigationMixin(LightningElement)
         })
         }
 
-        async handleCreateOffer() {
+        async handleDecisionAction() {
         const result = await AdAdmissionDecisionCreateModal.open({
             applicationId: this.recordId,
+            admissionDecisionId: this.isDecisionPresent ? this.admId : undefined,
             programCode: this.programCode
         });
 

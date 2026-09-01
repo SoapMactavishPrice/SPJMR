@@ -9,14 +9,15 @@ export default class AdCreateInterviewer extends LightningElement {
     firstName = '';
     lastName = '';
     email = '';
+    selectedProgramId;
 
     @track userList = [];
     wiredUsersResult;
 
     columns = [
-        { label: 'Name', fieldName: 'Name' },
-        { label: 'Email', fieldName: 'Email' },
-        { label: 'Username', fieldName: 'Username' },
+        { label: 'Name', fieldName: 'Name', initialWidth: 220 },
+        { label: 'Email', fieldName: 'Email', initialWidth: 360 },
+        { label: 'Username', fieldName: 'Username', initialWidth: 400 },
     ];
 
     getSelectedName(event){
@@ -24,7 +25,7 @@ export default class AdCreateInterviewer extends LightningElement {
         console.log('Selected Rows ',JSON.stringify(selectedRows))
     }
 
-    @wire(getInterviewerUsers)
+    @wire(getInterviewerUsers, { programId: '$selectedProgramId' })
     wiredUsers(result) {
         this.wiredUsersResult = result;
         if (result.data) {
@@ -34,11 +35,28 @@ export default class AdCreateInterviewer extends LightningElement {
                     Name: user.FirstName + ' ' + user.LastName
                 };
             });
+        } else if (result.error) {
+            this.userList = [];
+            this.showToast(
+                'Error',
+                result.error?.body?.message || 'Unable to load interviewers.',
+                'error'
+            );
         }
     }
 
     isValid() {
-        return this.firstName && this.lastName && this.email;
+        return this.selectedProgramId &&
+            this.firstName &&
+            this.lastName &&
+            this.email;
+    }
+
+    handleProgramChange(event) {
+        this.selectedProgramId = event.detail.recordId;
+        if (!this.selectedProgramId) {
+            this.userList = [];
+        }
     }
 
     handleChange(event) {
@@ -47,7 +65,7 @@ export default class AdCreateInterviewer extends LightningElement {
 
     async handleSubmit() {
         if (!this.isValid()) {
-            this.showToast('Error', 'All fields are required', 'error');
+            this.showToast('Error', 'Program and all fields are required', 'error');
             return;
         }
 
@@ -58,7 +76,10 @@ export default class AdCreateInterviewer extends LightningElement {
         };
 
         try {
-            await createInterviewer({ params: JSON.stringify(params) });
+            await createInterviewer({
+                params: JSON.stringify(params),
+                programId: this.selectedProgramId
+            });
             this.showToast('Success', 'Interviewer Created Successfully', 'success');
 
             // Refresh table
@@ -70,7 +91,11 @@ export default class AdCreateInterviewer extends LightningElement {
             this.email = '';
 
         } catch (error) {
-            this.showToast('Error', error.body.message, 'error');
+            this.showToast(
+                'Error',
+                error?.body?.message || error?.message || 'Unable to create interviewer.',
+                'error'
+            );
         }
     }
 

@@ -23,6 +23,7 @@ public without sharing class ApplicationTriggerHandler {
      */
     private static final Map<String, String> APP_STAGE_TO_OPP_STAGE = buildApplicationStageToOpportunityStageMap();
 
+    @TestVisible
     private static Map<String, String> buildApplicationStageToOpportunityStageMap() {
         Map<String, String> m = new Map<String, String>();
         m.put('Academic Details', 'Academic Details');
@@ -104,11 +105,13 @@ public without sharing class ApplicationTriggerHandler {
      * @param oldApp Old Application version.
      * @return Whether opportunity sync should run for this row.
      */
+    @TestVisible
     private static Boolean hasRelevantChange(Application__c app, Application__c oldApp) {
         return app.Application_Status__c != oldApp.Application_Status__c
             || app.Application_Stage__c != oldApp.Application_Stage__c;
     }
 
+    @TestVisible
     private static Application__c findApplicationForOpp(List<Application__c> newList, Id applicationId) {
         for (Application__c a : newList) {
             if (a.Id == applicationId) {
@@ -125,6 +128,7 @@ public without sharing class ApplicationTriggerHandler {
      * @param oldApp Old Application version.
      * @return Opportunity StageName to apply, or null to leave unchanged.
      */
+    @TestVisible
     private static String resolveOpportunityStage(Application__c app, Application__c oldApp) {
         if (changedTo(app.Application_Status__c, oldApp.Application_Status__c, STAGE_INITIATED)) {
             return STAGE_INITIATED;
@@ -147,6 +151,7 @@ public without sharing class ApplicationTriggerHandler {
      * @param applicationStageRaw Current Application_Stage__c value.
      * @return Opportunity stage string, or null if not in the configured set.
      */
+    @TestVisible
     private static String mapApplicationStageToOpportunityStage(String applicationStageRaw) {
         if (String.isBlank(applicationStageRaw)) {
             return null;
@@ -164,6 +169,7 @@ public without sharing class ApplicationTriggerHandler {
         return null;
     }
 
+    @TestVisible
     private static Boolean changedTo(String newVal, String oldVal, String target) {
         return newVal == target && oldVal != target;
     }
@@ -422,5 +428,411 @@ public without sharing class ApplicationTriggerHandler {
         if (!decisionsToUpdate.isEmpty()) {
             update decisionsToUpdate;
         }
+    }
+
+    //sync the pgdm programmes
+    private static final String PAID_STATUS = 'Paid';
+    private static final String PAYMENT_STAGE = 'Payment';
+
+    private static final String PGDM =
+        'Post Graduate Diploma in Management';
+
+    private static final String PGDM_BM =
+        'Post Graduate Diploma in Management (Business Management)';
+
+
+    /**
+     * Creates Program Detail records after insert.
+     */
+    public static void handleAfterInsertPgdmSync(
+        List<Application__c> applications
+    ) {
+        if (applications.isEmpty()) {
+            return;
+        }
+
+        Set<Id> applicantIds = new Set<Id>();
+        Set<Id> programIds = new Set<Id>();
+
+        for (Application__c app : applications) {
+
+            if (app.Applicant__c != null) {
+                applicantIds.add(app.Applicant__c);
+            }
+
+            if (app.Program__c != null) {
+                programIds.add(app.Program__c);
+            }
+        }
+
+        Map<Id, Account> applicantsById =
+            getApplicantAccounts(applicantIds);
+
+        Map<Id, Program> programsById =
+            getPrograms(programIds);
+
+        Set<String> applicantEmails =
+            new Set<String>();
+
+        for (Account applicant : applicantsById.values()) {
+
+            if (String.isNotBlank(applicant.PersonEmail)) {
+                applicantEmails.add(
+                    applicant.PersonEmail.trim().toLowerCase()
+                );
+            }
+        }
+
+        Map<String, User> usersByEmail =
+            getUsersByEmail(applicantEmails);
+
+        List<Program_Detail__c> detailsToInsert =
+            new List<Program_Detail__c>();
+
+        for (Application__c app : applications) {
+
+            Program_Detail__c detail =
+                new Program_Detail__c();
+
+            detail.Application__c = app.Id;
+
+            Program programInst =
+                programsById.get(app.Program__c);
+
+            if (programInst != null) {
+                detail.ProgrammesInterestedIn__c =
+                    getProgrammesInterestedIn(
+                        programInst.Program_Code__c
+                    );
+            }
+
+            Account applicant =
+                applicantsById.get(app.Applicant__c);
+
+            if (applicant != null &&
+                String.isNotBlank(applicant.PersonEmail)) {
+
+                String email =
+                    applicant.PersonEmail.trim().toLowerCase();
+
+                User holdingUser =
+                    usersByEmail.get(email);
+
+                if (holdingUser != null) {
+                    detail.OwnerId = holdingUser.Id;
+                }
+            }
+
+            detailsToInsert.add(detail);
+        }
+
+        if (!detailsToInsert.isEmpty()) {
+            insert detailsToInsert;
+        }
+    }
+
+
+    /**
+     * Syncs Program Detail when Program changes.
+     */
+    public static void handleAfterUpdatePgdmSync(
+        List<Application__c> applications,
+        Map<Id, Application__c> oldMap
+    ) {
+        Set<Id> applicationIds =
+            new Set<Id>();
+
+        Set<Id> programIds =
+            new Set<Id>();
+
+        for (Application__c app : applications) {
+
+            Application__c oldApp =
+                oldMap.get(app.Id);
+
+            if (oldApp == null) {
+                continue;
+            }
+
+            if (app.Program__c == oldApp.Program__c) {
+                continue;
+            }
+
+            if (isPaymentLocked(app)) {
+                continue;
+            }
+
+            applicationIds.add(app.Id);
+
+            if (app.Program__c != null) {
+                programIds.add(app.Program__c);
+            }
+        }
+
+        if (applicationIds.isEmpty()) {
+            return;
+        }
+
+        Map<Id, Program_Detail__c> detailsByApplication =
+            getProgramDetails(applicationIds);
+
+        Map<Id, Program> programsById =
+            getPrograms(programIds);
+
+        List<Program_Detail__c> detailsToUpdate =
+            new List<Program_Detail__c>();
+
+        for (Application__c app : applications) {
+
+            Application__c oldApp =
+                oldMap.get(app.Id);
+
+            if (oldApp == null ||
+                app.Program__c == oldApp.Program__c) {
+                continue;
+            }
+
+            if (isPaymentLocked(app)) {
+                continue;
+            }
+
+            Program_Detail__c detail =
+                detailsByApplication.get(app.Id);
+
+            if (detail == null) {
+                continue;
+            }
+
+            Program programInst =
+                programsById.get(app.Program__c);
+
+            if (programInst == null) {
+                continue;
+            }
+
+            String expectedProgrammeSelection =
+                getProgrammesInterestedIn(
+                    programInst.Program_Code__c
+                );
+
+            /*
+             * Do nothing when Program Detail is already in sync.
+             */
+            if (
+                normalizeMultiPicklist(
+                    detail.ProgrammesInterestedIn__c
+                ) ==
+                normalizeMultiPicklist(
+                    expectedProgrammeSelection
+                )
+            ) {
+                continue;
+            }
+
+            detail.ProgrammesInterestedIn__c =
+                expectedProgrammeSelection;
+
+            detailsToUpdate.add(detail);
+        }
+
+        if (!detailsToUpdate.isEmpty()) {
+            update detailsToUpdate;
+        }
+    }
+
+
+    /**
+     * Maps Program Code to programme selection.
+     */
+    @TestVisible
+    private static String getProgrammesInterestedIn(
+        String programCode
+    ) {
+        if (String.isBlank(programCode)) {
+            return null;
+        }
+
+        switch on programCode {
+
+            when 'PGDM' {
+                return PGDM;
+            }
+
+            when 'PGDM-BM' {
+                return PGDM_BM;
+            }
+
+            when 'PGDM&PGDM-BM' {
+                return PGDM + ';' + PGDM_BM;
+            }
+
+            when else {
+                return null;
+            }
+        }
+    }
+
+
+    /**
+     * Checks whether programme sync should be skipped.
+     */
+    @TestVisible
+    private static Boolean isPaymentLocked(
+        Application__c app
+    ) {
+        return app.Application_Status__c == PAID_STATUS
+            || app.Application_Stage__c == PAYMENT_STAGE;
+    }
+
+
+    /**
+     * Gets Applicant Accounts.
+     */
+    @TestVisible
+    private static Map<Id, Account> getApplicantAccounts(
+        Set<Id> applicantIds
+    ) {
+        Map<Id, Account> result =
+            new Map<Id, Account>();
+
+        if (applicantIds.isEmpty()) {
+            return result;
+        }
+
+        for (Account accountRecord : [
+            SELECT
+                Id,
+                PersonEmail
+            FROM Account
+            WHERE Id IN :applicantIds
+        ]) {
+            result.put(
+                accountRecord.Id,
+                accountRecord
+            );
+        }
+
+        return result;
+    }
+
+
+    /**
+     * Gets Programs.
+     */
+    @TestVisible
+    private static Map<Id, Program> getPrograms(
+        Set<Id> programIds
+    ) {
+        Map<Id, Program> result =
+            new Map<Id, Program>();
+
+        if (programIds.isEmpty()) {
+            return result;
+        }
+
+        for (Program programInst : [
+            SELECT
+                Id,
+                Program_Code__c
+            FROM Program
+            WHERE Id IN :programIds
+        ]) {
+            result.put(
+                programInst.Id,
+                programInst
+            );
+        }
+
+        return result;
+    }
+
+
+    /**
+     * Gets active Users by email.
+     */
+    @TestVisible
+    private static Map<String, User> getUsersByEmail(
+        Set<String> emails
+    ) {
+        Map<String, User> result =
+            new Map<String, User>();
+
+        if (emails.isEmpty()) {
+            return result;
+        }
+
+        for (User userRecord : [
+            SELECT
+                Id,
+                Email
+            FROM User
+            WHERE Email IN :emails
+            AND IsActive = true
+        ]) {
+            if (String.isNotBlank(userRecord.Email)) {
+                result.put(
+                    userRecord.Email.trim().toLowerCase(),
+                    userRecord
+                );
+            }
+        }
+
+        return result;
+    }
+
+
+    /**
+     * Gets Program Detail records by Application.
+     */
+    @TestVisible
+    private static Map<Id, Program_Detail__c> getProgramDetails(
+        Set<Id> applicationIds
+    ) {
+        Map<Id, Program_Detail__c> result =
+            new Map<Id, Program_Detail__c>();
+
+        if (applicationIds.isEmpty()) {
+            return result;
+        }
+
+        for (Program_Detail__c detail : [
+            SELECT
+                Id,
+                Application__c,
+                ProgrammesInterestedIn__c
+            FROM Program_Detail__c
+            WHERE Application__c IN :applicationIds
+        ]) {
+            result.put(
+                detail.Application__c,
+                detail
+            );
+        }
+
+        return result;
+    }
+
+
+    /**
+     * Normalizes multi-select values for comparison.
+     */
+    @TestVisible
+    private static String normalizeMultiPicklist(
+        String value
+    ) {
+        if (String.isBlank(value)) {
+            return '';
+        }
+
+        List<String> values =
+            value.split(';');
+
+        for (Integer i = 0; i < values.size(); i++) {
+            values[i] = values[i].trim();
+        }
+
+        values.sort();
+
+        return String.join(values, ';');
     }
 }

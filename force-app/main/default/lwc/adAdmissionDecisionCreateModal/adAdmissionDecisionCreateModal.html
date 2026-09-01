@@ -1,10 +1,11 @@
 <template>
-    <lightning-modal-header label="Create Admission Decision">
+    <lightning-modal-header label={modalLabel}>
     </lightning-modal-header>
 
     <lightning-modal-body>
         <lightning-record-edit-form
             object-api-name={objectApiName}
+            record-id={admissionDecisionId}
             onsubmit={handleSubmit}
             onsuccess={handleSuccess}>
 
@@ -49,12 +50,17 @@
                     field-name={firstInstallmentEta}
                     required>
                 </lightning-input-field>
+
+                <lightning-input-field
+                    field-name={balanceFeePaymentEta}
+                    required>
+                </lightning-input-field>
             </template>
 
             <template lwc:elseif={isWaitlisted}>
                 <lightning-input-field
                     field-name={waitlistNumber}
-                    required>
+                    required={waitlistNumberRequired}>
                 </lightning-input-field>
             </template>
 

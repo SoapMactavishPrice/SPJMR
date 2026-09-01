@@ -6,9 +6,7 @@ public with sharing class DashboardAnnouncementService {
     };
 
     private static final Set<String> OFFER_STATES = new Set<String>{
-        'Offer Issued',
-        'Offer Accepted',
-        'Withdrawn'
+        'Offer Issued'
     };
 
     private static final Set<String> NOT_ELIGIBLE_STATES = new Set<String>{
@@ -17,6 +15,18 @@ public with sharing class DashboardAnnouncementService {
 
     private static final Set<String> WAITLISTED_STATES = new Set<String>{
         'Waitlisted'
+    };
+
+    private static final Set<String> Not_ACCEPTED_STATES = new Set<String>{
+        'Offer Not Accepted'
+    };
+
+    private static final Set<String> ACCEPTED_STATES = new Set<String>{
+        'Offer Accepted'
+    };
+
+    private static final Set<String> WITHDRAWN_STATES = new Set<String>{
+        'Withdrawn'
     };
 
     public static List<CommunicationsController.DashboardAnnouncement> getAnnouncements(
@@ -161,6 +171,12 @@ public with sharing class DashboardAnnouncementService {
             );
         }
 
+        if (hasOfferNotAccepted(application)) {
+            scenarios.add(
+                CommunicationsController.CommunicationScenario.OFFER_NOT_ACCEPTED
+            );
+        }
+
         if (hasOfferWaitlisted(application)) {
             scenarios.add(
                 CommunicationsController.CommunicationScenario.OFFER_WAITLISTED
@@ -199,6 +215,85 @@ public with sharing class DashboardAnnouncementService {
         }
 
         if (!OFFER_STATES.contains(application.Applicant_State_Management__c)) {
+            return false;
+        }
+
+        if (
+            application.Admission_Decisions__r == null ||
+            application.Admission_Decisions__r.isEmpty()
+        ) {
+            return false;
+        }
+
+        Admission_Decision__c decision =
+            application.Admission_Decisions__r[0];
+
+        return decision != null
+            && decision.Result__c == 'Eligible for Admission';
+    }
+
+
+    private static Boolean hasOfferAccepted(
+        Application__c application
+    ) {
+        if (application == null) {
+            return false;
+        }
+
+        if (!ACCEPTED_STATES.contains(application.Applicant_State_Management__c)) {
+            return false;
+        }
+
+        if (
+            application.Admission_Decisions__r == null ||
+            application.Admission_Decisions__r.isEmpty()
+        ) {
+            return false;
+        }
+
+        Admission_Decision__c decision =
+            application.Admission_Decisions__r[0];
+
+        return decision != null
+            && decision.Result__c == 'Eligible for Admission';
+    }
+
+
+
+
+    private static Boolean hasOfferWithdrawn(
+        Application__c application
+    ) {
+        if (application == null) {
+            return false;
+        }
+
+        if (!WITHDRAWN_STATES.contains(application.Applicant_State_Management__c)) {
+            return false;
+        }
+
+        if (
+            application.Admission_Decisions__r == null ||
+            application.Admission_Decisions__r.isEmpty()
+        ) {
+            return false;
+        }
+
+        Admission_Decision__c decision =
+            application.Admission_Decisions__r[0];
+
+        return decision != null
+            && decision.Result__c == 'Eligible for Admission';
+    }
+
+     private static Boolean hasOfferNotAccepted(
+        Application__c application
+    ) {
+        if (application == null) {
+            return false;
+        }
+
+        if (!Not_ACCEPTED_STATES.contains(application.Applicant_State_Management__c)) {
             return false;
         }
 

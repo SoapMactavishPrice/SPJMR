@@ -1,0 +1,18 @@
+<template>
+    <div lwc:if={isLoading}>
+        <lightning-spinner size="large" alternative-text="Loading"></lightning-spinner>
+    </div>
+    <div class="page">
+        <!-- <div class="note-box">
+            <strong>Note:</strong> Minimum 55% required throughout in academics but if you have below 55% in any one (10th/12th/diploma/graduation) and have any exceptional achievements then please mail your profile at gmp.admissions@spjimr.org
+        </div> -->
+
+        <!-- Pass sections to child component -->
+        <c-af-section-engine sections={academicSections} context={contextBlock} onsectionfieldchange={handleSectionFieldChange} oncustomlookupset={handleLookupSet} collapse-hidden-columns="false" onsectionaction={handleSectionAction}></c-af-section-engine>
+
+        
+        <!-- <div class="actions">
+            <lightning-button label="Save" onclick={saveForm} variant="brand"></lightning-button>
+        </div> -->
+    </div>
+</template>

@@ -21,11 +21,35 @@ public with sharing class ApFormDataController {
         if (filters != null) {
             for (Object f : filters) {
                 Map<String,Object> cond = (Map<String,Object>) f;
+
                 String fieldName = String.valueOf(cond.get('field'));
                 Object rawVal = cond.get('value');
-                String safeVal = rawVal == null ? '' : String.valueOf(rawVal);
-                String val = String.escapeSingleQuotes(safeVal);
-                whereClauses.add(fieldName + ' = \'' + val + '\'');
+
+                if (rawVal == null) {
+                    whereClauses.add(fieldName + ' = NULL');
+                    continue;
+                }
+
+                if (rawVal instanceof Boolean) {
+                    whereClauses.add(
+                        fieldName + ' = ' + String.valueOf(rawVal)
+                    );
+                } else if (
+                    rawVal instanceof Integer ||
+                    rawVal instanceof Long ||
+                    rawVal instanceof Decimal ||
+                    rawVal instanceof Double
+                ) {
+                    whereClauses.add(
+                        fieldName + ' = ' + String.valueOf(rawVal)
+                    );
+                } else {
+                    String val = String.escapeSingleQuotes(String.valueOf(rawVal));
+
+                    whereClauses.add(
+                        fieldName + ' = \'' + val + '\''
+                    );
+                }
             }
         }
 

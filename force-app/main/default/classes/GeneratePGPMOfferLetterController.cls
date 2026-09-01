@@ -10,6 +10,7 @@ public with sharing class GeneratePGPMOfferLetterController {
     public String letterDate { get; private set; }
     public String offerDeadline { get; private set; }
     public String firstInstallmentDeadline { get; private set; }
+    public String balanceFeePaymentDeadline { get; private set; }
     public String programmeStartDate { get; private set; }
 
     public GeneratePGPMOfferLetterController() {
@@ -29,7 +30,8 @@ public with sharing class GeneratePGPMOfferLetterController {
                 Application__r.Batch__r.Name,
                 Application__r.Batch__r.StartDate,
                 Offer_Letter_Date__c,
-                PaymentOfTheFirstInstallmentEta__c
+                PaymentOfTheFirstInstallmentEta__c,
+                BalanceFeePaymentETA__c
             FROM Admission_Decision__c
             WHERE Id = :admissionDecisionId
             LIMIT 1
@@ -53,6 +55,11 @@ public with sharing class GeneratePGPMOfferLetterController {
         }
         firstInstallmentDeadline = formatDate(
             decision.PaymentOfTheFirstInstallmentEta__c,
+            true,
+            false
+        );
+        balanceFeePaymentDeadline = formatDate(
+            decision.BalanceFeePaymentETA__c,
             true,
             false
         );

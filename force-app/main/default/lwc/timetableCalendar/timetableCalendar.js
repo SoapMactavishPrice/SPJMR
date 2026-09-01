@@ -189,6 +189,9 @@ export default class TimetableCalendar extends LightningElement {
     @track isRepublishNotifyPrompt = false;
     facultyNotifyResolve = null;
 
+    /** True while a Save/Republish from the edit modal is already running (double-click guard). */
+    saveEventInFlight = false;
+
     // Event form fields
     @track eventTitle = '';
     @track eventDate = '';
@@ -232,8 +235,10 @@ export default class TimetableCalendar extends LightningElement {
     @track showConflictsModal = false;
     /** When true, skip conflict precheck modal and pass ignoreConflicts to Apex. */
     @track pendingConflictOverride = false;
-    /** Which save path to re-run after Submit-anyway: 'create' | 'edit'. */
+    /** Which save path to re-run after Submit-anyway: 'create' | 'edit' | 'persist'. */
     conflictOverrideSaveMode = null;
+    /** The drag/drop or resize record to re-save on Submit-anyway ('persist' mode only). */
+    pendingOverrideEvent = null;
     @track studentConflicts = [];
     @track showStudentConflictsModal = false;
     @track modalProgram = '';
@@ -2823,24 +2828,39 @@ if (mergedPrograms.length > 0) {
     }
 
     /**
-     * Handles save error: if server returned FACULTY_CONFLICT or DIVISION_SESSION_CONFLICT with details,
-     * opens the unified conflict details modal only (no toast, to avoid misleading duplicate message).
-     * Otherwise shows generic error toast.
+     * Handles save error: if server returned CALENDAR_CONFLICT, FACULTY_CONFLICT or
+     * DIVISION_SESSION_CONFLICT with details, opens the unified conflict details modal only
+     * (no toast, to avoid misleading duplicate message). Otherwise shows generic error toast.
+     *
+     * @param error The Apex error.
+     * @param pendingEvent The event record whose save was rejected, passed by the drag/drop and
+     *        resize paths. A conflict raised there must be re-submitted through that same path on
+     *        override — the edit modal is not open, so re-running its save would send stale state.
      */
-    handleSaveError(error) {
+    handleSaveError(error, pendingEvent) {
         const msg = this.getErrorMessage(error);
+        this.pendingOverrideEvent = pendingEvent || null;
+        const conflictMode = pendingEvent ? 'persist' : (this.isCreateSessionsMode ? 'create' : 'edit');
         try {
             const data = JSON.parse(msg);
+            // Reschedule availability re-check: the faculty is busy in Google at the new time.
+            if (data && data.type === 'CALENDAR_CONFLICT' && Array.isArray(data.details) && data.details.length > 0) {
+                this.calendarConflicts = data.details;
+                this.facultyConflicts = [];
+                this.sessionConflicts = [];
+                this.showConflictsForBlockedSave(conflictMode);
+                return;
+            }
             if (data && data.type === 'FACULTY_CONFLICT' && Array.isArray(data.details) && data.details.length > 0) {
                 this.facultyConflicts = data.details;
-                this.conflictOverrideSaveMode = this.isCreateSessionsMode ? 'create' : 'edit';
-                this.showConflictsModal = true;
+                this.calendarConflicts = [];
+                this.showConflictsForBlockedSave(conflictMode);
                 return;
             }
             if (data && data.type === 'DIVISION_SESSION_CONFLICT' && Array.isArray(data.details) && data.details.length > 0) {
                 this.sessionConflicts = data.details;
-                this.conflictOverrideSaveMode = this.isCreateSessionsMode ? 'create' : 'edit';
-                this.showConflictsModal = true;
+                this.calendarConflicts = [];
+                this.showConflictsForBlockedSave(conflictMode);
                 return;
             }
             // Old server may still throw STUDENT_SESSION_CONFLICT; show friendly message and ask to deploy latest Apex
@@ -4332,7 +4352,18 @@ if (mergedPrograms.length > 0) {
         return !this.isPublishNotifyPrompt && !this.isRepublishNotifyPrompt;
     }
 
+    /**
+     * Asks whether to notify, and resolves to the user's answer (null when they close the prompt).
+     *
+     * Every save path asks this AFTER its conflict checks, so one user action reaches it once.
+     * The guard covers the remaining way to stack two copies of the question: a double-click that
+     * enters the save twice. The second attempt aborts rather than replacing the first attempt's
+     * resolver, which would leave the first save hanging forever.
+     */
     promptSendFacultyNotifications(isPublish, isRepublish) {
+        if (this.showFacultyNotifyModal) {
+            return Promise.resolve(null); // duplicate attempt: the first one owns the prompt
+        }
         this.isPublishNotifyPrompt = isPublish === true;
         this.isRepublishNotifyPrompt = isPublish !== true && isRepublish === true;
         this.showFacultyNotifyModal = true;
@@ -4926,7 +4957,7 @@ if (mergedPrograms.length > 0) {
                 })
                 .catch(error => {
                     console.error('Error updating session via drag/drop:', error);
-                    this.handleSaveError(error);
+                    this.handleSaveError(error, updatedEvent);
                     // Refresh the wired sessions data on error to restore correct state
                     if (this.wiredSessionsResult) {
                         return refreshApex(this.wiredSessionsResult);
@@ -5008,7 +5039,7 @@ if (mergedPrograms.length > 0) {
                     })
                     .catch(error => {
                         console.error('Error updating session after resize:', error);
-                        this.handleSaveError(error);
+                        this.handleSaveError(error, updatedEvent);
                         // Refresh the wired sessions data on error to restore correct state
                         if (this.wiredSessionsResult) {
                             return refreshApex(this.wiredSessionsResult);
@@ -5864,6 +5895,38 @@ if (mergedPrograms.length > 0) {
         this.showConflictsModal = false;
         this.pendingConflictOverride = false;
         this.conflictOverrideSaveMode = null;
+        this.pendingOverrideEvent = null;
+    }
+
+    /**
+     * Opens the conflict details modal for a save that was refused, either by the client precheck
+     * or by the org, remembering which save path "Submit anyway" has to re-run.
+     *
+     * @param mode Which save path to re-run on override: 'create' | 'edit' | 'persist'.
+     */
+    showConflictsForBlockedSave(mode) {
+        this.conflictOverrideSaveMode = mode;
+        this.showConflictsModal = true;
+    }
+
+    /**
+     * Whether the form moves this session to a different date or time than the one saved in the
+     * org. Only then is a Google availability read worth its callout — the same condition the org
+     * applies in TimetableSessionController.isRescheduleNeedingCalendarCheck, so the client and
+     * the server agree on when a reschedule is a reschedule.
+     *
+     * @param editingEvent The session row as loaded from the org; null when creating.
+     * @return True when the date, the start time or the end time differs.
+     */
+    hasTimingChangedFromSavedSession(editingEvent) {
+        if (!editingEvent) {
+            return false; // a create: the screen has already checked availability
+        }
+        const savedDate = this.normalizeDateString(editingEvent.date);
+        const formDate = this.normalizeDateString(this.eventDate);
+        return savedDate !== formDate
+            || editingEvent.startTime !== this.eventStartTime
+            || editingEvent.endTime !== this.eventEndTime;
     }
 
     /**
@@ -5876,9 +5939,38 @@ if (mergedPrograms.length > 0) {
         this.conflictOverrideSaveMode = null;
         if (mode === 'create') {
             this.handleCreateSessionsSave();
+        } else if (mode === 'persist' && this.pendingOverrideEvent) {
+            this.retryPersistWithOverride();
         } else {
             this.handleSaveEvent();
         }
+    }
+
+    /**
+     * Re-saves a drag/drop or resize reschedule that a conflict blocked, now with the override,
+     * and puts the timetable back in step with whatever the org ended up storing.
+     */
+    retryPersistWithOverride() {
+        const eventToRetry = { ...this.pendingOverrideEvent, ignoreConflicts: true };
+        this.pendingOverrideEvent = null;
+        this.persistSessionChanges(eventToRetry)
+            .then(() => {
+                this.pendingConflictOverride = false;
+                this.showToastMessage(`"${eventToRetry.title}" rescheduled.`, 'success');
+                this.sessionsRefreshKey = Date.now();
+                if (this.wiredSessionsResult) {
+                    return refreshApex(this.wiredSessionsResult);
+                }
+                return Promise.resolve();
+            })
+            .catch((error) => {
+                this.pendingConflictOverride = false;
+                this.handleSaveError(error);
+                if (this.wiredSessionsResult) {
+                    return refreshApex(this.wiredSessionsResult);
+                }
+                return Promise.resolve();
+            });
     }
 
     handleCloseStudentConflictsModal() {
@@ -6096,8 +6188,7 @@ if (mergedPrograms.length > 0) {
                     this.facultyConflicts = hasFacultyConflicts ? facultyConflictsResult : [];
                     this.sessionConflicts = hasSessionConflicts ? sessionConflictsResult : [];
                     this.calendarConflicts = hasCalendarConflicts ? calendarConflictsResult : [];
-                    this.conflictOverrideSaveMode = 'create';
-                    this.showConflictsModal = true;
+                    this.showConflictsForBlockedSave('create');
                     this.isSaving = false;
                     return;
                 }
@@ -6419,7 +6510,26 @@ if (mergedPrograms.length > 0) {
         this.recurringEndDate = event.target.value;
     }
 
-    async handleSaveEvent() { /*1002 - added async key word*/
+    /**
+     * Save / Republish from the edit modal. Thin re-entrancy guard around the save itself: the
+     * button stays enabled until isSaving is set, which only happens after the notification prompt
+     * and the conflict precheck, so a double-click used to start the save twice and ask the user
+     * the Yes/No question twice. The flag is cleared in a finally, so a rejected or abandoned
+     * save can never leave the button wedged.
+     */
+    async handleSaveEvent() {
+        if (this.saveEventInFlight) {
+            return; // the first click owns this save
+        }
+        this.saveEventInFlight = true;
+        try {
+            await this.performSaveEvent();
+        } finally {
+            this.saveEventInFlight = false;
+        }
+    }
+
+    async performSaveEvent() { /*1002 - added async key word*/
         if (this.isEditSessionReadOnly) {
             this.showToastMessage('This session is completed and read-only. Attendance can still be viewed.', 'error');
             return;
@@ -6437,11 +6547,6 @@ if (mergedPrograms.length > 0) {
 
         if (this.eventStartTime >= this.eventEndTime) {
             this.showToastMessage('End time must be after start time', 'error');
-            return;
-        }
-
-        const sendNotifications = await this.promptSendFacultyNotifications(false, this.isRepublishSave);
-        if (sendNotifications === null) {
             return;
         }
 
@@ -6468,8 +6573,7 @@ if (mergedPrograms.length > 0) {
             batchWiseCourseId: null,
             courseActivity: this.selectedCourseActivity || null,
             sessionType: this.selectedSessionType || null,
-            numberOfSessions: 1,
-            sendNotifications
+            numberOfSessions: 1
         };
 
         if (editingEvent) {
@@ -6522,6 +6626,12 @@ if (mergedPrograms.length > 0) {
 
         // Check if we have selected course assignments
         if (this.showCourseAssignments && this.selectedAssignments.length > 0) {
+            // This branch saves without a precheck, so the notification question is asked here.
+            const sendNotifications = await this.promptSendFacultyNotifications(false, this.isRepublishSave);
+            if (sendNotifications === null) {
+                return;
+            }
+            payloadSource.sendNotifications = sendNotifications;
             // Create one session with multiple divisions
             this.createSessionWithMultipleDivisions(payloadSource);
         } else {
@@ -6572,9 +6682,15 @@ if (mergedPrograms.length > 0) {
 
             try {
                 if (!this.pendingConflictOverride) {
+                    // The Google read is the expensive one (a callout per faculty), and the org only
+                    // spends it when the timing actually moved. Match that here so editing a
+                    // classroom or a remark on a published session costs nothing extra.
+                    const checkCalendar = this.hasTimingChangedFromSavedSession(editingEvent);
+
                     const [
                         facultyConflictsResult,
-                        sessionConflictsResult
+                        sessionConflictsResult,
+                        calendarConflictsResult
                     ] = await Promise.all([
 
                         getFacultyConflictsForSessions({
@@ -6583,7 +6699,13 @@ if (mergedPrograms.length > 0) {
 
                         getDivisionSessionConflictsForSessions({
                             sessionsJson: JSON.stringify(divisionPayload)
-                        })
+                        }),
+
+                        checkCalendar
+                            ? getFacultyCalendarConflictsForSessions({
+                                sessionsJson: JSON.stringify(facultyPayload)
+                            })
+                            : Promise.resolve([])
 
                     ]);
 
@@ -6595,7 +6717,11 @@ if (mergedPrograms.length > 0) {
                         Array.isArray(sessionConflictsResult)
                         && sessionConflictsResult.length > 0;
 
-                    if (hasFacultyConflicts || hasSessionConflicts) {
+                    const hasCalendarConflicts =
+                        Array.isArray(calendarConflictsResult)
+                        && calendarConflictsResult.length > 0;
+
+                    if (hasFacultyConflicts || hasSessionConflicts || hasCalendarConflicts) {
 
                         this.facultyConflicts =
                             hasFacultyConflicts
@@ -6606,10 +6732,13 @@ if (mergedPrograms.length > 0) {
                             hasSessionConflicts
                                 ? sessionConflictsResult
                                 : [];
-                        this.calendarConflicts = [];
 
-                        this.conflictOverrideSaveMode = 'edit';
-                        this.showConflictsModal = true;
+                        this.calendarConflicts =
+                            hasCalendarConflicts
+                                ? calendarConflictsResult
+                                : [];
+
+                        this.showConflictsForBlockedSave('edit');
 
                         return;
                     }
@@ -6631,6 +6760,16 @@ if (mergedPrograms.length > 0) {
                 return;
             }
             /*1002 End*/
+            // Asked last, once every conflict is known: the user is never made to decide about
+            // notifications for a save that is about to be refused, and the override retry — which
+            // skips the precheck above — reaches this same single prompt.
+            const sendNotifications = await this.promptSendFacultyNotifications(false, this.isRepublishSave);
+            if (sendNotifications === null) {
+                this.pendingConflictOverride = false;
+                return;
+            }
+            sessionPayload.sendNotifications = sendNotifications;
+
             sessionPayload.ignoreConflicts = this.pendingConflictOverride === true;
             this.pendingConflictOverride = false;
             this.isSaving = true;

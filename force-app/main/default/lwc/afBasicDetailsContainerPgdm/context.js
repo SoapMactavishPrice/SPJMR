@@ -61,6 +61,7 @@ export const context = {
                 "Alternate_E_mail__c",
                 "Mobile_Number__c",
                 "Alternate_Mobile_Number__c",
+                "Parent_s_Mobile_Number__c",
                 "WhatsApp_Mobile_Number__c",
                 
             ],

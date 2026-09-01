@@ -14,11 +14,17 @@ public without sharing class VfPdfFetcher {
         
         if (app.Program__r.Program_Code__c == 'PGPM') {
             pr = Page.PGPM_Application_PDF;
+        } else if (app.Program__r.Program_Code__c == 'PGDM' || app.Program__r.Program_Code__c == 'PGDM-BM' || app.Program__r.Program_Code__c == 'PGDM&PGDM-BM'){
+            System.debug('before page assignment');
+            pr = Page.PGDM_Application_PDF_A;
+            System.debug('after page assignment');
         } else {
             pr = Page.GMP_Application_Form_PDF;
         }
         
+        System.debug('before page parameters');
         pr.getParameters().put('id', String.valueOf(recordId));
+        System.debug('after page parameters');
         
         if (Test.isRunningTest()) {
             return Blob.valueOf('Test PDF');
@@ -41,11 +47,17 @@ public without sharing class VfPdfFetcher {
         
         if (app.Program__r.Program_Code__c == 'PGPM') {
             pr = Page.PGPM_Application_PDF;
+        } else if (app.Program__r.Program_Code__c == 'PGDM' || app.Program__r.Program_Code__c == 'PGDM-BM' || app.Program__r.Program_Code__c == 'PGDM&PGDM-BM'){
+            System.debug('before page assignment');
+            pr = Page.PGDM_Application_PDF_A;
+            System.debug('after page assignment');
         } else {
             pr = Page.GMP_Application_Form_PDF;
         }
         
+        System.debug('before page parameters');
         pr.getParameters().put('id', String.valueOf(recordId));
+        System.debug('after page parameters');
         
         Blob pdfBlob;
         

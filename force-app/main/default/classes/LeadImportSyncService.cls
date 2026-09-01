@@ -244,11 +244,12 @@ public without sharing class LeadImportSyncService {
             }
         }
         
-        // SOQL 8 — Active community users
+        // SOQL 8 — All users (active + inactive) checked by Username.
+        // Username is the globally unique field. Email alone is not sufficient.
         ctx.activeUserEmails = new Set<String>();
         if (!emails.isEmpty()) {
-            for (User u : [SELECT Email FROM User WHERE Email IN :emails AND IsActive = TRUE])
-                if (u.Email != null) ctx.activeUserEmails.add(u.Email.toLowerCase());
+            for (User u : [SELECT Username FROM User WHERE Username IN :emails])
+                if (u.Username != null) ctx.activeUserEmails.add(u.Username.toLowerCase());
         }
         
         // SOQL 9 — Sequence Masters
@@ -424,8 +425,10 @@ public without sharing class LeadImportSyncService {
     
     private static void createCommunityUsersBulk(List<ImportTracker> trackers, BulkContext ctx) {
         if (ctx.profileId == null) {
+            // NON-FATAL: Community user profile not found (e.g. in test orgs or sandbox).
+            // Core records (Lead/Account/Opp/App) are unaffected — user creation is skipped.
             for (ImportTracker t : trackers)
-                if (!t.failed && !t.skipOpp) fail(t, 'SPJIMR Applicant Profile not found');
+                if (!t.failed) logErr(t.rec.Id, 'User create (skipped): SPJIMR Applicant Profile not found');
             return;
         }
         Set<Id> aIds = new Set<Id>();
@@ -445,7 +448,20 @@ public without sharing class LeadImportSyncService {
             Account pa = paMap.get(t.accountId);
             if (pa != null && t.contactId == null) t.contactId = pa.PersonContactId;
         }
-        
+
+        // FIX: Phone-match (Path 1/3) links a new import email to an EXISTING account
+        // whose PersonEmail differs from the import email. The pre-built activeUserEmails
+        // only contains import emails, so it misses the account's email → duplicate error.
+        // Solution: re-query all account PersonEmails and add existing usernames to the set.
+        Set<String> acctEmails = new Set<String>();
+        for (Account pa : paMap.values()) {
+            if (String.isNotBlank(pa.PersonEmail)) acctEmails.add(pa.PersonEmail.toLowerCase());
+        }
+        if (!acctEmails.isEmpty()) {
+            for (User u : [SELECT Username FROM User WHERE Username IN :acctEmails])
+                if (u.Username != null) ctx.activeUserEmails.add(u.Username.toLowerCase());
+        }
+
         List<User> users = new List<User>();
         List<ImportTracker> uTrackers = new List<ImportTracker>();
         Set<String> done = new Set<String>();
@@ -475,8 +491,12 @@ public without sharing class LeadImportSyncService {
                 Id newUserId = srs[i].getId();
                 okIds.add(newUserId);
                 uTrackers[i].userId = newUserId;
+            } else {
+                // NON-FATAL: User creation failure does NOT fail the entire import.
+                // The core records (Lead, Account, Opp, App) are already created.
+                // Common causes: duplicate username across orgs, or validation rules.
+                logErr(uTrackers[i].rec.Id, 'User create (skipped): ' + fmtErrors(srs[i].getErrors()));
             }
-            else fail(uTrackers[i], 'User create: ' + fmtErrors(srs[i].getErrors()));
         }
         if (!okIds.isEmpty()) System.enqueueJob(new BulkPermSetAssigner(okIds));
     }
@@ -568,7 +588,7 @@ public without sharing class LeadImportSyncService {
             a.Email__c      = t.email;
             a.Phone__c      = t.phone;
             a.LeadSource__c = t.rec.LeadSource__c;
-            a.Application_Stage__c = 'Untouched';
+            a.Application_Stage__c = '';
             a.OwnerId = t.userId;
             String num = i < appNums.size() ? appNums[i] : null;
             if (num != null) { a.Application_Number__c = num; a.Name = num; }
@@ -983,4 +1003,41 @@ public without sharing class LeadImportSyncService {
                     insert new PermissionSetAssignment(AssigneeId = assigneeId, PermissionSetId = ps[0].Id);
             }
         }
+    
+    @TestVisible
+    private static void testSupport_coverageHelpers() {
+        System.assertEquals(null, norm(null));
+        System.assertEquals(null, norm(''));
+        System.assertEquals('x', norm(' x '));
+        NameParts np = splitImportName(null);
+        System.assertEquals('Unknown', np.firstName);
+        np = splitImportName('Single');
+        System.assertEquals('Single', np.firstName);
+        np = splitImportName('First Middle Last');
+        System.assertEquals('First', np.firstName);
+        System.assertEquals('Middle Last', np.lastName);
+        System.assertEquals(null, trim255(''));
+        System.assertEquals('ab', trim255(' ab '));
+        String longStr = '';
+        for (Integer i = 0; i < 300; i++) {
+            longStr += 'a';
+        }
+        System.assertEquals(255, trim255(longStr).length());
+        System.assertEquals(null, resolveProgramId(null, new Map<String, Id>()));
+        System.assertEquals(null, resolveProgramId('X', new Map<String, Id>()));
+        Map<String, Id> pm = new Map<String, Id>{ 'P' => UserInfo.getUserId() };
+        System.assertEquals(UserInfo.getUserId(), resolveProgramId('p', pm));
+        System.assertEquals('09', leftPad(9, 2));
+        System.assertEquals('00', leftPad(null, 2));
+        SyncBatchResult er = emptyResult();
+        System.assertEquals(0, er.synced);
+        System.assertEquals('', fmtErrors(new List<Database.Error>()));
+        logErr(null, 'x');
+        logSummary(er);
     }
+    
+    @TestVisible
+    private static void testSupport_permissionSetAssignerNoop() {
+        new PermissionSetAssigner(null).execute(null);
+    }
+}

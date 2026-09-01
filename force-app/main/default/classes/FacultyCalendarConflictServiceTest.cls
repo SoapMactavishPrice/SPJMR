@@ -15,7 +15,7 @@ private class FacultyCalendarConflictServiceTest {
     private static Object items(String arrJson) {
         return ((Map<String, Object>) JSON.deserializeUntyped('{"items":' + arrJson + '}')).get('items');
     }
-
+    //test
     private static Google_Calendar_Config__mdt cfg() {
         return new Google_Calendar_Config__mdt(
             Client_Email__c      = 'svc@project.iam.gserviceaccount.com',

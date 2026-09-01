@@ -26,6 +26,18 @@ private class LeadTriggerHelperTest {
             
         );
         insert india;
+
+         String b2bRecordTypeId = Schema.SObjectType.Lead.getRecordTypeInfosByName().get('B2B').getRecordTypeId();
+          Lead lead2 = new Lead(FirstName='S',
+             LastName = 'testb2b',
+        RecordTypeId = b2bRecordTypeId,
+             Email = 'test@b2b.com',
+        Phone = '+91 9876543210',
+        XS_EntranceExamName__c = 'CAT',
+        Send_Welcome_and_Verification_Email__c = false
+    );
+        insert lead2;
+
     }
   @IsTest
 static void testValidatePhoneCodeOnEdit_InvalidFormat() {
@@ -269,6 +281,26 @@ static void beforeInsert() {
         Test.stopTest();
 
         System.assert(true);
+    }
+
+    @isTest
+    static void testb2bStageValidation(){
+        Lead b2blead = [SELECT Id FROM Lead WHERE LastName='testb2b' LIMIT 1];
+        b2blead.Cold_Remarks__c  ='Remarks';
+        b2blead.Status = 'Cold';
+        update b2blead;
+        
+        b2blead.Status='Hot';
+        
+        try{
+            update b2blead;
+        }
+        catch(DMLException e){
+            system.debug(e);
+            Boolean updateFailed = e.getMessage().contains('Please fill in the remarks!');
+            system.assert(updateFailed,'Error Message does not match!');
+        }
+
     }
 
 }

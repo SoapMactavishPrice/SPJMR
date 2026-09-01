@@ -258,7 +258,7 @@ public without sharing class StudentProfileDashboardController {
                 }
                 address = String.join(addressParts, ', ');
             }
-			system.debug('accountId::'+accountId);
+            system.debug('accountId::'+accountId);
 
    
             List<ProgramEnrollment> programEnrollments = [SELECT Program.Id,Program.Name,Program.Program_Code__c,Program.Duration_to_Complete__c FROM ProgramEnrollment WHERE AccountId = :accountId LIMIT 1];
@@ -1427,10 +1427,7 @@ public static String saveEmergencyContact(String recordId, String name, String r
         return status;
     }
 /**
-     * SE-1156 (superseding getWithdrawalWindowStatus) — Withdrawal Request eligibility.
-     *
-     * Mirrors the exact resolution + query pattern already proven working by
-     * getProfileUploadWindowStatus() / getWithdrawalWindowStatus() in this same class:
+     * SE-1156
      *   User -> Contact -> Account
      *   -> ProgramCohortMember (ProgramEnrolleeId = Account, or via ProgramEnrollment.AccountId)
      *   -> ProgramCohort (Batch), gated on Is_Active__c = true
@@ -1544,6 +1541,443 @@ public static String saveEmergencyContact(String recordId, String name, String r
             result.message = 'We were unable to verify your withdrawal window right now. '
                 + 'Please try again later or contact your Programme Office.';
             return result;
+        }
+    }
+/**
+     * SE-1157 — Auto-populates the read-only Withdrawal Request questionnaire
+     * fields (Name, Application ID, SPJIMR Email, Registered Email, Roll Number)
+     * from the student's own Account / ProgramCohortMember records, so the
+     * student can never edit these values client-side.
+     *
+     * Field mapping (per spec):
+     *   Name             = Account.Name
+     *   Application ID   = Account.Registration_Number__c
+     *   SPJIMR Email     = Account.PersonEmail
+     *   Registered Email = Account.Alternate_E_mail__c
+     *   Roll Number      = ProgramCohortMember.Roll_Number__c
+     *
+     * Uses the same User -> Contact -> Account resolution as
+     * getWithdrawalEligibility() / getWithdrawalWindowStatus().
+     */
+    public class WithdrawalApplicantInfo {
+        @AuraEnabled public String fullName;
+        @AuraEnabled public String applicationId;
+        @AuraEnabled public String spjimrEmail;
+        @AuraEnabled public String registeredEmail;
+        @AuraEnabled public String rollNumber;
+    }
+
+    @AuraEnabled(cacheable = true)
+    public static WithdrawalApplicantInfo getWithdrawalApplicantInfo() {
+        WithdrawalApplicantInfo info = new WithdrawalApplicantInfo();
+
+        try {
+            try {
+                if (Auth.CommunitiesUtil.isGuestUser()) {
+                    return info;
+                }
+            } catch (Exception guestCheckEx) {
+                // Not in a Communities/Experience Cloud context - continue.
+            }
+
+            Id accountId = null;
+            if (Test.isRunningTest() && testAccountIdOverride != null) {
+                accountId = testAccountIdOverride;
+            } else {
+                User currentUser = [
+                    SELECT Id, ContactId
+                    FROM User
+                    WHERE Id = :UserInfo.getUserId()
+                    LIMIT 1
+                ];
+                if (currentUser.ContactId == null) {
+                    return info;
+                }
+                Contact userContact = [
+                    SELECT AccountId
+                    FROM Contact
+                    WHERE Id = :currentUser.ContactId
+                    LIMIT 1
+                ];
+                accountId = userContact.AccountId;
+            }
+
+            if (accountId == null) {
+                return info;
+            }
+
+            List<Account> accounts = [
+                SELECT Id, Name, Registration_Number__c, PersonEmail, Alternate_E_mail__c
+                FROM Account
+                WHERE Id = :accountId
+                LIMIT 1
+            ];
+            if (!accounts.isEmpty()) {
+                Account acc = accounts[0];
+                info.fullName = acc.Name;
+                info.applicationId = acc.Registration_Number__c;
+                info.spjimrEmail = acc.PersonEmail;
+                info.registeredEmail = acc.Alternate_E_mail__c;
+            }
+
+            List<ProgramCohortMember> memberRows = [
+                SELECT Roll_Number__c
+                FROM ProgramCohortMember
+                WHERE ProgramEnrolleeId = :accountId
+                   OR ProgramEnrollment.AccountId = :accountId
+                LIMIT 1
+            ];
+            if (!memberRows.isEmpty()) {
+                info.rollNumber = memberRows[0].Roll_Number__c;
+            }
+
+        } catch (Exception e) {
+            System.debug('getWithdrawalApplicantInfo: ' + e.getMessage());
+        }
+
+        return info;
+    }
+/**
+     * SE-1156 — Persists a submitted Withdrawal Request and attaches the
+     * uploaded document, then returns enough for the LWC to show a tracker
+     * immediately without a second round trip.
+     *
+     * FIXES applied in this version:
+     *   - Any_Other_Institute__c -> Any_Other_Instute__c (matches the actual
+     *     field API name in the org, which carries the same typo as its label
+     *     "Any Other Instute").
+     *   - Duplicate-request guard: blocks a new submission while the student
+     *     already has a request at Status__c = 'Applied' (still pending) or
+     *     'Withdrawal' (already approved/completed) - the two states named
+     *     in the requirement ("Applied" or "Approved"; 'Withdrawal' is the
+     *     real picklist value that displays as "Approved" in the tracker).
+     *
+     * Field mapping (API names / data types per the spec sheet, with the
+     * Any_Other_Instute__c correction above):
+     *   Student__c                          = Account (resolved from logged-in user)
+     *   Program_Cohort_Member__c            = the student's ProgramCohortMember.Id
+     *   Batch__c                            = ProgramCohortMember.ProgramCohortId
+     *   Programme_Master__c                 = ProgramEnrollment.ProgramId
+     *   Reason_for_Withdrawal__c (Picklist) = the selected reason's label text
+     *   Any_Other_Reason__c                 = free text when reason = "Any other"
+     *   Which_institute_are_you_joining__c  = institute label when reason = "Joining other Institute"
+     *   Any_Other_Instute__c                = free text when institute = "Other"
+     *   Bank_Account_Details_for_Refund__c, Application_ID__c, Roll_Number__c,
+     *   Registered_Email_ID__c, SPJIMR_Email_ID__c, Any_Other_Information__c  = as submitted
+     *   Reasons_for_Choice__c               = the 2 selected labels, comma-joined
+     *   Status__c                           = 'Applied' on creation
+     */
+    public class WithdrawalSubmitResult {
+        @AuraEnabled public Boolean isSuccess = false;
+        @AuraEnabled public Id recordId;
+        @AuraEnabled public String requestNumber;
+        @AuraEnabled public String message;
+        @AuraEnabled public String errorDetail;
+    }
+
+    // Real Status__c picklist values (confirmed from the record's Status
+    // field edit dropdown) that block a new submission while active.
+    private static final Set<String> WITHDRAWAL_BLOCKING_STATUSES = new Set<String>{
+        'Applied', 'Approved'
+    };
+
+    @AuraEnabled
+    public static WithdrawalSubmitResult submitWithdrawalRequest(
+        String reasonLabel,
+        String otherReasonText,
+        String instituteLabel,
+        String otherInstituteText,
+        String bankDetails,
+        String applicationId,
+        String rollNumber,
+        String registeredEmail,
+        String spjimrEmail,
+        List<String> reasonsForChoiceLabels,
+        String otherInformation,
+        String documentBase64,
+        String documentFileName
+    ) {
+        WithdrawalSubmitResult result = new WithdrawalSubmitResult();
+
+        try {
+            if (String.isBlank(reasonLabel)) {
+                result.message = 'Reason for Withdrawal is required.';
+                return result;
+            }
+            if (reasonsForChoiceLabels == null || reasonsForChoiceLabels.size() != 2) {
+                result.message = 'Please select exactly 2 Reasons for Choice.';
+                return result;
+            }
+
+            Id accountId = null;
+            if (Test.isRunningTest() && testAccountIdOverride != null) {
+                accountId = testAccountIdOverride;
+            } else {
+                User currentUser = [
+                    SELECT Id, ContactId
+                    FROM User
+                    WHERE Id = :UserInfo.getUserId()
+                    LIMIT 1
+                ];
+                if (currentUser.ContactId == null) {
+                    result.message = 'We could not locate your student enrollment record. '
+                        + 'Please contact your Programme Office for assistance.';
+                    return result;
+                }
+                Contact userContact = [
+                    SELECT AccountId
+                    FROM Contact
+                    WHERE Id = :currentUser.ContactId
+                    LIMIT 1
+                ];
+                accountId = userContact.AccountId;
+            }
+
+            if (accountId == null) {
+                result.message = 'We could not locate your student enrollment record. '
+                    + 'Please contact your Programme Office for assistance.';
+                return result;
+            }
+
+            // Duplicate-request guard.
+            List<Withdrawal_Request__c> existingActive = [
+                SELECT Id, Status__c
+                FROM Withdrawal_Request__c
+                WHERE Student__c = :accountId
+                AND Status__c IN :WITHDRAWAL_BLOCKING_STATUSES
+                LIMIT 1
+            ];
+            if (!existingActive.isEmpty()) {
+                result.message = 'You already have an active withdrawal request (Status: '
+                    + existingActive[0].Status__c + '). A new request cannot be submitted '
+                    + 'until that one is resolved.';
+                return result;
+            }
+
+            List<ProgramCohortMember> memberRows = [
+                SELECT Id, ProgramCohortId
+                FROM ProgramCohortMember
+                WHERE ProgramEnrolleeId = :accountId
+                   OR ProgramEnrollment.AccountId = :accountId
+                LIMIT 1
+            ];
+            Id programCohortMemberId = memberRows.isEmpty() ? null : memberRows[0].Id;
+            Id batchId = memberRows.isEmpty() ? null : memberRows[0].ProgramCohortId;
+
+            List<ProgramEnrollment> enrollments = [
+                SELECT Id, ProgramId
+                FROM ProgramEnrollment
+                WHERE AccountId = :accountId
+                LIMIT 1
+            ];
+            Id programmeMasterId = enrollments.isEmpty() ? null : enrollments[0].ProgramId;
+
+            Withdrawal_Request__c req = new Withdrawal_Request__c();
+            req.Student__c = accountId;
+            req.Program_Cohort_Member__c = programCohortMemberId;
+            req.Batch__c = batchId;
+            req.Programme_Master__c = programmeMasterId;
+            req.Reason_for_Withdrawal__c = reasonLabel;
+            req.Any_Other_Reason__c = otherReasonText;
+            req.Which_institute_are_you_joining__c = instituteLabel;
+            req.Any_Other_Instute__c = otherInstituteText;
+            req.Bank_Account_Details_for_Refund__c = bankDetails;
+            req.Application_ID__c = applicationId;
+            req.Roll_Number__c = rollNumber;
+            req.Registered_Email_ID__c = registeredEmail;
+            req.SPJIMR_Email_ID__c = spjimrEmail;
+            req.Reasons_for_Choice__c = String.join(reasonsForChoiceLabels, ', ');
+            req.Any_Other_Information__c = otherInformation;
+            req.Status__c = 'Applied';
+
+            // Resolve initial approver routing (Level 1 = Programme Office,
+            // matching WithdrawalApprovalController.ROLE_PROGRAMME_MANAGER).
+            // Without this, the record has no Current_Approver_Ids__c and the
+            // approval controller's isCurrentUserAnApprover() check will
+            // reject everyone - nobody could ever act on it.
+            List<Id> programmeManagerIds = new List<Id>();
+            if (programmeMasterId != null) {
+                for (Program_Team_Members__c member : [
+                    SELECT Id, User__c
+                    FROM Program_Team_Members__c
+                    WHERE Role__c = 'Programme Office'
+                    AND User__c != null
+                    AND Program_Team__r.Program__c = :programmeMasterId
+                    WITH SYSTEM_MODE
+                    ORDER BY CreatedDate ASC
+                ]) {
+                    programmeManagerIds.add(member.User__c);
+                }
+            }
+
+            if (!programmeManagerIds.isEmpty()) {
+                req.Current_Role__c = 'Programme Office';
+                req.Current_Approver_User__c = programmeManagerIds[0];
+                List<String> pmIdStrings = new List<String>();
+                for (Id pmId : programmeManagerIds) {
+                    pmIdStrings.add(String.valueOf(pmId));
+                }
+                req.Current_Approver_Ids__c = String.join(pmIdStrings, ',');
+            } else {
+                System.debug(LoggingLevel.WARN,
+                    'submitWithdrawalRequest: no Programme Office configured for Programme_Master__c='
+                    + programmeMasterId + ' - request ' + req.Application_ID__c
+                    + ' will have no actionable approver until one is configured.');
+            }
+
+            insert req;
+
+            if (String.isNotBlank(documentBase64) && String.isNotBlank(documentFileName)) {
+                attachWithdrawalDocument(req.Id, documentBase64, documentFileName);
+            }
+
+            Withdrawal_Request__c inserted = [
+                SELECT Id, Name
+                FROM Withdrawal_Request__c
+                WHERE Id = :req.Id
+                LIMIT 1
+            ];
+
+            result.isSuccess = true;
+            result.recordId = inserted.Id;
+            result.requestNumber = inserted.Name;
+            result.message = 'Withdrawal Request submitted successfully.';
+            return result;
+
+        } catch (Exception e) {
+            System.debug('submitWithdrawalRequest: ' + e.getMessage());
+            result.message = 'We were unable to submit your withdrawal request right now. '
+                + 'Please try again later or contact your Programme Office.';
+            result.errorDetail = e.getMessage();
+            return result;
+        }
+    }
+
+    private static void attachWithdrawalDocument(Id parentId, String base64Data, String fileName) {
+        ContentVersion cv = new ContentVersion();
+        cv.VersionData = EncodingUtil.base64Decode(base64Data);
+        cv.Title = fileName;
+        cv.PathOnClient = fileName;
+        insert cv;
+
+        Id contentDocumentId = [
+            SELECT ContentDocumentId
+            FROM ContentVersion
+            WHERE Id = :cv.Id
+            LIMIT 1
+        ].ContentDocumentId;
+
+        ContentDocumentLink cdl = new ContentDocumentLink();
+        cdl.ContentDocumentId = contentDocumentId;
+        cdl.LinkedEntityId = parentId;
+        cdl.ShareType = 'V';
+        cdl.Visibility = 'AllUsers';
+        insert cdl;
+    }
+
+    /**
+     * SE-1156 — Fetches the current student's most recent Withdrawal_Request__c
+     * so the Withdrawal Status Tracker reflects live Status__c / Remarks__c
+     * updates made by approvers. Deliberately NOT cacheable so it always
+     * reflects the latest approver update on the next page visit.
+     *
+     * Approved/Rejected column mapping (real Status__c values):
+     *   'Withdrawal'                          -> 'Approved'
+     *   'Rejected' / 'Rejected with Comments'  -> 'Rejected'
+     *   'Applied' / 'Accepted (PO Review)' /
+     *     'Clearance & Exit' / 'Final Approval' -> 'Pending review'
+     *   anything else (e.g. 'Recalled')        -> shown as-is
+     */
+    public class WithdrawalRequestStatus {
+        @AuraEnabled public Boolean hasRequest = false;
+        @AuraEnabled public String requestNumber;
+        @AuraEnabled public String submittedDate;
+        @AuraEnabled public String studentName;
+        @AuraEnabled public String applicationId;
+        @AuraEnabled public String reason;
+        @AuraEnabled public String status;
+        @AuraEnabled public String approvedRejected;
+        @AuraEnabled public String remark;
+    }
+
+    private static final Set<String> WITHDRAWAL_IN_PROGRESS_STATUSES = new Set<String>{
+        'Applied', 'Accepted (PO Review)', 'Clearance & Exit', 'Final Approval'
+    };
+    private static final Set<String> WITHDRAWAL_REJECTED_STATUSES = new Set<String>{
+        'Rejected', 'Rejected with Comments'
+    };
+
+    @AuraEnabled(cacheable = false)
+    public static WithdrawalRequestStatus getMyWithdrawalRequestStatus() {
+        WithdrawalRequestStatus status = new WithdrawalRequestStatus();
+
+        try {
+            Id accountId = null;
+            if (Test.isRunningTest() && testAccountIdOverride != null) {
+                accountId = testAccountIdOverride;
+            } else {
+                User currentUser = [
+                    SELECT Id, ContactId
+                    FROM User
+                    WHERE Id = :UserInfo.getUserId()
+                    LIMIT 1
+                ];
+                if (currentUser.ContactId == null) {
+                    return status;
+                }
+                Contact userContact = [
+                    SELECT AccountId
+                    FROM Contact
+                    WHERE Id = :currentUser.ContactId
+                    LIMIT 1
+                ];
+                accountId = userContact.AccountId;
+            }
+            if (accountId == null) {
+                return status;
+            }
+
+            List<Withdrawal_Request__c> requests = [
+                SELECT Id, Name, CreatedDate, Student__r.Name, Application_ID__c,
+                       Reason_for_Withdrawal__c, Any_Other_Reason__c, Status__c, Remarks__c
+                FROM Withdrawal_Request__c
+                WHERE Student__c = :accountId
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+
+            if (requests.isEmpty()) {
+                return status;
+            }
+
+            Withdrawal_Request__c req = requests[0];
+            status.hasRequest = true;
+            status.requestNumber = req.Name;
+            status.submittedDate = req.CreatedDate.format('dd MMM yyyy', 'Asia/Kolkata');
+            status.studentName = req.Student__r != null ? req.Student__r.Name : '';
+            status.applicationId = req.Application_ID__c;
+            status.reason = (req.Reason_for_Withdrawal__c == 'Any other' && String.isNotBlank(req.Any_Other_Reason__c))
+                ? req.Any_Other_Reason__c
+                : req.Reason_for_Withdrawal__c;
+            status.status = req.Status__c;
+
+            if (req.Status__c == 'Approved') {
+                status.approvedRejected = 'Approved';
+            } else if (WITHDRAWAL_REJECTED_STATUSES.contains(req.Status__c)) {
+                status.approvedRejected = 'Rejected';
+            } else if (WITHDRAWAL_IN_PROGRESS_STATUSES.contains(req.Status__c)) {
+                status.approvedRejected = 'Pending review';
+            } else {
+                status.approvedRejected = req.Status__c;
+            }
+
+            status.remark = req.Remarks__c;
+
+            return status;
+
+        } catch (Exception e) {
+            System.debug('getMyWithdrawalRequestStatus: ' + e.getMessage());
+            return status;
         }
     }
 }

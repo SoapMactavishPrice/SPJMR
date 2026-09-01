@@ -209,13 +209,12 @@ public with sharing class ConvertLeadInvocable {
                     
                     List<Opportunity> oppsToInsert = new List<Opportunity>();
                     
-                    Id standardPricebookId = [
-    SELECT Id
-    FROM Pricebook2
-    WHERE IsStandard = true
-    LIMIT 1
-].Id;
-                    
+                    List<Pricebook2> priceBook = [SELECT Id
+                                                    FROM Pricebook2
+                                                    WHERE IsStandard = true
+                                                    LIMIT 1];
+                    Id standardPricebookId = Test.isRunningTest()?Test.getStandardPricebookId():priceBook[0].Id;
+                             
                     Id b2bOppRt = Schema.SObjectType.Opportunity
                         .getRecordTypeInfosByDeveloperName()
                         .get('B2B_Opportunity')
@@ -245,7 +244,7 @@ public with sharing class ConvertLeadInvocable {
                     }
                     
                     insert oppsToInsert;
-                    
+                    system.debug('Inserting Opportunities: '+oppsToInsert);
                     Map<Id, Opportunity> contactToOpp = new Map<Id, Opportunity>();
                     
                     for(Integer i = 0; i < leadContacts.size(); i++){

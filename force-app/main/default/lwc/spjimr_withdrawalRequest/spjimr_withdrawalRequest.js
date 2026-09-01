@@ -1,13 +1,17 @@
 import { LightningElement, track } from 'lwc';
 import getWithdrawalEligibility from '@salesforce/apex/StudentProfileDashboardController.getWithdrawalEligibility';
-
-// TODO: Uncomment once Apex is available.
-// import submitWithdrawalRequest from '@salesforce/apex/WithdrawalRequestController.submitWithdrawalRequest';
+import getWithdrawalApplicantInfo from '@salesforce/apex/StudentProfileDashboardController.getWithdrawalApplicantInfo';
+import submitWithdrawalRequest from '@salesforce/apex/StudentProfileDashboardController.submitWithdrawalRequest';
+import getMyWithdrawalRequestStatus from '@salesforce/apex/StudentProfileDashboardController.getMyWithdrawalRequestStatus';
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg'];
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_REASONS_FOR_CHOICE = 2;
+
+// Values that trigger conditional fields.
+const REASON_OTHER = 'other';
+const REASON_JOINING_OTHER_INSTITUTE = 'personal';
+const INSTITUTE_OTHER = 'other_institute';
 
 const WITHDRAWAL_REASON_OPTIONS = [
     { value: 'personal', label: 'Joining other Institute' },
@@ -16,6 +20,26 @@ const WITHDRAWAL_REASON_OPTIONS = [
     { value: 'academic', label: 'Want to appear for entrance exams next year to improve my scores' },
     { value: 'other', label: 'Any other' },
     { value: 'career', label: 'Got a promotion at work' }
+];
+
+const INSTITUTE_OPTIONS = [
+    { value: 'iim_a', label: 'IIM A' },
+    { value: 'iim_b', label: 'IIM B' },
+    { value: 'iim_c', label: 'IIM C' },
+    { value: 'iim_l', label: 'IIM L' },
+    { value: 'iim_k', label: 'IIM K' },
+    { value: 'iim_i', label: 'IIM I' },
+    { value: 'fms', label: 'FMS' },
+    { value: 'xlri', label: 'XLRI' },
+    { value: 'isb', label: 'ISB' },
+    { value: 'mdi', label: 'MDI' },
+    { value: 'new_iims', label: 'New IIMs' },
+    { value: 'iim_mumbai', label: 'IIM Mumbai' },
+    { value: 'abroad', label: 'Going abroad for further studies' },
+    { value: 'other_bschool', label: 'Joining some other B-School' },
+    { value: 'not_joining_bschool', label: 'Not joining a B-School this year' },
+    { value: 'none_above', label: 'None of the above' },
+    { value: INSTITUTE_OTHER, label: 'Other' }
 ];
 
 const REASONS_FOR_CHOICE_OPTIONS = [
@@ -29,30 +53,59 @@ const REASONS_FOR_CHOICE_OPTIONS = [
     { value: 'exchange', label: 'Extent and nature of international exchange' }
 ];
 
+// TRACKER_STEPS: 'label' is the friendly display text; 'value' is the real
+// Status__c picklist value it corresponds to (confirmed from the Status
+// field's edit dropdown - note the actual value is 'Withdrawal', not
+// 'Withdrawn'). Rejected / Rejected with Comments / Recalled are terminal
+// outcomes outside this linear sequence, so they don't map to a step number -
+// the status pill still shows the real status text via trackerStatusLabel.
 const TRACKER_STEPS = [
-    { number: 1, label: 'Applied' },
-    { number: 2, label: 'Accepted (PO Review)' },
-    { number: 3, label: 'Clearance & Exit' },
-    { number: 4, label: 'Final Approval' },
-    { number: 5, label: 'Withdrawn' }
+    { number: 1, label: 'Applied', value: 'Applied' },
+    { number: 2, label: 'Accepted (PO Review)', value: 'Accepted (PO Review)' },
+    { number: 3, label: 'Clearance & Exit', value: 'Clearance & Exit' },
+    { number: 4, label: 'Final Approval', value: 'Final Approval' },
+    { number: 5, label: 'Withdrawn', value: 'Withdrawal' }
 ];
 
-const TRACKER_STATUS_LABELS = {
-    1: 'Applied',
-    2: 'Accepted (PO Review)',
-    3: 'Clearance & Exit',
-    4: 'Final Approval',
-    5: 'Withdrawn'
-};
+// Terminal statuses that allow a new submission when the batch window is open.
+const RESUBMIT_WITHDRAWAL_STATUSES = new Set([
+    'Recalled',
+    'Rejected',
+    'Rejected with Comments'
+]);
+
+const REJECTED_WITHDRAWAL_STATUSES = new Set([
+    'Rejected',
+    'Rejected with Comments'
+]);
 
 export default class Spjimr_withdrawalRequest extends LightningElement {
-    // ---- Eligibility / withdrawal window state ----
+    // ---- Page-level loading / gating state ----
     @track isCheckingEligibility = true;
+    @track isLoadingTracker = true;
     @track isEligible = false;
     @track eligibilityMessage = '';
 
+    // ---- Tracker state (persists independently of the eligibility window) ----
+    @track hasSubmittedRequest = false;
+    @track trackerRequestNumber = '';
+    @track trackerSubmittedDate = '';
+    @track trackerName = '';
+    @track trackerApplicationId = '';
+    @track trackerReason = '';
+    @track trackerStatusValue = '';
+    @track trackerApprovedRejected = '';
+    @track trackerRemark = '';
+    @track currentStep = 1;
+
     connectedCallback() {
         this.loadEligibility();
+        this.loadApplicantInfo();
+        this.loadTrackerStatus();
+    }
+
+    get isLoadingAny() {
+        return this.isCheckingEligibility || this.isLoadingTracker;
     }
 
     loadEligibility() {
@@ -75,16 +128,108 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
             });
     }
 
+    loadApplicantInfo() {
+        getWithdrawalApplicantInfo()
+            .then((info) => {
+                this.studentName = info?.fullName || '';
+                this.applicationId = info?.applicationId || '';
+                this.spjimrEmail = info?.spjimrEmail || '';
+                this.registeredEmail = info?.registeredEmail || '';
+                this.rollNumber = info?.rollNumber || '';
+            })
+            .catch((error) => {
+                console.error('getWithdrawalApplicantInfo error', error);
+            });
+    }
+
+    loadTrackerStatus() {
+        this.isLoadingTracker = true;
+
+        getMyWithdrawalRequestStatus()
+            .then((status) => {
+                this.hasSubmittedRequest = !!status?.hasRequest;
+                if (this.hasSubmittedRequest) {
+                    this.trackerRequestNumber = status.requestNumber || '—';
+                    this.trackerSubmittedDate = status.submittedDate || '—';
+                    this.trackerName = status.studentName || '—';
+                    this.trackerApplicationId = status.applicationId || '—';
+                    this.trackerReason = status.reason || '—';
+                    this.trackerStatusValue = status.status || '';
+                    this.trackerApprovedRejected = status.approvedRejected || '—';
+                    this.trackerRemark = status.remark || '—';
+                    this.currentStep = this.stepNumberForStatus(this.trackerStatusValue);
+                }
+            })
+            .catch((error) => {
+                console.error('getMyWithdrawalRequestStatus error', error);
+            })
+            .finally(() => {
+                this.isLoadingTracker = false;
+            });
+    }
+
+    stepNumberForStatus(statusValue) {
+        const match = TRACKER_STEPS.find((s) => s.value === statusValue);
+        // Rejected / Rejected with Comments / Recalled aren't part of the
+        // linear sequence - default to step 1 so the tracker still renders
+        // sensibly; the status pill shows the real status text regardless.
+        return match ? match.number : 1;
+    }
+
+    get canResubmitWithdrawal() {
+        return this.hasSubmittedRequest
+            && RESUBMIT_WITHDRAWAL_STATUSES.has(this.trackerStatusValue);
+    }
+
+    get showWithdrawalTracker() {
+        return this.hasSubmittedRequest && !this.canResubmitWithdrawal;
+    }
+
     get showWithdrawalForm() {
-        return !this.isCheckingEligibility && this.isEligible;
+        if (!this.isEligible) {
+            return false;
+        }
+        return !this.hasSubmittedRequest || this.canResubmitWithdrawal;
     }
 
     get showUnavailableMessage() {
-        return !this.isCheckingEligibility && !this.isEligible;
+        return !this.isEligible && !this.hasSubmittedRequest;
+    }
+
+    get showResubmitUnavailableMessage() {
+        return this.canResubmitWithdrawal && !this.isEligible;
+    }
+
+    get isRecalledWithdrawal() {
+        return this.trackerStatusValue === 'Recalled';
+    }
+
+    get isRejectedWithdrawal() {
+        return REJECTED_WITHDRAWAL_STATUSES.has(this.trackerStatusValue);
+    }
+
+    get showRecalledStatusNote() {
+        return this.canResubmitWithdrawal && this.isRecalledWithdrawal;
+    }
+
+    get showRejectedStatusNote() {
+        return this.canResubmitWithdrawal && this.isRejectedWithdrawal;
+    }
+
+    get hasRejectionRemark() {
+        const remark = (this.trackerRemark || '').trim();
+        return remark.length > 0 && remark !== '—';
+    }
+
+    get rejectionRemarkDisplay() {
+        return this.trackerRemark;
     }
 
     // ---- Form field state ----
     @track reason = '';
+    @track otherReasonText = '';
+    @track instituteChoice = '';
+    @track otherInstituteText = '';
     @track bankDetails = '';
     @track documentFile = null;
     @track studentName = '';
@@ -99,28 +244,65 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
     @track submitAttempted = false;
     @track submitSuccess = false;
 
-    @track currentStep = 0;
-    @track requestNumber = '';
-    @track submittedDate = '';
-    @track submittedName = '';
-    @track submittedApplicationId = '';
-    @track submittedReason = '';
-
     // ---- Picklist options ----
     get reasonOptions() {
         return WITHDRAWAL_REASON_OPTIONS;
     }
 
-    get reasonsChoiceOptions() {
-        return REASONS_FOR_CHOICE_OPTIONS.map((option) => ({
-            ...option,
-            isSelected: this.reasonsForChoice.includes(option.value)
-        }));
+    get instituteOptions() {
+        return INSTITUTE_OPTIONS;
+    }
+
+    get showOtherReasonField() {
+        return this.reason === REASON_OTHER;
+    }
+
+    get showInstituteField() {
+        return this.reason === REASON_JOINING_OTHER_INSTITUTE;
+    }
+
+    get showOtherInstituteField() {
+        return this.showInstituteField && this.instituteChoice === INSTITUTE_OTHER;
+    }
+
+    // ---- Reasons for Choice: chip-based, exactly 2 ----
+    get reasonsChoiceChips() {
+        return this.reasonsForChoice.map((value) => {
+            const match = REASONS_FOR_CHOICE_OPTIONS.find((o) => o.value === value);
+            return { value, label: match ? match.label : value };
+        });
+    }
+
+    get availableReasonsChoiceOptions() {
+        return REASONS_FOR_CHOICE_OPTIONS.filter(
+            (option) => !this.reasonsForChoice.includes(option.value)
+        );
+    }
+
+    get reasonsChoiceAtMax() {
+        return this.reasonsForChoice.length >= MAX_REASONS_FOR_CHOICE;
+    }
+
+    get reasonsChoiceRemainingLabel() {
+        const remaining = MAX_REASONS_FOR_CHOICE - this.reasonsForChoice.length;
+        return remaining > 0 ? `Select ${remaining} more...` : 'Select a reason to add...';
     }
 
     // ---- Validation ----
     get reasonHasError() {
         return this.submitAttempted && !this.reason;
+    }
+
+    get otherReasonHasError() {
+        return this.submitAttempted && this.showOtherReasonField && !this.otherReasonText?.trim();
+    }
+
+    get instituteHasError() {
+        return this.submitAttempted && this.showInstituteField && !this.instituteChoice;
+    }
+
+    get otherInstituteHasError() {
+        return this.submitAttempted && this.showOtherInstituteField && !this.otherInstituteText?.trim();
     }
 
     get nameHasError() {
@@ -136,98 +318,46 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
     }
 
     get registeredEmailHasError() {
-        return (
-            this.submitAttempted &&
-            (!this.registeredEmail?.trim() || !EMAIL_REGEX.test(this.registeredEmail.trim()))
-        );
-    }
-
-    get registeredEmailErrorMessage() {
-        return this.registeredEmail?.trim()
-            ? 'Please enter a valid email address.'
-            : 'This field is required.';
+        return this.submitAttempted && !this.registeredEmail?.trim();
     }
 
     get spjimrEmailHasError() {
-        return (
-            this.submitAttempted &&
-            (!this.spjimrEmail?.trim() || !EMAIL_REGEX.test(this.spjimrEmail.trim()))
-        );
-    }
-
-    get spjimrEmailErrorMessage() {
-        return this.spjimrEmail?.trim()
-            ? 'Please enter a valid email address.'
-            : 'This field is required.';
+        return this.submitAttempted && !this.spjimrEmail?.trim();
     }
 
     get reasonsChoiceHasError() {
-        return this.reasonsForChoice.length > MAX_REASONS_FOR_CHOICE;
+        return this.submitAttempted && this.reasonsForChoice.length !== MAX_REASONS_FOR_CHOICE;
     }
 
     get isFormValid() {
-        if (!this.reason) {
-            return false;
-        }
-        if (!this.studentName?.trim()) {
-            return false;
-        }
-        if (!this.applicationId?.trim()) {
-            return false;
-        }
-        if (!this.rollNumber?.trim()) {
-            return false;
-        }
-        if (!this.registeredEmail?.trim() || !EMAIL_REGEX.test(this.registeredEmail.trim())) {
-            return false;
-        }
-        if (!this.spjimrEmail?.trim() || !EMAIL_REGEX.test(this.spjimrEmail.trim())) {
-            return false;
-        }
-        if (this.reasonsChoiceHasError) {
-            return false;
-        }
+        if (!this.reason) return false;
+        if (this.showOtherReasonField && !this.otherReasonText?.trim()) return false;
+        if (this.showInstituteField && !this.instituteChoice) return false;
+        if (this.showOtherInstituteField && !this.otherInstituteText?.trim()) return false;
+        if (!this.studentName?.trim()) return false;
+        if (!this.applicationId?.trim()) return false;
+        if (!this.rollNumber?.trim()) return false;
+        if (!this.registeredEmail?.trim()) return false;
+        if (!this.spjimrEmail?.trim()) return false;
+        if (this.reasonsForChoice.length !== MAX_REASONS_FOR_CHOICE) return false;
         return true;
     }
 
     // ---- Dynamic classes ----
     get reasonFieldClass() {
-        return this.reasonHasError
-            ? 'reason-select reason-select_error'
-            : 'reason-select';
+        return this.reasonHasError ? 'reason-select reason-select_error' : 'reason-select';
+    }
+    get otherReasonFieldClass() {
+        return this.otherReasonHasError ? 'text-input text-input_error' : 'text-input';
+    }
+    get instituteFieldClass() {
+        return this.instituteHasError ? 'reason-select reason-select_error' : 'reason-select';
+    }
+    get otherInstituteFieldClass() {
+        return this.otherInstituteHasError ? 'text-input text-input_error' : 'text-input';
     }
 
-    get nameFieldClass() {
-        return this.nameHasError
-            ? 'text-input text-input_error'
-            : 'text-input';
-    }
-
-    get applicationIdFieldClass() {
-        return this.applicationIdHasError
-            ? 'text-input text-input_error'
-            : 'text-input';
-    }
-
-    get rollNumberFieldClass() {
-        return this.rollNumberHasError
-            ? 'text-input text-input_error'
-            : 'text-input';
-    }
-
-    get registeredEmailFieldClass() {
-        return this.registeredEmailHasError
-            ? 'text-input text-input_error'
-            : 'text-input';
-    }
-
-    get spjimrEmailFieldClass() {
-        return this.spjimrEmailHasError
-            ? 'text-input text-input_error'
-            : 'text-input';
-    }
-
-    // ---- Tracker ----
+    // ---- Tracker display ----
     get trackerSteps() {
         return TRACKER_STEPS.map((step) => {
             const isActive = step.number === Number(this.currentStep);
@@ -248,83 +378,76 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
     }
 
     get trackerStatusLabel() {
-        return TRACKER_STATUS_LABELS[Number(this.currentStep)] || 'Not yet applied';
+        const match = TRACKER_STEPS.find((s) => s.number === Number(this.currentStep));
+        return this.trackerStatusValue || (match ? match.label : 'Applied');
     }
 
     get trackerStatusBadgeLabel() {
-        return this.currentStep > 0 ? this.trackerStatusLabel : '—';
+        return this.trackerStatusLabel;
     }
 
     get trackerRequestNumberDisplay() {
-        return this.requestNumber || '—';
+        return this.trackerRequestNumber || '—';
     }
     get trackerSubmittedDateDisplay() {
-        return this.submittedDate || '—';
+        return this.trackerSubmittedDate || '—';
     }
     get trackerNameDisplay() {
-        return this.submittedName || '—';
+        return this.trackerName || '—';
     }
     get trackerApplicationIdDisplay() {
-        return this.submittedApplicationId || '—';
+        return this.trackerApplicationId || '—';
     }
     get trackerReasonDisplay() {
-        return this.submittedReason || '—';
+        return this.trackerReason || '—';
     }
     get trackerApprovedRejectedDisplay() {
-        return this.currentStep > 0 ? 'Pending review' : '—';
+        return this.trackerApprovedRejected || '—';
     }
     get trackerRemarkDisplay() {
-        return '—';
+        return this.trackerRemark || '—';
     }
 
     // ---- Input handlers ----
     handleReasonChange(event) {
         this.reason = event.target.value;
         this.submitSuccess = false;
+        if (!this.showOtherReasonField) this.otherReasonText = '';
+        if (!this.showInstituteField) {
+            this.instituteChoice = '';
+            this.otherInstituteText = '';
+        }
+    }
+
+    handleOtherReasonChange(event) {
+        this.otherReasonText = event.target.value;
+    }
+
+    handleInstituteChange(event) {
+        this.instituteChoice = event.target.value;
+        if (this.instituteChoice !== INSTITUTE_OTHER) {
+            this.otherInstituteText = '';
+        }
+    }
+
+    handleOtherInstituteChange(event) {
+        this.otherInstituteText = event.target.value;
     }
 
     handleBankDetailsChange(event) {
         this.bankDetails = event.target.value;
     }
 
-    handleNameChange(event) {
-        this.studentName = event.target.value;
-        this.submitSuccess = false;
+    handleReasonsChoiceAdd(event) {
+        const value = event.target.value;
+        if (!value || this.reasonsChoiceAtMax) return;
+        this.reasonsForChoice = [...this.reasonsForChoice, value];
+        event.target.value = '';
     }
 
-    handleApplicationIdChange(event) {
-        this.applicationId = event.target.value;
-        this.submitSuccess = false;
-    }
-
-    handleRollNumberChange(event) {
-        this.rollNumber = event.target.value;
-        this.submitSuccess = false;
-    }
-
-    handleRegisteredEmailChange(event) {
-        this.registeredEmail = event.target.value;
-        this.submitSuccess = false;
-    }
-
-    handleSpjimrEmailChange(event) {
-        this.spjimrEmail = event.target.value;
-        this.submitSuccess = false;
-    }
-
-    handleReasonsChoiceChange(event) {
-        const selected = Array.from(event.target.selectedOptions).map(
-            (opt) => opt.value
-        );
-
-        if (selected.length > MAX_REASONS_FOR_CHOICE) {
-            alert(`You can select a maximum of ${MAX_REASONS_FOR_CHOICE} reasons.`);
-            // Revert to previous valid selection.
-            this.reasonsForChoice = this.reasonsForChoice.slice(0, MAX_REASONS_FOR_CHOICE);
-            return;
-        }
-
-        this.reasonsForChoice = selected;
+    handleReasonsChoiceRemove(event) {
+        const value = event.currentTarget.dataset.value;
+        this.reasonsForChoice = this.reasonsForChoice.filter((v) => v !== value);
     }
 
     handleOtherInformationChange(event) {
@@ -334,13 +457,10 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
     handleFileChange(event) {
         const field = event.target.dataset.field;
         const input = event.target;
-        const file = input.files && input.files[0]
-            ? input.files[0]
-            : null;
+        const file = input.files && input.files[0] ? input.files[0] : null;
 
         if (file) {
             const validationError = this.validateFile(file);
-
             if (validationError) {
                 alert(validationError);
                 input.value = '';
@@ -349,124 +469,126 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
         }
 
         this.submitSuccess = false;
-
         if (field === 'document') {
             this.documentFile = file;
         }
     }
 
     handleUploadClick() {
-        const fileInput = this.template.querySelector(
-            'input[type="file"][data-field="document"]'
-        );
-
-        if (fileInput) {
-            fileInput.click();
-        }
+        const fileInput = this.template.querySelector('input[type="file"][data-field="document"]');
+        if (fileInput) fileInput.click();
     }
 
     validateFile(file) {
         const ext = file.name.split('.').pop().toLowerCase();
-
         if (!ALLOWED_EXTENSIONS.includes(ext)) {
             return 'Only .pdf, .jpg and .jpeg files are allowed.';
         }
-
         if (file.size > MAX_FILE_SIZE_BYTES) {
             return 'File size must not exceed 10 MB.';
         }
-
         return null;
     }
 
-    // ---- Submit ----
-    handleSubmit() {
-        if (!this.isEligible) {
-            return;
-        }
-
-        this.submitAttempted = true;
-        this.submitSuccess = false;
-
-        if (!this.isFormValid) {
-            return;
-        }
-
-        this.isSubmitting = true;
-
-        // TODO:
-        // 1. Convert document file to Base64 (if provided)
-        // 2. Call submitWithdrawalRequest Apex
-        // 3. Handle successful submission
-        // 4. Handle Apex errors
-
-        console.log('Submitting withdrawal request', {
-            reason: this.reason,
-            bankDetails: this.bankDetails,
-            documentFile: this.documentFile?.name,
-            studentName: this.studentName,
-            applicationId: this.applicationId,
-            rollNumber: this.rollNumber,
-            registeredEmail: this.registeredEmail,
-            spjimrEmail: this.spjimrEmail,
-            reasonsForChoice: this.reasonsForChoice,
-            otherInformation: this.otherInformation
-        });
-
-        // Temporary mock submission
-        setTimeout(() => {
-            this.isSubmitting = false;
-            this.submitSuccess = true;
-
-            this.currentStep = 1;
-            this.requestNumber = this.requestNumber || this.generateTempRequestNumber();
-            this.submittedDate = this.formatToday();
-            this.submittedName = this.studentName;
-            this.submittedApplicationId = this.applicationId;
-            this.submittedReason = this.getReasonLabel(this.reason);
-
-            this.resetForm();
-        }, 600);
-    }
-
+    // ---- Label lookups (send Salesforce-matching label text, not internal slugs) ----
     getReasonLabel(value) {
         const match = WITHDRAWAL_REASON_OPTIONS.find((option) => option.value === value);
         return match ? match.label : value;
     }
 
+    getInstituteLabel(value) {
+        const match = INSTITUTE_OPTIONS.find((option) => option.value === value);
+        return match ? match.label : value;
+    }
+
+    getReasonsChoiceLabel(value) {
+        const match = REASONS_FOR_CHOICE_OPTIONS.find((option) => option.value === value);
+        return match ? match.label : value;
+    }
+
+    // ---- Submit ----
+    handleSubmit() {
+        if (!this.showWithdrawalForm) return;
+
+        this.submitAttempted = true;
+        this.submitSuccess = false;
+
+        if (!this.isFormValid) return;
+
+        this.isSubmitting = true;
+
+        if (this.documentFile) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64 = (reader.result || '').split(',')[1] || '';
+                this.doSubmit(base64, this.documentFile.name);
+            };
+            reader.onerror = () => {
+                this.isSubmitting = false;
+                alert('We could not read the selected file. Please try again.');
+            };
+            reader.readAsDataURL(this.documentFile);
+        } else {
+            this.doSubmit(null, null);
+        }
+    }
+
+    doSubmit(documentBase64, documentFileName) {
+        const reasonLabel = this.getReasonLabel(this.reason);
+        const instituteLabel = this.showInstituteField ? this.getInstituteLabel(this.instituteChoice) : null;
+        const reasonsForChoiceLabels = this.reasonsForChoice.map((v) => this.getReasonsChoiceLabel(v));
+
+        submitWithdrawalRequest({
+            reasonLabel,
+            otherReasonText: this.showOtherReasonField ? this.otherReasonText : null,
+            instituteLabel,
+            otherInstituteText: this.showOtherInstituteField ? this.otherInstituteText : null,
+            bankDetails: this.bankDetails,
+            applicationId: this.applicationId,
+            rollNumber: this.rollNumber,
+            registeredEmail: this.registeredEmail,
+            spjimrEmail: this.spjimrEmail,
+            reasonsForChoiceLabels,
+            otherInformation: this.otherInformation,
+            documentBase64,
+            documentFileName
+        })
+            .then((result) => {
+                this.isSubmitting = false;
+                if (result?.isSuccess) {
+                    this.submitSuccess = true;
+                    this.resetForm();
+                    this.loadTrackerStatus();
+                } else {
+                    console.error('submitWithdrawalRequest errorDetail:', result?.errorDetail);
+                    const detail = result?.errorDetail ? `\n\n(Detail: ${result.errorDetail})` : '';
+                    alert((result?.message || 'Failed to submit withdrawal request.') + detail);
+                }
+            })
+            .catch((error) => {
+                this.isSubmitting = false;
+                console.error('submitWithdrawalRequest error', error);
+                alert('We were unable to submit your withdrawal request. Please try again.');
+            });
+    }
+
     // ---- Reset form ----
+    // Note: studentName/applicationId/rollNumber/registeredEmail/spjimrEmail are
+    // auto-populated and read-only, so they are intentionally NOT cleared here.
     resetForm() {
         this.reason = '';
+        this.otherReasonText = '';
+        this.instituteChoice = '';
+        this.otherInstituteText = '';
         this.bankDetails = '';
         this.documentFile = null;
-        this.studentName = '';
-        this.applicationId = '';
-        this.rollNumber = '';
-        this.registeredEmail = '';
-        this.spjimrEmail = '';
         this.reasonsForChoice = [];
         this.otherInformation = '';
         this.submitAttempted = false;
 
-        const fileInputs = this.template.querySelectorAll(
-            'input[type="file"]'
-        );
-
+        const fileInputs = this.template.querySelectorAll('input[type="file"]');
         fileInputs.forEach((input) => {
             input.value = '';
-        });
-    }
-
-    generateTempRequestNumber() {
-        return 'WD-' + Math.floor(100000 + Math.random() * 900000);
-    }
-
-    formatToday() {
-        const d = new Date();
-        return d.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
         });
     }
 }

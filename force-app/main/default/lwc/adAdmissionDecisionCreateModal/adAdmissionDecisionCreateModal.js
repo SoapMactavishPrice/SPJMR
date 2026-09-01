@@ -1,6 +1,7 @@
 import { api, wire } from 'lwc';
 import LightningModal from 'lightning/modal';
-import shouldShowSpecialization from '@salesforce/apex/AdAdmissionDecisionCreateModalController.shouldShowSpecialization';
+import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
+import getModalConfiguration from '@salesforce/apex/AdAdmissionDecisionCreateModalController.getModalConfiguration';
 
 import ADMISSION_DECISION_OBJECT from '@salesforce/schema/Admission_Decision__c';
 import OFFER_DATE from '@salesforce/schema/Admission_Decision__c.Offer_Letter_Date__c';
@@ -10,15 +11,18 @@ import LAST_DATE_OF_ACCEPTANCE from '@salesforce/schema/Admission_Decision__c.La
 import SIGNED_LETTER_ETA from '@salesforce/schema/Admission_Decision__c.SignedLetterOfAcceptanceEta__c';
 import ACCEPTANCE_FEE_ETA from '@salesforce/schema/Admission_Decision__c.PaymentOfTheAcceptanceFeeEta__c';
 import FIRST_INSTALLMENT_ETA from '@salesforce/schema/Admission_Decision__c.PaymentOfTheFirstInstallmentEta__c';
+import BALANCE_FEE_PAYMENT_ETA from '@salesforce/schema/Admission_Decision__c.BalanceFeePaymentETA__c';
 import WAITLIST_NUMBER from '@salesforce/schema/Admission_Decision__c.WaitlistNumber__c';
 
 export default class AdAdmissionDecisionCreateModal extends LightningModal {
     @api applicationId;
+    @api admissionDecisionId;
     @api programCode;
 
     objectApiName = ADMISSION_DECISION_OBJECT;
     selectedResult = '';
     showSpecialization = false;
+    waitlistNumberRequired = false;
 
     offerDate = OFFER_DATE;
     result = RESULT;
@@ -27,6 +31,7 @@ export default class AdAdmissionDecisionCreateModal extends LightningModal {
     signedLetterEta = SIGNED_LETTER_ETA;
     acceptanceFeeEta = ACCEPTANCE_FEE_ETA;
     firstInstallmentEta = FIRST_INSTALLMENT_ETA;
+    balanceFeePaymentEta = BALANCE_FEE_PAYMENT_ETA;
     waitlistNumber = WAITLIST_NUMBER;
 
     get isEligibleForAdmission() {
@@ -37,16 +42,36 @@ export default class AdAdmissionDecisionCreateModal extends LightningModal {
         return this.selectedResult === 'Waitlisted';
     }
 
-    @wire(shouldShowSpecialization, { programCode: '$programCode' })
-    wiredSpecializationConfiguration({ data, error }) {
+    get modalLabel() {
+        return this.admissionDecisionId
+            ? 'Change Admission Decision'
+            : 'Create Admission Decision';
+    }
+
+    @wire(getModalConfiguration, { programCode: '$programCode' })
+    wiredModalConfiguration({ data, error }) {
         if (data !== undefined) {
-            this.showSpecialization = data;
+            this.showSpecialization = data.showSpecialization;
+            this.waitlistNumberRequired = data.waitlistNumberRequired;
         } else if (error) {
             this.showSpecialization = false;
+            this.waitlistNumberRequired = false;
             console.error(
-                'Unable to load specialization visibility configuration:',
+                'Unable to load admission decision configuration:',
                 error
             );
+        }
+    }
+
+    @wire(getRecord, {
+        recordId: '$admissionDecisionId',
+        fields: [RESULT]
+    })
+    wiredAdmissionDecision({ data, error }) {
+        if (data) {
+            this.selectedResult = getFieldValue(data, RESULT) || '';
+        } else if (error) {
+            console.error('Unable to load the Admission Decision:', error);
         }
     }
 

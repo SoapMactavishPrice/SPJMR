@@ -1,7 +1,14 @@
 public with sharing class AdmissionHelper implements Queueable{
-    public string UserId;
+    public Id UserId;
+    public Id GroupId;
+
     public AdmissionHelper(String userId) {
+        this.UserId = (Id) userId;
+    }
+
+    public AdmissionHelper(Id userId, Id groupId) {
         this.UserId = userId;
+        this.GroupId = groupId;
     }
 
     private static final Set<String> APPLICANT_PERMSET = new Set<String>{
@@ -30,22 +37,37 @@ public with sharing class AdmissionHelper implements Queueable{
         if (!assignments.isEmpty()) {
             insert assignments;
         }
+
+        if (this.GroupId != null) {
+            insert new GroupMember(
+                GroupId = this.GroupId,
+                UserOrGroupId = this.UserId
+            );
+        }
     }
 
 
     @AuraEnabled
-    public static string createInterviewer(String params){
+    public static string createInterviewer(String params, Id programId){
         system.debug('Param is '+params);
-        if(String.isBlank(params)){
+        if(String.isBlank(params) || programId == null){
             throw new AuraHandledException('Invalid Input');
         }
+
+        Group interviewerGroup = getInterviewerGroup(programId);
+        if (interviewerGroup == null) {
+            throw new AuraHandledException(
+                'No Public Groups Available for the selected program.'
+            );
+        }
+
         Map<String,Object> map_Params = (Map<String,Object>) JSON.deserializeUntyped(params);
         String email = String.valueOf(map_Params.get('email'));
         String firstName =  String.valueOf(map_Params.get('firstName'));
         String lastName =  String.valueOf(map_Params.get('lastName'));
         Id recordTypeFaculty = Schema.SobjectType.Account.getRecordTypeInfosByName().get('Interviewer Faculty').getRecordTypeId();
         List<String> tempString = email.split('@');
-        String userName = tempString[0]+'.interviewerfaculty@'+tempString[1];
+        String userName = tempString[0]+'.interviewer@'+tempString[1];
 
         List<User> userList = [SELECT Id FROM User 
         WHERE Email = :email AND Username=:userName LIMIT 1];
@@ -89,7 +111,10 @@ public with sharing class AdmissionHelper implements Queueable{
             LanguageLocaleKey = 'en_US',
             EmailEncodingKey = 'UTF-8');
             insert u;
-            AdmissionHelper lvc = new AdmissionHelper(u.Id);
+            AdmissionHelper lvc = new AdmissionHelper(
+                u.Id,
+                interviewerGroup.Id
+            );
             System.enqueueJob(lvc);
             system.debug('Successfully created a user with Id '+u.Id);
             System.resetPassword(u.Id, true);
@@ -102,20 +127,59 @@ public with sharing class AdmissionHelper implements Queueable{
     }
 
     @AuraEnabled(cacheable=true)
-public static List<User> getInterviewerUsers() {
-    Id profileId = [
-        SELECT Id 
-        FROM Profile 
-        WHERE Name = 'SPJIMR Interviewer'
-        LIMIT 1
-    ].Id;
+    public static List<User> getInterviewerUsers(Id programId) {
+        if (programId == null) {
+            return new List<User>();
+        }
 
-    return [
-        SELECT Id, FirstName, LastName, Email, Username
-        FROM User
-        WHERE ProfileId = :profileId AND IsActive=true
-        ORDER BY CreatedDate DESC
-    ];
-}
+        Group interviewerGroup = getInterviewerGroup(programId);
+        if (interviewerGroup == null) {
+            return new List<User>();
+        }
+
+        return [
+            SELECT Id, FirstName, LastName, Email, Username
+            FROM User
+            WHERE IsActive = true
+            AND Profile.Name = 'SPJIMR Interviewer'
+            AND Id IN (
+                SELECT UserOrGroupId
+                FROM GroupMember
+                WHERE GroupId = :interviewerGroup.Id
+            )
+            ORDER BY CreatedDate DESC
+            LIMIT 2000
+        ];
+    }
+
+    private static Group getInterviewerGroup(Id programId) {
+        List<Program> programs = [
+            SELECT Id, Name, Program_Code__c
+            FROM Program
+            WHERE Id = :programId
+            LIMIT 1
+        ];
+        if (programs.isEmpty()) {
+            return null;
+        }
+
+        String programIdentifier = String.isBlank(programs[0].Program_Code__c)
+            ? programs[0].Name
+            : programs[0].Program_Code__c;
+        if (String.isBlank(programIdentifier)) {
+            return null;
+        }
+
+        String groupName = programIdentifier.trim() + ' Interviewers';
+        List<Group> interviewerGroups = [
+            SELECT Id, Name
+            FROM Group
+            WHERE Type = 'Regular'
+            AND Name = :groupName
+            LIMIT 1
+        ];
+
+        return interviewerGroups.isEmpty() ? null : interviewerGroups[0];
+    }
 
 }

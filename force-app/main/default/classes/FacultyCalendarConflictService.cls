@@ -18,7 +18,7 @@ public with sharing class FacultyCalendarConflictService {
     private static final String STATUS_CANCELLED = 'cancelled';
     private static final String TRANSPARENCY_FREE = 'transparent';
     private static final String RESPONSE_DECLINED = 'declined';
-
+    //test
     /** @description One busy calendar event overlapping the proposed session window. */
     public class BusyEvent {
         @AuraEnabled public String eventId { get; set; }

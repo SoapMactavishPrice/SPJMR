@@ -22,7 +22,7 @@ public class UserTriggerHelperTest {
         Application__c app = new Application__c(
             Name = 'Test Application',
             Applicant__c = acc.Id,
-            Application_Status__c = 'Submitted',
+            Application_Status__c = 'Initiated',
             Assignment_Status__c = 'Not Assigned'
         );
         insert app;

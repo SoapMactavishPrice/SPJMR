@@ -1,0 +1,65 @@
+<template>
+    <div class="slds-p-around_medium">
+
+        <template if:true={isLoading}>
+            <lightning-spinner
+                alternative-text="Processing">
+            </lightning-spinner>
+        </template>
+
+        <template if:true={isApprove}>
+            <lightning-textarea
+                label="Remarks"
+                required
+                value={Remarks}
+                onchange={handleComments}>
+            </lightning-textarea>
+
+            <div class="slds-m-top_medium slds-text-align_right">
+
+                <lightning-button
+                    label="Cancel"
+                    onclick={handleClose}
+                    disabled={isLoading}>
+                </lightning-button>
+
+                <lightning-button
+                    class="slds-m-left_small"
+                    variant="brand"
+                    label="Approve"
+                    onclick={handleSubmit}
+                    disabled={isLoading}>
+                </lightning-button>
+
+            </div>
+        </template>
+
+        <template if:true={isReject}>
+            <lightning-textarea
+                label="Remarks"
+                required
+                value={comments}
+                onchange={handleComments}>
+            </lightning-textarea>
+
+            <div class="slds-m-top_medium slds-text-align_right">
+
+                <lightning-button
+                    label="Cancel"
+                    onclick={handleClose}
+                    disabled={isLoading}>
+                </lightning-button>
+
+                <lightning-button
+                    class="slds-m-left_small"
+                    variant="destructive-text"
+                    label="Reject"
+                    onclick={handleSubmit}
+                    disabled={isLoading}>
+                </lightning-button>
+
+            </div>
+        </template>
+
+    </div>
+</template>

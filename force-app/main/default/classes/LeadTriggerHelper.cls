@@ -8,7 +8,7 @@ public class LeadTriggerHelper {
         return;
     }
 
-    for (Lead l : newLeads) {
+    for (Lead l : newLeads) { 
         Lead oldLead = oldLeads.get(l.Id);
 
         if (oldLead.XS_EntranceExamName__c != l.XS_EntranceExamName__c &&
@@ -202,7 +202,7 @@ public class LeadTriggerHelper {
         system.debug('Found following Lead Programs to be sent email to: '+sendEmailList);
         LeadProgramTriggerHelper.sendVerificationEmail(sendEmailList);
     }
-    /*
+    
     public static void validateStagesB2B(Map<Id,Lead> mapNewLeads,Map<Id,Lead> mapOldLeads){
         Map<String,B2B_Lead_Status_Path_Config__mdt> mapCustomMetadata = 
         B2B_Lead_Status_Path_Config__mdt.getAll(); 
@@ -240,6 +240,6 @@ public class LeadTriggerHelper {
         }
         
     }
-   */ 
+   
     
 }

@@ -250,7 +250,7 @@ public without sharing class B2BLeadProcessController {
         result.accountBillingCountry = acc.BillingCountry;
         result.accountDescription = acc.Description;
         result.accountEmail = acc.PersonEmail;
-        result.accountLinkedIn = acc.LinkedIn__c;
+        //result.accountLinkedIn = acc.LinkedIn__c;
         if (String.isNotBlank(email)) {
             List<Contact> contacts = [
                 SELECT Id, Name, FirstName, LastName, Email, Phone, MobilePhone, Title, Department, ReportsToId
@@ -542,7 +542,7 @@ public without sharing class B2BLeadProcessController {
 
         List<Account> accounts = [
             SELECT Id, Name, ParentId, Industry, Website, NumberOfEmployees, AnnualRevenue,
-                    BillingStreet, BillingCity, BillingState,PersonEmail,Phone,LinkedIn__c,
+                    BillingStreet, BillingCity, BillingState,PersonEmail,Phone,//LinkedIn__c,
                    BillingPostalCode, BillingCountry, Description
             FROM Account
             WHERE Name = :companyName
@@ -580,7 +580,7 @@ public without sharing class B2BLeadProcessController {
         }
         List<Account> accounts = [
             SELECT Id, Name, ParentId, Industry, Website, NumberOfEmployees, AnnualRevenue,
-                   Phone, BillingStreet, BillingCity, BillingState,PersonEmail,LinkedIn__c,
+                   Phone, BillingStreet, BillingCity, BillingState,PersonEmail,//LinkedIn__c,
                    BillingPostalCode, BillingCountry, Description
             FROM Account
             WHERE Id = :accountId

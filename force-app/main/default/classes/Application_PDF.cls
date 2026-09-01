@@ -76,7 +76,7 @@ public class Application_PDF {
         
         system.debug('Stage 1');
         
-        quo=[SELECT AllowSelfSchedule__c,Applicant_Name__c,Applicant__c,Application_Number__c,Application_Stage__c,Application_Status__c,Checklist_Name__c,City__c,
+        quo=[SELECT AllowSelfSchedule__c,Applicant__c,Application_Number__c,Application_Stage__c,Application_Status__c,Checklist_Name__c,City__c,
              CreatedById,CreatedDate,CurrencyIsoCode,Date__c,Declaration_Text__c,Email__c,First_Name__c,Follow_up_Question__c,Id,IsDeleted,LastModifiedById,LastModifiedDate,
              LastReferencedDate,LastViewedDate,Last_Name__c,Name,Offer_Letter_Date__c,OwnerId,Phone__c,Program__c,Response_Values__c,script__c,SystemModstamp,
              Program__r.name
@@ -387,7 +387,7 @@ public class Application_PDF {
             ResponsibilityShoulderedProfesional = new ResponsibilityShouldered__c();
         }
         try{
-            Versatility=[SELECT Application__c,Award__c,CreatedById,CreatedDate,CurrencyIsoCode,Describe_the_AwardMax_25_words__c,Id,Interest__c,IsDeleted,LastActivityDate,
+            Versatility=[SELECT Application__c,Award__c,CreatedById,CreatedDate,CurrencyIsoCode,Description__c,Id,Interest__c,IsDeleted,LastActivityDate,
                          LastModifiedById,LastModifiedDate,LastReferencedDate,LastViewedDate,Level__c,Name,Name_of_the_Activity__c,Overall_Versatility_Rating__c,OwnerId,
                          Proficiency__c,SystemModstamp 
                          FROM Versatility__c where Application__c=: qid limit 1];

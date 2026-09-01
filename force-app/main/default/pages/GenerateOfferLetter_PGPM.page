@@ -79,7 +79,7 @@
         letter of acceptance (as detailed in Annexure 1) needs to be uploaded to the
         admission portal by {!offerDeadline}. The 1st installment of fees of Rs.10,85,000
         is payable by {!firstInstallmentDeadline} and the balance amount of Rs. 10,00,000
-        needs to be paid by January 2, 2025. All fee payments as per Annexure 2 are to be
+        needs to be paid by {!balanceFeePaymentDeadline}. All fee payments as per Annexure 2 are to be
         made through wire/NEFT/RTGS transfer.
     </p>
 

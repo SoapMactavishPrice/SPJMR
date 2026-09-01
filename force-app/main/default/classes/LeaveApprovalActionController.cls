@@ -144,8 +144,8 @@ public without sharing class LeaveApprovalActionController {
     ){
         try{
 
-            Boolean sendToDeputy         = false;
-            List<Id> deputyUserIds       = new List<Id>();
+            Boolean sendToDeputy   = false;
+            List<Id> deputyUserIds = new List<Id>();
 
             Leave_Application__c leaveRec = [
                 SELECT Id, Status__c, Current_Role_Name__c, Current_Approver_User__c,
@@ -161,27 +161,6 @@ public without sharing class LeaveApprovalActionController {
 
             // Only users listed in Current_Approver_Ids__c may process actions
             assertCurrentUserIsApprover(leaveRec.Current_Approver_Ids__c);
-
-            // 🔥 HANDLE INCOMPLETE (DO NOT FORWARD) — top-level catch before work item
-            if(decision == 'INCOMPLETE'){
-
-                if(String.isNotBlank(remarks)){
-                    leaveRec.Approver_Remarks__c = remarks;
-                }
-
-                leaveRec.Status__c         = 'Incomplete';
-                leaveRec.Route_to_Deputy__c = false;
-
-                update leaveRec;
-                // Permanent Incomplete history row (never overwrites past Incomplete rows)
-                LeaveApprovalHistoryController.createIncompleteHistory(
-                    leaveId,
-                    leaveRec.Current_Role_Name__c + ' Verification',
-                    UserInfo.getUserId(),
-                    remarks
-                );
-                return;
-            }
 
             // ================= GET WORK ITEM =================
             // ✅ Find work item by leaveId only — any assigned approver can process
@@ -209,8 +188,49 @@ public without sharing class LeaveApprovalActionController {
             req.setWorkitemId(workItem.Id);
 
             if(String.isNotBlank(remarks)){
-    req.setComments(remarks);
-}
+                req.setComments(remarks);
+            }
+
+            // 🔥 HANDLE INCOMPLETE — natively REJECT the current workitem.
+            // NOTE: "Allow Submitters to Recall Approval Requests" is OFF on this
+            // Approval Process (confirmed in Setup), so Approval.process() with
+            // action='Removed' always throws a permission error and must not be
+            // used here. Rejecting instead requires no special permission, and
+            // this process's Reject Behavior is "Final Rejection" on every step —
+            // which cleanly closes the ProcessInstance AND auto-unlocks the record
+            // (per the configured Final Rejection Action), exactly what's needed
+            // before the student can edit + resubmit. The student never sees a
+            // "Rejected" status anywhere — Status__c (set to 'Incomplete' below)
+            // is what drives all UI/visibility; this reject is purely internal
+            // native-engine plumbing to close out the old instance cleanly.
+            if(decision == 'INCOMPLETE'){
+
+                String priorRole = leaveRec.Current_Role_Name__c;
+
+                req.setAction('Reject');
+                if(String.isNotBlank(remarks)){
+                    req.setComments(remarks);
+                }
+
+                if(String.isNotBlank(remarks)){
+                    leaveRec.Approver_Remarks__c = remarks;
+                }
+
+                leaveRec.Status__c          = 'Incomplete';
+                leaveRec.Route_to_Deputy__c = false;
+
+                update leaveRec;
+                Approval.process(req);   // ✅ closes native instance cleanly, unlocks record
+
+                // Permanent Incomplete history row (never overwrites past Incomplete rows)
+                LeaveApprovalHistoryController.createIncompleteHistory(
+                    leaveId,
+                    priorRole + ' Verification',
+                    UserInfo.getUserId(),
+                    remarks
+                );
+                return;
+            }
 
             // ================= PROGRAMME OFFICE =================
             if(leaveRec.Current_Role_Name__c == 'Programme Office'){
@@ -261,26 +281,6 @@ public without sharing class LeaveApprovalActionController {
 
             // ================= MANAGER =================
             else if(leaveRec.Current_Role_Name__c == 'Manager'){
-
-                // 🔥 HANDLE INCOMPLETE
-                if(decision == 'INCOMPLETE'){
-
-                    if(String.isNotBlank(remarks)){
-                        leaveRec.Approver_Remarks__c = remarks;
-                    }
-
-                    leaveRec.Status__c         = 'Incomplete';
-                    leaveRec.Route_to_Deputy__c = false;
-
-                    update leaveRec;
-                    LeaveApprovalHistoryController.createIncompleteHistory(
-                        leaveId,
-                        'Manager Verification',
-                        UserInfo.getUserId(),
-                        remarks
-                    );
-                    return;
-                }
 
                 // 🔥 Decide ACTION
                 if(actionType == 'Reject'){
@@ -343,7 +343,7 @@ public without sharing class LeaveApprovalActionController {
                         leaveRec.Current_Approver_Ids__c   = String.join(deputyIdStrings, ';'); // ✅ all deputy IDs
                         leaveRec.Current_Role_Name__c      = 'Deputy Chairperson';
                         leaveRec.Status__c                 = 'Submitted - Pending Approval';
-                       
+
                         LeaveApprovalHistoryController.markStepDecided(leaveId, 'Manager Verification', 'Approved', UserInfo.getUserId(), remarks);
                         LeaveApprovalHistoryController.createPendingStep(leaveId, 'Deputy Chairperson Verification', deputyUserIds);
                         // ❌ DO NOT SAVE REMARK (NOT FINAL)
@@ -376,26 +376,6 @@ public without sharing class LeaveApprovalActionController {
 
             // ================= DEPUTY CHAIRPERSON =================
             else if(leaveRec.Current_Role_Name__c == 'Deputy Chairperson'){
-
-                // 🔥 HANDLE INCOMPLETE
-                if(decision == 'INCOMPLETE'){
-
-                    if(String.isNotBlank(remarks)){
-                        leaveRec.Approver_Remarks__c = remarks;
-                    }
-
-                    leaveRec.Status__c         = 'Incomplete';
-                    leaveRec.Route_to_Deputy__c = false;
-
-                    update leaveRec;
-                    LeaveApprovalHistoryController.createIncompleteHistory(
-                        leaveId,
-                        'Deputy Chairperson Verification',
-                        UserInfo.getUserId(),
-                        remarks
-                    );
-                    return;
-                }
 
                 // 🔥 Decide ACTION
                 if(actionType == 'Reject'){
@@ -566,29 +546,59 @@ public without sharing class LeaveApprovalActionController {
         Boolean wasIncomplete =
             String.isNotBlank(leaveRec.Status__c) &&
             leaveRec.Status__c.equalsIgnoreCase('Incomplete');
-        String roleName = leaveRec.Current_Role_Name__c;
 
         leaveRec.Start_Date__c  = startDate;
         leaveRec.End_Date__c    = endDate;
         leaveRec.Leave_Type__c  = leaveType;
         leaveRec.Reason__c      = remarks;
-        leaveRec.Status__c      = 'Submitted - Pending Approval';
+        leaveRec.Status__c      = 'Submitted - Pending Approval'; // matches process Entry Criteria
+
+        List<Id> poUserIds = new List<Id>();
+
+        if (wasIncomplete) {
+            // ✅ ALWAYS route back to Programme Office — never to whichever
+            // role (Manager/Deputy) marked it Incomplete.
+            Id leaveProgramId = LeaveApproverResolver.resolveProgramId(leaveRec);
+            poUserIds = LeaveApproverResolver.getApprovers(leaveProgramId, 'Programme Office');
+
+            if (poUserIds.isEmpty()) {
+                throw new AuraHandledException('No Programme Office approver found for this programme.');
+            }
+
+            List<String> idStrings = new List<String>();
+            for (Id uid : poUserIds) {
+                idStrings.add(String.valueOf(uid));
+            }
+
+            leaveRec.Current_Role_Name__c     = 'Programme Office';
+            // ✅ Step 1's Assigned Approver is "Related User: Current Approver" —
+            // the native process reads this field to resolve who gets the new
+            // workitem, so it MUST be set before Approval.process() below.
+            leaveRec.Current_Approver_User__c = poUserIds[0];
+            leaveRec.Current_Approver_Ids__c  = String.join(idStrings, ';');
+            leaveRec.Route_to_Deputy__c       = false;
+        }
 
         update leaveRec;
 
-        // After Incomplete, re-submit opens a NEW Pending history row;
-        // previous Incomplete rows stay as separate permanent history.
-        if (wasIncomplete && String.isNotBlank(roleName)) {
-            // Re-open the pending step against this programme's approvers for that role only.
-            List<Id> userIds = LeaveApproverResolver.getApprovers(
-                LeaveApproverResolver.resolveProgramId(leaveRec),
-                roleName
-            );
+        if (wasIncomplete) {
+            // After Incomplete, re-submit opens a NEW Pending history row;
+            // previous Incomplete rows stay as separate permanent history.
             LeaveApprovalHistoryController.createPendingStep(
                 leaveId,
-                roleName + ' Verification',
-                userIds
+                'Programme Office Verification',
+                poUserIds
             );
+
+            // ✅ Submit a brand-new native approval process instance to PO.
+            // No recall is needed here — the prior instance was already closed
+            // (natively Rejected) inside processLeaveAction()'s Incomplete
+            // handler, so this record is in a clean, valid state to resubmit.
+            // No setNextApproverIds() needed — Step 1 resolves the approver
+            // from Current_Approver_User__c (set above) via "Related User".
+            Approval.ProcessSubmitRequest submitReq = new Approval.ProcessSubmitRequest();
+            submitReq.setObjectId(leaveId);
+            Approval.process(submitReq);
         }
     }
 

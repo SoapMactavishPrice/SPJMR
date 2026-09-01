@@ -1,5 +1,14 @@
 <template>
     <template lwc:if={isDecisionPresent}>
+        <div class="slds-m-bottom_medium">
+            <lightning-button
+                label={decisionActionLabel}
+                variant="brand"
+                icon-name={decisionActionIcon}
+                onclick={handleDecisionAction}>
+            </lightning-button>
+        </div>
+
         <div class="decision-card">
 
             <!-- ===================== -->
@@ -138,13 +147,12 @@
         </div>
     </template>
 
-    <!-- CREATE OFFER -->
-    <template if:false={isDecisionPresent}>
+    <template lwc:else>
         <lightning-button
-            label="Create Offer"
+            label={decisionActionLabel}
             variant="brand"
-            icon-name="utility:add"
-            onclick={handleCreateOffer}>
+            icon-name={decisionActionIcon}
+            onclick={handleDecisionAction}>
         </lightning-button>
     </template>
 </template>

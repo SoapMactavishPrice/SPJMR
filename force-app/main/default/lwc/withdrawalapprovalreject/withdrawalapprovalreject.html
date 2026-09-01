@@ -1,0 +1,9 @@
+<template>
+    <lightning-quick-action-panel header="Reject Withdrawal Request">
+        <c-withdrawal-approval-action
+            record-id={recordId}
+            mode="REJECT"
+            onclose={handleClose}>
+        </c-withdrawal-approval-action>
+    </lightning-quick-action-panel>
+</template>

@@ -127,4 +127,38 @@ private class FacultyPortalTest {
         System.assert(foundComplete, 'Expected at least one Complete evaluation status.');
         System.assert(foundPending, 'Expected at least one Pending evaluation status.');
     }
+
+    @IsTest
+    static void testGetSlotMasterList_WithData() {
+        Test.startTest();
+        List<SlotMaster__c> results = FacultyPortal.getSlotMasterList();
+        Test.stopTest();
+
+        System.assertNotEquals(null, results);
+    }
+
+    @IsTest
+    static void testGetSlotMasterList_NoAccount() {
+        Profile p = [SELECT Id FROM Profile WHERE Name = 'System Administrator' LIMIT 1];
+
+        User u = new User(
+            FirstName = 'No',
+            LastName = 'Slot',
+            Alias = 'noslot',
+            Username = 'noslot' + System.currentTimeMillis() + '@test.com',
+            Email = 'noslot@test.com',
+            TimeZoneSidKey = 'GMT',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            ProfileId = p.Id
+        );
+        insert u;
+
+        System.runAs(u) {
+            List<SlotMaster__c> results = FacultyPortal.getSlotMasterList();
+            System.assertNotEquals(null, results);
+            System.assertEquals(0, results.size());
+        }
+    }
 }

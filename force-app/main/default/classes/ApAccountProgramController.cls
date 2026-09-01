@@ -717,6 +717,7 @@ public static String getApplicationStage(Id applicationId) {
         return false;
     }
 
+    @TestVisible
     private static Date resolveDateLiteral(String val) {
         if (String.isBlank(val)) return null;
         String v = val.trim();
@@ -737,6 +738,7 @@ public static String getApplicationStage(Id applicationId) {
         return null;
     }
 
+    @TestVisible
     private static Date resolveAdmissionDateField(String fieldApiName, Admission_Decision__c admRecord) {
         try {
             Schema.SObjectField fld = Schema.SObjectType.Admission_Decision__c.fields.getMap().get(fieldApiName);
@@ -858,6 +860,7 @@ public static String getApplicationStage(Id applicationId) {
         }
     }
     
+    @TestVisible
     private static List<AccountProgramApplicationWrapper> getApplicationApbsList(Id accountId){
         if (accountId == null) return new List<AccountProgramApplicationWrapper>();
         
@@ -1048,6 +1051,7 @@ public static String getApplicationStage(Id applicationId) {
         
     }
     
+    @TestVisible
     private static Map<String,Object> constructBookingInfo(List<ApplicationSlotBooking__c> bookings) {
         Map<String,Object> bookingInfo = new Map<String,Object>();
         bookingInfo.put('bookingId', bookings[0].Id);
@@ -1059,6 +1063,7 @@ public static String getApplicationStage(Id applicationId) {
         return bookingInfo;
     }
     
+    @TestVisible
     private static String formatISTTime(Time val) {        
         if (val == null) {
             return '';
@@ -1072,7 +1077,7 @@ public static String getApplicationStage(Id applicationId) {
         return dt.format('hh:mm a');
     }
     
-    
+    @TestVisible
     private static String formatTime(Time timevalue) {
         return DateTime.newInstance(Date.today(), timevalue).format('h:mm a');
     }
@@ -1145,6 +1150,7 @@ public static String getApplicationStage(Id applicationId) {
         @AuraEnabled public List<AnnexureWrapper> annexures;
     }
 
+    @TestVisible
     private static Document_Details__c ensureDocumentDetail(Id applicationId, String docCode) {
         List<Document_Details__c> existing = [
             SELECT Id
@@ -1167,6 +1173,7 @@ public static String getApplicationStage(Id applicationId) {
         return docDetail;
     }
 
+    @TestVisible
     private static String getDocumentDetailFileUrl(Id applicationId, String docCode) {
         if (applicationId == null || String.isBlank(docCode)) {
             return '';
@@ -1307,7 +1314,7 @@ public static String getApplicationStage(Id applicationId) {
             String anyOtherInformation,
             String type
     ) {
-        try {
+        // try {
             DeclineWithdrawalQuestionnaire__c rec = new DeclineWithdrawalQuestionnaire__c();
             rec.Application__c                 = applicationId;
             rec.ApplicantName__c              = applicantName;
@@ -1321,9 +1328,9 @@ public static String getApplicationStage(Id applicationId) {
             rec.AnyOtherInformation__c        = anyOtherInformation;
             rec.Type__c                       = type;
             insert rec;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
+        // } catch (Exception e) {
+        //     throw new AuraHandledException(e.getMessage());
+        // }
     }
     
 }

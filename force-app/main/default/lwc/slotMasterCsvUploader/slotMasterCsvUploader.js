@@ -92,11 +92,22 @@ export default class SlotMasterCsvUploader extends LightningElement {
                 contentVersionId: message.contentVersionId,
                 url: `/sfc/servlet.shepherd/version/download/${message.contentVersionId}`
             }];
-            this.showSuccess('Import completed. Error CSV has been generated.');
-            return;
         }
 
-        this.showSuccess('Slot Master import completed successfully.');
+        this.showCompletionToast(message);
+    }
+
+    showCompletionToast(message) {
+        const successCount = Number(message.successCount || 0);
+        const failedCount = Number(message.failedCount || 0);
+
+        if (failedCount > 0 && successCount === 0) {
+            this.showToast('Import failed', `Slot Master import failed. Successful: 0, Failed: ${failedCount}.`, 'error');
+        } else if (failedCount > 0) {
+            this.showToast('Import partially completed', `Slot Master import partially completed. Successful: ${successCount}, Failed: ${failedCount}.`, 'warning');
+        } else {
+            this.showToast('Import successful', `Slot Master import completed successfully. Successful: ${successCount}, Failed: 0.`, 'success');
+        }
     }
 
     handleFileUpload(event) {
@@ -113,12 +124,6 @@ export default class SlotMasterCsvUploader extends LightningElement {
         reader.readAsText(file, 'UTF-8');
     }
 
-    // downloadSampleHeader() {
-    //     const downloadLink = this.template.querySelector('[data-id="sample-header-download"]');
-    //     downloadLink.href = `data:text/csv;charset=utf-8,${encodeURIComponent(`${SAMPLE_HEADERS.join(',')}\n`)}`;
-    //     downloadLink.download = 'SlotMaster_Import_Sample_Header.csv';
-    //     downloadLink.click();
-    // }
     downloadSampleHeader() {
         this.downloadCsv(
             'SlotMaster_Import_Sample_Header.csv',
@@ -133,10 +138,15 @@ export default class SlotMasterCsvUploader extends LightningElement {
     }
 
     downloadCsv(fileName, rows) {
-        const downloadLink = this.template.querySelector('[data-id="sample-header-download"]');
-        downloadLink.href = `data:text/csv;charset=utf-8,${encodeURIComponent(rows.join('\n') + '\n')}`;
-        downloadLink.download = fileName;
-        downloadLink.click();
+        const csvContent = `${rows.join('\n')}\n`;
+        const blob = new Blob([csvContent], { type: 'text/plain' });
+        const blobUrl = URL.createObjectURL(blob);
+        const anchorTag = document.createElement('a');
+
+        anchorTag.setAttribute('href', blobUrl);
+        anchorTag.setAttribute('download', fileName);
+        anchorTag.click();
+        URL.revokeObjectURL(blobUrl);
     }
 
     handleStartImport() {
@@ -192,7 +202,7 @@ export default class SlotMasterCsvUploader extends LightningElement {
                 contentVersionIds: this.contentVersionIds,
                 emailErrorReport: this.emailErrorReport
             });
-            this.showSuccess('Import initiated successfully. You will be notified when processing completes.');
+            this.showToast('Import started', 'Import initiated successfully. You will be notified when processing completes.', 'info');
         } catch (error) {
             this.isLoading = false;
             this.showError(this.getErrorMessage(error));

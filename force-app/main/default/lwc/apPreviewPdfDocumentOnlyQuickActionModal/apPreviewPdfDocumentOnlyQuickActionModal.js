@@ -1,6 +1,7 @@
 import { LightningElement, api } from 'lwc';
 import pdfLib from '@salesforce/resourceUrl/pdf_lib';
 import { loadScript } from 'lightning/platformResourceLoader';
+import getVfPdfBase64 from '@salesforce/apex/VfPdfFetcher.getVfPdfBase64';
 //import getAllPdfFiles from '@salesforce/apex/FinalPdfFileFetcher.getAllPdfFiles';
 import getDocumentMetadata from '@salesforce/apex/FinalPdfFileFetcher.getDocumentMetadata';
 import getPdfChunk from '@salesforce/apex/FinalPdfFileFetcher.getPdfChunk';
@@ -35,8 +36,31 @@ export default class ApPreviewPdfQuickActionModal extends LightningElement {
             const merged = await PDFDocument.create();
 
             // ============================
-            // LOAD ATTACHED DOCUMENTS ONLY
+            // LOAD APPLICATION VF PDF FIRST
             // ============================
+
+             const vfBase64 = await getVfPdfBase64({
+             recordId: this.recordId
+             });
+
+             const vfBytes = Uint8Array.from(
+             atob(vfBase64),
+             c => c.charCodeAt(0)
+             );
+
+             const vfPdf = await PDFDocument.load(vfBytes);
+
+            const vfPages = await merged.copyPages(
+            vfPdf,
+            vfPdf.getPageIndices()
+            );
+
+            vfPages.forEach(page => merged.addPage(page));
+
+            // ============================
+           // LOAD ATTACHED DOCUMENTS
+          // USING CHUNKS
+         // ============================
 
            /* const files = await getAllPdfFiles({
                 recordId: this.recordId

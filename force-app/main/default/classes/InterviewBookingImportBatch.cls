@@ -94,6 +94,7 @@ public with sharing class InterviewBookingImportBatch implements Database.Batcha
             successHeaders.add('Panel Code');
         } else {
             successHeaders.add('Panel Code');
+            successHeaders.add('Application Number');
         }
 
         if (errorRows.isEmpty()) {
@@ -495,7 +496,7 @@ public with sharing class InterviewBookingImportBatch implements Database.Batcha
     private void addInsertedBookingSuccessRows(Map<Id, PendingBooking> pendingByBookingId) {
         if (pendingByBookingId.isEmpty()) return;
         for (ApplicationSlotBooking__c booking : [
-            SELECT Id, Name, Panel_Master__r.Name
+            SELECT Id, Name, Panel_Master__r.Name, Application__r.Name
             FROM ApplicationSlotBooking__c
             WHERE Id IN :pendingByBookingId.keySet()
         ]) {
@@ -508,6 +509,9 @@ public with sharing class InterviewBookingImportBatch implements Database.Batcha
         for (String header : successHeaders) {
             if (header == 'ApplicationSlotBookingCode') values.add(csvValue(booking.Name));
             else if (header == 'Panel Code') values.add(csvValue(booking.Panel_Master__r == null ? null : booking.Panel_Master__r.Name));
+            else if (header == 'Application Number' && importType == ASSIGN_PANEL) {
+                values.add(csvValue(booking.Application__r == null ? null : booking.Application__r.Name));
+            }
             //else if (header == 'Interviewer Emails') values.add(csvValue(''));
             else if (header == 'Interviewer Emails'){
                 String interviewerEmails = importType == WITHOUT_PANEL ? '' : row.values.get('Interviewer Emails');

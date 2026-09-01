@@ -84,8 +84,20 @@ export default class CsvUploader extends LightningElement {
                     url: '/sfc/servlet.shepherd/version/download/' + message.contentVersionId
                 }
             ];
-        }else{
-            this.showSuccess('Import completed successfully.');
+        }
+        this.showCompletionToast(message);
+    }
+
+    showCompletionToast(message) {
+        const successCount = Number(message.successCount || 0);
+        const failedCount = Number(message.failedCount || 0);
+
+        if (failedCount > 0 && successCount === 0) {
+            this.showToast('Import failed', `Application import failed. Successful: 0, Failed: ${failedCount}.`, 'error');
+        } else if (failedCount > 0) {
+            this.showToast('Import partially completed', `Application import partially completed. Successful: ${successCount}, Failed: ${failedCount}.`, 'warning');
+        } else {
+            this.showToast('Import successful', `Application import completed successfully. Successful: ${successCount}, Failed: 0.`, 'success');
         }
     }
 
@@ -107,10 +119,15 @@ export default class CsvUploader extends LightningElement {
     }
 
     downloadSampleHeader() {
-        const downloadLink = this.template.querySelector('[data-id="sample-header-download"]');
-        downloadLink.href = `data:text/csv;charset=utf-8,${encodeURIComponent(`${SAMPLE_HEADERS.join(',')}\n`)}`;
-        downloadLink.download = 'Application_Import_Sample_Header.csv';
-        downloadLink.click();
+        const csvContent = `${SAMPLE_HEADERS.join(',')}\n`;
+        const blob = new Blob([csvContent], { type: 'text/plain' });
+        const blobUrl = URL.createObjectURL(blob);
+        const anchorTag = document.createElement('a');
+
+        anchorTag.setAttribute('href', blobUrl);
+        anchorTag.setAttribute('download', 'Application_Import_Sample_Header.csv');
+        anchorTag.click();
+        URL.revokeObjectURL(blobUrl);
     }
 
     async handleStartImport() {
@@ -173,7 +190,7 @@ export default class CsvUploader extends LightningElement {
     async startImport() {
         try {
             await startImport({ contentVersionIds: this.contentVersionIds, notifyShortlistedApplicants: this.notifyShortlistedApplicants, emailErrorReport: this.emailErrorReport});
-            this.showSuccess( 'Import initiated successfully. You will be notified when processing completes.' );
+            this.showToast('Import started', 'Import initiated successfully. You will be notified when processing completes.', 'info');
         }
         catch(error){
             console.log(error);
@@ -183,23 +200,15 @@ export default class CsvUploader extends LightningElement {
 
 
     showSuccess(message) {
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'Success',
-                message: message,
-                variant: 'success'
-            })
-        );
+        this.showToast('Success', message, 'success');
     }
 
     showError(message) {
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'Error',
-                message: message,
-                variant: 'error'
-            })
-        );
+        this.showToast('Error', message, 'error');
+    }
+
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 
     // handleNotifyCheckbox(event) {

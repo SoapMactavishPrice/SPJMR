@@ -1,0 +1,82 @@
+<template>
+    <lightning-card title="Withdrawal Approval History">
+
+        <template if:true={hasApprovalHistory}>
+
+            <div class="table-container">
+
+                <table class="approval-table">
+
+                    <thead>
+                        <tr>
+                            <th>Step Name</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Assigned To</th>
+                            <th>Approved By</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        <template for:each={approvalHistory} for:item="history">
+
+                            <tr key={history.stepId}>
+
+                                <td class="step-name">
+                                    {history.stepName}
+                                </td>
+
+                                <td>
+                                    <template if:true={history.actionDate}>
+                                        <lightning-formatted-date-time
+                                            value={history.actionDate}
+                                            year="numeric"
+                                            month="2-digit"
+                                            day="2-digit"
+                                            hour="2-digit"
+                                            minute="2-digit">
+                                        </lightning-formatted-date-time>
+                                    </template>
+                                    <template if:false={history.actionDate}>-</template>
+                                </td>
+
+                                <td>
+                                    <span class={history.statusClass}>
+                                        {history.status}
+                                    </span>
+                                </td>
+
+                                <td>{history.assignedTo}</td>
+
+                                <td>
+                                    <template if:true={history.approvedBy}>{history.approvedBy}</template>
+                                    <template if:false={history.approvedBy}>-</template>
+                                </td>
+
+                                <td>
+                                    <template if:true={history.remarks}>{history.remarks}</template>
+                                    <template if:false={history.remarks}>-</template>
+                                </td>
+
+                            </tr>
+
+                        </template>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </template>
+
+        <template if:false={hasApprovalHistory}>
+            <div class="empty-message">
+                No approval history available.
+            </div>
+        </template>
+
+    </lightning-card>
+</template>

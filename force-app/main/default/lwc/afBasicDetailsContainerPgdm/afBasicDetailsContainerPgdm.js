@@ -117,13 +117,17 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
                     api: "SECTION_NOTE",
                     type: "note",
                     text: `
-    <b>Note:</b><br/><br/>
-
-    1. Name of the candidate must be as it appears in the passport. If the passport is not available, the name should be updated as per Aadhaar card.<br/><br/>
-
-    2. If your date of birth falls outside of the stated years, please contact us on <a href="mailto:?cc=admissions@spjimr.org">admissions@spjimr.org</a><br/><br/>
-
-    3. Capturing 'Category' is only a regulatory requirement. It doesn't affect the selection process. Admission to the Post Graduate Programme in Management (PGPM) at S.P.Jain Institute of Management & Research (SPJIMR) is strictly based on merit. We do not have any management quota<br/><br/>
+<div>
+    <b>Note:</b>
+    <ul style="list-style-type: disc; padding-left:30px;">
+        <li>Name of the applicant must be the same as it appears in the passport. If the passport is not available then the name should be updated as per the name mentioned in the aadhaar card.</li>
+        <li>If your Date of Birth falls outside of the stated years, please contact us on <a href="mailto:admissions.pgdm@spjimr.org">admissions.pgdm@spjimr.org</a>.</li>
+        <li>Capturing 'Category' is only a regulatory requirement. It doesn't affect the selection process. Admission to the PGDM / PGDM (BM) programme at S. P. Jain Institute of Management &amp; Research (SPJIMR) is strictly based on merit. We do not have any management quota.</li>
+        <li>For applicants applying as international candidates under the CIWG (Children of Indian Workers in Gulf countries) category, please select “Others” and specify CIWG in the box provided. Wards of Indian workers in the Gulf are eligible to apply as international candidates even if they hold an Indian passport. For clarifications please email at <a href="mailto:admissions.pgdm@spjimr.org">admissions.pgdm@spjimr.org</a>.</li>
+        <li>If your passport is issued by the Government of India, then you need to apply as an Indian applicant (even if your resident status is that of an NRI). NRI applications will be considered at par with the Indian applications. If your passport is issued by a country other than India, then you need to apply as an International applicant (PIOs, OCIs, children of Indian workers in the Gulf countries and Foreign Nationals fall in this category).</li>
+        <li>Only Domestic applicants are eligible to apply to the PGDM (BM) programme.</li>
+    </ul>
+</div>
     `
                 },
                 rows: [],
@@ -243,14 +247,16 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
                     },
                     {
                         columns: [
-                            { width: 4, fields: ["Primary_E_mail__c"] },
-                            { width: 4, fields: ["Alternate_E_mail__c"] },
+                            { width: 6, fields: ["Parent_s_Mobile_Number__c"] },
+                            { width: 3, fields: ["Primary_E_mail__c"] },
+                            { width: 3, fields: ["Alternate_E_mail__c"] },
                         ]
                     },
                 ],
                 fields: [
                     { api: "Primary_E_mail__c", type: "email", label: "Primary E-mail", required: true, readOnly:true, maxlength: '80' },
                     { api: "Alternate_E_mail__c", type: "email", label: "Alternate E-mail", required: true, maxlength: '80' },
+                    { api: "Parent_s_Mobile_Number__c", type: "tel", label: "Parent's Mobile Number", required: true },
                     { api: "Mobile_Number__c", type: "tel", label: "Mobile Number", required: true },
                     { api: "Alternate_Mobile_Number__c", type: "tel", label: "Alternate Mobile Number", required: true },
                 ]
@@ -874,7 +880,7 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
 
         const telTargets = [
             { section: 'personalDetails', apis: ['Contact_No_of_Spouse__c'] },
-            { section: 'contactDetails', apis: ['Mobile_Number__c', 'Alternate_Mobile_Number__c'] },
+            { section: 'contactDetails', apis: ['Mobile_Number__c', 'Alternate_Mobile_Number__c', 'Parent_s_Mobile_Number__c'] },
         ];
 
         telTargets.forEach(t => {
@@ -909,8 +915,8 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
             if (field) {
                 field.pattern =
                     nationality === "Indian"
-                    ? '^[A-Z][0-9]{7}$'
-                    : '^[A-Z0-9<]{3,20}$';
+                    ? '^(?=.*[A-Z])[A-Z0-9]{8}$'
+                    : '^[A-Z0-9]{3,20}$';
             }
         }
 
@@ -1523,9 +1529,15 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
             }
         }
 
-        if(api === "Nationality__c") {
-            if(this.basic[sectionKey][api] != 'Indian') {
+        if (api === "Nationality__c") {
+            const nationality = this.basic.personalDetails.Nationality__c;
+
+            if (nationality !== 'Indian') {
                 this.basic.personalDetails.AadhaarCardNumber__c = null;
+                this.basic.personalDetails.HavePassport__c = 'Yes';
+            } else {
+                this.basic.personalDetails.HavePassport__c = 'No';
+                this.basic.personalDetails.PassportNumber__c = null;
             }
         }
 
@@ -2053,6 +2065,12 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
 
             sectionMeta.fields.forEach(fMeta => {
                 if (fMeta.type === 'note') return;
+
+                // Keep derived passport flag even when the field is hidden
+                if (fMeta.api === 'HavePassport__c' &&
+                    sectionKey === 'personalDetails') {
+                    return;
+                }
 
                 if (this._isFieldVisible(fMeta)) return;
 

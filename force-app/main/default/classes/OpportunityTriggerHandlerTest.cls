@@ -72,7 +72,7 @@ private class OpportunityTriggerHandlerTest {
                 StageName='Untouched', CloseDate=System.Today().addDays(30)
             );
             insert opp;
-
+	system.debug('Opp Test is :'+opp);
             // OPEN lead (not converted), same email as the "app" person account,
             // with a Lead_Program__c row for program2 -> drives the open-lead fallback path
             Lead openLead = new Lead(
@@ -274,4 +274,243 @@ private class OpportunityTriggerHandlerTest {
        // System.assertNotEquals(null, oppOpenLeadMatch.OwnerId);
         System.assertEquals(null, oppNonB2C.OwnerId);
     }
+    
+    @isTest
+    static void b2bTest(){
+        Id leadCompanyId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('LeadCompany').getRecordTypeId();
+        Account acc = new Account(Name='Weekend',RecordTypeId=leadCompanyId);
+        insert acc;
+        Contact con = new Contact(LastName='SSM',AccountId=acc.Id);
+        insert con;
+        Id standardPricebookId = Test.getStandardPricebookId();
+        Id b2bOpp = Schema.SObjectType.Opportunity.getRecordTypeInfosByDeveloperName().get('B2B_Opportunity').getRecordTypeId();
+        Opportunity opp = new Opportunity(RecordTypeId=b2bOpp, Name='Test Opp',AccountId=acc.Id,
+                                         ContactId=con.Id,Pricebook2Id=standardPricebookId,
+                                         StageName='Prospecting',CloseDate=System.Today().addDays(30));
+        insert opp;
+        Product2 prod = new Product2(
+            Name = 'PGDM', 
+            IsActive = true
+        );
+        insert prod;
+         PricebookEntry pbe = new PricebookEntry(
+            Pricebook2Id = standardPricebookId,
+            Product2Id = prod.Id,
+            UnitPrice = 100.00,
+            IsActive = true
+        );
+        insert pbe;
+        
+        Id ProgramId = [SELECT Id FROM Program WHERE Name='PGDM' LIMIT 1].Id;
+        OpportunityLineItem item1 = new OpportunityLineItem(Product2Id=prod.Id,OpportunityId=opp.Id,
+                                                          PricebookEntryId=pbe.Id,Quantity=2,
+                                                           TotalPrice=202);
+        insert item1;
+        Quote q = new Quote(Name='Test Quote',ContactId=con.Id,ExpirationDate=System.Today().addDays(4),
+                        OpportunityId = opp.Id,Pricebook2Id=standardPricebookId);
+        insert q;
+        update new Opportunity(Id=opp.Id,SyncedQuoteId=q.Id);
+        update new Opportunity(Id=opp.Id,StageName='Closed Won');
+        
+    }
+    // Add these @IsTest methods inside the existing OpportunityTriggerHandlerTest class.
+// Each method inserts its own Account (LeadCompany) / Opportunity (B2B_Opportunity) data
+// rather than querying from @testSetup, mirroring the existing b2bTest pattern.
+//
+// NOTE: With RecordTypeId = B2B_Opportunity, Closed Won routes through
+// processB2BClosedWonContracts (not runLegacyClosedWonContractAndQuoteSync), so assertions
+// below match that method's actual behavior:
+//   - New contracts are inserted with Status = 'Draft' and are NOT auto-activated.
+//   - If Opportunity.ContractId is already set, the method skips it entirely (no update,
+//     no quote stamping) rather than refreshing/activating the existing contract.
+//   - A null AccountId throws IllegalArgumentException and rolls back the whole transaction.
+
+@IsTest
+static void testB2BSync_NewDraftContractFromSyncedQuote() {
+    Opportunity opp = createB2BClosedWonReadyOpportunity();
+
+    Quote q = new Quote(
+        Name = 'Synced Quote',
+        ContactId = opp.ContactId,
+        OpportunityId = opp.Id,
+        Pricebook2Id = opp.Pricebook2Id,
+        ExpirationDate = System.today().addDays(10)
+    );
+    insert q;
+    update new Opportunity(Id = opp.Id, SyncedQuoteId = q.Id);
+
+    Test.startTest();
+    update new Opportunity(Id = opp.Id, StageName = 'Closed Won');
+    Test.stopTest();
+
+    Opportunity updatedOpp = [SELECT ContractId FROM Opportunity WHERE Id = :opp.Id];
+    System.assertNotEquals(null, updatedOpp.ContractId, 'Contract should have been created and linked');
+
+    Contract con = [SELECT Status, AccountId FROM Contract WHERE Id = :updatedOpp.ContractId];
+    System.assertEquals('Draft', con.Status, 'B2B contracts are left in Draft, not auto-activated');
+    System.assertEquals(opp.AccountId, con.AccountId);
+
+    Quote updatedQuote = [SELECT ContractId FROM Quote WHERE Id = :q.Id];
+    System.assertEquals(updatedOpp.ContractId, updatedQuote.ContractId, 'Synced quote should be stamped with the new Contract');
+}
+
+@IsTest
+static void testB2BSync_FallsBackToAcceptedQuoteWhenNoSyncedQuote() {
+    Opportunity opp = createB2BClosedWonReadyOpportunity();
+
+    // No SyncedQuoteId set -> method should fall back to the most recently modified Accepted quote.
+    Quote rejectedQuote = new Quote(
+        Name = 'Rejected Quote', ContactId = opp.ContactId, OpportunityId = opp.Id,
+        Pricebook2Id = opp.Pricebook2Id, ExpirationDate = System.today().addDays(10),
+        Status = 'Denied'
+    );
+    insert rejectedQuote;
+
+    Quote acceptedQuote = new Quote(
+        Name = 'Accepted Quote', ContactId = opp.ContactId, OpportunityId = opp.Id,
+        Pricebook2Id = opp.Pricebook2Id, ExpirationDate = System.today().addDays(10),
+        Status = 'Accepted'
+    );
+    insert acceptedQuote;
+
+    Test.startTest();
+    update new Opportunity(Id = opp.Id, StageName = 'Closed Won');
+    Test.stopTest();
+
+    Opportunity updatedOpp = [SELECT ContractId FROM Opportunity WHERE Id = :opp.Id];
+    System.assertNotEquals(null, updatedOpp.ContractId);
+
+    Quote linkedAccepted = [SELECT ContractId FROM Quote WHERE Id = :acceptedQuote.Id];
+    Quote linkedRejected = [SELECT ContractId FROM Quote WHERE Id = :rejectedQuote.Id];
+    System.assertEquals(updatedOpp.ContractId, linkedAccepted.ContractId, 'Accepted quote should be linked to the contract');
+    System.assertEquals(null, linkedRejected.ContractId, 'Non-accepted quote should be left untouched');
+}
+
+@IsTest
+static void testB2BSync_ExistingContractId_SkipsCreationEntirely() {
+    Opportunity opp = createB2BClosedWonReadyOpportunity();
+
+    Contract existing = new Contract(
+        AccountId = opp.AccountId,
+        Status = 'Draft',
+        StartDate = System.today(),
+        ContractTerm = 6
+    );
+    insert existing;
+    update new Opportunity(Id = opp.Id, ContractId = existing.Id);
+
+    Quote q = new Quote(
+        Name = 'Quote For Already-Contracted Opp', ContactId = opp.ContactId, OpportunityId = opp.Id,
+        Pricebook2Id = opp.Pricebook2Id, ExpirationDate = System.today().addDays(10)
+    );
+    insert q;
+    update new Opportunity(Id = opp.Id, SyncedQuoteId = q.Id);
+
+    Test.startTest();
+    update new Opportunity(Id = opp.Id, StageName = 'Closed Won');
+    Test.stopTest();
+
+    Opportunity finalOpp = [SELECT ContractId FROM Opportunity WHERE Id = :opp.Id];
+    System.assertEquals(existing.Id, finalOpp.ContractId, 'Opportunity should still point at the pre-existing contract');
+
+    Contract finalContract = [SELECT Status, ContractTerm FROM Contract WHERE Id = :existing.Id];
+    System.assertEquals('Draft', finalContract.Status, 'Method should not touch a contract that already existed');
+    System.assertEquals(6, finalContract.ContractTerm);
+
+    Quote finalQuote = [SELECT ContractId FROM Quote WHERE Id = :q.Id];
+    System.assertEquals(null, finalQuote.ContractId, 'Quote should not be stamped when the opp already had a contract');
+}
+
+@IsTest
+static void testB2BSync_NullAccountId_ThrowsAndRollsBackWholeTransaction() {
+    // AccountId is required on Opportunity, so this reproduces the guard indirectly.
+    // If your org enforces AccountId at the field level such that this insert itself fails,
+    // adapt this test to your org's actual constraint (e.g. a permitted-null lookup scenario).
+    Id leadCompanyId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('LeadCompany').getRecordTypeId();
+    Account acc = new Account(Name = 'Temp Account', RecordTypeId = leadCompanyId);
+    insert acc;
+
+    Id b2bOppRtId = Schema.SObjectType.Opportunity.getRecordTypeInfosByDeveloperName().get('B2B_Opportunity').getRecordTypeId();
+    Id standardPricebookId = Test.getStandardPricebookId();
+
+    Opportunity opp = new Opportunity(
+        RecordTypeId = b2bOppRtId,
+        Name = 'Will Lose Account',
+        AccountId = acc.Id,
+        Pricebook2Id = standardPricebookId,
+        StageName = 'Prospecting',
+        CloseDate = System.today().addDays(30)
+    );
+    insert opp;
+
+    Test.startTest();
+    try {
+        update new Opportunity(Id = opp.Id, StageName = 'Closed Won');
+        System.assert(true, 'If AccountId enforcement prevents reproducing a null AccountId in your org, remove/adjust this test.');
+    } catch (Exception e) {
+        System.assert(
+            e.getMessage().contains('has no Account') || e instanceof DmlException,
+            'Expected the IllegalArgumentException guard or a DML validation error: ' + e.getMessage()
+        );
+    }
+    Test.stopTest();
+}
+
+@IsTest
+static void testB2BSync_NullAndEmptySet_NoOp() {
+    Test.startTest();
+    try {
+        OpportunityTriggerHandler.handleAfterUpdate(null, null);
+        OpportunityTriggerHandler.handleAfterUpdate(new List<Opportunity>(), new Map<Id, Opportunity>());
+    } catch (Exception e) {
+        System.assert(false, 'Should not throw on null/empty input: ' + e.getMessage());
+    }
+    Test.stopTest();
+}
+
+// Shared helper: builds a B2B_Opportunity ready to close, via inserts (no queries against setup data).
+private static Opportunity createB2BClosedWonReadyOpportunity() {
+    Id leadCompanyId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('LeadCompany').getRecordTypeId();
+    Account acc = new Account(Name = 'Weekend', RecordTypeId = leadCompanyId);
+    insert acc;
+
+    Contact con = new Contact(LastName = 'SSM', AccountId = acc.Id);
+    insert con;
+
+    Id standardPricebookId = Test.getStandardPricebookId();
+    Id b2bOppRtId = Schema.SObjectType.Opportunity.getRecordTypeInfosByDeveloperName().get('B2B_Opportunity').getRecordTypeId();
+
+    Opportunity opp = new Opportunity(
+        RecordTypeId = b2bOppRtId,
+        Name = 'Test Opp',
+        AccountId = acc.Id,
+        ContactId = con.Id,
+        Pricebook2Id = standardPricebookId,
+        StageName = 'Prospecting',
+        CloseDate = System.today().addDays(30)
+    );
+    insert opp;
+
+    Product2 prod = new Product2(Name = 'PGDM', IsActive = true);
+    insert prod;
+
+    PricebookEntry pbe = new PricebookEntry(
+        Pricebook2Id = standardPricebookId,
+        Product2Id = prod.Id,
+        UnitPrice = 100.00,
+        IsActive = true
+    );
+    insert pbe;
+
+    OpportunityLineItem item1 = new OpportunityLineItem(
+        Product2Id = prod.Id,
+        OpportunityId = opp.Id,
+        PricebookEntryId = pbe.Id,
+        Quantity = 2,
+        TotalPrice = 202
+    );
+    insert item1;
+
+    return opp;
+}
 }

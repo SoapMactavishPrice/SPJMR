@@ -70,6 +70,54 @@ public with sharing class CommunicationService {
         );
     }
 
+    public static Id communicateAsync(
+        List<CommunicationsController.CommunicationRequest> requests
+    ) {
+        if (requests == null || requests.isEmpty()) {
+            throw new CommunicationServiceException(
+                'At least one communication request is required.'
+            );
+        }
+
+        List<CommunicationsController.CommunicationRequest> asyncRequests =
+            new List<CommunicationsController.CommunicationRequest>();
+
+        for (CommunicationsController.CommunicationRequest request : requests) {
+            if (request == null) {
+                continue;
+            }
+
+            List<Id> targetApplicationIds = normalizeApplicationIds(request);
+            if (targetApplicationIds.isEmpty()) {
+                continue;
+            }
+
+            CommunicationsController.CommunicationRequest asyncRequest =
+                cloneRequest(request);
+            if (
+                asyncRequest.applicationIdToReferenceRecordId == null ||
+                asyncRequest.applicationIdToReferenceRecordId.isEmpty()
+            ) {
+                asyncRequest.applicationIds = targetApplicationIds;
+            }
+
+            asyncRequests.add(asyncRequest);
+        }
+
+        if (asyncRequests.isEmpty()) {
+            throw new CommunicationServiceException(
+                'At least one Application Id is required.'
+            );
+        }
+
+        return System.enqueueJob(
+            new CommunicationDispatchQueueable(
+                asyncRequests,
+                DEFAULT_BULK_BATCH_SIZE
+            )
+        );
+    }
+
     public static void processAsyncScope(
         CommunicationsController.CommunicationRequest request,
         List<Id> applicationIds

@@ -10,6 +10,8 @@ public with sharing class Batch_ApplicationStatusUpdate
     private List<Id> contentVersionIds;
     private Boolean notifyShortlistedApplicants;
     private Boolean emailErrorReport;
+    private Integer successCount = 0;
+    private Integer failedCount = 0;
 
     public class PlatformEventPayload {
         @AuraEnabled
@@ -20,6 +22,12 @@ public with sharing class Batch_ApplicationStatusUpdate
 
         @AuraEnabled
         public Integer errorCount;
+
+        @AuraEnabled
+        public Integer successCount;
+
+        @AuraEnabled
+        public Integer failedCount;
 
         @AuraEnabled
         public String fileName;
@@ -111,6 +119,7 @@ public with sharing class Batch_ApplicationStatusUpdate
 
                     if (row.size() <= requiredIndex) {
                         logError('Row ' + (i+1) + ' missing columns: ' + row);
+                        failedCount++;
                         continue;
                     }
 
@@ -134,6 +143,7 @@ public with sharing class Batch_ApplicationStatusUpdate
                     if (String.isBlank(appNumber)) {
                         logError('Row ' + (i+1) + ' has blank Application Number. Row: ' + row);
                         resultRows.add( ',' + status + ',' + stage + ',' + applicationStatus + ',Failed,' + 'Blank Application Number');
+                        failedCount++;
                         continue;
                     }
 
@@ -177,24 +187,28 @@ public with sharing class Batch_ApplicationStatusUpdate
                     if (!appNumberToRec.containsKey(appNumber)) {
                         logError('Row ' + rowIdx + ': No Application found for Application Number: ' + appNumber);
                         resultRows.add( appNumber + ',' + status + ',' + stage + ',' + applicationStatus + ',Failed,' +'Application Not Found');
+                        failedCount++;
                         continue;
                     }
 
                     if(statusCol >= 0 && !String.isBlank(status) && !validStatusValues.contains(status)) {
                         logError('Row ' + rowIdx + ': Invalid Applicant State Management value → "' + status + '"');
                         resultRows.add( appNumber + ',' + status + ',' + stage + ',' + applicationStatus + ',Failed,' +'Invalid Applicant State Management');
+                        failedCount++;
                         continue;
                     }
 
                     if(stageCol >= 0 && !String.isBlank(stage) && !validStageValues.contains(stage)){
                         logError('Row ' + rowIdx + ': Invalid Application Stage value → "' + stage + '"');
                         resultRows.add( appNumber + ',' + status + ',' + stage + ',' + applicationStatus + ',Failed,' +'Invalid Application Stage');
+                        failedCount++;
                         continue;
                     }
 
                     if(applicationStatusCol >= 0 && !String.isBlank(applicationStatus) && !validApplicationStatusValues.contains(applicationStatus)){
                         logError('Row ' + rowIdx + ': Invalid Application Status value -> "' + applicationStatus + '"');
                         resultRows.add( appNumber + ',' + status + ',' + stage + ',' + applicationStatus + ',Failed,' +'Invalid Application Status');
+                        failedCount++;
                         continue;
                     }
 
@@ -230,7 +244,10 @@ public with sharing class Batch_ApplicationStatusUpdate
 
                     for (Integer i = 0; i < results.size(); i++) {
                         Database.SaveResult sr = results[i];
-                        if (!sr.isSuccess()) {
+                        if (sr.isSuccess()) {
+                            successCount++;
+                        } else {
+                            failedCount++;
                             for (Database.Error err : sr.getErrors()) {
                                 logError('Failed update for Id: ' + sr.getId() + ' → ' + err.getMessage());
                                 Application__c failedRec = updates[i];
@@ -242,6 +259,7 @@ public with sharing class Batch_ApplicationStatusUpdate
                 }
             } catch(Exception e){
                 logError( 'Error processing file ' + cv.Title  + ' : ' + e.getMessage());
+                failedCount++;
             }
         }
     }
@@ -266,11 +284,12 @@ public with sharing class Batch_ApplicationStatusUpdate
             insert cv;
 
             cv = [SELECT Id, Title, ContentDocumentId FROM ContentVersion WHERE Id=:cv.Id];
-            downloadLink = URL.getOrgDomainUrl().toExternalForm() + '/' + cv.ContentDocumentId;
+            downloadLink = URL.getOrgDomainUrl().toExternalForm() +
+                '/sfc/servlet.shepherd/version/download/' + cv.Id;
 
             payload.status = 'Completed';
             payload.hasErrors = true;
-            payload.errorCount = resultRows.size() - 1;
+            payload.errorCount = failedCount;
             payload.fileName = cv.Title + '.csv';
             payload.contentDocumentId = cv.ContentDocumentId;
             payload.contentVersionId = cv.Id;
@@ -288,6 +307,11 @@ public with sharing class Batch_ApplicationStatusUpdate
             payload.errorCount = 0;
         }
 
+        payload.hasErrors = failedCount > 0;
+        payload.errorCount = failedCount;
+        payload.successCount = successCount;
+        payload.failedCount = failedCount;
+
         try {
         AdmissionConsoleEvent__e appEvent = new AdmissionConsoleEvent__e();
         appEvent.UserId__c = UserInfo.getUserId();
@@ -296,8 +320,7 @@ public with sharing class Batch_ApplicationStatusUpdate
         Database.SaveResult publishResult = EventBus.publish(appEvent);
 
         AsyncApexJob job = [
-            SELECT Id, Status, NumberOfErrors, JobItemsProcessed,
-                   TotalJobItems, CreatedBy.Email
+            SELECT Id, Status, CreatedBy.Email
             FROM AsyncApexJob
             WHERE Id = :bc.getJobId()
         ];
@@ -308,28 +331,22 @@ public with sharing class Batch_ApplicationStatusUpdate
 
             mail.setSubject('Application Status CSV Update – ' + job.Status);
 
-            String body = 'Batch Completed.\n\n' +
-                        'Batches: ' + job.TotalJobItems + '\n' +
-                        'Processed: ' + job.JobItemsProcessed + '\n' +
-                        'Errors: ' + job.NumberOfErrors + '\n\n';
+            String body = 'Application import completed.\n\n' +
+                'Successful Records: ' + successCount + '\n' +
+                'Failed Records: ' + failedCount + '\n';
 
             if(!String.isBlank(downloadLink)){
                 body += '\nError CSV Download Link: ' + downloadLink + '\n';
             }
 
-            if (!errorMessages.isEmpty()) {
-                body += 'Error Details (first ' + errorMessages.size() + '):\n\n';
-                for (String err : errorMessages) {
-                    body += '- ' + err + '\n';
-                }
-            } else {
-                body += 'No row-level errors. ✔';
-            }
-
             mail.setPlainTextBody(body);
             Messaging.sendEmail(new Messaging.SingleEmailMessage[]{ mail });
         }
-        } finally {
+        }
+        catch(Exception e){
+            System.debug('Exception Platform Event '+ e.getMessage()+ ' '+ e.getLineNumber() + ' '+ e.getCause());
+        }
+        finally {
             deleteUploadedFiles();
         }
     }

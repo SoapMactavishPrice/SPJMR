@@ -35,6 +35,104 @@ export default class AfProgramDetailsContainerPgdm extends LightningElement {
     @track allSections = [];
     picklistCache = {};
     selectedBatchUpperAgeBound = null;
+
+    static PROGRAM_CODE_BY_SELECTION = Object.freeze({
+        'Post Graduate Diploma in Management': 'PGDM',
+        'Post Graduate Diploma in Management (Business Management)': 'PGDM-BM',
+        'Post Graduate Diploma in Management;Post Graduate Diploma in Management (Business Management)': 'PGDM&PGDM-BM',
+        'Post Graduate Diploma in Management (Business Management);Post Graduate Diploma in Management': 'PGDM&PGDM-BM',
+    });
+
+    _getSelectedProgrammeValues(value) {
+        if (Array.isArray(value)) {
+            return value.map(v => String(v || '').trim()).filter(Boolean);
+        }
+
+        return String(value || '')
+            .split(';')
+            .map(v => v.trim())
+            .filter(Boolean);
+    }
+
+    _getProgramCodeForSelection(value) {
+        const selectedValue = this._getSelectedProgrammeValues(value).join(';');
+
+        return (
+            AfProgramDetailsContainerPgdm.PROGRAM_CODE_BY_SELECTION[selectedValue] ||
+            null
+        );
+    }
+
+    batchResolutionToken = 0;
+
+    async _resolveProgramAndBatch(value) {
+        const token = ++this.batchResolutionToken;
+
+        const programCode = this._getProgramCodeForSelection(value);
+
+        if (!programCode) {
+            this._buildRenderModelAll();
+            return null;
+        }
+
+        try {
+            const request = {
+                parents: [{
+                    logicalName: 'programCohort',
+                    sobject: 'ProgramCohort',
+                    fields: [
+                        'Id',
+                        'ProgramId',
+                        'Program_Code__c',
+                        'IsAcceptingApplications__c'
+                    ],
+                    filters: [
+                        {
+                            field: 'Program_Code__c',
+                            value: programCode
+                        },
+                        {
+                            field: 'IsAcceptingApplications__c',
+                            value: true
+                        }
+                    ]
+                }],
+                children: []
+            };
+
+            const response = await fetchDynamic({
+                requestJson: JSON.stringify(request)
+            });
+
+            if (token !== this.batchResolutionToken) {
+                return null;
+            }
+
+            const result = response?.programCohort;
+            const batch = Array.isArray(result)
+                ? result[0]
+                : result;
+
+            this.application.Batch__c = batch?.Id || null;
+            this.application.Program__c = batch?.ProgramId || null;
+
+            this._buildRenderModelAll();
+
+            return {
+                programId: this.application.Program__c,
+                batchId: this.application.Batch__c
+            };
+
+        } catch (error) {
+            if (token !== this.batchResolutionToken) {
+                return null;
+            }
+
+            console.error('Program/batch resolution failed', error);
+
+            return null;
+        }
+    }
     
     recordToLogical = {};
 
@@ -1391,6 +1489,16 @@ Choose the programme you wish to apply for
             this._syncSecondaryProgramPreference();
             this._cleanupHiddenFields(sectionKey);
             this._buildRenderModelAll();
+
+            if (api === 'ProgrammesInterestedIn__c') {
+                this.program.PrimarySpecialisationPreference__c = null;
+                this.program.SecondarySpecialisationPreference__c = null;
+
+                this.education.programSelection = this.program;
+
+                this._buildRenderModelAll();
+                void this._resolveProgramAndBatch(normalized);
+            }
 
             return;
         }

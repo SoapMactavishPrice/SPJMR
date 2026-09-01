@@ -1,0 +1,84 @@
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    padding: 12px;
+}
+
+.approval-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 14px;
+}
+
+.approval-table th {
+    padding: 12px 14px;
+    text-align: left;
+    font-weight: 600;
+    background-color: #f3f3f3;
+    border-bottom: 2px solid #d8dde6;
+    white-space: nowrap;
+}
+
+.approval-table td {
+    padding: 14px;
+    border-bottom: 1px solid #d8dde6;
+    vertical-align: middle;
+}
+
+.approval-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.step-name {
+    font-weight: 600;
+    min-width: 220px;
+}
+
+.empty-message {
+    text-align: center;
+    padding: 25px;
+    color: #706e6b;
+}
+
+/* Status styling */
+
+.status-submitted {
+    background: #eef4ff;
+    color: #1b5297;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.status-pending {
+    background: #fff7e6;
+    color: #8a5d00;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.status-approved {
+    background: #e8f5e9;
+    color: #2e844a;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.status-rejected {
+    background: #fde7e7;
+    color: #ba0517;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.status-recalled {
+    background: #f3e8ff;
+    color: #5b2a82;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}

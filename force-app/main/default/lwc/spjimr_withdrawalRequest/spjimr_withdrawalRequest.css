@@ -34,7 +34,29 @@
     padding: 0.65rem 1rem;
     font-size: 0.85rem;
     font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.banner-stack {
     margin-bottom: 1.25rem;
+}
+
+.banner-stack .window-banner:last-child {
+    margin-bottom: 0;
+}
+
+.status-note-label {
+    font-weight: 700;
+}
+
+.submitted-banner {
+    background-color: var(--spjimr-primary-light);
+    color: var(--spjimr-primary);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
 }
 
 .success-banner {
@@ -82,6 +104,18 @@
     margin-bottom: 0.4rem;
 }
 
+.field-label_sub {
+    font-size: 0.85rem;
+    color: var(--spjimr-muted);
+}
+
+.field-label-hint {
+    font-size: 0.75rem;
+    color: var(--spjimr-muted);
+    font-weight: 400;
+    margin-left: 0.35rem;
+}
+
 .required-mark {
     color: var(--spjimr-error);
     margin-left: 2px;
@@ -99,6 +133,13 @@
     margin-top: 0.3rem;
 }
 
+/* Conditional sub-fields nested under Reason for Withdrawal */
+.conditional-field {
+    margin-top: 0.75rem;
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--spjimr-primary-light);
+}
+
 /* Text inputs */
 .text-input {
     width: 100%;
@@ -114,7 +155,13 @@
     border-color: var(--spjimr-error);
 }
 
-/* Reason dropdown */
+.text-input_readonly {
+    background-color: #f5f5f5;
+    color: var(--spjimr-muted);
+    cursor: not-allowed;
+}
+
+/* Reason / institute dropdowns */
 .reason-select {
     width: 100%;
     box-sizing: border-box;
@@ -149,14 +196,62 @@
     min-height: 90px;
 }
 
-/* Reasons for choice multi-select */
-.reasons-choice-select {
+/* Reasons for Choice - mobile-friendly chip UI */
+.chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+    min-height: 2.25rem;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: var(--spjimr-primary-light);
+    color: var(--spjimr-primary);
+    border-radius: 999px;
+    padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    max-width: 100%;
+}
+
+.chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chip-remove {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.6);
+    color: var(--spjimr-primary);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+.chip-remove:hover {
+    background-color: #ffffff;
+}
+
+.reasons-choice-add-select {
     width: 100%;
     box-sizing: border-box;
-    padding: 0.4rem;
+    padding: 0.6rem 0.75rem;
     border: 1px solid var(--spjimr-border);
     border-radius: 4px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-family: inherit;
     background-color: #ffffff;
     color: var(--spjimr-text);
@@ -260,6 +355,10 @@
     .upload-action-btn,
     .submit-btn {
         width: 100%;
+    }
+
+    .chip {
+        font-size: 0.8rem;
     }
 }
 

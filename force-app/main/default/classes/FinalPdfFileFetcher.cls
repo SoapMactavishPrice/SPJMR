@@ -68,7 +68,7 @@ public without sharing class FinalPdfFileFetcher {
             'DOC_WORK_EXP_4',
             'DOC_WORK_EXP_5',
             'DOC_CAT_SCORE_CARD',
-           // 'DOC_GMAT_SCORE_CARD',
+            'DOC_GMAT_SCORE_CARD',
             'DOC_GMAT_ADMIT_CARD',
             'DOC_GMAT_FOCUS_SCORE_CARD',
             'DOC_ACHIEVEMENTS'   
@@ -201,7 +201,7 @@ public static List<PdfMetaWrapper> getDocumentMetadata(Id recordId) {
         'DOC_WORK_EXP_4',
         'DOC_WORK_EXP_5',
         'DOC_CAT_SCORE_CARD',
-       // 'DOC_GMAT_SCORE_CARD',
+        'DOC_GMAT_SCORE_CARD',
         'DOC_GMAT_ADMIT_CARD',
         'DOC_GMAT_FOCUS_SCORE_CARD',
         'DOC_ACHIEVEMENTS'

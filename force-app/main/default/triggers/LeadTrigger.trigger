@@ -1,5 +1,5 @@
 trigger LeadTrigger on Lead (after insert, after update,before insert, before update) {
-    
+     
    /* if (Trigger.isBefore && Trigger.isInsert) {
         LeadDuplicateHandler.checkBeforeAllDuplicates(Trigger.new);
     } */
@@ -10,7 +10,7 @@ trigger LeadTrigger on Lead (after insert, after update,before insert, before up
    if(Trigger.isBefore && Trigger.isUpdate){
     LeadTriggerHelper.populateEntranceExamPicklistOnUpdate(Trigger.oldMap,Trigger.new);
     LeadTriggerHelper.validatePhoneCodeOnEdit(Trigger.newMap,Trigger.OldMap);
-    //LeadTriggerHelper.validateStagesB2B(Trigger.newMap,Trigger.OldMap);
+    LeadTriggerHelper.validateStagesB2B(Trigger.newMap,Trigger.OldMap);
    }
     if(Trigger.isAfter && Trigger.isUpdate){
         LeadTriggerHelper.sendVerificationEmailOnUpdate(Trigger.newMap, Trigger.oldMap);

@@ -1,0 +1,69 @@
+<template>
+    <div class="slds-p-around_medium">
+
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Processing"></lightning-spinner>
+        </template>
+
+        <template if:true={isApprove}>
+            <lightning-input
+                type="checkbox"
+                label="Send for Chairperson's second-level approval"
+                checked={escalateToChairperson}
+                onchange={handleEscalateChange}>
+            </lightning-input>
+
+            <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small slds-m-bottom_medium">
+                Leave unchecked to finalize this decision yourself. Check this box to send the
+                request to the Chairperson for final approval instead.
+            </p>
+
+            <lightning-textarea
+                label="Comments"
+                required
+                value={comments}
+                onchange={handleComments}>
+            </lightning-textarea>
+
+            <div class="slds-m-top_medium slds-text-align_right">
+                <lightning-button
+                    label="Cancel"
+                    onclick={handleClose}
+                    disabled={isLoading}>
+                </lightning-button>
+                <lightning-button
+                    class="slds-m-left_small"
+                    variant="brand"
+                    label="Submit"
+                    onclick={handleSubmit}
+                    disabled={isLoading}>
+                </lightning-button>
+            </div>
+        </template>
+
+        <template if:true={isReject}>
+            <lightning-textarea
+                label="Rejection Comments"
+                required
+                value={comments}
+                onchange={handleComments}>
+            </lightning-textarea>
+
+            <div class="slds-m-top_medium slds-text-align_right">
+                <lightning-button
+                    label="Cancel"
+                    onclick={handleClose}
+                    disabled={isLoading}>
+                </lightning-button>
+                <lightning-button
+                    class="slds-m-left_small"
+                    variant="destructive-text"
+                    label="Reject"
+                    onclick={handleSubmit}
+                    disabled={isLoading}>
+                </lightning-button>
+            </div>
+        </template>
+
+    </div>
+</template>

@@ -8,8 +8,7 @@ implements Database.Batchable<SObject>, Database.Stateful {
     global LeadImportProcessBatch(Id importParentId){
         this.importParentId = importParentId;
 
-        List<Lead_Import_Parent__c> lip = [SELECT Title__c,Description__c
-        FROM Lead_Import_Parent__c WHERE Id =:importParentId LIMIT 1];
+        List<Lead_Import_Parent__c> lip = [SELECT Title__c,Description__c FROM Lead_Import_Parent__c WHERE Id =:importParentId LIMIT 1];
 
         if(!lip.isEmpty()){
             this.description = lip[0].Description__c;
@@ -57,9 +56,7 @@ implements Database.Batchable<SObject>, Database.Stateful {
         Database.BatchableContext bc
     ){
         if(importParentId!=null){
-            if(!Test.isRunningTest()){
 				update new Lead_Import_Parent__c(Id = importParentId,Status__c = 'Completed');
-            }
         }
         
     }
@@ -114,8 +111,8 @@ implements Database.Batchable<SObject>, Database.Stateful {
             WHERE Name IN :cities
         ];
         for(City__c city : cityRecords){
-            String key = city.State__c + '|' + city.Name.toLowerCase();
-            cityMap.put(key, city);
+            //String key = city.State__c + '|' + city.Name.toLowerCase();
+            cityMap.put(city.State__c + '|' + city.Name.toLowerCase(), city);
         }
         return cityMap;
     }
@@ -132,12 +129,24 @@ implements Database.Batchable<SObject>, Database.Stateful {
         Set<String> cities = new Set<String>();
 
         for(Lead_Import__c row : scope){
-            if(String.isNotBlank(row.Programme__c))   programCodes.add(row.Programme__c.trim());
-            if(String.isNotBlank(row.Country__c))     countries.add(row.Country__c.trim());
-            if(String.isNotBlank(row.State__c))        states.add(row.State__c.trim());
-            if(String.isNotBlank(row.City__c))         cities.add(row.City__c.trim());
-            if(String.isNotBlank(row.Email__c))        emails.add(row.Email__c.trim().toLowerCase());
-            if(String.isNotBlank(row.Phone__c))         phones.add(row.Phone__c.trim());
+            if(String.isNotBlank(row.Programme__c)){
+                 programCodes.add(row.Programme__c.trim());
+            }  
+            if(String.isNotBlank(row.Country__c)){
+                countries.add(row.Country__c.trim());
+            }     
+            if(String.isNotBlank(row.State__c)){
+                states.add(row.State__c.trim());
+            }        
+            if(String.isNotBlank(row.City__c)){
+                cities.add(row.City__c.trim());
+            }         
+            if(String.isNotBlank(row.Email__c)){
+                emails.add(row.Email__c.trim().toLowerCase());
+            }        
+        if(String.isNotBlank(row.Phone__c)){
+            	phones.add(row.Phone__c.trim());
+        	}         
         }
 
         Map<String, Program> programMap = buildProgramMap(programCodes);
@@ -157,15 +166,29 @@ implements Database.Batchable<SObject>, Database.Stateful {
             WHERE (Email IN :emails OR Phone IN :phones)
             AND RecordTypeId = :b2cRecordTypeId
         ]){
-            if(String.isNotBlank(l.Email)) mapEmailToLead.put(l.Email.trim().toLowerCase(), l);
-            if(String.isNotBlank(l.Phone)) mapPhoneToLead.put(l.Phone.trim(), l);
+            if(String.isNotBlank(l.Email)){
+                mapEmailToLead.put(l.Email.trim().toLowerCase(), l);
+            } 
+            if(String.isNotBlank(l.Phone)){
+                mapPhoneToLead.put(l.Phone.trim(), l);
+            } 
         }
 
         // Existing Lead_Program__c links, so we don't create duplicate program links
         Set<Id> existingLeadIds = new Set<Id>();
-        for(Lead l : mapEmailToLead.values()) existingLeadIds.add(l.Id);
-        for(Lead l : mapPhoneToLead.values()) existingLeadIds.add(l.Id);
+    for(Lead l : mapEmailToLead.values()){
+        existingLeadIds.add(l.Id);
+    } 
+    for(Lead l : mapPhoneToLead.values()){
+        existingLeadIds.add(l.Id);
+    } 
         if(!existingLeadIds.isEmpty()){
+            leadProgramKeys = buildLeadProgramKeys([
+                        SELECT Lead__c, Program__c, Email__c, Phone__c
+                        FROM Lead_Program__c
+                        WHERE Lead__c IN :existingLeadIds
+                    ]);
+            /*
             for(Lead_Program__c lp : [
                 SELECT Lead__c, Program__c,Email__c,Phone__c
                 FROM Lead_Program__c
@@ -179,6 +202,7 @@ implements Database.Batchable<SObject>, Database.Stateful {
                 }
                 leadProgramKeys.get(lp.Lead__c).add(key);
             }
+            */
         }
 
         List<Lead> leadsToInsert = new List<Lead>();
@@ -221,10 +245,12 @@ implements Database.Batchable<SObject>, Database.Stateful {
                 String phone = row.Phone__c.trim();
 
                 Lead existingLead;
-                if(mapEmailToLead.containsKey(email)) existingLead = mapEmailToLead.get(email);
-                else if(mapPhoneToLead.containsKey(phone)) existingLead = mapPhoneToLead.get(phone);
-                else if(pendingEmailToLead.containsKey(email)) existingLead = pendingEmailToLead.get(email);
-                else if(pendingPhoneToLead.containsKey(phone)) existingLead = pendingPhoneToLead.get(phone);
+                if(mapEmailToLead.containsKey(email)){
+                    existingLead = mapEmailToLead.get(email);
+                } 
+                else if(mapPhoneToLead.containsKey(phone)){existingLead = mapPhoneToLead.get(phone);} 
+                else if(pendingEmailToLead.containsKey(email)){existingLead = pendingEmailToLead.get(email);} 
+                else if(pendingPhoneToLead.containsKey(phone)){existingLead = pendingPhoneToLead.get(phone);} 
 
                 if(existingLead != null){
                     String duplicateKey = prog.Id + '|'+email+'|'+phone;
@@ -339,7 +365,9 @@ implements Database.Batchable<SObject>, Database.Stateful {
             Set<Id> newlyInsertedLeadIds = new Set<Id>();
             for(Database.SaveResult sr : leadInsertResults){
                  system.debug('Result is  '+sr.isSuccess());
-                if(sr.isSuccess()) newlyInsertedLeadIds.add(sr.getId());
+                if(sr.isSuccess()){
+                    newlyInsertedLeadIds.add(sr.getId());
+                } 
             }
           
 
@@ -438,5 +466,65 @@ implements Database.Batchable<SObject>, Database.Stateful {
         //row.Error_Message__c = message;
         importUpdateMap.put(row.Id, row);
     }
+    
+    @TestVisible
+private static Map<Id, Set<String>> buildLeadProgramKeys(List<Lead_Program__c> leadProgramRecords){
+    Map<Id, Set<String>> leadProgramKeys = new Map<Id, Set<String>>();
+    for(Lead_Program__c lp : leadProgramRecords){
+        String lpEmail = String.isBlank(lp.Email__c) ? '' : lp.Email__c.trim().toLowerCase();
+        String lpPhone = String.isBlank(lp.Phone__c) ? '' : lp.Phone__c.trim();
+        String key = lp.Program__c + '|' + lpEmail + '|' + lpPhone;
+        if(!leadProgramKeys.containsKey(lp.Lead__c)){
+            leadProgramKeys.put(lp.Lead__c, new Set<String>());
+        }
+        leadProgramKeys.get(lp.Lead__c).add(key);
+    }
+    return leadProgramKeys;
+}
+    
+    @TestVisible
+    private static Map<Id, Set<String>> buildLeadProgramKeys2(List<Lead_Program__c> leadProgramRecords){
+    Map<Id, Set<String>> leadProgramKeys = new Map<Id, Set<String>>();
+    for(Lead_Program__c lp : leadProgramRecords){
+        String lpEmail = String.isBlank(lp.Email__c) ? '' : lp.Email__c.trim().toLowerCase();
+        String lpPhone = String.isBlank(lp.Phone__c) ? '' : lp.Phone__c.trim();
+        String key = lp.Program__c + '|' + lpEmail + '|' + lpPhone;
+        if(!leadProgramKeys.containsKey(lp.Lead__c)){
+            leadProgramKeys.put(lp.Lead__c, new Set<String>());
+        }
+        leadProgramKeys.get(lp.Lead__c).add(key);
+    }
+    return leadProgramKeys;
+}
+    @TestVisible
+    private static Lead buildNewLead(
+    String description,
+    String title,
+    String firstName,
+    String lastName,
+    Country_Master__c country,
+    State__c state,
+    City__c city
+) {
+    Lead newLead = new Lead();
 
+    newLead.Description = description;
+    newLead.Title = title;
+    newLead.Send_Welcome_and_Verification_Email__c = false;
+
+    newLead.FirstName = firstName;
+    newLead.LastName = lastName;
+
+    newLead.Country_Master_backend__c = country==null?null:country.Id;
+    newLead.State_Master__c = state==null?null:state.Id;
+    newLead.District_City__c = city==null?null:city.Id;
+
+    newLead.LeadSource = RAW_DATA_SOURCE;
+    newLead.Status = RAW_DATA_SOURCE;
+
+
+
+    return newLead;
+}
+ 
 }

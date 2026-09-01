@@ -108,10 +108,15 @@ export default class InterviewBookingCsvImporter extends LightningElement {
     }
 
     downloadCsv(fileName, rows) {
-        const link = this.template.querySelector('[data-id="sample-download"]');
-        link.href = `data:text/csv;charset=utf-8,${encodeURIComponent(`${rows.join('\n')}\n`)}`;
-        link.download = fileName;
-        link.click();
+        const csvContent = `${rows.join('\n')}\n`;
+        const blob = new Blob([csvContent], { type: 'text/plain' });
+        const blobUrl = URL.createObjectURL(blob);
+        const anchorTag = document.createElement('a');
+
+        anchorTag.setAttribute('href', blobUrl);
+        anchorTag.setAttribute('download', fileName);
+        anchorTag.click();
+        URL.revokeObjectURL(blobUrl);
     }
 
     async startImport() {
@@ -140,7 +145,7 @@ export default class InterviewBookingCsvImporter extends LightningElement {
                 notifyInterviewers: this.notifyInterviewers,
                 emailErrorCsv: this.emailReports
             });
-            this.toast('Success', 'Import started. You will be notified when it completes.', 'success');
+            this.toast('Import started', 'Import started. You will be notified when it completes.', 'info');
         } catch (error) {
             this.isLoading = false;
             this.toast('Error', error?.body?.message || error?.message || 'Unable to start the import.', 'error');
@@ -172,9 +177,20 @@ export default class InterviewBookingCsvImporter extends LightningElement {
                 contentVersionId: message.contentVersionId,
                 url: `/sfc/servlet.shepherd/version/download/${message.contentVersionId}`
             }];
-            this.toast('Import completed', 'An error CSV was generated.', 'warning');
+        }
+        this.showCompletionToast(message);
+    }
+
+    showCompletionToast(message) {
+        const successCount = Number(message.successCount || 0);
+        const failedCount = Number(message.failedCount || 0);
+
+        if (failedCount > 0 && successCount === 0) {
+            this.toast('Import failed', `Interview Booking import failed. Successful: 0, Failed: ${failedCount}.`, 'error');
+        } else if (failedCount > 0) {
+            this.toast('Import partially completed', `Interview Booking import partially completed. Successful: ${successCount}, Failed: ${failedCount}.`, 'warning');
         } else {
-            this.toast('Success', 'Import completed successfully.', 'success');
+            this.toast('Import successful', `Interview Booking import completed successfully. Successful: ${successCount}, Failed: 0.`, 'success');
         }
     }
 

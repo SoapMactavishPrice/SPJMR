@@ -1,0 +1,70 @@
+<template>
+    <lightning-card title="Deferment Approval" icon-name="standard:approval">
+
+        <template if:true={isLoading}>
+            <lightning-spinner
+                alternative-text="Processing..."
+                size="medium">
+            </lightning-spinner>
+        </template>
+
+        <div class="slds-p-around_medium">
+
+            <!-- Current approval role -->
+            <template if:true={currentRole}>
+                <div class="slds-m-bottom_medium">
+                    <p class="slds-text-title">
+                        Current Approval Level
+                    </p>
+
+                    <p class="slds-text-heading_small">
+                        {currentRole}
+                    </p>
+                </div>
+            </template>
+
+            <!-- Not current approver -->
+            <template if:false={isApprover}>
+                <div class="slds-notify slds-notify_alert slds-theme_info">
+                    <span>
+                        You are not the current approver for this Deferment Request.
+                    </span>
+                </div>
+            </template>
+
+            <!-- Approver UI -->
+            <template if:true={isApprover}>
+
+                <lightning-textarea
+                    name="remarks"
+                    label="Remarks"
+                    value={remarks}
+                    onchange={handleRemarksChange}
+                    placeholder="Enter your remarks"
+                    required={isReject}>
+                </lightning-textarea>
+
+                <div class="slds-m-top_medium slds-grid slds-grid_align-end">
+
+                    <lightning-button
+                        label="Reject"
+                        variant="destructive"
+                        class="slds-m-right_small"
+                        onclick={handleReject}
+                        disabled={isLoading}>
+                    </lightning-button>
+
+                    <lightning-button
+                        label="Approve"
+                        variant="brand"
+                        onclick={handleApprove}
+                        disabled={isLoading}>
+                    </lightning-button>
+
+                </div>
+
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

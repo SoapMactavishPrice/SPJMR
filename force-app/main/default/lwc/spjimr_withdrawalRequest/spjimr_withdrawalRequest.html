@@ -1,32 +1,14 @@
 <template>
 
-    <!-- Checking eligibility -->
-    <template if:true={isCheckingEligibility}>
+    <!-- Loading: eligibility + tracker both resolving -->
+    <template if:true={isLoadingAny}>
         <div class="eligibility-checking">
-            Checking your withdrawal window...
+            Loading your withdrawal status...
         </div>
     </template>
 
-    <!-- Outside the active withdrawal window -->
-    <template if:true={showUnavailableMessage}>
-        <div class="unavailable-box">
-            {eligibilityMessage}
-        </div>
-    </template>
+    <template if:false={isLoadingAny}>
 
-    <!-- Within the active withdrawal window -->
-    <template if:true={showWithdrawalForm}>
-
-    <div class="withdrawal-form">
-
-        <!-- Window info -->
-        <template if:true={eligibilityMessage}>
-            <div class="window-banner">
-                {eligibilityMessage}
-            </div>
-        </template>
-
-        <!-- Success Message -->
         <template if:true={submitSuccess}>
             <div class="success-banner">
                 <span class="success-check">✓</span>
@@ -34,320 +16,354 @@
             </div>
         </template>
 
-        <!-- Header -->
-        <div class="withdrawal-header">
-            Withdrawal Request
-        </div>
+        <!-- In-progress request: tracker only (Applied, PO review, etc.) -->
+        <template if:true={showWithdrawalTracker}>
 
-        <!-- Reason for Withdrawal + Bank Account Details -->
-        <div class="field-row">
+            <div class="submitted-banner">
+                Your withdrawal request has been submitted. Track its status below.
+            </div>
 
-            <div class="field-block field-block_half">
-                <label class="field-label">
-                    Reason for Withdrawal
-                    <span class="required-mark">*</span>
-                </label>
+            <div class="tracker-card">
+                <div class="tracker-header">Withdrawal Status Tracker</div>
 
-                <select
-                    class={reasonFieldClass}
-                    value={reason}
-                    onchange={handleReasonChange}>
-                    <option value="">Select reason</option>
-                    <template for:each={reasonOptions} for:item="option">
-                        <option key={option.value} value={option.value}>{option.label}</option>
+                <div class="status-pill">{trackerStatusLabel}</div>
+
+                <div class="tracker-row">
+                    <template for:each={trackerSteps} for:item="step">
+                        <div class="tracker-step" key={step.key}>
+                            <div class={step.circleClass}>{step.number}</div>
+                            <div class={step.labelClass}>{step.label}</div>
+                        </div>
                     </template>
-                </select>
-
-                <template if:true={reasonHasError}>
-                    <p class="field-error">
-                        This field is required.
-                    </p>
-                </template>
-            </div>
-
-            <div class="field-block field-block_half">
-                <label class="field-label">
-                    Bank Account Details for Refund
-                </label>
-
-                <textarea
-                    class="bank-textarea"
-                    placeholder="Account no., IFSC, Bank name..."
-                    value={bankDetails}
-                    onchange={handleBankDetailsChange}>
-                </textarea>
-            </div>
-
-        </div>
-
-        <!-- Document Upload -->
-        <div class="field-block">
-            <label class="field-label">
-                Document
-            </label>
-
-            <div class="upload-box">
-
-                <p class="upload-title">
-                    Upload Document
-                </p>
-
-                <label class="upload-browse">
-                    Browse Files
-
-                    <input
-                        type="file"
-                        data-field="document"
-                        accept=".pdf,.jpg,.jpeg"
-                        onchange={handleFileChange}
-                        class="upload-input"
-                    />
-                </label>
-
-                <p class="upload-hint">
-                    Must be .pdf, .jpg file and not exceeding
-                    <strong>10mb</strong> file size
-                </p>
-
-                <template if:true={documentFile}>
-                    <p class="upload-filename">
-                        {documentFile.name}
-                    </p>
-                </template>
-
-            </div>
-        </div>
-
-        <!-- Name + Application ID -->
-        <div class="field-row">
-
-            <div class="field-block field-block_half">
-                <label class="field-label">
-                    Your Name
-                    <span class="required-mark">*</span>
-                </label>
-
-                <input
-                    type="text"
-                    class={nameFieldClass}
-                    placeholder="Your Name"
-                    value={studentName}
-                    onchange={handleNameChange}
-                />
-
-                <template if:true={nameHasError}>
-                    <p class="field-error">
-                        This field is required.
-                    </p>
-                </template>
-            </div>
-
-            <div class="field-block field-block_half">
-                <label class="field-label">
-                    Your Application ID
-                    <span class="required-mark">*</span>
-                </label>
-
-                <input
-                    type="text"
-                    class={applicationIdFieldClass}
-                    placeholder="Application ID"
-                    value={applicationId}
-                    onchange={handleApplicationIdChange}
-                />
-
-                <template if:true={applicationIdHasError}>
-                    <p class="field-error">
-                        This field is required.
-                    </p>
-                </template>
-            </div>
-
-        </div>
-
-        <!-- Roll Number + Registered Email -->
-        <div class="field-row">
-
-            <div class="field-block field-block_half">
-                <label class="field-label">
-                    Your Roll Number
-                    <span class="required-mark">*</span>
-                </label>
-
-                <input
-                    type="text"
-                    class={rollNumberFieldClass}
-                    placeholder="Roll Number"
-                    value={rollNumber}
-                    onchange={handleRollNumberChange}
-                />
-
-                <template if:true={rollNumberHasError}>
-                    <p class="field-error">
-                        This field is required.
-                    </p>
-                </template>
-            </div>
-
-            <div class="field-block field-block_half">
-                <label class="field-label">
-                    Your Registered Email ID
-                    <span class="required-mark">*</span>
-                </label>
-
-                <input
-                    type="email"
-                    class={registeredEmailFieldClass}
-                    placeholder="Registered Email"
-                    value={registeredEmail}
-                    onchange={handleRegisteredEmailChange}
-                />
-
-                <template if:true={registeredEmailHasError}>
-                    <p class="field-error">
-                        {registeredEmailErrorMessage}
-                    </p>
-                </template>
-            </div>
-
-        </div>
-
-        <!-- SPJIMR Email + Reasons for Choice -->
-        <div class="field-row">
-
-            <div class="field-block field-block_half">
-                <label class="field-label">
-                    Your SPJIMR Email ID
-                    <span class="required-mark">*</span>
-                </label>
-
-                <input
-                    type="email"
-                    class={spjimrEmailFieldClass}
-                    placeholder="SPJIMR Email"
-                    value={spjimrEmail}
-                    onchange={handleSpjimrEmailChange}
-                />
-
-                <template if:true={spjimrEmailHasError}>
-                    <p class="field-error">
-                        {spjimrEmailErrorMessage}
-                    </p>
-                </template>
-            </div>
-
-            <div class="field-block field-block_half">
-                <label class="field-label">
-                    Reasons for Choice (top 2)
-                </label>
-
-                <select
-                    class="reasons-choice-select"
-                    multiple
-                    size="4"
-                    onchange={handleReasonsChoiceChange}>
-                    <template for:each={reasonsChoiceOptions} for:item="option">
-                        <option
-                            key={option.value}
-                            value={option.value}
-                            selected={option.isSelected}>
-                            {option.label}
-                        </option>
-                    </template>
-                </select>
-
-                <p class="field-hint">
-                    Hold Ctrl / Cmd to select up to 2 reasons.
-                </p>
-
-                <template if:true={reasonsChoiceHasError}>
-                    <p class="field-error">
-                        You can select a maximum of 2 reasons.
-                    </p>
-                </template>
-            </div>
-
-        </div>
-
-        <!-- Any Other Information -->
-        <div class="field-block">
-            <label class="field-label">
-                Any Other Information
-            </label>
-
-            <textarea
-                class="other-info-textarea"
-                placeholder="Additional information..."
-                value={otherInformation}
-                onchange={handleOtherInformationChange}>
-            </textarea>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-row">
-
-            <button
-                type="button"
-                class="upload-action-btn"
-                onclick={handleUploadClick}>
-                Upload
-            </button>
-
-            <button
-                type="button"
-                class="submit-btn"
-                onclick={handleSubmit}
-                disabled={isSubmitting}>
-                Submit Request
-            </button>
-
-        </div>
-
-    </div>
-
-    <div class="tracker-card">
-        <div class="tracker-header">Withdrawal Status Tracker</div>
-
-        <div class="status-pill">{trackerStatusLabel}</div>
-
-        <div class="tracker-row">
-            <template for:each={trackerSteps} for:item="step">
-                <div class="tracker-step" key={step.key}>
-                    <div class={step.circleClass}>{step.number}</div>
-                    <div class={step.labelClass}>{step.label}</div>
                 </div>
-            </template>
-        </div>
 
-        <div class="tracker-table-wrap">
-            <table class="tracker-table">
-                <thead>
-                    <tr>
-                        <th>Request No.</th>
-                        <th>Submitted Date</th>
-                        <th>Name</th>
-                        <th>Application ID</th>
-                        <th>Reason</th>
-                        <th>Status</th>
-                        <th>Approved / Rejected</th>
-                        <th>Remark</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{trackerRequestNumberDisplay}</td>
-                        <td>{trackerSubmittedDateDisplay}</td>
-                        <td>{trackerNameDisplay}</td>
-                        <td>{trackerApplicationIdDisplay}</td>
-                        <td>{trackerReasonDisplay}</td>
-                        <td><span class="status-badge">{trackerStatusBadgeLabel}</span></td>
-                        <td>{trackerApprovedRejectedDisplay}</td>
-                        <td>{trackerRemarkDisplay}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+                <div class="tracker-table-wrap">
+                    <table class="tracker-table">
+                        <thead>
+                            <tr>
+                                <th>Request No.</th>
+                                <th>Submitted Date</th>
+                                <th>Name</th>
+                                <th>Application ID</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Approved / Rejected</th>
+                                <th>Remark</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{trackerRequestNumberDisplay}</td>
+                                <td>{trackerSubmittedDateDisplay}</td>
+                                <td>{trackerNameDisplay}</td>
+                                <td>{trackerApplicationIdDisplay}</td>
+                                <td>{trackerReasonDisplay}</td>
+                                <td><span class="status-badge">{trackerStatusBadgeLabel}</span></td>
+                                <td>{trackerApprovedRejectedDisplay}</td>
+                                <td>{trackerRemarkDisplay}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </template>
+
+        <template if:true={showUnavailableMessage}>
+            <div class="unavailable-box">
+                {eligibilityMessage}
+            </div>
+        </template>
+
+        <template if:true={showResubmitUnavailableMessage}>
+            <div class="unavailable-box">
+                {eligibilityMessage}
+            </div>
+        </template>
+
+        <template if:true={showWithdrawalForm}>
+
+            <div class="withdrawal-form">
+
+                <div class="banner-stack">
+                    <template if:true={eligibilityMessage}>
+                        <div class="window-banner">
+                            {eligibilityMessage}
+                        </div>
+                    </template>
+
+                    <template if:true={showRecalledStatusNote}>
+                        <div class="window-banner">
+                            Your withdrawal request has been recalled.
+                        </div>
+                    </template>
+
+                    <template if:true={showRejectedStatusNote}>
+                        <div class="window-banner">
+                            Your withdrawal request has been rejected. You can apply again.
+                        </div>
+                        <template if:true={hasRejectionRemark}>
+                            <div class="window-banner">
+                                <span class="status-note-label">Rejection remarks:</span>
+                                {rejectionRemarkDisplay}
+                            </div>
+                        </template>
+                    </template>
+                </div>
+
+                <div class="withdrawal-header">
+                    Withdrawal Request
+                </div>
+
+                <!-- Reason for Withdrawal + Bank Account Details -->
+                <div class="field-row">
+
+                    <div class="field-block field-block_half">
+                        <label class="field-label">
+                            Reason for Withdrawal
+                            <span class="required-mark">*</span>
+                        </label>
+
+                        <select
+                            class={reasonFieldClass}
+                            value={reason}
+                            onchange={handleReasonChange}>
+                            <option value="">Select reason</option>
+                            <template for:each={reasonOptions} for:item="option">
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            </template>
+                        </select>
+
+                        <template if:true={reasonHasError}>
+                            <p class="field-error">This field is required.</p>
+                        </template>
+
+                        <template if:true={showOtherReasonField}>
+                            <div class="conditional-field">
+                                <label class="field-label field-label_sub">
+                                    Please specify
+                                    <span class="required-mark">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    class={otherReasonFieldClass}
+                                    placeholder="Please specify your reason"
+                                    value={otherReasonText}
+                                    onchange={handleOtherReasonChange}
+                                />
+                                <template if:true={otherReasonHasError}>
+                                    <p class="field-error">This field is required.</p>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template if:true={showInstituteField}>
+                            <div class="conditional-field">
+                                <label class="field-label field-label_sub">
+                                    Which institute are you joining?
+                                    <span class="required-mark">*</span>
+                                </label>
+                                <select
+                                    class={instituteFieldClass}
+                                    value={instituteChoice}
+                                    onchange={handleInstituteChange}>
+                                    <option value="">Select institute</option>
+                                    <template for:each={instituteOptions} for:item="option">
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                    </template>
+                                </select>
+                                <template if:true={instituteHasError}>
+                                    <p class="field-error">This field is required.</p>
+                                </template>
+
+                                <template if:true={showOtherInstituteField}>
+                                    <div class="conditional-field">
+                                        <label class="field-label field-label_sub">
+                                            Please specify
+                                            <span class="required-mark">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            class={otherInstituteFieldClass}
+                                            placeholder="Please specify the institute"
+                                            value={otherInstituteText}
+                                            onchange={handleOtherInstituteChange}
+                                        />
+                                        <template if:true={otherInstituteHasError}>
+                                            <p class="field-error">This field is required.</p>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="field-block field-block_half">
+                        <label class="field-label">
+                            Bank Account Details for Refund
+                        </label>
+
+                        <textarea
+                            class="bank-textarea"
+                            placeholder="Account no., IFSC, Bank name..."
+                            value={bankDetails}
+                            onchange={handleBankDetailsChange}>
+                        </textarea>
+                    </div>
+
+                </div>
+
+                <!-- Document Upload -->
+                <div class="field-block">
+                    <label class="field-label">
+                        Document
+                    </label>
+
+                    <div class="upload-box">
+                        <p class="upload-title">
+                            Upload Document
+                        </p>
+
+                        <label class="upload-browse">
+                            Browse Files
+                            <input
+                                type="file"
+                                data-field="document"
+                                accept=".pdf,.jpg,.jpeg"
+                                onchange={handleFileChange}
+                                class="upload-input"
+                            />
+                        </label>
+
+                        <p class="upload-hint">
+                            Must be .pdf, .jpg file and not exceeding
+                            <strong>10mb</strong> file size
+                        </p>
+
+                        <template if:true={documentFile}>
+                            <p class="upload-filename">
+                                {documentFile.name}
+                            </p>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Name + Application ID (auto-populated, read-only) -->
+                <div class="field-row">
+                    <div class="field-block field-block_half">
+                        <label class="field-label">
+                            Your Name
+                            <span class="required-mark">*</span>
+                        </label>
+                        <input type="text" class="text-input text-input_readonly" value={studentName} readonly />
+                    </div>
+
+                    <div class="field-block field-block_half">
+                        <label class="field-label">
+                            Your Application ID
+                            <span class="required-mark">*</span>
+                        </label>
+                        <input type="text" class="text-input text-input_readonly" value={applicationId} readonly />
+                    </div>
+                </div>
+
+                <!-- Roll Number + Registered Email (auto-populated, read-only) -->
+                <div class="field-row">
+                    <div class="field-block field-block_half">
+                        <label class="field-label">
+                            Your Roll Number
+                            <span class="required-mark">*</span>
+                        </label>
+                        <input type="text" class="text-input text-input_readonly" value={rollNumber} readonly />
+                    </div>
+
+                    <div class="field-block field-block_half">
+                        <label class="field-label">
+                            Your Registered Email ID
+                            <span class="required-mark">*</span>
+                        </label>
+                        <input type="email" class="text-input text-input_readonly" value={registeredEmail} readonly />
+                    </div>
+                </div>
+
+                <!-- SPJIMR Email (auto-populated, read-only) + Reasons for Choice -->
+                <div class="field-row">
+                    <div class="field-block field-block_half">
+                        <label class="field-label">
+                            Your SPJIMR Email ID
+                            <span class="required-mark">*</span>
+                        </label>
+                        <input type="email" class="text-input text-input_readonly" value={spjimrEmail} readonly />
+                    </div>
+
+                    <div class="field-block field-block_half">
+                        <label class="field-label">
+                            Reasons for Choice
+                            <span class="required-mark">*</span>
+                            <span class="field-label-hint">(select exactly 2)</span>
+                        </label>
+
+                        <div class="chips-row">
+                            <template for:each={reasonsChoiceChips} for:item="chip">
+                                <span class="chip" key={chip.value}>
+                                    <span class="chip-label">{chip.label}</span>
+                                    <button
+                                        type="button"
+                                        class="chip-remove"
+                                        data-value={chip.value}
+                                        onclick={handleReasonsChoiceRemove}
+                                        aria-label="Remove">
+                                        &times;
+                                    </button>
+                                </span>
+                            </template>
+                        </div>
+
+                        <template if:false={reasonsChoiceAtMax}>
+                            <select class="reasons-choice-add-select" onchange={handleReasonsChoiceAdd}>
+                                <option value="">{reasonsChoiceRemainingLabel}</option>
+                                <template for:each={availableReasonsChoiceOptions} for:item="option">
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                </template>
+                            </select>
+                        </template>
+
+                        <template if:true={reasonsChoiceHasError}>
+                            <p class="field-error">Please select exactly 2 reasons.</p>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Any Other Information -->
+                <div class="field-block">
+                    <label class="field-label">
+                        Any Other Information
+                    </label>
+                    <textarea
+                        class="other-info-textarea"
+                        placeholder="Additional information..."
+                        value={otherInformation}
+                        onchange={handleOtherInformationChange}>
+                    </textarea>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-row">
+                    <button type="button" class="upload-action-btn" onclick={handleUploadClick}>
+                        Upload
+                    </button>
+                    <button
+                        type="button"
+                        class="submit-btn"
+                        onclick={handleSubmit}
+                        disabled={isSubmitting}>
+                        Submit Request
+                    </button>
+                </div>
+
+            </div>
+
+        </template>
 
     </template>
 

@@ -4,11 +4,16 @@
     max-width: 100%;
     background: #fff;
     border-radius: 4px;
-    height:550px;
+    height: 550px;
 
-    /* 🔥 FIX: allow hover card to escape */
+    /* Sticky-header fix: container is now a column flex box so the
+       toolbar keeps its natural height and .schedule-content fills
+       the rest. The hover card uses position: fixed, so it still
+       escapes this ancestor regardless of overflow. */
+    display: flex;
+    flex-direction: column;
     overflow-x: hidden;
-    overflow-y: visible;
+    overflow-y: hidden;
 }
 
 .schedule-header-bar {
@@ -129,22 +134,45 @@
     font-size: 14px;
 }
 
+/* Sticky-header fix: .schedule-content is the flex area between the
+   toolbar and the bottom of the card. It fills remaining height and
+   clips so only .calendar-grid scrolls internally. */
+.schedule-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 /* Week / Day grid */
 .calendar-grid {
-    overflow-x: auto;
-    overflow-y: visible;
-    padding: 16px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    /* Sticky-header fix: no top padding here — top padding on a
+       scroll container sits inside the scrollable region and lets
+       content slide up past a sticky child. Top spacing is instead
+       applied as padding-top on .grid-header itself (see below). */
+    padding: 0 16px 16px 16px;
 }
 
 .grid-header {
+    /* Sticky-header fix: pin the day/date row to the top of the
+       .calendar-grid scroll container. */
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding-top: 16px;
     display: grid;
     grid-template-columns: 80px repeat(var(--num-days, 7), 1fr);
     gap: 0;
-    background: transparent;
+    background: #fff;
     font-size: 13px;
     font-weight: 600;
     border-top: 1px solid #f0f0f0;
     border-left: 1px solid #f0f0f0;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .time-col-header {

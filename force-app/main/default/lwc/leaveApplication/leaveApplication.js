@@ -2,6 +2,7 @@ import { LightningElement } from 'lwc';
 import getSessions from '@salesforce/apex/LeaveRequestController.getSessions';
 import saveLeaveRequest from '@salesforce/apex/LeaveRequestController.saveLeaveRequest';
 import uploadFiles from '@salesforce/apex/LeaveRequestController.uploadFiles';
+import getBatchDateRange from '@salesforce/apex/LeaveRequestController.getBatchDateRange';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class LeaveApplication extends LightningElement {
@@ -20,6 +21,11 @@ export default class LeaveApplication extends LightningElement {
     errorMessage = '';
 
     uploadedFiles = [];
+
+    // Batch Start/End Date from student's ProgramCohort
+    batchStartDate = '';
+    batchEndDate = '';
+    hasBatchDates = false;
 
     // Lightbox properties — Image
     showLightbox = false;
@@ -74,6 +80,39 @@ export default class LeaveApplication extends LightningElement {
     // Getter for preview section visibility
     get hasUploadedFiles() {
         return this.uploadedFiles.length > 0;
+    }
+
+    connectedCallback() {
+        getBatchDateRange()
+            .then((result) => {
+                if (result && result.hasBatchDates) {
+                    this.hasBatchDates = true;
+                    this.batchStartDate = result.batchStartDate;
+                    this.batchEndDate = result.batchEndDate;
+                }
+            })
+            .catch((error) => {
+                console.error('getBatchDateRange error:', error);
+            });
+    }
+
+    /**
+     * Returns true if dateStr (YYYY-MM-DD) is within batch start/end (inclusive).
+     * Skips check when batch dates are unavailable.
+     */
+    isWithinBatchDates(dateStr) {
+        if (!this.hasBatchDates || !dateStr) {
+            return true;
+        }
+        return dateStr >= this.batchStartDate && dateStr <= this.batchEndDate;
+    }
+
+    showBatchDateError() {
+        this.errorMessage =
+            `Leave dates must be between batch start date (${this.batchStartDate}) and batch end date (${this.batchEndDate}).`;
+        setTimeout(() => {
+            this.errorMessage = '';
+        }, 3000);
     }
 
     triggerFileUpload() {
@@ -208,12 +247,12 @@ handlePdfClick(event) {
         try {
             const selected = event.target.value;
             if (!selected) return;
-    
-            if (selected < this.todayDateString) {
+
+            if (!this.isWithinBatchDates(selected)) {
                 this.fromDateOnly  = '';
+                this.fromDate      = '';
                 event.target.value = '';
-                this.errorMessage  = 'From date cannot be in the past.';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
+                this.showBatchDateError();
                 return;
             }
     
@@ -263,12 +302,12 @@ handlePdfClick(event) {
         try {
             const selected = event.target.value;
             if (!selected) return;
-    
-            if (selected < this.todayDateString) {
-                this.errorMessage  = 'To date cannot be in the past.';
+
+            if (!this.isWithinBatchDates(selected)) {
                 this.toDateOnly    = '';
+                this.toDate        = '';
                 event.target.value = '';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
+                this.showBatchDateError();
                 return;
             }
     
@@ -355,18 +394,11 @@ handlePdfClick(event) {
             return;
         }
         
-        // Past date guard
-        if (this.fromDate && this.fromDate.slice(0, 10) < this.todayDateString) {
-            this.errorMessage = 'From date cannot be in the past.';
-            this.fromDate = '';
-            setTimeout(() => { this.errorMessage = ''; }, 3000);
-            return;
-        }
-        
-        if (this.toDate && this.toDate.slice(0, 10) < this.todayDateString) {
-            this.errorMessage = 'To date cannot be in the past.';
-            this.toDate = '';
-            setTimeout(() => { this.errorMessage = ''; }, 3000);
+        // Past date guard removed — From/To may be in the past
+
+        // Batch date range guard — leave From/To must fall within batch start/end
+        if (!this.isWithinBatchDates(this.fromDateOnly) || !this.isWithinBatchDates(this.toDateOnly)) {
+            this.showBatchDateError();
             return;
         }
 

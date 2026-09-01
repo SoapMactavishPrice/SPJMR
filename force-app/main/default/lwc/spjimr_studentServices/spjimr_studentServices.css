@@ -49,3 +49,9 @@
     border: 1px solid var(--spjimr-border);
     padding: 1.5rem;
 }
+
+.ss-loading {
+    color: #6b6b6b;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+}

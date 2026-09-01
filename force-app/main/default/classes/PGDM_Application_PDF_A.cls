@@ -22,6 +22,8 @@ public class PGDM_Application_PDF_A {
     public List<Work_Experience__c> WorkExpList{ get;set;}
     public List<Work_Experience__c> PreviousWorkExpList { get; set; }
     public List<Work_Experience__c> WorkExpLastestList{ get;set;}
+    public List<Versatility__c> VersatilityList { get; set; }
+    public List<Versatility__c> VersatilityListsize{ get;set;}
     public Competitive_Exam_Details__c CompExamDetailCAT{get;set;}
     public Competitive_Exam_Details__c CompExamDetailGMAT{get;set;}
     public Competitive_Exam_Details__c CompExamDetailGMATFocusEdition{get;set;}
@@ -125,15 +127,21 @@ public class PGDM_Application_PDF_A {
         
         system.debug('Stage 1');
         
-        quo=[SELECT Id,Name,Application_Number__c,HasExamScores__c,CompetitiveExams__c,PlannedExamDate__c,Batch__r.name,HasWorkExperience__c,ShortTermLongTermGoal__c,AdditonalInformationOnSelf__c,ChoiceOfEssay__c,Essay__c,ReferralName__c,
+        quo=[SELECT Id,Name,HasExamScores__c,CompetitiveExams__c,PlannedExamDate__c,Batch__r.name,HasWorkExperience__c,ShortTermLongTermGoal__c,AdditonalInformationOnSelf__c,ChoiceOfEssay__c,Essay__c,ReferralName__c,
              OtherProgrammeApplied__c,OtherProgrammeRegNo__c,RequiredFilesUploaded__c,Batch__r.CalculateAgeAsOf__c,HasCareerBreak__c,CareerBreakReason__c,
              TotalIndustryExperience__c,HasSabbatical__c,SabbaticalReason__c,ApplyingUnderRestartInitiative__c,TakingSabbatical__c,AnyMedicalIssue__c,
              MedicalIssueDetails__c,UnderAnyMedication__c,MedicationDetails__c,ReferralSource__c,OtherReferralSource__c,InterestedInOtherProgram__c,
              OtherProgramsInterestedIn__c,AppliedInPastYear__c,ProgramsAppliedInPastYear__c,OtherProgramsAppliedInPastYear__c,DeclarationDate__c,
-             PriorWorkResponsibilities__c
+             PriorWorkResponsibilities__c,AdditionalWorkExperienceInMonths__c,OverallVersatilityRating__c,PersonalResponsibilityLevel__c,
+             PersonalResponsibilityDescription__c,ProfessionalResponsibilityLevel__c,ProfessionalResponsibilityDescription__c,
+             ReferralSourceMulti__c
              FROM Application__c Where id=: qid];
         try{
-        ProgramDetails=[Select id,name,ProgramElegibilityAcceptance__c
+        ProgramDetails=[Select id,name,ProgramElegibilityAcceptance__c,ProgrammesInterestedIn__c,PrimaryProgramPreference__c,SecondaryProgramPreference__c,
+                        PrimarySpecialisationPreference__c,SecondarySpecialisationPreference__c,Reasons_I_have_Specialization_1__c,Reasons_I_have_Specialization_2__c,
+                        OtherSpecialisation1InterestReason__c,OtherSpecialisation2InterestReason__c,
+                        PrimarySpecialisationPreference__r.Specialisation_Name__r.Name,SecondarySpecialisationPreference__r.Specialisation_Name__r.Name,
+                        AreaOfInterest__c,ReasonsForAreaOfInterest__c
             from Program_Detail__c  where Application__c=: qid];
 
         } catch (Exception e) {
@@ -148,7 +156,8 @@ public class PGDM_Application_PDF_A {
                     OtherFatherOccupation__c,OtherMotherOccupation__c,OtherGuardianOccupation__c,Corr_Ind_Pincode__c,Corr_Ind_Pincode__r.name,Perm_Ind_Pincode__c,Perm_Ind_Pincode__r.name,
                     Other_Corr_City__c,Other_Perm_City__c,Is_Permanent_Same__c,Marital_Status__c,Name_Of_Spouse__c,Contact_No_of_Spouse__c,Category__c,Nationality__c,
                     HavePassport__c,PassportNumber__c,AadhaarCardNumber__c,FormattedAge__c,GuardianRelationship__c,
-                    Corr_Ind_City__r.Name,Perm_Ind_City__r.Name,Other_Corr_Ind_City__c,Other_Perm_Ind_City__c,OtherCategory__c
+                    Corr_Ind_City__r.Name,Perm_Ind_City__r.Name,Other_Corr_Ind_City__c,Other_Perm_Ind_City__c,OtherCategory__c,HaveAadhaar__c,
+                    Indian_Origin_Card_IOC__c,StudyInIndiaRegNo__c
                     
                     FROM Personal_Detail__c where Application__c=: qid limit 1];
         } catch (Exception e) {
@@ -164,14 +173,14 @@ public class PGDM_Application_PDF_A {
         }
         try{
             AcaDetailX=[SELECT Id,Name,Application__c,School_Institute__c,Board_University__c,MonthAndYearOfPassingFormula__c,Marking_Scheme__c,Percentage__c,Maximum_Marks__c,
-                        Obtained_Marks__c,Conversion_Factor__c,OtherState__c,Other_Board_University__c,ConversionFormula__c
+                        Obtained_Marks__c,Conversion_Factor__c,OtherState__c,Other_Board_University__c,ConversionFormula__c,Examination_ID__c
                         FROM Academic_Detail__c where Application__c=: qid  and Name = '10th' limit 1];
         } catch (Exception e) {
             AcaDetailX = new Academic_Detail__c();
         }
         try{
             AcaDetailXII=[SELECT Id,Name,Application__c,School_Institute__c,Board_University__c,MonthAndYearOfPassingFormula__c,Marking_Scheme__c,Percentage__c,Maximum_Marks__c,
-                          Obtained_Marks__c,Conversion_Factor__c,OtherState__c,Other_Board_University__c,ConversionFormula__c
+                          Obtained_Marks__c,Conversion_Factor__c,OtherState__c,Other_Board_University__c,ConversionFormula__c,Examination_ID__c
                           FROM Academic_Detail__c where Application__c=: qid  and Name = '12th' limit 1];
         } catch (Exception e) {
             AcaDetailXII = new Academic_Detail__c();
@@ -187,7 +196,7 @@ public class PGDM_Application_PDF_A {
             AcaDetailGrad=[SELECT Id,Name,Application__c,MonthAndYearOfPassingFormula__c,School_Institute__c,Board_University__c,Degree__c,Mode_of_Study__c,Specialization_Name__c,State__c,
                            Marking_Scheme__c,Pattern_of_Examination__c,Maximum_Marks__c,Obtained_Marks__c,College__c,College__r.name,OtherCollege__c,OtherDegree__c,
                            College__r.CollegeName__c,University__r.UniversityName__c,State__r.Name,OtherUniversity__c,Percentage__c,Degree_Type__c,MonthAndYearOfCommencementFormula__c,
-                           Conversion_Factor__c,OtherState__c,ConversionFormula__c
+                           Conversion_Factor__c,OtherState__c,ConversionFormula__c,InstituteCity__c,DegreeStatus__c
                            FROM Academic_Detail__c where Application__c=: qid  and Name = 'UG' limit 1]; 
         } catch (Exception e) {
             AcaDetailGrad = new Academic_Detail__c();
@@ -250,7 +259,7 @@ public class PGDM_Application_PDF_A {
         }
         try{
             GraduationDSW9=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Academic_Detail__c=: AcaDetailGrad.id and Academic_Detail__r.Pattern_of_Examination__c ='Semesterwise' and Year_Semester_Name__c = '9' limit 1];
                             
         } catch (Exception e) {
@@ -258,7 +267,7 @@ public class PGDM_Application_PDF_A {
         }
         try{
             GraduationDSW10=[SELECT Academic_Detail__c,Application__c,CreatedById,CreatedDate,CurrencyIsoCode,Id,IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,
-                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,OwnerId,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
+                           Maximum_Marks_SGPA__c,Name,Obtained_Marks_SGPA__c,Qualifications__c,SystemModstamp,Year_Semester_Name__c 
                            FROM Graduation_Details_Semester_wise__c where Academic_Detail__c=: AcaDetailGrad.id and Academic_Detail__r.Pattern_of_Examination__c ='Semesterwise' and Year_Semester_Name__c = '10' limit 1];
                             
         } catch (Exception e) {
@@ -311,7 +320,7 @@ public class PGDM_Application_PDF_A {
          try{
             profQualList=[SELECT Id,Name,Application__c,Name_of_Qualification__c,Name_of_Institute__c,Rank_Achieved__c,Level_Achieved__c,Total_Max_Marks__c,Marks_Obtained__c,
                           Percentage_Actual__c,Qualification_Status__c,Year_of_Passing_pq__c,Name_of_Qualification_Picklist__c,Name_of_Institute_Picklist__c,
-                          Year_of_Commencement_pq__c
+                          Year_of_Commencement_pq__c,ProfessionalQualification__c
                           FROM Professional_Qualification__c where Application__c=: qid];
         } catch (Exception e) {
             profQualList = new List<Professional_Qualification__c>();
@@ -323,6 +332,51 @@ public class PGDM_Application_PDF_A {
                          FROM Work_Experience__c where Application__c=: qid  ORDER BY End_Date__c DESC NULLS FIRST LIMIT 1];
         } catch (Exception e) {
             WorkExpLastestList  = New List<Work_Experience__c>();
+        }
+        try{
+            WorkExpList =[SELECT Id,Name,Application__c,Name_of_Organisation__c,OtherOrganizationName__c,Designation__c,Gross_Annual_CTC__c,Responsibilities__c,
+                          Start_Date__c,End_Date__c,Start_Date_Formula__c,End_Date_Formula__c,Total_Experience_In_Months__c,Industry__c,OtherIndustry__c,
+                          City__c,City__r.name,OtherCity__c,Function__c,OtherFunction__c,Currency__c,OtherCurrency__c,Employment_Type__c                          
+                          FROM Work_Experience__c where Application__c=: qid ORDER BY End_Date__c DESC NULLS FIRST];
+            PreviousWorkExpList = new List<Work_Experience__c>();
+            
+            if(WorkExpList.size() > 1){
+                for(Integer i = 1; i < WorkExpList.size(); i++){
+                    PreviousWorkExpList.add(WorkExpList[i]);
+                }
+            }
+            
+        }catch(Exception e){
+            WorkExpList = new List<Work_Experience__c>();
+            PreviousWorkExpList = new List<Work_Experience__c>();
+        }
+       /* try{
+            VersatilityList =[SELECT Id,Name_of_the_Activity__c,Interest__c,Proficiency__c,Award__c,Level__c,Description__c                          
+                          FROM Versatility__c where Application__c=: qid ORDER BY Award__c DESC NULLS FIRST];
+            VersatilityListsize = new List<Versatility__c>();
+            
+            if(VersatilityList.size() > 1){
+                for(Integer i = 1; i < VersatilityList.size(); i++){
+                    VersatilityListsize.add(VersatilityList[i]);
+                }
+            }
+            
+        }catch(Exception e){
+            VersatilityList = new List<Versatility__c>();
+            VersatilityListsize = new List<Versatility__c>();
+        }*/
+        try {
+            VersatilityList = [SELECT Id,Name_of_the_Activity__c,Interest__c,Proficiency__c,Award__c,Level__c,Description__c
+                 FROM Versatility__c where Application__c=: qid ORDER BY CreatedDate ASC ];
+        } catch (Exception e) {
+            VersatilityList = new List<Versatility__c>();
+        }
+        try {
+            AAchivementdynamic = [SELECT Application__c,Award_Position__c,CreatedById,CreatedDate,CurrencyIsoCode,Describe_the_Award_Max_25_words__c,Id,Institute_Granting_the_Award__c,
+                 IsDeleted,LastActivityDate,LastModifiedById,LastModifiedDate,Level__c,Name,OwnerId,SystemModstamp,Title_of_the_Award__c,Year__c 
+                 FROM Academic_Achievements__c where Application__c=: qid ORDER BY CreatedDate ASC ];
+        } catch (Exception e) {
+            AAchivementdynamic = new List<Academic_Achievements__c>();
         }
         try{
             CompExamDetailCAT=[SELECT Id,Name,Result_Status__c,CAT_Registration_Number__c,Is_your_primary_email_ID_same_as_CAT_exa__c,CAT_Overall_Score__c,

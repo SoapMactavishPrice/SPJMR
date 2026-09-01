@@ -67,18 +67,87 @@
     </tr>
     <!-- Row 1 -->
     <tr>
-        <td style="width:25%; border:1px solid black; padding:5px; font-weight:bold; color:#531F75;">
-            1st Programme Applying for
-        </td>
+    <td style="width:25%; border:1px solid black; padding:5px; font-weight:bold; color:#531F75;">
+        1st Programme Applying for
+    </td>
 
-        <td style="width:25%; border:1px solid black; padding:5px;color:#531F75;">
-          Need To Map
-        </td>
-        <td style="width:25%; border:1px solid black; padding:5px; font-weight:bold; color:#531F75;">
-            2nd Programme Applying for
-        </td>
-        <td style="width:25%; border:1px solid black; padding:5px;color:#531F75;">
-          Need To Map
+    <td style="width:25%; border:1px solid black; padding:5px;color:#531F75;">
+
+        <!--
+            FIRST VALUE SELECTED
+            Show only the first programme.
+            This also applies when BOTH values are selected.
+        -->
+        <apex:outputText value="Post Graduate Diploma in Management"
+            rendered="{!
+                OR(
+                    ProgramDetails.ProgrammesInterestedIn__c = 'Post Graduate Diploma in Management',
+                    CONTAINS(
+                        ProgramDetails.ProgrammesInterestedIn__c,
+                        'Post Graduate Diploma in Management;'
+                    )
+                )
+            }"/>
+
+        <!--
+            ONLY SECOND VALUE SELECTED
+            Show second programme as the 1st programme.
+            The NOT condition prevents this from displaying when BOTH
+            values are selected.
+        -->
+        <apex:outputText value="Post Graduate Diploma in Management (Business Management)"
+            rendered="{!
+                AND(
+                    NOT(
+                        OR(
+                            ProgramDetails.ProgrammesInterestedIn__c = 'Post Graduate Diploma in Management',
+                            CONTAINS(
+                                ProgramDetails.ProgrammesInterestedIn__c,
+                                'Post Graduate Diploma in Management;'
+                            )
+                        )
+                    ),
+                    OR(
+                        ProgramDetails.ProgrammesInterestedIn__c = 'Post Graduate Diploma in Management (Business Management)',
+                        CONTAINS(
+                            ProgramDetails.ProgrammesInterestedIn__c,
+                            ';Post Graduate Diploma in Management (Business Management)'
+                        )
+                    )
+                )
+            }"/>
+
+    </td>
+
+    <td style="width:25%; border:1px solid black; padding:5px; font-weight:bold; color:#531F75;">
+        2nd Programme Applying for
+    </td>
+
+    <td style="width:25%; border:1px solid black; padding:5px;color:#531F75;">
+
+        <!--
+            Show second programme ONLY when BOTH values are selected.
+        -->
+        <apex:outputText value="Post Graduate Diploma in Management (Business Management)"
+            rendered="{!
+                AND(
+                    OR(
+                        ProgramDetails.ProgrammesInterestedIn__c = 'Post Graduate Diploma in Management',
+                        CONTAINS(
+                            ProgramDetails.ProgrammesInterestedIn__c,
+                            'Post Graduate Diploma in Management;'
+                        )
+                    ),
+                    OR(
+                        ProgramDetails.ProgrammesInterestedIn__c = 'Post Graduate Diploma in Management (Business Management)',
+                        CONTAINS(
+                            ProgramDetails.ProgrammesInterestedIn__c,
+                            ';Post Graduate Diploma in Management (Business Management)'
+                        )
+                    )
+                )
+                      }"/>
+        
         </td>
     </tr>
     <!-- Row 2 -->
@@ -87,13 +156,13 @@
             Please Select Your Preference 1
         </td>
         <td style="border:1px solid black; padding:5px;color:#531F75;">
-            Need To Map
+            {!ProgramDetails.PrimaryProgramPreference__c}
         </td>
         <td style="border:1px solid black; padding:5px; font-weight:bold; color:#531F75;">
             Please Select Your Preference 2
         </td>
         <td style="border:1px solid black; padding:5px;color:#531F75;">
-            Need To Map
+            {!ProgramDetails.SecondaryProgramPreference__c}
         </td>
     </tr>
     <!-- Row 3 -->
@@ -102,13 +171,13 @@
             Specialization 1 For PGDM
         </td>
         <td style="border:1px solid black; padding:5px;color:#531F75;">
-        Need To Map 
+            {!ProgramDetails.PrimarySpecialisationPreference__r.Specialisation_Name__r.Name}
         </td>
         <td style="border:1px solid black; padding:5px; font-weight:bold; color:#531F75;">
             Specialization 2 For PGDM
         </td>
         <td style="border:1px solid black; padding:5px;color:#531F75;">
-        Need To Map
+            {!ProgramDetails.SecondarySpecialisationPreference__r.Specialisation_Name__r.Name}
         </td>
     </tr>
     <!-- Row 4 -->
@@ -117,13 +186,13 @@
             Reasons I Have (Specialization 1)
         </td>
         <td style="border:1px solid black;padding:5px;height:70px;vertical-align:top;color:#531F75;">
-            Need To Map
+            {!ProgramDetails.Reasons_I_have_Specialization_1__c}
         </td>
         <td style="border:1px solid black;padding:5px;font-weight:bold;color:#531F75;vertical-align:middle;">
             Mention Your Interest 1
         </td>
         <td style="border:1px solid black;padding:5px;height:70px;vertical-align:top;color:#531F75;">
-        Need To Map
+            {!ProgramDetails.OtherSpecialisation1InterestReason__c}
         </td>
     </tr>
     <!-- Row 5 -->
@@ -133,13 +202,28 @@
         </td>
 
         <td style="border:1px solid black; padding:5px;color:#531F75;">
-        Need To Map
+            {!ProgramDetails.Reasons_I_have_Specialization_2__c}
         </td>
         <td style="border:1px solid black;padding:5px;font-weight:bold;color:#531F75;">
             Mention Your Interest 2
         </td>
         <td style="border:1px solid black; padding:5px;color:#531F75;">
-         Need To Map 
+            {!ProgramDetails.OtherSpecialisation2InterestReason__c}
+        </td>
+    </tr>
+    <!-- Row 6 -->
+    <tr>
+        <td style="border:1px solid black; padding:5px; font-weight:bold; color:#531F75;">
+            Area of Interest
+        </td>
+        <td style="border:1px solid black; padding:5px;color:#531F75;">
+            {!ProgramDetails.AreaOfInterest__c}
+        </td>
+        <td style="border:1px solid black; padding:5px; font-weight:bold; color:#531F75;">
+            Reasons for Area of Interest
+        </td>
+        <td style="border:1px solid black; padding:5px;color:#531F75;">
+            {!ProgramDetails.ReasonsForAreaOfInterest__c}
         </td>
     </tr>
 </table>
@@ -182,7 +266,7 @@
     <apex:outputPanel layout="none" rendered="{!PDInfo.HavePassport__c == 'No'}">
         <tr>
             <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Do You Have Aadhaar Card ?</td>
-            <td style="border:1px solid #000;padding:5px;color:#531F75;">Yes</td>
+            <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.HaveAadhaar__c}</td>
             <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Aadhaar Card Number</td>
             <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.AadhaarCardNumber__c}</td>
         </tr>
@@ -195,10 +279,20 @@
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Indian Origin Card (IOC)</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
-    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Passport Issuing Country</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.Indian_Origin_Card_IOC__c}</td>
+    <!--<td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Passport Issuing Country</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td> -->
+    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Study in India (SII) Registration Number</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!PDInfo.StudyInIndiaRegNo__c}</td>
 </tr>
+<!-- <tr>
+    <td colspan="2" style="width:50%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+        Study in India (SII) Registration Number
+    </td>
+    <td colspan="2" style="width:50%;border:1px solid #000;padding:5px;color:#531F75;">
+        {!PDInfo.StudyInIndiaRegNo__c}
+    </td>
+</tr> -->   
 <tr>
     <td colspan="4" style="background:#f39c12;color:#fff;font-weight:bold;padding:6px;border:1px solid #000;">Contact Details:</td>
 </tr>
@@ -386,8 +480,8 @@
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Examination ID</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">2334279</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">13691033</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailX.Examination_ID__c}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailXII.Examination_ID__c}</td>
     <td style="border:1px solid #000;padding:5px;text-align:center;color:#531F75;">-</td>
 </tr>
 <tr>
@@ -484,10 +578,12 @@
             AcaDetailGrad.College__r.CollegeName__c
             )}
     </td>
-    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Mode Of Study</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Mode_of_Study__c}</td>
+    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Institute City</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.InstituteCity__c}</td>
 </tr>
 <tr>
+    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Mode Of Study</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Mode_of_Study__c}</td>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Degree</td>
     <td style="border:1px solid #000;padding:5px;color:#531F75;">
         {!IF(
@@ -496,55 +592,59 @@
             AcaDetailGrad.Degree__c
             )}
     </td>
+</tr>
+<tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Specialization</td>
     <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Specialization_Name__c}</td>
-</tr>
-<tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Degree Type</td>
     <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Degree_Type__c}</td>
+</tr>
+<tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Pattern of Examination</td>
     <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Pattern_of_Examination__c}</td>
+    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">UG Result Status</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.DegreeStatus__c}</td>
 </tr>
 <tr>
-    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">UG Result Status</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Month And Year of Commencement</td>
     <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.MonthAndYearOfCommencementFormula__c}</td>
-</tr>
-<tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Month and Year of Passing</td>
     <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.MonthAndYearOfPassingFormula__c}</td>
+</tr>
+<tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Marking Scheme</td>
     <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Marking_Scheme__c}</td>
-</tr>
-<tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Maximum Marks/CGPA</td>
     <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Maximum_Marks__c}</td>
-    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Obtained Marks/CGPA</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Obtained_Marks__c}</td>
 </tr>
 <tr>
+    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Obtained Marks/CGPA</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Obtained_Marks__c}</td>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Conversion Factor</td>
     <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.ConversionFormula__c}</td>
-    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Graduation Percentage</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Percentage__c}</td>
 </tr>
 
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
+        Graduation Percentage
+    </td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!AcaDetailGrad.Percentage__c}</td>
+    <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Do you have an academic break / Any other special conditions?
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!BAD.HasAcademicBreak__c}</td>
+</tr>
+<tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Academic Break / Special Condition
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
+    <td colspan="3" style="border:1px solid #000;padding:5px;height:80px;color:#531F75;">{!BAD.AcademicBreakAfter__c}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Reason for academic break / Any special conditions (applies for applicants still pursuing graduation)
     </td>
-    <td colspan="3" style="border:1px solid #000;padding:5px;height:80px;color:#531F75;">Need to Map</td>
+    <td colspan="3" style="border:1px solid #000;padding:5px;height:80px;color:#531F75;">{!BAD.AcademicBreakReason__c}</td>
 </tr>
 </table>   
 <!-- ================= GRADUATION DETAILS ================= -->
@@ -826,9 +926,9 @@
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Professional Qualification</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need to Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(profQualList.size > 0, profQualList[0].ProfessionalQualification__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(profQualList.size > 1, profQualList[1].ProfessionalQualification__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(profQualList.size > 2, profQualList[2].ProfessionalQualification__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Name of Institute</td>
@@ -1014,51 +1114,69 @@
     <td style="width:25%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Name Of Organisation
     </td>
-    <td style="width:25%;border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="width:25%;border:1px solid #000;padding:5px;color:#531F75;">
+    <apex:outputText value="{!PreviousWorkExpList[0].OtherOrganizationName__c}"
+    rendered="{!PreviousWorkExpList.size > 0 && PreviousWorkExpList[0].Name_of_Organisation__c = 'Other'}"/>
+    <apex:outputText value="{!PreviousWorkExpList[0].Name_of_Organisation__c}"
+    rendered="{!PreviousWorkExpList.size > 0 && PreviousWorkExpList[0].Name_of_Organisation__c != 'Other'}"/>
+    </td>
 
     <td style="width:25%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Industry
     </td>
-    <td style="width:25%;border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="width:25%;border:1px solid #000;padding:5px;color:#531F75;">
+    <apex:outputText value="{!PreviousWorkExpList[0].OtherIndustry__c}"
+    rendered="{!PreviousWorkExpList.size > 0 && PreviousWorkExpList[0].Industry__c = 'Other'}"/>
+    <apex:outputText value="{!PreviousWorkExpList[0].Industry__c}"
+    rendered="{!PreviousWorkExpList.size > 0 && PreviousWorkExpList[0].Industry__c != 'Other'}"/>
+    </td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Function
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="width:25%;border:1px solid #000;padding:5px;color:#531F75;">
+    <apex:outputText value="{!PreviousWorkExpList[0].OtherFunction__c}"
+    rendered="{!PreviousWorkExpList.size > 0 && PreviousWorkExpList[0].Function__c = 'Other'}"/>
+    <apex:outputText value="{!PreviousWorkExpList[0].Function__c}"
+    rendered="{!PreviousWorkExpList.size > 0 && PreviousWorkExpList[0].Function__c != 'Other'}"/>
+    </td>
 
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Designation
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="width:25%;border:1px solid #000;padding:5px;color:#531F75;">{!IF(PreviousWorkExpList.size > 0, PreviousWorkExpList[0].Designation__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         From
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">
+    <apex:outputText value=" {!IF(PreviousWorkExpList.size > 0, PreviousWorkExpList[0].Start_Date__c, '')}"><apex:param value="dd/MM/yyyy" /></apex:outputText>
+    </td>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         To
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">
+    <apex:outputText value=" {!IF(PreviousWorkExpList.size > 0, PreviousWorkExpList[0].End_Date__c, '')}"><apex:param value="dd/MM/yyyy" /></apex:outputText>
+    </td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Total Experience(In Months)
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(PreviousWorkExpList.size > 0, PreviousWorkExpList[0].Total_Experience_In_Months__c, '')}</td>
 
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Function
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(PreviousWorkExpList.size > 0, PreviousWorkExpList[0].Function__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Describe Your Role Briefly
     </td>
-    <td colspan="3" style="border:1px solid #000;padding:5px;height:18px;color:#531F75;">Need To Map</td>
+    <td colspan="3" style="border:1px solid #000;padding:5px;height:18px;color:#531F75;">{!IF(PreviousWorkExpList.size > 0, PreviousWorkExpList[0].Responsibilities__c, '')}</td>
 </tr>
 <tr>
     <td colspan="4" style="border:1px solid #000;height:18px;"></td>
@@ -1067,18 +1185,28 @@
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Months Of Work Experience Beyond Above(If Any) ?
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">
+        {!IF(
+        ISBLANK(quo.AdditionalWorkExperienceInMonths__c),
+        'No',
+        IF(
+            quo.AdditionalWorkExperienceInMonths__c > 0,
+            'Yes',
+            'No'
+        )
+    )}
+    </td>
 
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Months Of Experience
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!quo.AdditionalWorkExperienceInMonths__c}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Total Work Experience (In Month)
     </td>
-    <td colspan="3" style="border:1px solid #000;padding:5px;height:34px;color:#531F75;">Need To Map</td>
+    <td colspan="3" style="border:1px solid #000;padding:5px;height:34px;color:#531F75;">{!quo.TotalIndustryExperience__c}</td>
 </tr>
 </table>
 <!-- ================= END PREVIOUS WORK EXPERIENCE DETAILS ================= -->  
@@ -1104,49 +1232,49 @@
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Title of the Award
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 0, AAchivementdynamic[0].Title_of_the_Award__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 1, AAchivementdynamic[1].Title_of_the_Award__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 2, AAchivementdynamic[2].Title_of_the_Award__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Institute Granting the Award
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 0, AAchivementdynamic[0].Institute_Granting_the_Award__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 1, AAchivementdynamic[1].Institute_Granting_the_Award__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 2, AAchivementdynamic[2].Institute_Granting_the_Award__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Year
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 0, AAchivementdynamic[0].Year__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 1, AAchivementdynamic[1].Year__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 2, AAchivementdynamic[2].Year__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Award/Position
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 0, AAchivementdynamic[0].Award_Position__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 1, AAchivementdynamic[1].Award_Position__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 2, AAchivementdynamic[2].Award_Position__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Level
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 0, AAchivementdynamic[0].Level__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 1, AAchivementdynamic[1].Level__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(AAchivementdynamic.size > 2, AAchivementdynamic[2].Level__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Describe the Award(Max. 25 words)
     </td>
-    <td style="border:1px solid #000;padding:5px;height:36px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;height:36px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;height:36px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;height:36px;color:#531F75;">{!IF(AAchivementdynamic.size > 0, AAchivementdynamic[0].Describe_the_Award_Max_25_words__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;height:36px;color:#531F75;">{!IF(AAchivementdynamic.size > 1, AAchivementdynamic[1].Describe_the_Award_Max_25_words__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;height:36px;color:#531F75;">{!IF(AAchivementdynamic.size > 2, AAchivementdynamic[2].Describe_the_Award_Max_25_words__c, '')}</td>
 </tr>
 </table>
 <!-- ================= END ACHIEVEMENTS ================= -->    
@@ -1167,59 +1295,59 @@
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Name of the Activity</td>
-    <td style="border:1px solid #000;padding:5px;height:35px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;height:35px;color:#531F75;">{!IF(VersatilityList.size > 0, VersatilityList[0].Name_of_the_Activity__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 1, VersatilityList[1].Name_of_the_Activity__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 2, VersatilityList[2].Name_of_the_Activity__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 3, VersatilityList[3].Name_of_the_Activity__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 4, VersatilityList[4].Name_of_the_Activity__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Interest</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 0, VersatilityList[0].Interest__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 1, VersatilityList[1].Interest__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 2, VersatilityList[2].Interest__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 3, VersatilityList[3].Interest__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 4, VersatilityList[4].Interest__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Proficiency</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 0, VersatilityList[0].Proficiency__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 1, VersatilityList[1].Proficiency__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 2, VersatilityList[2].Proficiency__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 3, VersatilityList[3].Proficiency__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 4, VersatilityList[4].Proficiency__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Award</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 0, VersatilityList[0].Award__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 1, VersatilityList[1].Award__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 2, VersatilityList[2].Award__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 3, VersatilityList[3].Award__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 4, VersatilityList[4].Award__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">Level</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 0, VersatilityList[0].Level__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 1, VersatilityList[1].Level__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 2, VersatilityList[2].Level__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 3, VersatilityList[3].Level__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 4, VersatilityList[4].Level__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Description(Max. 25 words)
     </td>
-    <td style="border:1px solid #000;padding:5px;height:55px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;height:55px;color:#531F75;">{!IF(VersatilityList.size > 0, VersatilityList[0].Description__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 1, VersatilityList[1].Description__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 2, VersatilityList[2].Description__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 3, VersatilityList[3].Description__c, '')}</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!IF(VersatilityList.size > 4, VersatilityList[4].Description__c, '')}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Overall Versatility Rating
     </td>
-    <td colspan="5" style="border:1px solid #000;padding:5px;height:20px;color:#531F75;">Need To Map</td>
+    <td colspan="5" style="border:1px solid #000;padding:5px;height:20px;color:#531F75;">{!quo.OverallVersatilityRating__c}</td>
 </tr>
 </table>
 <!-- ================= END VERSATILITY ================= -->  
@@ -1232,40 +1360,40 @@
 </tr>
 <tr>
     <td colspan="2" style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
-        Personal
+        Personal 
     </td>
 </tr>
 <tr>
     <td style="width:35%;border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Level
     </td>
-    <td style="width:65%;border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="width:65%;border:1px solid #000;padding:5px;color:#531F75;">{!quo.PersonalResponsibilityLevel__c}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Describe Briefly
     </td>
-    <td style="border:1px solid #000;padding:5px;height:30px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;height:30px;color:#531F75;">{!quo.PersonalResponsibilityDescription__c}</td>
 </tr>
 <tr>
     <td colspan="2" style="border:1px solid #000;height:18px;"></td>
 </tr>
 <tr>
     <td colspan="2" style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
-        Professional
+        Professional 
     </td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Level
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!quo.ProfessionalResponsibilityLevel__c}</td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Describe Briefly
     </td>
-    <td style="border:1px solid #000;padding:5px;height:30px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;height:30px;color:#531F75;">{!quo.ProfessionalResponsibilityDescription__c}</td>
 </tr>
 <tr>
     <td colspan="2" style="border:1px solid #000;height:18px;"></td>
@@ -1284,14 +1412,19 @@
         How Did You Get To Know About SPJIMR ?
     </td>
     <td style="width:32%;border:1px solid #000;padding:5px;color:#531F75;">
-        Need To Map
-    </td>
+    {!quo.ReferralSourceMulti__c}
+    {!IF(
+        CONTAINS(quo.ReferralSourceMulti__c, 'Other'),
+        ' (' & quo.OtherReferralSource__c & ')',
+        ''
+    )}
+   </td>
 </tr>
 <tr>
     <td style="border:1px solid #000;padding:5px;font-weight:bold;color:#531F75;">
         Are You Interested In Knowing About Other SPJIMR Programmes ?
     </td>
-    <td style="border:1px solid #000;padding:5px;color:#531F75;">Need To Map</td>
+    <td style="border:1px solid #000;padding:5px;color:#531F75;">{!quo.OtherProgramsInterestedIn__c}</td>
 </tr>
 </table>
 <!-- ================= END INFORMATION SOURCE ================= -->   

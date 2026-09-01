@@ -1,7 +1,7 @@
 import { LightningElement, api } from 'lwc';
 import pdfLib from '@salesforce/resourceUrl/pdf_lib';
 import { loadScript } from 'lightning/platformResourceLoader';
-
+import getVfPdfBase64 from '@salesforce/apex/VfPdfFetcher.getVfPdfBase64';
 //import getAllPdfFiles from '@salesforce/apex/FinalPdfFileFetcher.getAllPdfFiles';
 import getDocumentMetadata from '@salesforce/apex/FinalPdfFileFetcher.getDocumentMetadata';
 import getPdfChunk from '@salesforce/apex/FinalPdfFileFetcher.getPdfChunk';
@@ -48,10 +48,24 @@ export default class GenerateFinalPdfDocumentsOnly extends LightningElement {
             const appNumber = appInfo?.appNumber || 'UNKNOWN';
             const programCode = appInfo?.programCode || 'GMP';
 
-            const fileName =
-                programCode === 'PGPM'
-                    ? `PGPM_Documents_${appNumber}.pdf`
-                    : `GMP_Documents_${appNumber}.pdf`;
+           // const fileName =
+           //     programCode === 'PGPM'
+           //         ? `PGPM_Documents_${appNumber}.pdf`
+           //         : `GMP_Documents_${appNumber}.pdf`;
+                    
+           let fileName;
+
+           if (programCode === 'PGPM') {
+           fileName = `PGPM_Application_${appNumber}.pdf`;
+           } else if (
+           programCode === 'PGDM' ||
+           programCode === 'PGDM-BM' ||
+           programCode === 'PGDM&PGDM-BM'
+           ) {
+           fileName = `PGDM_Application_${appNumber}.pdf`;
+           } else {
+          fileName = `GMP_Application_${appNumber}.pdf`;
+          }
 
             // =====================================
             // Create PDF
@@ -62,8 +76,32 @@ export default class GenerateFinalPdfDocumentsOnly extends LightningElement {
             const mergedPdf = await PDFDocument.create();
 
             // =====================================
-            // Load Attached Documents ONLY
-            // =====================================
+           // Load Application VF PDF FIRST
+          // Based on Program Code
+         // =====================================
+
+             const vfBase64 = await getVfPdfBase64({
+             recordId: this.recordId
+            });
+
+            const vfBytes = Uint8Array.from(
+            atob(vfBase64),
+            c => c.charCodeAt(0)
+            );
+
+           const vfPdf = await PDFDocument.load(vfBytes);
+
+           const vfPages = await mergedPdf.copyPages(
+           vfPdf,
+           vfPdf.getPageIndices()
+          );
+
+          vfPages.forEach(page => mergedPdf.addPage(page));
+
+          // =====================================
+         // Load Attached Documents
+        // USING CHUNKS
+       // =====================================
 
            /* const files = await getAllPdfFiles({
                 recordId: this.recordId

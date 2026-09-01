@@ -269,34 +269,110 @@ public with sharing class AcademicFormController {
                     if (cfg.sourceType == 'STATIC_RESOURCE') {
 
                         StaticResource sr =
-                                resources.get(eachConfig.Source_Value__c);
-
-                        System.debug(sr.Body.toString());
+                            resources.get(eachConfig.Source_Value__c);
 
                         if (sr != null) {
 
-                            List<Object> raw =
-                                (List<Object>)JSON.deserializeUntyped(
+                            System.debug(sr.Body.toString());
+
+                            Object raw =
+                                JSON.deserializeUntyped(
                                     sr.Body.toString()
                                 );
 
                             cfg.options = new List<PicklistOption>();
 
-                            for (Object o : raw) {
+                            // OLD FORMAT:
+                            // [
+                            //     { "label": "A C Neilsen", "value": "A C Neilsen" }
+                            // ]
+                            if (raw instanceof List<Object>) {
 
-                                Map<String,Object> row =
-                                    (Map<String,Object>)o;
+                                List<Object> rawList =
+                                    (List<Object>) raw;
 
-                                cfg.options.add(
-                                    new PicklistOption(
-                                        (String)row.get('label'),
-                                        (String)row.get('value'),
-                                        false,
-                                        true,
-                                        null,
-                                        null
-                                    )
-                                );
+                                for (Object o : rawList) {
+
+                                    Map<String,Object> row =
+                                        (Map<String,Object>) o;
+
+                                    cfg.options.add(
+                                        new PicklistOption(
+                                            (String) row.get('label'),
+                                            (String) row.get('value'),
+                                            false,
+                                            true,
+                                            null,
+                                            null
+                                        )
+                                    );
+                                }
+                            }
+
+                            // NEW FORMAT:
+                            // {
+                            //     "api": "Specialization_Name__c",
+                            //     "controllingFieldApi": "Degree__c",
+                            //     "optionsByControllingValue": {
+                            //         "AMIE": [
+                            //             { "label": "...", "value": "..." }
+                            //         ]
+                            //     }
+                            // }
+                            else if (raw instanceof Map<String,Object>) {
+
+                                Map<String,Object> payload =
+                                    (Map<String,Object>) raw;
+
+                                cfg.controllingFieldApi =
+                                    (String) payload.get('controllingFieldApi');
+
+                                cfg.optionsByControllingValue =
+                                    new Map<String,List<PicklistOption>>();
+
+                                Map<String,Object> rawOptionsByControllingValue =
+                                    (Map<String,Object>)
+                                        payload.get('optionsByControllingValue');
+
+                                if (rawOptionsByControllingValue != null) {
+
+                                    for (
+                                        String controllingValue :
+                                        rawOptionsByControllingValue.keySet()
+                                    ) {
+
+                                        List<Object> rawOptions =
+                                            (List<Object>)
+                                                rawOptionsByControllingValue.get(
+                                                    controllingValue
+                                                );
+
+                                        List<PicklistOption> options =
+                                            new List<PicklistOption>();
+
+                                        for (Object optionObject : rawOptions) {
+
+                                            Map<String,Object> row =
+                                                (Map<String,Object>) optionObject;
+
+                                            options.add(
+                                                new PicklistOption(
+                                                    (String) row.get('label'),
+                                                    (String) row.get('value'),
+                                                    false,
+                                                    true,
+                                                    null,
+                                                    null
+                                                )
+                                            );
+                                        }
+
+                                        cfg.optionsByControllingValue.put(
+                                            controllingValue,
+                                            options
+                                        );
+                                    }
+                                }
                             }
                         }
                     }
@@ -304,6 +380,10 @@ public with sharing class AcademicFormController {
                     System.debug(
                         'STATIC RESOURCE OPTIONS => ' +
                         JSON.serialize(cfg.options)
+                    );
+                    System.debug(
+                        'CUSTOM DROPDOWN CONFIG => ' +
+                        JSON.serialize(cfg)
                     );
                     if (String.isBlank(cfg.recordType)) {
 
@@ -548,6 +628,9 @@ public with sharing class AcademicFormController {
         @AuraEnabled public String resourceName;
 
         @AuraEnabled public List<PicklistOption> options;
+
+        @AuraEnabled public String controllingFieldApi;
+        @AuraEnabled public Map<String, List<PicklistOption>> optionsByControllingValue;
     }
 
     /**

@@ -45,10 +45,24 @@ export default class GenerateFinalPdfWithoutDocuments extends LightningElement {
             let appNumber = appInfo?.appNumber || 'UNKNOWN';
             let programCode = appInfo?.programCode || 'GMP';
 
-            const fileName =
-                programCode === 'PGPM'
-                    ? `PGPM_Application_${appNumber}.pdf`
-                    : `GMP_Application_${appNumber}.pdf`;
+           // const fileName =
+           //     programCode === 'PGPM'
+           //         ? `PGPM_Application_${appNumber}.pdf`
+           //         : `GMP_Application_${appNumber}.pdf`;
+
+            let fileName;
+
+            if (programCode === 'PGPM') {
+            fileName = `PGPM_Application_${appNumber}.pdf`;
+            } else if (
+            programCode === 'PGDM' ||
+            programCode === 'PGDM-BM' ||
+            programCode === 'PGDM&PGDM-BM'
+            ) {
+           fileName = `PGDM_Application_${appNumber}.pdf`;
+           } else {
+           fileName = `GMP_Application_${appNumber}.pdf`;
+           }        
 
             // ==============================
             // Create PDF Document

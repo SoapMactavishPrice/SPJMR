@@ -175,9 +175,8 @@
 }
 
 .dropdown-panel {
-    position: absolute;
-    top: 100%;
-    left: 0;
+    position: relative;  /* was: absolute */
+    /* top / left removed — no longer meaningful for an in-flow element */
     width: 100%;
     max-height: 220px;
     overflow-y: auto;

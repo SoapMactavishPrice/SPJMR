@@ -150,29 +150,11 @@ public with sharing class EnrollStudentController {
     ];
 
     /* =========================
-       STEP 2: Programme Info
-       ========================= */
-    Program prog = [
-        SELECT Id, Programme_Intake__c ,Programme_Intake_AICTE__c, Is_AICTE_Approved__c
-        FROM Program
-        WHERE Id = :batch.ProgramId
-        LIMIT 1
-    ];
-          
-      // Step 3: Batch intake
-
-    Integer batchIntake = (batch.Batch_Intake__c != null)
-        ? Integer.valueOf(batch.Batch_Intake__c)
-        : 0;
-          
-     // Step 4: Program intake logic
-        Integer programmeIntake = (prog.Is_AICTE_Approved__c == true)
-            ? (prog.Programme_Intake_AICTE__c != null
-                ? Integer.valueOf(prog.Programme_Intake_AICTE__c)
-                : 0)
-            : (prog.Programme_Intake__c != null
-                ? Integer.valueOf(prog.Programme_Intake__c)
-                : 0);
+   STEP 2: Batch Intake
+   ========================= */
+Integer batchIntake = (batch.Batch_Intake__c != null)
+    ? Integer.valueOf(batch.Batch_Intake__c)
+    : 0;
 
     /* =========================
        STEP 5: Existing Batch Members
@@ -220,27 +202,6 @@ public with sharing class EnrollStudentController {
             ' slot(s) remaining in this batch.'
         );
     }
-
-    /* =========================
-       STEP 8: PROGRAMME VALIDATION (GLOBAL)
-       ========================= */
-   Integer currentProgrammeCount = [
-    SELECT COUNT()
-    FROM ProgramCohortMember
-    WHERE ProgramEnrollment.ProgramId = :batch.ProgramId];
-
-  Integer requestedSeats = newStudentIds.size();
-
-  if (currentProgrammeCount + requestedSeats > programmeIntake) {
-
-    Integer remaining = programmeIntake - currentProgrammeCount;
-    if (remaining < 0) remaining = 0;
-
-    throw new AuraHandledException(
-        'Programme intake exceeded. Only ' + remaining +
-        ' seat(s) remaining across all batches.'
-    );
-}
 
     /* =========================
        STEP 9: Fetch Enrollments

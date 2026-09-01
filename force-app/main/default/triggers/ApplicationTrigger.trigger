@@ -8,6 +8,7 @@ trigger ApplicationTrigger on Application__c (After Insert ,After Update ) {
             ApplicationTriggerHandler.handleGMPEmail(
                 Trigger.new, null
             );
+            ApplicationTriggerHandler.handleAfterInsertPgdmSync(Trigger.new);
         }
         if(Trigger.isUpdate) {
             SharingOrchestrator.processRecordsToUpdate(Trigger.new,Trigger.oldMap);
@@ -17,6 +18,7 @@ trigger ApplicationTrigger on Application__c (After Insert ,After Update ) {
             ApplicationTriggerHandler.handleApplicationStatusChangeScenarios(Trigger.new, Trigger.oldMap);
             ApplicationTriggerHandler.handleDeclineWithdrawalQuestionnaireCleanup(Trigger.new, Trigger.oldMap);
             ApplicationTriggerHandler.handleAdmissionDecisionOfferStatusUpdate(Trigger.new, Trigger.oldMap);
+            ApplicationTriggerHandler.handleAfterUpdatePgdmSync(Trigger.new,Trigger.oldMap);
         }
     }
 }

@@ -50,14 +50,14 @@
 <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Reasons I Have (Specialization 1)</td>
 <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Reasons_I_have_Specialization_1__c}</td>
 <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Mention Your Interest 1</td>
-<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Mention_your_Interest_1__c}</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><!--{!ProgramDetails.Mention_your_Interest_1__c}--></td>
 </tr>
  
     <tr>
 <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Reasons I Have (Specialization 2)</td>
 <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Reasons_I_have_Specialization_2__c}</td>
 <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Mention Your Interest 2</td>
-<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!ProgramDetails.Mention_your_Interest_2__c}</td>
+<td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><!--{!ProgramDetails.Mention_your_Interest_2__c}--></td>
 
 </tr>
 </table>
@@ -100,7 +100,7 @@
 
     <tr>
         <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Do You Have Aadhar Card?</td>
-        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.Do_you_have_Aadhaar_Card__c}</td>
+        <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;"><!--{!PDInfo.Do_you_have_Aadhaar_Card__c}--></td>
         <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;font-weight:bold;">Aadhar Card Number</td>
         <td style="border:1px solid #000; padding:6px 8px;color:#B266FF;">{!PDInfo.AadhaarCardNumber__c}</td>
     </tr>

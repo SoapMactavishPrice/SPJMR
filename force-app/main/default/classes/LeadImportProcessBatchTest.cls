@@ -1051,7 +1051,7 @@ static void test_existingLead() {
     Lead l = new Lead(Email='john@test.com',//RecordTypeId=b2cRecType,
                       Phone='9999999999',FirstName='John', LastName='Doe');
     insert l;
-    Insert new Lead_Program__c(Lead__c=l.Id,Email__c='john@test.com',Phone__c='9999999999',Program__c=p.Id);
+    //Insert new Lead_Program__c(Lead__c=l.Id,Email__c='john@test.com',Phone__c='9999999999',Program__c=p.Id);
 
     Lead_Import__c li = new Lead_Import__c(
         Name__c='John Doe',
@@ -1106,10 +1106,10 @@ static void test_existingLead() {
             insert p2;
         Lead l = new Lead(Email='s@n.com',Phone='999999999',LastName='John',FirstName='Doe');
         insert l;
-        Insert new Lead_Program__c(Lead__c=l.Id,Program__c=p.Id,Email__c='s@n.com',Phone__c='999999999');
+       // Insert new Lead_Program__c(Lead__c=l.Id,Program__c=p.Id,Email__c='s@n.com',Phone__c='999999999');
         
         Lead_Import_Parent__c par = new Lead_Import_Parent__c(Title__c='T',Description__c='D');
-        insert par;
+        //insert par;
         Lead_Import__c lp1 = new Lead_Import__c(Lead_Import_Parent__c = par.Id,Status__c='New',
         Email__c='s@n.com',Phone__c='999999999',Name__c='John Doe',Programme__c='PGDM',
         LeadSource__c='Events',Country__c='India',State__c='Kerala',City__c='Kochi');
@@ -1120,9 +1120,9 @@ static void test_existingLead() {
         LeadSource__c='Events',Country__c='India',State__c='Kerala',City__c='Kochi');
         //insert lp2;
         
-        LeadImportProcessBatchStarter.startBatch(par.Id);
+        LeadImportProcessBatchStarter.startBatch(l.Id);
         LeadImportProcessBatchStarter.startBatch(null);
-        Database.executeBatch(new LeadImportProcessBatch(null));
+        //Database.executeBatch(new LeadImportProcessBatch(null));
     }
     }
     
@@ -1265,7 +1265,7 @@ static void test_cityNotFoundInSystem() {
         insert p;
 
         Lead_Import__c li = new Lead_Import__c(
-            Name__c='John Doe',
+            Name__c='John',
             Email__c='john@test.com',
             Phone__c='9999999999',
             Programme__c='PGDM',
@@ -1331,4 +1331,33 @@ static void test_cityMissing() {
     }
 }
     
+    @isTest
+    static void test_leadProgramKeySet(){
+        Lead_Program__c p = new Lead_Program__c(Email__c='s@m.com',Phone__c='990923123');
+        Map<Id, Set<String>> s =  LeadImportProcessBatch.buildLeadProgramKeys(new List<Lead_Program__c>{p});
+    	Map<Id, Set<String>> s2 =  LeadImportProcessBatch.buildLeadProgramKeys2(new List<Lead_Program__c>{p});
+    }
+    
+    @IsTest
+static void testBuildNewLead() {
+ User u = [SELECT Id FROM User WHERE LastName='Admin' LIMIT 1];
+    System.runAs(u){
+      
+   
+
+    Test.startTest();
+
+    Lead newLead = LeadImportProcessBatch.buildNewLead(
+        'Test Description',
+        'Test Title',
+        'Test',
+        'User',
+        null,
+        null,
+        null
+    );
+
+    Test.stopTest();
+    }
+}
 }

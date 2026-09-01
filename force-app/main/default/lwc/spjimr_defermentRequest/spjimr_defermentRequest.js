@@ -1,6 +1,8 @@
 import { LightningElement, wire, track } from 'lwc';
 import getActiveDefermentRequest from '@salesforce/apex/DefermentRequestController.getActiveDefermentRequest';
 import submitDefermentRequest from '@salesforce/apex/DefermentRequestController.submitDefermentRequest';
+import getApprovalRemarks from '@salesforce/apex/DefermentRequestController.getApprovalRemarks';
+import getUploadedDocuments from '@salesforce/apex/DefermentRequestController.getUploadedDocuments';
 
 
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -10,7 +12,7 @@ const TRACKER_STEPS = [
     { number: 2, label: 'Form Submitted' },
     { number: 3, label: "Pending Chairperson's Approval" },
     { number: 4, label: "Pending Dean's / AD's Approval" },
-    { number: 5, label: 'Rejoining Details Updated' },
+    { number: 5, label: 'Rejoining Details' },
     { number: 6, label: 'No Dues Process Initiated' },
     { number: 7, label: 'No Dues Process Complete' },
     { number: 8, label: 'Access Removal Complete' },
@@ -25,7 +27,7 @@ const TRACKER_STATUS_LABELS = {
     2: 'Form Submitted',
     3: "Pending Chairperson's Approval",
     4: "Pending Dean's / AD's Approval",
-    5: 'Rejoining Details Updated',
+    5: 'Rejoining Details',
     6: 'No Dues Process Initiated',
     7: 'No Dues Process Complete',
     8: 'Access Removal Complete',
@@ -38,7 +40,7 @@ const STATUS_TO_STEP = {
     'Form Submitted': 2,
     'Pending Chairperson\'s Approval': 3,
     'Pending Dean\'s / AD\'s Approval': 4,
-    'Rejoining Details Updated': 5,
+    'Rejoining Details': 5,
     'No Dues Process Initiated': 6,
     'No Dues Process Complete': 7,
     'Access Removal Complete': 8,
@@ -66,6 +68,13 @@ export default class Spjimr_defermentRequest extends LightningElement {
     @track hasActiveRequest = false;
     @track isLoadingRequest = true;
     @track defermentRequestId = null;
+    windowStatus;
+@track breakEndDateTime = null;
+@track approvalStatus = '';
+    @track l1Remark = '';
+@track l2Remark = '';
+@track existingDocuments = {}; 
+
     
 
 
@@ -73,7 +82,7 @@ export default class Spjimr_defermentRequest extends LightningElement {
         this.loadActiveRequest();
     }
 
-   async loadActiveRequest() {
+ /*  async loadActiveRequest() {
         this.isLoadingRequest = true;
         try {
             const data = await getActiveDefermentRequest();
@@ -102,7 +111,94 @@ export default class Spjimr_defermentRequest extends LightningElement {
         } finally {
             this.isLoadingRequest = false;
         }
+    }*/
+
+    async loadActiveRequest() {
+    this.isLoadingRequest = true;
+
+    try {
+        const data = await getActiveDefermentRequest();
+
+        console.log(
+            'DefermentRequest debug:',
+            JSON.stringify(data, null, 2)
+        );
+
+        if (data && data.recordId) {
+
+            this.hasActiveRequest = true;
+
+            this.defermentRequestId = data.recordId;
+
+            if (this.defermentRequestId) {
+    try {
+        const docs = await getUploadedDocuments({ recordId: this.defermentRequestId });
+        const map = {};
+        (docs || []).forEach((d) => {
+            map[d.documentType] = d; // { documentType, fileName, contentDocumentId, contentVersionId, fileExtension }
+        });
+        this.existingDocuments = map;
+    } catch (error) {
+        console.error('getUploadedDocuments error', error);
+        this.existingDocuments = {};
     }
+}
+
+            this.requestNumber = data.requestNumber;
+
+            this.fees = data.fee || 0;
+
+            this.windowStatus = data.windowStatus;
+
+            this.breakEndDateTime = data.breakEndDateTime;
+
+            if (data.status) {
+                this.currentStep =
+                    STATUS_TO_STEP[data.status] || 1;
+            }
+
+            this.submittedReason = data.reason;
+            this.reason = data.reason || '';   // ADD THIS — prefills the editable textarea
+
+            this.submissionDate = data.submissionDate;
+
+            this.approvalStatus = data.approvalStatus;
+            // Get approval remarks
+    const remarks = await getApprovalRemarks({
+        recordId: this.defermentRequestId
+    });
+
+    console.log(
+        'Approval Remarks:',
+        JSON.stringify(remarks)
+    );
+    this.l1Remark = remarks?.L1 || '';
+this.l2Remark = remarks?.L2 || '';
+
+            
+        } else {
+
+            this.hasActiveRequest = false;
+
+            this.windowStatus = null;
+
+            this.breakEndDateTime = null;
+        }
+
+    } catch (error) {
+
+        this.hasActiveRequest = false;
+
+        console.error(
+            'getActiveDefermentRequest error',
+            error
+        );
+
+    } finally {
+
+        this.isLoadingRequest = false;
+    }
+}
     
     
     // ---- Fee ----
@@ -139,56 +235,73 @@ export default class Spjimr_defermentRequest extends LightningElement {
     }
 
     get documentsHasError() {
-        return this.submitAttempted && !this.documentsFile;
-    }
+    return this.submitAttempted && !this.documentsFile && !this.existingDocumentsFile;
+}
 
-    get approvalEmailHasError() {
-        return this.submitAttempted && !this.approvalEmailFile;
-    }
+   get approvalEmailHasError() {
+    return this.submitAttempted && !this.approvalEmailFile && !this.existingApprovalEmailFile;
+}
 
     get rejoiningAcceptanceHasError() {
-        return this.submitAttempted && !this.rejoiningAcceptanceFile;
-    }
+    return this.submitAttempted && !this.rejoiningAcceptanceFile && !this.existingRejoiningAcceptanceFile;
+}
 
-    get showDefermentForm() {
-    return this.hasActiveRequest && this.currentStep === 1;
-    }
+    // ---- widen showDefermentForm / isWindowOpen for the reopened case ----
+get showDefermentForm() {
+    return this.hasActiveRequest && this.currentStep === 1 &&
+        (this.windowStatus === 'OPEN' || this.windowStatus === 'REOPENED');
+}
+get isWindowReopened() {
+    return this.windowStatus === 'REOPENED';
+}
 
-    get showTracker() {
-    return this.hasActiveRequest;
-    }
+    get showWindowMessage() {
+    return this.hasActiveRequest &&
+           this.windowStatus &&
+           this.windowStatus !== 'SUBMITTED';
+}
 
-    get transactionHasError() {
-        return (
-            this.submitAttempted &&
-            this.transactionDetailsRequired &&
-            !this.transactionFile
-        );
-    }
+get isWindowOpen() {
+    return this.windowStatus === 'OPEN';
+}
+
+get isWindowExpired() {
+    return this.windowStatus === 'EXPIRED';
+}
+
+get isWindowNotStarted() {
+    return this.windowStatus === 'NOT_STARTED';
+}
+
+get isWindowNotStarted() {
+    return this.windowStatus === 'NOT_STARTED';
+}
+
+get isWindowApproved() {
+    return this.windowStatus === 'APPROVED';
+}
+
+get showTracker() {
+    return this.hasActiveRequest && (this.currentStep >= 2 || this.windowStatus === 'REOPENED');
+}
+
+   get transactionHasError() {
+    return (
+        this.submitAttempted &&
+        this.transactionDetailsRequired &&
+        !this.transactionFile &&
+        !this.existingTransactionFile
+    );
+}
 
     get isFormValid() {
-        if (!this.reason?.trim()) {
-            return false;
-        }
-
-        if (!this.documentsFile) {
-            return false;
-        }
-
-        if (!this.approvalEmailFile) {
-            return false;
-        }
-
-        if (!this.rejoiningAcceptanceFile) {
-            return false;
-        }
-
-        if (this.transactionDetailsRequired && !this.transactionFile) {
-            return false;
-        }
-
-        return true;
-    }
+    if (!this.reason?.trim()) return false;
+    if (!this.documentsFile && !this.existingDocumentsFile) return false;
+    if (!this.approvalEmailFile && !this.existingApprovalEmailFile) return false;
+    if (!this.rejoiningAcceptanceFile && !this.existingRejoiningAcceptanceFile) return false;
+    if (this.transactionDetailsRequired && !this.transactionFile && !this.existingTransactionFile) return false;
+    return true;
+}
 
     // ---- Dynamic classes ----
     get reasonFieldClass() {
@@ -267,6 +380,32 @@ export default class Spjimr_defermentRequest extends LightningElement {
         return this.currentStep > 1 ? this.feesDisplay : '—';
     }
 
+    get trackerApprovalStatusDisplay() {
+        return this.approvalStatus || 'Pending submission';
+    }
+
+    get trackerL1RemarkDisplay() {
+    return this.l1Remark || '—';
+}
+
+get trackerL2RemarkDisplay() {
+    return this.l2Remark || '—';
+}
+
+// ---- getters for each type ----
+get existingDocumentsFile() {
+    return this.existingDocuments['Documents to Support Request'];
+}
+get existingApprovalEmailFile() {
+    return this.existingDocuments['Approval Email (Screenshot) with Rejoining Condition'];
+}
+get existingRejoiningAcceptanceFile() {
+    return this.existingDocuments['Rejoining Condition Acceptance Email Screenshot'];
+}
+get existingTransactionFile() {
+    return this.existingDocuments['Transaction Details (Screenshot)'];
+}
+
     // ---- Input handlers ----
     handleReasonChange(event) {
         this.reason = event.target.value;
@@ -274,60 +413,60 @@ export default class Spjimr_defermentRequest extends LightningElement {
     }
 
     handleFileChange(event) {
-        const field = event.target.dataset.field;
-        const input = event.target;
-        const file = input.files && input.files[0]
-            ? input.files[0]
-            : null;
+    const field = event.target.dataset.field;
+    const input = event.target;
+    const file = input.files && input.files[0]
+        ? input.files[0]
+        : null;
 
-        if (file) {
-            const validationError = this.validateFile(file);
+    if (file) {
+        const validationError = this.validateFile(file, field);
 
-            if (validationError) {
-                alert(validationError);
-                input.value = '';
-                return;
-            }
-        }
-
-        this.submitSuccess = false;
-
-        switch (field) {
-            case 'documents':
-                this.documentsFile = file;
-                break;
-
-            case 'approvalEmail':
-                this.approvalEmailFile = file;
-                break;
-
-            case 'rejoiningAcceptance':
-                this.rejoiningAcceptanceFile = file;
-                break;
-
-            case 'transaction':
-                this.transactionFile = file;
-                break;
-
-            default:
-                break;
+        if (validationError) {
+            alert(validationError);
+            input.value = '';
+            return;
         }
     }
 
-    validateFile(file) {
-        const ext = file.name.split('.').pop().toLowerCase();
+    this.submitSuccess = false;
 
-        if (!ALLOWED_EXTENSIONS.includes(ext)) {
-            return 'Only .pdf, .jpg and .jpeg files are allowed.';
-        }
+    switch (field) {
+        case 'documents':
+            this.documentsFile = file;
+            break;
 
-        if (file.size > MAX_FILE_SIZE_BYTES) {
-            return 'File size must not exceed 15 MB.';
-        }
+        case 'approvalEmail':
+            this.approvalEmailFile = file;
+            break;
 
-        return null;
+        case 'rejoiningAcceptance':
+            this.rejoiningAcceptanceFile = file;
+            break;
+
+        case 'transaction':
+            this.transactionFile = file;
+            break;
+
+        default:
+            break;
+    }
+}
+
+    validateFile(file, field) {
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        return 'Only .pdf, .jpg and .jpeg files are allowed.';
     }
 
+    // 15 MB cap applies ONLY to Documents to Support Request.
+    if (field === 'documents' && file.size > MAX_FILE_SIZE_BYTES) {
+        return 'File size must not exceed 15 MB.';
+    }
+
+    return null;
+   }
     // ---- Submit ----
     // ---- Submit ----
     async handleSubmit() {
@@ -353,7 +492,7 @@ export default class Spjimr_defermentRequest extends LightningElement {
                 this.fileToBase64(this.transactionFile)
             ]);
 
-            await submitDefermentRequest({
+           /* await submitDefermentRequest({
                 defermentRequestId: this.defermentRequestId,
                 reason: this.reason,
                 documentsBase64: documents.base64,
@@ -364,7 +503,20 @@ export default class Spjimr_defermentRequest extends LightningElement {
                 rejoiningAcceptanceFileName: rejoiningAcceptance.fileName,
                 transactionBase64: transaction.base64,
                 transactionFileName: transaction.fileName
-            });
+            });*/
+            console.log('SUBMIT DEBUG defermentRequestId=', this.defermentRequestId, 'hasActiveRequest=', this.hasActiveRequest, 'windowStatus=', this.windowStatus);
+            const payload = {
+    defermentRequestId: this.defermentRequestId,
+    reason: this.reason,
+    files: [
+        { documentType: 'Documents to Support Request', base64Data: documents.base64, fileName: documents.fileName },
+        { documentType: 'Approval Email (Screenshot) with Rejoining Condition', base64Data: approvalEmail.base64, fileName: approvalEmail.fileName },
+        { documentType: 'Rejoining Condition Acceptance Email Screenshot', base64Data: rejoiningAcceptance.base64, fileName: rejoiningAcceptance.fileName },
+        { documentType: 'Transaction Details (Screenshot)', base64Data: transaction.base64, fileName: transaction.fileName }
+    ]
+};
+
+await submitDefermentRequest({ requestJson: JSON.stringify(payload) });
 
             this.submitSuccess = true;
             this.submittedReason = this.reason;

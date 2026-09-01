@@ -39,6 +39,18 @@ export default class AttendanceDashboard extends LightningElement {
     @track selectedCourseIds = []; // empty = show all courses
     @track isCourseDropdownOpen = false;
     @track hasSearchedSessionDetail = false;
+    
+    _handleOutsideClick = (event) => {
+    const path = event.composedPath();
+    const selectorEl = this.template.querySelector('.course-selector');
+    // If the click happened inside .course-selector (picker box or the
+    // open dropdown-panel itself), leave the dropdown open.
+    if (selectorEl && path.includes(selectorEl)) {
+        return;
+    }
+    this.isCourseDropdownOpen = false;
+    window.removeEventListener('click', this._handleOutsideClick);
+};
  // New @api props receiving term boundaries from parent   
     @api termStartDate = '';
     @api termEndDate = '';
@@ -57,6 +69,9 @@ export default class AttendanceDashboard extends LightningElement {
             this.fetchData();
         }
     }*/
+    // Bound reference so addEventListener/removeEventListener target the same
+   // function instance — required for removeEventListener to actually work.
+
     get termId() {
         return this._termId;
     }
@@ -217,6 +232,15 @@ export default class AttendanceDashboard extends LightningElement {
 toggleCourseDropdown(event) {
     event.stopPropagation();
     this.isCourseDropdownOpen = !this.isCourseDropdownOpen;
+
+    if (this.isCourseDropdownOpen) {
+        window.addEventListener('click', this._handleOutsideClick);
+    } else {
+        window.removeEventListener('click', this._handleOutsideClick);
+    }
+}
+disconnectedCallback() {
+    window.removeEventListener('click', this._handleOutsideClick);
 }
 
 stopPanelClick(event) {

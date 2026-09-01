@@ -1,7 +1,7 @@
 <template>
 
     <template if:true={isLoadingRequest}>
-    <p>Loading...</p>
+        <p>Loading...</p>
     </template>
 
     <template if:false={isLoadingRequest}>
@@ -11,6 +11,54 @@
             your Programme Manager opens a deferment window for you.
         </p>
     </template>
+
+    <template if:true={showWindowMessage}>
+    <div class="window-message">
+
+        <template if:true={isWindowOpen}>
+            <span>
+                Deferment Request is currently open.
+                You can submit your request until
+                <span class="window-end-date">
+                <lightning-formatted-date-time
+                    value={breakEndDateTime}
+                    month="2-digit"
+                    day="2-digit"
+                    year="numeric">
+                </lightning-formatted-date-time>.
+                </span>.
+            </span>
+        </template>
+
+        <template if:true={isWindowExpired}>
+            <span>
+                Your Deferment Request window has expired.
+                Please contact the Programme Manager to enable the window again.
+            </span>
+        </template>
+
+        <template if:true={isWindowNotStarted}>
+            <span>
+                Your Deferment Request window is not open yet.
+                Please wait until the window opens.
+            </span>
+        </template>
+
+        <template if:true={isWindowReopened}>
+            <span>
+                Your previous Deferment Request was rejected.
+                Review the remarks below, update what's needed, and resubmit.
+            </span>
+        </template>
+
+        <template if:true={isWindowApproved}>
+            <span>
+                Your Deferment Request has been approved by the approvers.
+                The Programme Manager needs to update the Rejoining Details.
+            </span>
+        </template>
+    </div>
+</template>
 
      <template if:true={showDefermentForm}>
     <div class="deferment-form">
@@ -55,6 +103,15 @@
                 Documents to support Request
                 <span class="required-mark">*</span>
             </label>
+
+            <template if:true={existingDocumentsFile}>
+                <template if:false={documentsFile}>
+                    <p class="existing-file">
+                        Currently uploaded: <strong>{existingDocumentsFile.fileName}</strong>
+                        — choose a new file below to replace it.
+                    </p>
+                </template>
+            </template>
 
             <div class={documentsBoxClass}>
 
@@ -101,6 +158,15 @@
                 <span class="required-mark">*</span>
             </label>
 
+            <template if:true={existingApprovalEmailFile}>
+                <template if:false={approvalEmailFile}>
+                    <p class="existing-file">
+                        Currently uploaded: <strong>{existingApprovalEmailFile.fileName}</strong>
+                        — choose a new file below to replace it.
+                    </p>
+                </template>
+            </template>
+
             <div class={approvalEmailBoxClass}>
 
                 <p class="upload-title">
@@ -120,8 +186,7 @@
                 </label>
 
                 <p class="upload-hint">
-                    Must be .pdf, .jpg file and not exceeding
-                    <strong>15mb</strong> file size
+                    Must be .pdf, .jpg file
                 </p>
 
                 <template if:true={approvalEmailFile}>
@@ -146,6 +211,15 @@
                 <span class="required-mark">*</span>
             </label>
 
+            <template if:true={existingRejoiningAcceptanceFile}>
+                <template if:false={rejoiningAcceptanceFile}>
+                    <p class="existing-file">
+                        Currently uploaded: <strong>{existingRejoiningAcceptanceFile.fileName}</strong>
+                        — choose a new file below to replace it.
+                    </p>
+                </template>
+            </template>
+
             <div class={rejoiningAcceptanceBoxClass}>
 
                 <p class="upload-title">
@@ -165,8 +239,7 @@
                 </label>
 
                 <p class="upload-hint">
-                    Must be .pdf, .jpg file and not exceeding
-                    <strong>15mb</strong> file size
+                    Must be .pdf, .jpg file
                 </p>
 
                 <template if:true={rejoiningAcceptanceFile}>
@@ -214,6 +287,15 @@
 
     <template if:true={isFeeApplicable}>
 
+        <template if:true={existingTransactionFile}>
+            <template if:false={transactionFile}>
+                <p class="existing-file">
+                    Currently uploaded: <strong>{existingTransactionFile.fileName}</strong>
+                    — choose a new file below to replace it.
+                </p>
+            </template>
+        </template>
+
         <div class={transactionBoxClass}>
 
             <p class="upload-title">
@@ -233,8 +315,7 @@
             </label>
 
             <p class="upload-hint">
-                Must be .pdf, .jpg file and not exceeding
-                <strong>15mb</strong> file size
+                Must be .pdf, .jpg file
             </p>
 
             <template if:true={transactionFile}>
@@ -314,9 +395,9 @@
                             <td>{trackerReasonDisplay}</td>
                             <td>{trackerApplicationFeeDisplay}</td>
                             <td><span class="status-badge">{trackerStatusLabel}</span></td>
-                            <td>Pending submission</td>
-                            <td>—</td>
-                            <td>—</td>
+                            <td>{trackerApprovalStatusDisplay}</td>
+                            <td>{trackerL1RemarkDisplay}</td>
+<td>{trackerL2RemarkDisplay}</td>
                         </tr>
                     </tbody>
                 </table>

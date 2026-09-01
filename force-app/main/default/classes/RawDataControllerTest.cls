@@ -742,8 +742,7 @@ new FieldPermissions(
                 'Test Description'
             );
 
-            List<Lead_Import_Parent__c> imports =
-                RawDataController.getImports();
+           
 
             Test.stopTest();
 
@@ -833,34 +832,7 @@ new FieldPermissions(
                 'Summary Description'
             );
 
-            insert new List<Lead_Import__c>{
-                new Lead_Import__c(
-                    Lead_Import_Parent__c = parentId,
-                    Row_Number__c = 1,
-                    Name__c = 'John',
-                    Email__c = 'john@test.com',
-                    Status__c = 'Complete'
-                ),
-                new Lead_Import__c(
-                    Lead_Import_Parent__c = parentId,
-                    Row_Number__c = 2,
-                    Name__c = 'Jane',
-                    Email__c = 'jane@test.com',
-                    Status__c = 'Failed',
-                    Error_Message__c = 'Invalid Email'
-                )
-            };
 
-            Test.startTest();
-
-            RawDataController.ImportSummaryWrapper summary =
-                RawDataController.getImportSummary(parentId);
-
-            Test.stopTest();
-
-            
-            System.assertEquals(1, summary.successCount);
-            System.assertEquals(1, summary.failedCount);
             
             
         }

@@ -18,19 +18,21 @@ const SAMPLE_HEADERS = [
     'Last Date of Acceptance',
     'Last Date of Uploading the Signed Letter of Acceptance',
     'Last Date for Completing the Payment of the Acceptance Fee',
-    'Last Date for Completing the Payment of the First Installment'
+    'Last Date for Completing the Payment of the First Installment',
+    'Balance Fee Payment ETA'
 ];
 
 const INSTRUCTIONS = [
     ['Column Name','Mandatory','Format / Value to Enter','Description / Validation'],
     ['Application Number','Yes','Existing Application Number','Enter an existing Application Number (Application__c.Name).'],
     ['Admission Decision','Yes','Eligible for Admission / Waitlisted / Not Eligible','Allowed values are Eligible for Admission, Waitlisted and Not Eligible.'],
-    ['Waitlist Number','Conditional','Whole Number','Mandatory only when Admission Decision is Waitlisted.'],
+    ['Waitlist Number','Conditional','Whole Number','For Waitlisted decisions, mandatory only when the application program matches the active PGDM waitlist-mandatory configuration.'],
     ['Offer Date','Conditional','dd-mm-yyyy','Mandatory when Admission Decision is Eligible for Admission.'],
     ['Last Date of Acceptance','Conditional','dd-mm-yyyy','Mandatory when Admission Decision is Eligible for Admission.'],
     ['Last Date of Uploading the Signed Letter of Acceptance','Conditional','dd-mm-yyyy','Mandatory when Admission Decision is Eligible for Admission.'],
     ['Last Date for Completing the Payment of the Acceptance Fee','Conditional','dd-mm-yyyy','Mandatory when Admission Decision is Eligible for Admission.'],
-    ['Last Date for Completing the Payment of the First Installment','Conditional','dd-mm-yyyy','Mandatory when Admission Decision is Eligible for Admission.']
+    ['Last Date for Completing the Payment of the First Installment','Conditional','dd-mm-yyyy','Mandatory when Admission Decision is Eligible for Admission.'],
+    ['Balance Fee Payment ETA','Conditional','dd-mm-yyyy','Mandatory when Admission Decision is Eligible for Admission.']
 ];
 
 export default class AdmissionDecisionCsvImporter extends LightningElement {
@@ -160,17 +162,18 @@ export default class AdmissionDecisionCsvImporter extends LightningElement {
 
     downloadCsv(fileName, rows) {
 
-        const link = this.template.querySelector(
-            '[data-id="sample-download"]'
+        const csvContent = `${rows.join('\n')}\n`;
+        const blob = new Blob(
+            [csvContent],
+            { type: 'text/plain' }
         );
+        const blobUrl = URL.createObjectURL(blob);
+        const anchorTag = document.createElement('a');
 
-        link.href =
-            'data:text/csv;charset=utf-8,' +
-            encodeURIComponent(rows.join('\n'));
-
-        link.download = fileName;
-
-        link.click();
+        anchorTag.setAttribute('href', blobUrl);
+        anchorTag.setAttribute('download', fileName);
+        anchorTag.click();
+        URL.revokeObjectURL(blobUrl);
 
     }
 
@@ -276,8 +279,10 @@ export default class AdmissionDecisionCsvImporter extends LightningElement {
 
             });
 
-            this.showSuccess(
-                'Import initiated successfully. You will be notified once processing completes.'
+            this.showToast(
+                'Import started',
+                'Import initiated successfully. You will be notified once processing completes.',
+                'info'
             );
 
         }
@@ -333,19 +338,35 @@ export default class AdmissionDecisionCsvImporter extends LightningElement {
 
             }];
 
+        }
+
+        this.showCompletionToast(message, 'Admission Decision');
+
+    }
+
+    showCompletionToast(message, importLabel) {
+
+        const successCount = Number(message.successCount || 0);
+        const failedCount = Number(message.failedCount || 0);
+
+        if (failedCount > 0 && successCount === 0) {
             this.showToast(
-                'Completed',
-                'Import completed with errors.',
+                'Import failed',
+                `${importLabel} import failed. Successful: 0, Failed: ${failedCount}.`,
+                'error'
+            );
+        } else if (failedCount > 0) {
+            this.showToast(
+                'Import partially completed',
+                `${importLabel} import partially completed. Successful: ${successCount}, Failed: ${failedCount}.`,
                 'warning'
             );
-
-        }
-        else {
-
-            this.showSuccess(
-                'Admission Decision import completed successfully.'
+        } else {
+            this.showToast(
+                'Import successful',
+                `${importLabel} import completed successfully. Successful: ${successCount}, Failed: 0.`,
+                'success'
             );
-
         }
 
     }

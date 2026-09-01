@@ -1,6 +1,11 @@
 public with sharing class AdmissionDecisionImportBatch
     implements Database.Batchable<SObject>, Database.Stateful {
 
+    private static final String WAITLIST_CONFIG_NAME =
+        'PGDM_Admission_Waitlist_Number_Mandatory';
+    private static final String WAITLIST_CONFIG_INTENT =
+        'Admission_Waitlist_Number_Mandatory';
+
     private class ImportException extends Exception {}
 
     private class Row {
@@ -34,6 +39,8 @@ public with sharing class AdmissionDecisionImportBatch
 
     private Id errorContentDocumentId;
     private List<Id> successContentDocumentIds = new List<Id>();
+    private ApplicationProgramBasedConfig__mdt waitlistNumberConfig;
+    private Boolean waitlistNumberConfigLoaded = false;
 
     public AdmissionDecisionImportBatch(
         List<Id> contentVersionIds,
@@ -142,6 +149,7 @@ public with sharing class AdmissionDecisionImportBatch
                 'Last Date of Uploading the Signed Letter of Acceptance',
                 'Last Date for Completing the Payment of the Acceptance Fee',
                 'Last Date for Completing the Payment of the First Installment',
+                'Balance Fee Payment ETA',
                 'Error'
 
             });
@@ -164,6 +172,7 @@ public with sharing class AdmissionDecisionImportBatch
                 'Last Date of Uploading the Signed Letter of Acceptance',
                 'Last Date for Completing the Payment of the Acceptance Fee',
                 'Last Date for Completing the Payment of the First Installment',
+                'Balance Fee Payment ETA',
                 'Admission Decision Name'
 
             });
@@ -205,7 +214,8 @@ public with sharing class AdmissionDecisionImportBatch
             'Last Date of Acceptance',
             'Last Date of Uploading the Signed Letter of Acceptance',
             'Last Date for Completing the Payment of the Acceptance Fee',
-            'Last Date for Completing the Payment of the First Installment'
+            'Last Date for Completing the Payment of the First Installment',
+            'Balance Fee Payment ETA'
         };
 
         List<String> missingHeaders = new List<String>();
@@ -319,7 +329,8 @@ public with sharing class AdmissionDecisionImportBatch
 
             SELECT
                 Id,
-                Name
+                Name,
+                Program_Code__c
 
             FROM Application__c
 
@@ -433,13 +444,18 @@ public with sharing class AdmissionDecisionImportBatch
 
                 if (admissionDecision == 'Waitlisted') {
 
-                    String waitlistNumber =
-                        require(
-                            row,
-                            'Waitlist Number'
-                        );
+                    String waitlistNumber = row.values.get('Waitlist Number');
+                    if (
+                        isWaitlistNumberRequired(
+                            applicationByNumber.get(applicationNumber)
+                        )
+                    ) {
+                        waitlistNumber = require(row, 'Waitlist Number');
+                    }
 
-                    decision.WaitlistNumber__c = Decimal.valueOf(waitlistNumber);
+                    decision.WaitlistNumber__c = String.isBlank(waitlistNumber)
+                        ? null
+                        : Decimal.valueOf(waitlistNumber);
 
                 } else {
 
@@ -489,6 +505,14 @@ public with sharing class AdmissionDecisionImportBatch
                             )
                         );
 
+                    decision.BalanceFeePaymentETA__c =
+                        parseDate(
+                            require(
+                                row,
+                                'Balance Fee Payment ETA'
+                            )
+                        );
+
                 } else {
 
                     clearAdmissionDates(decision);
@@ -525,6 +549,43 @@ public with sharing class AdmissionDecisionImportBatch
         decision.SignedLetterOfAcceptanceEta__c = null;
         decision.PaymentOfTheAcceptanceFeeEta__c = null;
         decision.PaymentOfTheFirstInstallmentEta__c = null;
+        decision.BalanceFeePaymentETA__c = null;
+    }
+
+    private Boolean isWaitlistNumberRequired(Application__c application) {
+        ApplicationProgramBasedConfig__mdt configuration =
+            getWaitlistNumberConfiguration();
+
+        return application != null &&
+            !String.isBlank(application.Program_Code__c) &&
+            configuration != null &&
+            configuration.Active__c &&
+            configuration.Intent__c == WAITLIST_CONFIG_INTENT &&
+            configuration.Type__c == 'Boolean' &&
+            Boolean.valueOf(configuration.ConfigValue__c) &&
+            !String.isBlank(configuration.ProgramCode__c) &&
+            configuration.ProgramCode__c.equalsIgnoreCase(
+                application.Program_Code__c.trim()
+            );
+    }
+
+    private ApplicationProgramBasedConfig__mdt
+        getWaitlistNumberConfiguration() {
+        if (!waitlistNumberConfigLoaded) {
+            waitlistNumberConfigLoaded = true;
+            List<ApplicationProgramBasedConfig__mdt> configurations = [
+                SELECT ProgramCode__c, Intent__c, Type__c,
+                    ConfigValue__c, Active__c
+                FROM ApplicationProgramBasedConfig__mdt
+                WHERE DeveloperName = :WAITLIST_CONFIG_NAME
+                LIMIT 1
+            ];
+            if (!configurations.isEmpty()) {
+                waitlistNumberConfig = configurations[0];
+            }
+        }
+
+        return waitlistNumberConfig;
     }
 
     private void saveAdmissionDecisions(
@@ -870,6 +931,8 @@ public with sharing class AdmissionDecisionImportBatch
             'hasErrors',
             errorVersionId != null
         );
+        payload.put('successCount', successCount);
+        payload.put('failedCount', failedCount);
 
         if (errorVersionId != null) {
 

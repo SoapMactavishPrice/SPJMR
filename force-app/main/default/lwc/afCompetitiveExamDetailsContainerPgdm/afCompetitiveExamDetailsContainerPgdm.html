@@ -1,0 +1,21 @@
+<template>
+    <div lwc:if={isLoading}>
+        <lightning-spinner size="large" alternative-text="Loading"></lightning-spinner>
+    </div>
+    <div class="page">
+        <h3>Entrance Exam Details</h3>
+
+        <div class="note-box">
+            <slot name="note">
+                <!-- informative note -->
+                <small>Choose exam(s) you appeared for in the Application and fill details below.</small>
+            </slot>
+        </div>
+
+        <c-af-section-engine ondocsfetched={handleDocsFetched} sections={examSections} context={contextBlock} onsectionfieldchange={handleSectionFieldChange} collapse-hidden-columns="false"></c-af-section-engine>
+
+        <!-- <div class="actions">
+            <lightning-button label="Save" onclick={saveForm} variant="brand"></lightning-button>
+        </div> -->
+    </div>
+</template>

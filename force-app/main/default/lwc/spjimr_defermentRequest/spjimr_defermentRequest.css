@@ -344,3 +344,23 @@
     font-size: 0.8rem;
     white-space: normal;
 }
+
+.window-message {
+    background: #e5d5f5;
+    color: #4b1f6f;
+    padding: 10px 16px;
+    border-radius: 6px;
+    margin: 0 0 16px 0;
+    font-size: 15px;
+    line-height: 1.5;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.window-message strong {
+    font-weight: 600;
+}
+
+.window-end-date {
+    margin-left: 4px;
+}

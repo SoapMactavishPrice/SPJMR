@@ -35,35 +35,37 @@ public with sharing class CommunicationDispatchQueueable
             return;
         }
 
-        CommunicationsController.CommunicationRequest currentRequest =
-            requests.remove(0);
-        List<Id> applicationIds = normalizeApplicationIds(currentRequest);
+        while (!requests.isEmpty()) {
+            CommunicationsController.CommunicationRequest currentRequest =
+                requests.remove(0);
+            List<Id> applicationIds = normalizeApplicationIds(currentRequest);
 
-        if (applicationIds.isEmpty()) {
-            enqueueRemainingIfNeeded(requests);
-            return;
-        }
+            if (applicationIds.isEmpty()) {
+                continue;
+            }
 
-        Integer currentScopeSize = Math.min(scopeSize, applicationIds.size());
-        List<Id> scopeApplicationIds = new List<Id>();
-        for (Integer index = 0; index < currentScopeSize; index++) {
-            scopeApplicationIds.add(applicationIds[index]);
-        }
+            Integer currentScopeSize = Math.min(scopeSize, applicationIds.size());
+            List<Id> scopeApplicationIds = new List<Id>();
+            for (Integer index = 0; index < currentScopeSize; index++) {
+                scopeApplicationIds.add(applicationIds[index]);
+            }
 
-        CommunicationService.processAsyncScope(
-            currentRequest,
-            scopeApplicationIds
-        );
-
-        if (applicationIds.size() > currentScopeSize) {
-            requests.add(
-                0,
-                buildContinuationRequest(
-                    currentRequest,
-                    applicationIds,
-                    currentScopeSize
-                )
+            CommunicationService.processAsyncScope(
+                currentRequest,
+                scopeApplicationIds
             );
+
+            if (applicationIds.size() > currentScopeSize) {
+                requests.add(
+                    0,
+                    buildContinuationRequest(
+                        currentRequest,
+                        applicationIds,
+                        currentScopeSize
+                    )
+                );
+                break;
+            }
         }
 
         enqueueRemainingIfNeeded(requests);

@@ -988,6 +988,13 @@ dto.selectedStudentIds =
             ? (Session__c) Database.query(sessionQuery)[0]
             : new Session__c();
 
+        // The session AS IT STANDS IN THE ORG, captured before the request overwrites the fields
+        // below. The reschedule availability check needs the old date/times to tell a genuine
+        // reschedule from a save that left the timing alone. Null on create.
+        Session__c existingSessionSnapshot = sessionIdForQuery != null
+            ? sessionRecord.clone(true, true, true, true)
+            : null;
+
         String normalizedName = getSessionName(request);
         sessionRecord.Name = normalizedName;
         sessionRecord.Course__c = courseLookupId;
@@ -1092,6 +1099,10 @@ dto.selectedStudentIds =
                     };
                     throw new AuraHandledException(JSON.serialize(errPayload));
                 }
+
+                // Runs LAST of the hard checks: it is the only one that calls Google, so a clash
+                // that Salesforce can see on its own is reported without spending a callout.
+                assertFacultyCalendarAvailable(existingSessionSnapshot, request);
             }
 
             List<SessionConflictValidator.StudentSessionConflictDetail> studentConflictDetails = SessionConflictValidator.getStudentSessionConflictDetails(
@@ -1429,6 +1440,98 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
         Long reqStart = request.startTime.getTime();
         Long reqEnd = request.endTime.getTime();
         return existingStart != reqStart || existingEnd != reqEnd;
+    }
+
+    /**
+     * @description Re-reads the assigned faculty's Google Calendar when an EXISTING session is
+     *          moved to a new date or time, and blocks the save when any of them is already busy.
+     *          Living on the save rather than on the screen is deliberate: the edit modal,
+     *          drag-and-drop and resize all reach the org through saveSession, so one check here
+     *          covers every reschedule route instead of three screens each remembering to ask.
+     *
+     *          The work itself is delegated to getFacultyCalendarConflictsForSessions — the same
+     *          method the Create Sessions screen calls before a create — so both moments share one
+     *          implementation, one payload shape and one conflict-card shape. That method also
+     *          excludes the session's OWN two calendar entries, without which every reschedule
+     *          would report the session clashing with itself.
+     *
+     * @note    No-op on create (the screen already checks before calling), when the timing did not
+     *          actually change, and when the save carries the user's conflict override. Reading
+     *          Google is fail-open by design: if the integration is down the underlying service
+     *          returns no conflicts and the reschedule proceeds rather than being stuck.
+     *
+     * @param existingSession The session as it stood in the org before this save; null on create.
+     * @param request The incoming save request carrying the proposed date, times and faculty.
+     */
+    @TestVisible
+    private static void assertFacultyCalendarAvailable(Session__c existingSession, SessionInput request) {
+        if (!isRescheduleNeedingCalendarCheck(existingSession, request)) {
+            return;
+        }
+        List<String> facultyIdStrs = requestedFacultyIdStrings(request);
+        if (facultyIdStrs.isEmpty()) {
+            return;
+        }
+        // Local date + wall-clock times, exactly the shape the Create Sessions screen posts, so the
+        // shared method parses them back to the same instants it would on create.
+        String proposedJson = JSON.serialize(new List<Map<String, Object>>{
+            new Map<String, Object>{
+                'sessionId'          => String.valueOf(existingSession.Id),
+                'sessionName'        => getSessionName(request),
+                'sessionDate'        => formatDateForQuery(request.sessionDate),
+                'startTime'          => formatTimeForClient(request.startTime),
+                'endTime'            => formatTimeForClient(request.endTime),
+                'selectedFacultyIds' => facultyIdStrs
+            }
+        });
+        List<FacultyCalendarConflictDetail> calendarConflicts =
+            getFacultyCalendarConflictsForSessions(proposedJson);
+        if (calendarConflicts == null || calendarConflicts.isEmpty()) {
+            return;
+        }
+        Map<String, Object> errPayload = new Map<String, Object>{
+            'type' => 'CALENDAR_CONFLICT',
+            'message' => 'Faculty is not available at the new date and time. View details for more information.',
+            'details' => calendarConflicts
+        };
+        throw new AuraHandledException(JSON.serialize(errPayload));
+    }
+
+    /**
+     * @description Whether this save is a genuine reschedule of an existing session and therefore
+     *          worth spending a Google callout on: there is a previous version to compare against,
+     *          the request carries a complete window, and the date or times actually moved.
+     * @param existingSession The session as it stood in the org before this save; null on create.
+     * @param request The incoming save request.
+     * @return True when the faculty's calendar should be re-read.
+     */
+    private static Boolean isRescheduleNeedingCalendarCheck(Session__c existingSession, SessionInput request) {
+        if (existingSession == null || existingSession.Id == null || request == null) {
+            return false;
+        }
+        if (request.sessionDate == null || request.startTime == null || request.endTime == null) {
+            return false;
+        }
+        return dateOrTimeChanged(existingSession, request);
+    }
+
+    /**
+     * @description The non-blank faculty ids on a save request, as strings ready for the shared
+     *          conflict payload.
+     * @param request The incoming save request.
+     * @return The faculty ids, empty when none were sent.
+     */
+    private static List<String> requestedFacultyIdStrings(SessionInput request) {
+        List<String> facultyIdStrs = new List<String>();
+        if (request == null || request.selectedFacultyIds == null) {
+            return facultyIdStrs;
+        }
+        for (String facultyIdStr : request.selectedFacultyIds) {
+            if (String.isNotBlank(facultyIdStr)) {
+                facultyIdStrs.add(facultyIdStr);
+            }
+        }
+        return facultyIdStrs;
     }
 
     @TestVisible
