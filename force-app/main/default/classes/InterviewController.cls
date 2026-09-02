@@ -1,4 +1,6 @@
 global with sharing class InterviewController {
+
+    private static final String RECORD_TYPE = 'Interviewer Faculty';
     
     public class CsvEvaluationRow {
         public String applicationNumber;
@@ -16,13 +18,13 @@ global with sharing class InterviewController {
     }
 
   
-global class InterviewMatrixRequest {
-    @AuraEnabled public Integer pageSize;
-    @AuraEnabled public Integer pageNumber;
-    @AuraEnabled public Integer round;
-    @AuraEnabled public String programCode;
-    @AuraEnabled public List<Id> applicationIds;
-}
+    global class InterviewMatrixRequest {
+        @AuraEnabled public Integer pageSize;
+        @AuraEnabled public Integer pageNumber;
+        @AuraEnabled public Integer round;
+        @AuraEnabled public String programCode;
+        @AuraEnabled public List<Id> applicationIds;
+    }
 
 
     /* =========================================================
@@ -872,7 +874,7 @@ for (ApplicationSlotBooking__c slot : slots) {
         try {
             List<Evaluation__c> listEvalId = [SELECT Id 
             FROM Evaluation__c 
-            WHERE EvaluatedUser__r.PersonEmail = :UserInfo.getUserEmail() 
+            WHERE EvaluatedUser__r.PersonEmail = :UserInfo.getUserEmail() AND EvaluatedUser__r.RecordType.Name = :RECORD_TYPE
             AND Application_Slot_Booking__c = :slotId
             LIMIT 1];
             
@@ -890,7 +892,7 @@ for (ApplicationSlotBooking__c slot : slots) {
                 
                 List<Account> listEvaluator= [SELECT Id,Name
                 FROM Account 
-                WHERE PersonEmail = :UserInfo.getUserEmail() 
+                WHERE PersonEmail = :UserInfo.getUserEmail() AND RecordType.Name = :RECORD_TYPE
                 LIMIT 1];
                 
                 Evaluation__c evalRecord = new Evaluation__c(Application_Slot_Booking__c = slotId,
@@ -960,7 +962,7 @@ for (ApplicationSlotBooking__c slot : slots) {
             String currentUserEmail = UserInfo.getUserEmail();
             System.debug('getSlotMastersForEvaluator: currentUserEmail = ' + currentUserEmail);
 
-            List<Account> accList = [SELECT Id FROM Account WHERE PersonEmail = :currentUserEmail LIMIT 1];
+            List<Account> accList = [SELECT Id FROM Account WHERE PersonEmail = :currentUserEmail AND RecordType.Name = :RECORD_TYPE LIMIT 1];
             System.debug('getSlotMastersForEvaluator: accList size = ' + accList.size());
             if (accList.isEmpty()) {
                 System.debug('getSlotMastersForEvaluator: No matching Account found for email, returning empty list');
@@ -1022,7 +1024,8 @@ for (ApplicationSlotBooking__c slot : slots) {
             Map<Id, String> bookingToEvalStatus = new Map<Id, String>();
             List<Evaluation__c> evaluations = [SELECT Id, Application_Slot_Booking__c, Status__c
                                     FROM Evaluation__c
-                                    WHERE EvaluatedUser__r.PersonEmail = :currentUserEmail
+                                    WHERE EvaluatedUser__r.PersonEmail = :currentUserEmail 
+                                    AND EvaluatedUser__r.RecordType.Name = :RECORD_TYPE
                                     AND Application_Slot_Booking__c IN :bookingIds];
             System.debug('getSlotMastersForEvaluator: evaluations size = ' + evaluations.size());
             for (Evaluation__c ev : evaluations) {
@@ -1098,7 +1101,7 @@ for (ApplicationSlotBooking__c slot : slots) {
 
             List<Account> accList = [
                 SELECT Id FROM Account
-                WHERE PersonEmail = :currentUserEmail
+                WHERE PersonEmail = :currentUserEmail AND RecordType.Name = :RECORD_TYPE
                 LIMIT 1
             ];
 
@@ -1195,7 +1198,7 @@ for (ApplicationSlotBooking__c slot : slots) {
             for (Evaluation__c ev : [
                 SELECT Id, Application_Slot_Booking__c, Status__c
                 FROM Evaluation__c
-                WHERE EvaluatedUser__r.PersonEmail = :currentUserEmail
+                WHERE EvaluatedUser__r.PersonEmail = :currentUserEmail AND EvaluatedUser__r.RecordType.Name = :RECORD_TYPE
                   AND Application_Slot_Booking__c IN :bookingIds
             ]) {
                 bookingToEvalStatus.put(ev.Application_Slot_Booking__c, ev.Status__c);
@@ -1323,7 +1326,7 @@ for (ApplicationSlotBooking__c slot : slots) {
         if(!appSlotBookingList.isEmpty()){
             
             List<Evaluation__c> listEvaluation = [SELECT Id FROM Evaluation__c 
-            WHERE EvaluatedUser__r.PersonEmail = :UserInfo.getUserEmail() 
+            WHERE EvaluatedUser__r.PersonEmail = :UserInfo.getUserEmail() AND EvaluatedUser__r.RecordType.Name = :RECORD_TYPE
             AND Application_Slot_Booking__c = :applicationSlotBookingId LIMIT 1];
             
             criteriaList = [SELECT Id,CriteriaName__c,Name,Maximum_Score__c,CriteriaDescription__c
@@ -1482,6 +1485,7 @@ for (ApplicationSlotBooking__c slot : slots) {
             SELECT Id
             FROM Account
             WHERE PersonEmail = :UserInfo.getUserEmail()
+            AND RecordType.Name = :RECORD_TYPE
             LIMIT 1
         ];
         return accList.isEmpty() ? null : accList[0].Id;

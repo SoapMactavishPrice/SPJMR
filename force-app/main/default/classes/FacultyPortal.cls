@@ -11,7 +11,7 @@ public with sharing class FacultyPortal {
 
         List<Account> accList = [
             SELECT Id FROM Account
-            WHERE PersonEmail = :currentUserEmail
+            WHERE PersonEmail = :currentUserEmail AND RecordType.Name = 'Interviewer Faculty'
             LIMIT 1
         ];
 
@@ -58,7 +58,7 @@ SELECT Id FROM Account WHERE PersonEmail = :currentUserEmail LIMIT 1
 ];*/
         List<Account> accList = [
             SELECT Id FROM Account 
-            WHERE PersonEmail = :currentUserEmail 
+            WHERE PersonEmail = :currentUserEmail AND RecordType.Name = 'Interviewer Faculty'
             LIMIT 1
         ];
         

@@ -7,7 +7,7 @@ public with sharing class ApAccountProgramController {
             String userEmail = UserInfo.getUserEmail();
             List<Account> listAccounts = [SELECT Id, 
             (SELECT Id FROM Applications__r) FROM Account
-            WHERE PersonEmail=:userEmail LIMIT 1];
+            WHERE PersonEmail=:userEmail AND RecordType.Name = 'Applicant' LIMIT 1];
             if(listAccounts.size()>0){
                 for(Application__c app:listAccounts[0]?.Applications__r){
                     returnList.add(app.Id);
@@ -428,7 +428,7 @@ public static String getApplicationStage(Id applicationId) {
              FROM Admission_Decisions__r WHERE Result__c = 'Eligible for Admission') 
             FROM Applications__r)
             FROM Account 
-            WHERE PersonEmail = :UserInfo.getUserEmail() LIMIT 1
+            WHERE PersonEmail = :UserInfo.getUserEmail() AND RecordType.Name = 'Applicant'  LIMIT 1
             ];
             Set<String> allowedApplicantStates = new Set<String>{
                 'Offer Issued',
@@ -519,11 +519,8 @@ public static String getApplicationStage(Id applicationId) {
                                 Boolean isAcc = (adm.Offer_Accepted__c == true);
                                 Boolean hasPending = false;
                                 if (isAcc) {
-                                    Set<String> uploadedCodes = uploadedDocCodesByAppId.containsKey(app.Id)
-                                        ? uploadedDocCodesByAppId.get(app.Id)
-                                        : new Set<String>();
                                     Boolean hasOfferLetterDoc = String.isNotBlank(mapAdmissionToPublicUrl.get(adm.Id));
-                                    hasPending = hasOfferLetterDoc && !uploadedCodes.contains('Signed_OfferLetter');
+                                    hasPending = computeHasPendingDocuments(adm.Id, app.Id, app.Program_Code__c, hasOfferLetterDoc);
                                 }
                                 res.hasPendingDocuments = hasPending;
 
@@ -545,6 +542,39 @@ public static String getApplicationStage(Id applicationId) {
         }
     }
     
+    @TestVisible
+    private static Boolean computeHasPendingDocuments(Id admissionId, Id applicationId, String programCode, Boolean hasOfferLetterDoc) {
+        Boolean showOfferUpload = getOfferDocumentUploadConfig(programCode) && hasOfferLetterDoc;
+
+        Set<String> requiredDocCodes = new Set<String>();
+        if (showOfferUpload) {
+            requiredDocCodes.add('Signed_OfferLetter');
+        }
+
+        ProgramDocumentWrapper pdw = getProgramSpecificDocuments(admissionId, applicationId);
+        if (pdw != null && pdw.annexures != null) {
+            for (AnnexureWrapper aw : pdw.annexures) {
+                if (aw.displayAsImportantDocument
+                    && aw.isUploadSectionRequired
+                    && aw.filterCondition != 'FILTERED_OUT') {
+                    requiredDocCodes.add(aw.docCode);
+                }
+            }
+        }
+
+        if (requiredDocCodes.isEmpty()) {
+            return false;
+        }
+
+        Map<String, Object> uploadStatus = checkUploadedDocumentsByCodes(applicationId, new List<String>(requiredDocCodes));
+        for (String code : requiredDocCodes) {
+            if (!uploadStatus.containsKey(code)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @AuraEnabled
     public static string isDecisionPresent(){
         try {
@@ -552,7 +582,7 @@ public static String getApplicationStage(Id applicationId) {
             (SELECT Id,
             (SELECT Id,Result__c FROM Admission_Decisions__r) FROM Applications__r)
             FROM Account 
-            WHERE PersonEmail = :UserInfo.getUserEmail() LIMIT 1
+            WHERE PersonEmail = :UserInfo.getUserEmail() AND RecordType.Name = 'Applicant' LIMIT 1
             ];
             if(accts.size()>0){
                 for(Account acc: accts){
@@ -769,7 +799,7 @@ public static String getApplicationStage(Id applicationId) {
             SELECT Id
             FROM Account
             WHERE IsPersonAccount = true
-            AND PersonEmail = :userEmail
+            AND PersonEmail = :userEmail AND RecordType.Name = 'Applicant'
             LIMIT 1
         ];
         
