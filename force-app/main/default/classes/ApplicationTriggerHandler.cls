@@ -380,7 +380,7 @@ public without sharing class ApplicationTriggerHandler {
 
         List<Admission_Decision__c> decisionsToUpdate = new List<Admission_Decision__c>();
         for (Admission_Decision__c decision : [
-            SELECT Id, Application__c, FinalOfferAccepted__c, OfferWithdrawn__c, Offer_Declined__c, Offer_Accepted__c
+            SELECT Id, Application__c, FinalOfferAccepted__c, OfferWithdrawn__c, Offer_Declined__c, Offer_Accepted__c, IsSignedAcceptanceLetterUploaded__c
             FROM Admission_Decision__c
             WHERE Application__c IN :allApplicationIds
         ]) {
@@ -402,19 +402,23 @@ public without sharing class ApplicationTriggerHandler {
             }
 
             if (offerIssuedApplicationIds.contains(decision.Application__c)) {
-                if (decision.Offer_Accepted__c != false) {
+                if (decision.Offer_Accepted__c) {
                     decision.Offer_Accepted__c = false;
                     needsUpdate = true;
                 }
-                if (decision.FinalOfferAccepted__c != false) {
+                if (decision.IsSignedAcceptanceLetterUploaded__c) {
+                    decision.IsSignedAcceptanceLetterUploaded__c = false;
+                    needsUpdate = true;
+                }
+                if (decision.FinalOfferAccepted__c) {
                     decision.FinalOfferAccepted__c = false;
                     needsUpdate = true;
                 }
-                if (decision.OfferWithdrawn__c != false) {
+                if (decision.OfferWithdrawn__c) {
                     decision.OfferWithdrawn__c = false;
                     needsUpdate = true;
                 }
-                if (decision.Offer_Declined__c != false) {
+                if (decision.Offer_Declined__c) {
                     decision.Offer_Declined__c = false;
                     needsUpdate = true;
                 }
