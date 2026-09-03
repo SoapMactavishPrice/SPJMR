@@ -9,6 +9,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import { subscribe, MessageContext } from 'lightning/messageService';
 import INTERVIEW_MESSAGE_CHANNEL from '@salesforce/messageChannel/InterviewMessageChannel__c';
+import { openInNewTab } from 'c/applicationFormService';
 
 
 const STATUS_VARIANT = {
@@ -161,11 +162,11 @@ export default class InterviewViewDetails extends NavigationMixin(LightningEleme
             const url = await getMerittoExtractFileUrl({ applicationId });
             console.log('MerittoExtract url:', url);
             if (url) {
-                window.open(url, '_blank');
+                openInNewTab(url);
             } else {
                 this.dispatchEvent(new ShowToastEvent({
                     title  : 'No Document Found',
-                    message: 'No MerittoExtract document is attached to this application.',
+                    message: 'No document is attached to this application.',
                     variant: 'warning'
                 }));
             }

@@ -15,6 +15,7 @@ import Id from '@salesforce/user/Id';
 import EMAIL_FIELD from '@salesforce/schema/User.Email'
 import FIRST_NAME from '@salesforce/schema/User.FirstName'
 import LAST_NAME from '@salesforce/schema/User.LastName'
+import { openInNewTab } from 'c/applicationFormService';
 
 export default class ApOfferAcceptance extends NavigationMixin(LightningElement) {
     @track offers = [];
@@ -488,7 +489,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
             },
 
         }).then(url => {
-            window.open(url, "_blank")
+            openInNewTab(url);
         })
     }
     handleDocStatusChange(event) {

@@ -23,7 +23,7 @@ public without sharing class ApplicationTriggerHandler {
      */
     private static final Map<String, String> APP_STAGE_TO_OPP_STAGE = buildApplicationStageToOpportunityStageMap();
 
-    @TestVisible
+    
     private static Map<String, String> buildApplicationStageToOpportunityStageMap() {
         Map<String, String> m = new Map<String, String>();
         m.put('Academic Details', 'Academic Details');
@@ -105,13 +105,13 @@ public without sharing class ApplicationTriggerHandler {
      * @param oldApp Old Application version.
      * @return Whether opportunity sync should run for this row.
      */
-    @TestVisible
+    
     private static Boolean hasRelevantChange(Application__c app, Application__c oldApp) {
         return app.Application_Status__c != oldApp.Application_Status__c
             || app.Application_Stage__c != oldApp.Application_Stage__c;
     }
 
-    @TestVisible
+    
     private static Application__c findApplicationForOpp(List<Application__c> newList, Id applicationId) {
         for (Application__c a : newList) {
             if (a.Id == applicationId) {
@@ -128,7 +128,7 @@ public without sharing class ApplicationTriggerHandler {
      * @param oldApp Old Application version.
      * @return Opportunity StageName to apply, or null to leave unchanged.
      */
-    @TestVisible
+    
     private static String resolveOpportunityStage(Application__c app, Application__c oldApp) {
         if (changedTo(app.Application_Status__c, oldApp.Application_Status__c, STAGE_INITIATED)) {
             return STAGE_INITIATED;
@@ -151,7 +151,7 @@ public without sharing class ApplicationTriggerHandler {
      * @param applicationStageRaw Current Application_Stage__c value.
      * @return Opportunity stage string, or null if not in the configured set.
      */
-    @TestVisible
+    
     private static String mapApplicationStageToOpportunityStage(String applicationStageRaw) {
         if (String.isBlank(applicationStageRaw)) {
             return null;
@@ -169,7 +169,7 @@ public without sharing class ApplicationTriggerHandler {
         return null;
     }
 
-    @TestVisible
+    
     private static Boolean changedTo(String newVal, String oldVal, String target) {
         return newVal == target && oldVal != target;
     }
@@ -648,7 +648,7 @@ public without sharing class ApplicationTriggerHandler {
     /**
      * Maps Program Code to programme selection.
      */
-    @TestVisible
+    
     private static String getProgrammesInterestedIn(
         String programCode
     ) {
@@ -680,7 +680,7 @@ public without sharing class ApplicationTriggerHandler {
     /**
      * Checks whether programme sync should be skipped.
      */
-    @TestVisible
+    
     private static Boolean isPaymentLocked(
         Application__c app
     ) {
@@ -692,7 +692,7 @@ public without sharing class ApplicationTriggerHandler {
     /**
      * Gets Applicant Accounts.
      */
-    @TestVisible
+    
     private static Map<Id, Account> getApplicantAccounts(
         Set<Id> applicantIds
     ) {
@@ -723,7 +723,7 @@ public without sharing class ApplicationTriggerHandler {
     /**
      * Gets Programs.
      */
-    @TestVisible
+    
     private static Map<Id, Program> getPrograms(
         Set<Id> programIds
     ) {
@@ -754,7 +754,7 @@ public without sharing class ApplicationTriggerHandler {
     /**
      * Gets active Users by email.
      */
-    @TestVisible
+    
     private static Map<String, User> getUsersByEmail(
         Set<String> emails
     ) {
@@ -788,7 +788,7 @@ public without sharing class ApplicationTriggerHandler {
     /**
      * Gets Program Detail records by Application.
      */
-    @TestVisible
+    
     private static Map<Id, Program_Detail__c> getProgramDetails(
         Set<Id> applicationIds
     ) {
@@ -820,7 +820,7 @@ public without sharing class ApplicationTriggerHandler {
     /**
      * Normalizes multi-select values for comparison.
      */
-    @TestVisible
+    
     private static String normalizeMultiPicklist(
         String value
     ) {

@@ -21,6 +21,7 @@ import TSHIRT_FIELD from '@salesforce/schema/Personal_Detail__c.TShirtSize__c';
 import deleteDocument from '@salesforce/apex/ApAccountProgramController.deleteDocument';
 import { getRelatedListRecords } from 'lightning/uiRelatedListApi';
 import returnPaymentRecord from '@salesforce/apex/RazorpayPaymentHandler.returnPaymentRecord';
+import { openInNewTab } from 'c/applicationFormService';
 
 export default class ApOfferAcceptanceChild extends NavigationMixin(LightningElement) {
 
@@ -739,7 +740,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         this[NavigationMixin.GenerateUrl]({
             type: 'standard__webPage',
             attributes: { url }
-        }).then(generated => window.open(generated, '_blank'));
+        }).then(generated => openInNewTab(generated));
     }
 
     handleDownloadAnnexure(event) {
@@ -747,7 +748,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         this[NavigationMixin.GenerateUrl]({
             type: 'standard__webPage',
             attributes: { url }
-        }).then(generated => window.open(generated, '_blank'));
+        }).then(generated => openInNewTab(generated));
     }
 
     handleDownloadImportantDoc(event) {
@@ -756,7 +757,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         this[NavigationMixin.GenerateUrl]({
             type: 'standard__webPage',
             attributes: { url }
-        }).then(generated => window.open(generated, '_blank'));
+        }).then(generated => openInNewTab(generated));
     }
 
     // ── Toast helpers ────────────────────────────────────────────────────────
