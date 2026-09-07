@@ -954,6 +954,7 @@ for (ApplicationSlotBooking__c slot : slots) {
         @AuraEnabled public String mode;
         @AuraEnabled public Boolean isCompleted;
         @AuraEnabled public String programCode;
+        @AuraEnabled public String roundName;
     }
 
     @AuraEnabled(cacheable=true)
@@ -987,9 +988,10 @@ for (ApplicationSlotBooking__c slot : slots) {
 
             // Find bookings for these panels and group by SlotMaster
             List<ApplicationSlotBooking__c> bookings = [
-                SELECT Id, SlotMaster__c, RoundMaster__c
+                SELECT Id, SlotMaster__c, RoundMaster__c, RoundMaster__r.Name
                 FROM ApplicationSlotBooking__c
                 WHERE Panel_Master__c IN :panelIds
+                ORDER BY CreatedDate DESC
             ];
             System.debug('getSlotMastersForEvaluator: bookings size = ' + bookings.size());
 
@@ -998,7 +1000,7 @@ for (ApplicationSlotBooking__c slot : slots) {
                 return new List<SlotMasterWrapper>();
             }
 
-            Map<Id, List<Id>> slotToBookingIds = new Map<Id, List<Id>>();
+            Map<Id, List<ApplicationSlotBooking__c>> slotToBookingIds = new Map<Id, List<ApplicationSlotBooking__c>>();
             Set<Id> slotMasterIds = new Set<Id>();
             Set<Id> bookingIds = new Set<Id>();
             for (ApplicationSlotBooking__c b : bookings) {
@@ -1008,8 +1010,10 @@ for (ApplicationSlotBooking__c slot : slots) {
                 }
                 slotMasterIds.add(b.SlotMaster__c);
                 bookingIds.add(b.Id);
-                if (!slotToBookingIds.containsKey(b.SlotMaster__c)) slotToBookingIds.put(b.SlotMaster__c, new List<Id>());
-                slotToBookingIds.get(b.SlotMaster__c).add(b.Id);
+                if (!slotToBookingIds.containsKey(b.SlotMaster__c)) {
+                    slotToBookingIds.put(b.SlotMaster__c, new List<ApplicationSlotBooking__c>());
+                }
+                slotToBookingIds.get(b.SlotMaster__c).add(b);
             }
             System.debug('getSlotMastersForEvaluator: slotMasterIds = ' + slotMasterIds);
             System.debug('getSlotMastersForEvaluator: bookingIds = ' + bookingIds);
@@ -1063,23 +1067,28 @@ for (ApplicationSlotBooking__c slot : slots) {
                 System.debug('getSlotMastersForEvaluator: Wrapper built - locationName = ' + w.locationName
                     + ', status = ' + w.status + ', mode = ' + w.mode + ', programCode = ' + w.programCode);
 
-                List<Id> bIds = slotToBookingIds.containsKey(s.Id) ? slotToBookingIds.get(s.Id) : new List<Id>();
-                System.debug('getSlotMastersForEvaluator: SlotMaster Id = ' + s.Id + ', related bookingIds = ' + bIds);
+                List<ApplicationSlotBooking__c> bookingsList = slotToBookingIds.containsKey(s.Id) ? slotToBookingIds.get(s.Id) : new List<ApplicationSlotBooking__c>();
+                System.debug('getSlotMastersForEvaluator: SlotMaster Id = ' + s.Id + ', related bookingIds = ' + bookingsList);
 
                 Boolean allComplete = true;
                 Boolean hasAny = false;
-                for (Id bid : bIds) {
+                for (ApplicationSlotBooking__c booking : bookingsList) {
                     hasAny = true;
-                    String evalStatus = bookingToEvalStatus.containsKey(bid) ? bookingToEvalStatus.get(bid) : null;
-                    System.debug('getSlotMastersForEvaluator: bookingId = ' + bid + ', evalStatus = ' + evalStatus);
+                    String evalStatus = bookingToEvalStatus.containsKey(booking.Id) ? bookingToEvalStatus.get(booking.Id) : null;
+                    System.debug('getSlotMastersForEvaluator: bookingId = ' + booking.Id + ', evalStatus = ' + evalStatus);
                     if (evalStatus != 'Complete') {
                         allComplete = false;
-                        System.debug('getSlotMastersForEvaluator: bookingId = ' + bid + ' not Complete, breaking loop');
+                        System.debug('getSlotMastersForEvaluator: bookingId = ' + booking.Id + ' not Complete, breaking loop');
                         break;
                     }
                 }
                 // If there are no bookings for this slot for this evaluator, treat as not completed
                 w.isCompleted = hasAny ? allComplete : false;
+
+                if (hasAny) {
+                    w.roundName = (bookingsList[0].RoundMaster__r != null) ? bookingsList[0].RoundMaster__r.Name : null;
+                }
+
                 System.debug('getSlotMastersForEvaluator: SlotMaster Id = ' + s.Id + ', hasAny = ' + hasAny
                     + ', allComplete = ' + allComplete + ', isCompleted = ' + w.isCompleted);
 

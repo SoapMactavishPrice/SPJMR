@@ -56,7 +56,8 @@ export default class SlotListView extends NavigationMixin(LightningElement) {
                 status: slot.status || '',
                 mode: slot.mode || '',
                 isCompleted: slot.isCompleted === true,
-                statusLabel: slot.isCompleted === true ? 'Completed' : 'Active'
+                statusLabel: slot.isCompleted === true ? 'Completed' : 'Active',
+                roundName: slot.roundName || ''
             }));
             this.activeSlots = mapped.filter(s => !s.isCompleted);
             this.completedSlots = mapped.filter(s => s.isCompleted);
