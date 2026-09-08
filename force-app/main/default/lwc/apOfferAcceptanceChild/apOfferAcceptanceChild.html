@@ -191,7 +191,7 @@
                             value={tshirtSize}
                             options={tshirtSizeOptions}
                             onchange={handleShirtSizeChange}
-                            disabled={isReadOnly}
+                            disabled={isTShirtReadOnly}
                             class="tshirt-combobox">
                         </lightning-combobox>
                         <lightning-button
@@ -208,6 +208,13 @@
                             <lightning-icon icon-name="utility:lock" size="xx-small" class="locked-icon">
                             </lightning-icon>
                             T-shirt size selection is locked after offer acceptance or withdrawal.
+                        </p>
+                    </template>
+                    <template lwc:elseif={isTShirtReadOnly}>
+                        <p class="locked-note">
+                            <lightning-icon icon-name="utility:lock" size="xx-small" class="locked-icon">
+                            </lightning-icon>
+                            T-shirt size is locked after first save.
                         </p>
                     </template>
                 </div>

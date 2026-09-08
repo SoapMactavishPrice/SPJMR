@@ -52,6 +52,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     };
 
     tshirtSize = '';
+    tshirtSizeBackend = null; // Backend value to check if already saved
     personalDetailId = null;
     pgmCode = '';
     applicantState = '';
@@ -159,6 +160,11 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         return state === 'Offer Accepted' || state === 'Withdrawn';
     }
 
+    /** T-shirt field is read-only if already saved (not null in backend) */
+    get isTShirtReadOnly() {
+        return this.isReadOnly || (this.tshirtSizeBackend !== null && this.tshirtSizeBackend !== '' && this.tshirtSizeBackend !== undefined);
+    }
+
     get canDeleteDocuments() {
         return !this.isReadOnly;
     }
@@ -195,11 +201,12 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     }
 
     get isSaveTShirtDisabled() {
-        return this.isReadOnly || this.isSavingTShirt;
+        return this.isTShirtReadOnly || this.isSavingTShirt;
     }
 
     get shouldShowTShirtSection() {
-        return this.showTShirtSize && this.offerAccepted;
+        const isWithdrawn = (this.applicantState === 'Withdrawn' || this._applicantStateManagement === 'Withdrawn');
+        return this.showTShirtSize && this.offerAccepted && !isWithdrawn;
     }
 
     // ── Wire: application fields ─────────────────────────────────────────────
@@ -296,10 +303,15 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                 const all = (result.annexures || []);
                 const passedFilter = all.filter(a => a.filterCondition !== 'FILTERED_OUT');
                 
-                // Filter documents based on acceptance state and ShowDocumentsBeforeAccept flag
+                // Filter documents based on acceptance state, withdrawal status, and ShowDocumentsAfterWithdrawal flag
                 let visibleDocs;
-                if (this.offerAccepted) {
-                    // After acceptance: show all documents that passed the filter
+                const isWithdrawn = (this._applicantStateManagement === 'Withdrawn');
+                
+                if (isWithdrawn) {
+                    // After withdrawal: show only documents with ShowDocumentsAfterWithdrawal = true
+                    visibleDocs = passedFilter.filter(a => a.showDocumentsAfterWithdrawal === true);
+                } else if (this.offerAccepted) {
+                    // After acceptance (but not withdrawn): show all documents that passed the filter
                     visibleDocs = passedFilter;
                 } else {
                     // Before acceptance: show only documents with ShowDocumentsBeforeAccept = true
@@ -347,6 +359,8 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                 if (result && result.personalDetailId) {
                     this.personalDetailId = result.personalDetailId;
                     this.tshirtSize = result.tShirtSize || '';
+                    // Store backend value separately to check if it was already saved
+                    this.tshirtSizeBackend = result.tShirtSize || null;
                 }
             })
             .catch(err => console.error('Error fetching Personal Detail T-shirt size', JSON.stringify(err)));
@@ -493,10 +507,15 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                  const all = (result.annexures || []);
                  const passedFilter = all.filter(a => a.filterCondition !== 'FILTERED_OUT');
                  
-                 // Filter documents based on acceptance state and ShowDocumentsBeforeAccept flag
+                 // Filter documents based on acceptance state, withdrawal status, and ShowDocumentsAfterWithdrawal flag
                  let visibleDocs;
-                 if (this.offerAccepted) {
-                     // After acceptance: show all documents that passed the filter
+                 const isWithdrawn = (this._applicantStateManagement === 'Withdrawn');
+                 
+                 if (isWithdrawn) {
+                     // After withdrawal: show only documents with ShowDocumentsAfterWithdrawal = true
+                     visibleDocs = passedFilter.filter(a => a.showDocumentsAfterWithdrawal === true);
+                 } else if (this.offerAccepted) {
+                     // After acceptance (but not withdrawn): show all documents that passed the filter
                      visibleDocs = passedFilter;
                  } else {
                      // Before acceptance: show only documents with ShowDocumentsBeforeAccept = true
@@ -582,6 +601,8 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         })
             .then(() => {
                 this.isSavingTShirt = false;
+                // Update backend value to mark it as saved
+                this.tshirtSizeBackend = this.tshirtSize;
                 this.showSuccessToast('T-shirt size saved', '');
             })
             .catch(err => {

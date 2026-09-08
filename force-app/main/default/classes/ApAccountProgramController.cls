@@ -626,7 +626,7 @@ public static String getApplicationStage(Id applicationId) {
                 SELECT Id, Program_Code__c,
                        (SELECT Id, AnnexureName__c, AnnexureURL__c, DisplayOrder__c,
                                DisplayAsImportantDocument__c, IsUploadSectionRequired__c, FilterCondition__c,
-                               ShowDocumentsBeforeAccept__c
+                               ShowDocumentsBeforeAccept__c, ShowDocumentsAfterWithdrawal__c
                         FROM Program_Annexures__r
                         ORDER BY DisplayOrder__c ASC)
                 FROM Program_Document__mdt
@@ -683,6 +683,7 @@ public static String getApplicationStage(Id applicationId) {
                 aw.filterCondition = ann.FilterCondition__c;
                 aw.docCode = buildDocCode(ann.AnnexureName__c);
                 aw.showDocumentsBeforeAccept = ann.ShowDocumentsBeforeAccept__c == true;
+                aw.showDocumentsAfterWithdrawal = ann.ShowDocumentsAfterWithdrawal__c == true;
                 aw.filterCondition = evaluateFilterCondition(ann.FilterCondition__c, admRecord)
                     ? null
                     : 'FILTERED_OUT';
@@ -969,11 +970,18 @@ public static String getApplicationStage(Id applicationId) {
                         
                     }
                     
-                    when 'Reject Round 1','Reject Round 2','Disqualified'{
+                   when 'Reject Round 1','Disqualified'{
                         applicationStatus = 'Disqualified';
                         isRejected = true;
                         isScheduled = false;
                     }
+
+                    when 'Reject Round 2'{
+                        applicationStatus = 'Not Offered';
+                        isRejected = true;
+                        isScheduled = false;
+                    }
+
                     when 'Interview Round 1','Interview Round 2'{
                         if(!sel?.ApplicationSlotBookings__r.isEmpty() && sel?.Admission_Decisions__r.isEmpty()) {
                             if(!sel?.Round_Results__r.isEmpty()){
@@ -995,7 +1003,8 @@ public static String getApplicationStage(Id applicationId) {
                         isScheduled = true;
                         applicationStatus = 'Shortlisted for Interview';
                     }
-                    when 'Offer Issued','Withdrawn','Offer Accepted'{
+
+                    when 'Offer Issued','Offer Accepted'{
                         if(!sel?.Admission_Decisions__r.isEmpty() ){
                             allowSchedule = false;
                             isDecisionPresent = true;
@@ -1011,6 +1020,24 @@ public static String getApplicationStage(Id applicationId) {
                             }
                             
                         }
+                    }
+
+                    when 'Withdrawn'{
+                        applicationStatus = 'Withdrawn';
+                        allowSchedule = false;
+                        isDecisionPresent = true;
+                    }
+
+                    when 'Waitlisted'{
+                        applicationStatus = 'Paid';
+                        allowSchedule = false;
+                        isDecisionPresent = true;
+                    }
+
+                    when 'Offer Not Accepted'{
+                        applicationStatus = 'Offered';
+                        allowSchedule = false;
+                        isDecisionPresent = true;
                     }
                 }
                 
@@ -1172,6 +1199,7 @@ public static String getApplicationStage(Id applicationId) {
         @AuraEnabled public String filterCondition;
         @AuraEnabled public String docCode;
         @AuraEnabled public Boolean showDocumentsBeforeAccept;
+        @AuraEnabled public Boolean showDocumentsAfterWithdrawal;
     }
 
     public class ProgramDocumentWrapper {

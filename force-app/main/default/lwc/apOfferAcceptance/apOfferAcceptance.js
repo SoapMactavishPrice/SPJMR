@@ -8,6 +8,7 @@ import ACCEPTANCE_DATE from '@salesforce/schema/Admission_Decision__c.Offer_Acce
 import ID_FIELD from "@salesforce/schema/Admission_Decision__c.Id";
 import { updateRecord } from 'lightning/uiRecordApi';
 import STAGE_MGMT from '@salesforce/schema/Application__c.Applicant_State_Management__c'
+import WITHDRAWAL_DATETIME from '@salesforce/schema/Application__c.OfferWithdrawalDateTime__c'
 import APPLICATION_ID from '@salesforce/schema/Application__c.Id'
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
@@ -292,7 +293,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                             showDownloadOffer: false,
                             showWithdrawButton: false,
                             showAwaitingResponse: false,
-                            viewVariant: null,
+                            viewVariant: 'neutral', // Show View button for withdrawn
                             showButtons: false
                         };
                     }
@@ -308,7 +309,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         hasPendingDocuments: false,
                         showDownloadOffer: false,
                         showAwaitingResponse: false,
-                        viewVariant: null
+                        viewVariant: 'neutral' // Show View button for withdrawn
                     };
                 }
 
@@ -354,6 +355,9 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
         }
         else if (action == 'withdraw') {
             fields[STAGE_MGMT.fieldApiName] = 'Withdrawn'
+            // Capture withdrawal datetime
+            const now = new Date();
+            fields[WITHDRAWAL_DATETIME.fieldApiName] = now.toISOString();
         }
         else {
             // No update needed for 'accept' action
@@ -522,14 +526,15 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                     const acceptedFlag = (item.offerAccepted === 'true');
                     const computedShowButtons = (!isDeclined && acceptedFlag !== true && item.isOfferWithdrawn != 'true' && !isWithdrawn);
 
-                    // viewVariant: 'brand' when accepted, 'neutral' when view available via showButtons, otherwise null
+                    // viewVariant: 'brand' when accepted, 'neutral' when view available via showButtons, 'neutral' also for withdrawn to show View button
                     let viewVariant = null;
-                    if (!isWithdrawn) {
-                        if (acceptedFlag) {
-                            viewVariant = 'brand';
-                        } else if (computedShowButtons) {
-                            viewVariant = 'neutral';
-                        }
+                    if (isWithdrawn) {
+                        // Show View button for withdrawn offers to allow viewing documents
+                        viewVariant = 'neutral';
+                    } else if (acceptedFlag) {
+                        viewVariant = 'brand';
+                    } else if (computedShowButtons) {
+                        viewVariant = 'neutral';
                     }
 
                     return {
