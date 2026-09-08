@@ -317,9 +317,7 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
                               .find(c => c.Id === critId)?.Maximum_Score__c ?? 10;
 
         if (Number.isNaN(score) || score < 1 || score > maxScore) {
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'Invalid Score', message: `Score must be between 1 and ${maxScore}`, variant: 'error'
-            }));
+            this.showToastMessage('Invalid Score', `Score must be between 1 and ${maxScore}`, 'error');
             return;
         }
         this._mutateState(bookingId, s => {
@@ -393,35 +391,57 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
             .some(c => c.score !== undefined && c.score !== null && c.score !== '');
 
         if (!hasScores && !state.evaluatorComment) {
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'Nothing to Save', message: 'Please enter at least one score or a comment.', variant: 'warning'
-            }));
+            this.showToastMessage('Nothing to Save', 'Please enter at least one score or a comment.', 'warning');
             return;
         }
 
         try {
             await this._saveBookingData(bookingId);
-            this.dispatchEvent(new ShowToastEvent({ title: 'Scores Saved', variant: 'success' }));
+            this.showToastMessage('Scores Saved', null, 'success');
         } catch (err) {
-            this.dispatchEvent(new ShowToastEvent({
-                title: 'Error Saving Scores', message: err.body?.message || 'Unexpected error.', variant: 'error'
-            }));
+            this.showToastMessage('Error Saving Scores', err.body?.message || 'Unexpected error.', 'error');
         } finally {
             let payload = { action: 'refresh' };
             publish(this.messageContext, INTERVIEW_MESSAGE_CHANNEL, payload);
         }
     }
 
-    handleFinish()       { this.showModal = true; }
+    handleFinish() {
+        const uncompletedBookings = this._bookings.filter(b => !this._getState(b.id).isFinished);
+        const hasMissingComment = uncompletedBookings.some(b => {
+            const comment = this._getState(b.id).evaluatorComment;
+            return !comment || !comment.trim();
+        });
+
+        if (hasMissingComment) {
+            this.showToastMessage('Missing Overall Comment', "Please enter All the Applicant's Overall Comment.", 'error');
+            return;
+        }
+
+        this.showModal = true;
+    }
+
     handleCancelFinish() { this.showModal = false; }
 
     async handleConfirmFinish() {
+        const uncompletedBookings = this._bookings.filter(b => !this._getState(b.id).isFinished);
+        const hasMissingComment = uncompletedBookings.some(b => {
+            const comment = this._getState(b.id).evaluatorComment;
+            return !comment || !comment.trim();
+        });
+
+        if (hasMissingComment) {
+            this.showModal = false;
+            this.showToastMessage('Missing Overall Comment', "Please enter All the Applicant's Overall Comment.", 'error');
+            return;
+        }
+
         this.showModal = false;
         this.isSaving  = true;
         try {
             const requests = this._buildBulkCompleteRequests();
             if (!requests.length) {
-                this.dispatchEvent(new ShowToastEvent({ title: 'Interview Completed', variant: 'success' }));
+                this.showToastMessage('Interview Completed', 'All interviews have been completed.', 'success');
                 return;
             }
 
@@ -444,20 +464,12 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
             });
 
             if (failures.length) {
-                this.dispatchEvent(new ShowToastEvent({
-                    title  : 'Some Interviews Could Not Be Completed',
-                    message: failures.join(' | '),
-                    variant: 'error'
-                }));
+                this.showToastMessage('Some Interviews Could Not Be Completed', failures.join(' | '), 'error');
             } else {
-                this.dispatchEvent(new ShowToastEvent({ title: 'Interview Completed', variant: 'success' }));
+                this.showToastMessage('Interview Completed', 'All interviews have been completed.', 'success');
             }
         } catch (err) {
-            this.dispatchEvent(new ShowToastEvent({
-                title  : 'Error Completing Interview',
-                message: err.body?.message || 'Unexpected error.',
-                variant: 'error'
-            }));
+            this.showToastMessage('Error Completing Interview', err.body?.message || 'Unexpected error.', 'error');
         } finally {
             this.isSaving = false;
             let payload = { action: 'refresh' };
@@ -491,5 +503,13 @@ export default class InterviewScoringComp extends NavigationMixin(LightningEleme
         for (const b of this._bookings) {
             await this._loadScoringForBooking(b.id);
         }
+    }
+
+    showToastMessage(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({
+            title: title,
+            message: message,
+            variant: variant
+        }));
     }
 }
