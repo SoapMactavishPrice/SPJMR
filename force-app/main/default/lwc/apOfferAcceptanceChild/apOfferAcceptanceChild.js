@@ -11,6 +11,7 @@ import savePersonalDetailTShirtSize from '@salesforce/apex/ApAccountProgramContr
 import { NavigationMixin } from 'lightning/navigation';
 import getDistributionUrl from '@salesforce/apex/ApAccountProgramController.getDistributionUrl';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import LightningConfirm from 'lightning/confirm';
 import CUSTOM_TITLE from '@salesforce/schema/ContentVersion.Custom_Title_fileupload__c';
 import PROGRAM_CODE from '@salesforce/schema/Application__c.Program_Code__c';
 import APPLICANT_STATE_FIELD from '@salesforce/schema/Application__c.Applicant_State_Management__c';
@@ -585,7 +586,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         this.tshirtSize = event.detail.value;
     }
 
-    handleSaveTShirtSize() {
+    async handleSaveTShirtSize() {
         if (!this._applicationId) {
             this.showErrorToast('Unable to save', 'Application not found.');
             return;
@@ -594,6 +595,21 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
             this.showErrorToast('No size selected', 'Please select a T-shirt size before saving.');
             return;
         }
+
+        // Show confirmation dialog
+        const result = await LightningConfirm.open({
+            message: 'Once saved, your T-shirt size cannot be edited. Please confirm that you have selected the correct size.',
+            variant: 'header',
+            label: 'Confirm T-shirt Size',
+            theme: 'warning'
+        });
+
+        // If user cancelled, return
+        if (!result) {
+            return;
+        }
+
+        // User confirmed, proceed with save
         this.isSavingTShirt = true;
         savePersonalDetailTShirtSize({
             applicationId: this._applicationId,
