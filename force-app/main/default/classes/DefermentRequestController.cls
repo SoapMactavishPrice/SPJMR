@@ -194,7 +194,7 @@ wrapper.l2Remark =
     wrapper.windowMessage =
         'Your Deferment Request has been submitted and is currently under approval.';
 }
-else if (req.Status__c == 'Rejoining Details') {
+else if (req.Status__c == 'Rejoining Details Updated') {
 
     wrapper.windowStatus = 'APPROVED';
 

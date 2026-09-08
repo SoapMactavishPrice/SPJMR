@@ -1,62 +1,26 @@
-/**
- * @description Nightly batch behind SE-1150 / SE-1177. Emails a rejoining
- *              reminder to the student and their Programme Office when a
- *              Deferment Request's Rejoining Date is exactly 30 days away, and
- *              raises one nightly bell notification per programme for approved
- *              requests that still have no Rejoining Date recorded. Requests
- *              whose Status is Withdrawal are skipped altogether.
- *
- *              A request whose student reminder actually goes out is stamped
- *              'Return to Campus Notification Sent', so the tracker shows the
- *              student has been told to plan their return.
- *
- *              Programme Office recipients are resolved from
- *              Program_Team_Members__c, the same data used for leave and
- *              deferment approver routing. Runs as the scheduled job's user
- *              against system metadata, so CRUD/FLS checks are bypassed by
- *              design.
- */
-// PMD.CyclomaticComplexity is suppressed for the CLASS TOTAL only: this is the
-// sum across many small helpers, and no single method exceeds a complexity of 8
-// against a limit of 10. Splitting the class would scatter one night's work
-// across two files without making any method simpler.
 @SuppressWarnings('PMD.ApexCRUDViolation,PMD.CyclomaticComplexity')
 public without sharing class RejoiningReminderBatch
     implements Database.Batchable<SObject>, Database.Stateful {
 
-    /** Days ahead of the Rejoining Date that the 30-day reminder is sent. */
     @TestVisible
     private static final Integer REMINDER_DAYS = 30;
 
-    /** Months ahead of the Rejoining Date that the Return to Campus notice is sent. */
     @TestVisible
     private static final Integer NOTICE_MONTHS = 3;
 
-    /** Approval_Status__c value marking a fully approved deferment. */
     private static final String APPROVED_STATUS = 'Approved';
 
-    /** Status__c stamped once the student's 30-day reminder has gone out. */
     private static final String STATUS_NOTIFIED =
         'Return to Campus Notification Sent';
 
-    /**
-     * Status__c value marking a student who has told the Programme Office they
-     * are not coming back. Such requests are skipped entirely: no reminder, no
-     * Return to Campus notice and no missing-date bell.
-     */
     private static final String WITHDRAWN_STATUS = 'Withdrawal';
 
-    /** Program_Team_Members__c role that receives Programme Office mail. */
     private static final String OFFICE_ROLE = 'Programme Office';
 
-    /** Org-wide sender shown to recipients. */
+    private static final String MANAGER_ROLE = 'Manager';
+
     private static final String SENDER_NAME = 'SPJIMR Programme Office';
 
-    /**
-     * Stored template DeveloperNames. Not final so tests can point them at
-     * templates created inside the test transaction; production never reassigns
-     * them.
-     */
     @TestVisible
     private static String tplStudent = 'Rejoining_Reminder_Student';
 
@@ -66,24 +30,23 @@ public without sharing class RejoiningReminderBatch
     @TestVisible
     private static String tplNotice = 'Return_to_Campus_Student';
 
-    /** Custom Notification Type behind the missing-date bell alert. */
     @TestVisible
     private static String notificationTypeName = 'Rejoining_Date_Missing';
 
-    /**
-     * Where the bell notification lands: the Deferment Request list view of
-     * approved requests with no Rejoining Date.
-     */
-    private static final String TARGET_PAGE_REF =
-        '{"type":"standard__objectPage","attributes":' +
-        '{"objectApiName":"Deferment_Request__c","actionName":"list"},' +
-        '"state":{"filterName":"Rejoining_Date_Missing"}}';
+    private List<MissingDateAlert> missingDateAlerts =
+        new List<MissingDateAlert>();
 
-    /**
-     * Running count of approved requests with no Rejoining Date, by programme.
-     * Accumulated across chunks and raised as one bell each in finish().
-     */
-    private Map<Id, Integer> missingByProgramme = new Map<Id, Integer>();
+    private class MissingDateAlert {
+        Id requestId;
+        String requestName;
+        Id programmeId;
+
+        MissingDateAlert(Id requestId, String requestName, Id programmeId) {
+            this.requestId = requestId;
+            this.requestName = requestName;
+            this.programmeId = programmeId;
+        }
+    }
 
     /**
      * The messages built by the most recent execute(), exposed so tests can
@@ -169,11 +132,11 @@ public without sharing class RejoiningReminderBatch
             List<String> office = officeEmails.get(request.Programme__c);
 
             if (request.Rejoining_Date__c == null) {
-                Integer seen = missingByProgramme.get(request.Programme__c);
-                missingByProgramme.put(
-                    request.Programme__c,
-                    seen == null ? 1 : seen + 1
-                );
+                missingDateAlerts.add(new MissingDateAlert(
+                    request.Id,
+                    request.Name,
+                    request.Programme__c
+                ));
                 continue;
             }
 
@@ -250,15 +213,9 @@ public without sharing class RejoiningReminderBatch
         Database.update(notified, false);
     }
 
-    /**
-     * @description Raises one bell notification per programme that has approved
-     *              requests with no Rejoining Date, addressed to that
-     *              programme's Programme Office.
-     * @param ctx the batchable context
-     */
     public void finish(Database.BatchableContext ctx) {
 
-        if (missingByProgramme.isEmpty()) {
+        if (missingDateAlerts.isEmpty()) {
             return;
         }
 
@@ -268,47 +225,39 @@ public without sharing class RejoiningReminderBatch
             return;
         }
 
+        Set<Id> programmeIds = new Set<Id>();
+        for (MissingDateAlert alert : missingDateAlerts) {
+            if (alert.programmeId != null) {
+                programmeIds.add(alert.programmeId);
+            }
+        }
+
         Map<Id, Set<String>> recipients =
-            officeUserIdsByProgramme(missingByProgramme.keySet());
+            managerUserIdsByProgramme(programmeIds);
 
-        Map<Id, Program> programmes = new Map<Id, Program>([
-            SELECT Id, Name
-            FROM Program
-            WHERE Id IN :missingByProgramme.keySet()
-        ]);
+        for (MissingDateAlert alert : missingDateAlerts) {
 
-        for (Id programmeId : missingByProgramme.keySet()) {
-
-            Set<String> audience = recipients.get(programmeId);
+            Set<String> audience = recipients.get(alert.programmeId);
 
             if (audience == null || audience.isEmpty()) {
                 continue;
             }
 
-            Program programme = programmes.get(programmeId);
-
             Messaging.CustomNotification bell =
                 new Messaging.CustomNotification();
 
             bell.setNotificationTypeId(typeId);
-            bell.setTitle('Rejoining Date not recorded');
+            bell.setTitle('Rejoining Date pending');
             bell.setBody(
-                missingByProgramme.get(programmeId) +
-                ' student(s) on ' +
-                (programme == null ? 'this programme' : programme.Name) +
-                ' have an approved Break in Study with no Rejoining Date.' +
-                ' No rejoining reminders can be sent until it is entered.'
+                'For ' + alert.requestName +
+                ' the rejoining Date is pending.'
             );
-            bell.setTargetPageRef(TARGET_PAGE_REF);
+            bell.setTargetId(alert.requestId);
 
             bell.send(audience);
         }
     }
 
-    /**
-     * @description Looks up the Custom Notification Type behind the bell alert.
-     * @return the type Id, or null when it has not been deployed
-     */
     private Id notificationTypeId() {
 
         List<CustomNotificationType> types = [
@@ -321,20 +270,21 @@ public without sharing class RejoiningReminderBatch
         return types.isEmpty() ? null : types[0].Id;
     }
 
-    /**
-     * @description Resolves Programme Office user Ids per programme.
-     * @param programmeIds the programmes needing a bell
-     * @return map of programme Id to the User Ids of its Programme Office
-     */
-    private Map<Id, Set<String>> officeUserIdsByProgramme(Set<Id> programmeIds) {
+    private Map<Id, Set<String>> managerUserIdsByProgramme(
+        Set<Id> programmeIds
+    ) {
 
         Map<Id, Set<String>> usersByProgramme = new Map<Id, Set<String>>();
+
+        if (programmeIds == null || programmeIds.isEmpty()) {
+            return usersByProgramme;
+        }
 
         for (Program_Team_Members__c member : [
             SELECT User__c,
                    Program_Team__r.Program__c
             FROM Program_Team_Members__c
-            WHERE Role__c = :OFFICE_ROLE
+            WHERE Role__c = :MANAGER_ROLE
             AND User__c != null
             AND User__r.IsActive = true
             AND Program_Team__r.Program__c IN :programmeIds

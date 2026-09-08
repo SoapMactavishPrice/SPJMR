@@ -5,7 +5,7 @@ global class AttendanceSyncBatch implements Database.Batchable<SObject> {
         System.debug('===== BATCH STARTED =====');
 
         return Database.getQueryLocator([
-            SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c
+            SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c, Device_ID__c
             FROM Attendance_Log__c
             WHERE Roll_Number__c != NULL
             AND Log_Date_Time__c != NULL
@@ -27,6 +27,7 @@ global class AttendanceSyncBatch implements Database.Batchable<SObject> {
         List<Session_Enrollment__c> sessionEnrollments = [
             SELECT Id,
                    Attendance__c,
+                   Serial_Number__c,
                    Session__r.Start_Time__c,
                    Session__r.End_Time__c,
                    Academic_Term_Enrollment__r.Batch_Enrollment__r.Roll_Number__c
@@ -76,6 +77,9 @@ global class AttendanceSyncBatch implements Database.Batchable<SObject> {
                     if (!updatedSessionIds.contains(se.Id)
                             && se.Attendance__c != 'Sanctioned Leave') {
                         se.Attendance__c = 'Present';
+                        // Which device the punch came from. Logs are purged
+                        // after 5 days, so it must be stamped when marked.
+                        se.Serial_Number__c = log.Device_ID__c;
                         sessionsToUpdate.add(se);
                         updatedSessionIds.add(se.Id);
                     }

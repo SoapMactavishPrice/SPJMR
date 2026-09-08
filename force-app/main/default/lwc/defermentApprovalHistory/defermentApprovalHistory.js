@@ -28,6 +28,10 @@ export default class DefermentApprovalHistory extends LightningElement {
 
                 if (item.status === 'Submitted') {
                     statusClass = 'status-submitted';
+                }    
+
+                else if (item.status === 'Resubmitted') {   
+                    statusClass = 'status-resubmitted';        
 
                 } else if (item.status === 'Pending') {
                     statusClass = 'status-pending';

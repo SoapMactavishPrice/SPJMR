@@ -3,17 +3,9 @@ private class DefermentRequestStatusHandlerTest {
 
     private static final String STATUS_COMPLETE = 'Deferment Process Complete';
     private static final String STATUS_PENDING = 'Pending Re-enrollment';
-    // Was: 'Rejoining Details Updated' - not a member of the restricted
-    // Status__c picklist, so every test using it failed on insert with
-    // INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST. The org's value is
-    // 'Rejoining Details'.
-    private static final String STATUS_APPROVED = 'Rejoining Details';
+    private static final String STATUS_APPROVED = 'Rejoining Details Updated';
+    private static final String STATUS_DETAILS_DUE = 'Rejoining Details';
 
-    /**
-     * @description Inserts one request at the given status.
-     * @param status the Status__c value to start from
-     * @return the inserted record
-     */
     private static Deferment_Request__c buildRequest(String status) {
 
         Deferment_Request__c request = new Deferment_Request__c(
@@ -24,11 +16,6 @@ private class DefermentRequestStatusHandlerTest {
         return request;
     }
 
-    /**
-     * @description Re-reads one record's stored status.
-     * @param requestId the record to re-read
-     * @return the stored Status__c value
-     */
     private static String storedStatus(Id requestId) {
 
         return [
@@ -71,6 +58,24 @@ private class DefermentRequestStatusHandlerTest {
                 STATUS_PENDING,
                 storedStatus(request.Id),
                 'A request created as complete should also land on Pending Re-enrollment.'
+            );
+        }
+    }
+
+    @IsTest
+    static void movesToRejoiningCompleteOnAllRightsReactivated() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Deferment_Request__c request = buildRequest('Payment Confirmed');
+
+            Test.startTest();
+            request.Status__c = 'All Rights Reactivated';
+            update request;
+            Test.stopTest();
+
+            System.assertEquals(
+                'Rejoining Complete',
+                storedStatus(request.Id),
+                'All Rights Reactivated should rewrite to Rejoining Complete.'
             );
         }
     }
@@ -189,6 +194,391 @@ private class DefermentRequestStatusHandlerTest {
                 'The handler must never issue DML of its own.'
             );
             Test.stopTest();
+        }
+    }
+
+    @IsTest
+    static void rejectNegativeFeeBlocksSave() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Boolean failed = false;
+            try {
+                insert new Deferment_Request__c(
+                    Status__c = STATUS_APPROVED,
+                    Deferment_Application_Fee__c = -100
+                );
+            } catch (DmlException e) {
+                failed = true;
+                System.assert(
+                    e.getMessage().contains('negative') ||
+                    e.getMessage().contains('Fee'),
+                    e.getMessage()
+                );
+            }
+            System.assert(failed, 'Negative fee must be rejected.');
+        }
+    }
+
+    @IsTest
+    static void enforceStatusOrderBlocksBackwardMove() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Deferment_Request__c request = buildRequest('No Dues Process Initiated');
+            Boolean failed = false;
+            try {
+                request.Status__c = STATUS_APPROVED;
+                update request;
+            } catch (DmlException e) {
+                failed = true;
+                System.assert(
+                    e.getMessage().contains('cannot be moved back') ||
+                    e.getMessage().contains('Completed steps'),
+                    e.getMessage()
+                );
+            }
+            System.assert(failed, 'Backward status change must be blocked.');
+        }
+    }
+
+    @IsTest
+    static void enforceStatusOrderBlocksEarlyRejoiningComplete() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Deferment_Request__c request = buildRequest(STATUS_APPROVED);
+            Boolean failed = false;
+            try {
+                request.Status__c = 'Rejoining Complete';
+                update request;
+            } catch (DmlException e) {
+                failed = true;
+                System.assert(
+                    e.getMessage().contains('Rejoining Complete') ||
+                    e.getMessage().contains('fee'),
+                    e.getMessage()
+                );
+            }
+            System.assert(failed, 'Jumping to Rejoining Complete before payment must fail.');
+        }
+    }
+
+    @IsTest
+    static void enforceStatusOrderAllowsWithdrawal() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Deferment_Request__c request = buildRequest(STATUS_APPROVED);
+            request.Status__c = 'Withdrawal';
+            update request;
+            System.assertEquals(
+                'Withdrawal',
+                storedStatus(request.Id),
+                'Withdrawal is reachable from any stage, so it must be allowed.'
+            );
+        }
+    }
+
+    @IsTest
+    static void nullGuardsDoNotThrow() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            DefermentRequestStatusHandler.rejectNegativeFee(null);
+            DefermentRequestStatusHandler.enforceStatusOrder(null, null);
+            DefermentRequestStatusHandler.advanceOnRejoiningDetails(null, null);
+            DefermentRequestStatusHandler.markStudentDeferredOnPendingReEnrollment(
+                null,
+                null
+            );
+            DefermentRequestStatusHandler.markStudentDeferredOnPendingReEnrollment(
+                new List<Deferment_Request__c>(),
+                null
+            );
+            DefermentRequestStatusHandler.markEnrollmentActiveOnRejoiningComplete(
+                null,
+                null
+            );
+            DefermentRequestStatusHandler.applyRejoiningComplete(null);
+            DefermentRequestStatusHandler.applyRejoiningComplete(
+                new List<Deferment_Request__c>()
+            );
+            System.assert(
+                true,
+                'Null guards must return quietly rather than throwing.'
+            );
+        }
+    }
+
+    @IsTest
+    static void completingDefermentMarksPcmAndProgramEnrollment() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            SpjimrPortalTestDataFactory.Ctx ctx =
+                SpjimrPortalTestDataFactory.buildAll('defpcm');
+
+            List<ProgramCohortMember> members = [
+                SELECT Id, ProgramEnrollmentId
+                FROM ProgramCohortMember
+                WHERE ProgramCohortId = :ctx.programCohortId
+                LIMIT 1
+            ];
+            if (members.isEmpty() || members[0].ProgramEnrollmentId == null) {
+                System.assert(false, 'Test setup needs a Program Cohort Member.');
+                return;
+            }
+
+            ProgramCohortMember member = members[0];
+            update new ProgramEnrollment(
+                Id = member.ProgramEnrollmentId,
+                Status = 'Enrolled in Batch',
+                isDeferred__c = false
+            );
+
+            Deferment_Request__c request = new Deferment_Request__c(
+                Status__c = STATUS_APPROVED,
+                Program_Cohort_Member__c = member.Id
+            );
+            insert request;
+
+            Test.startTest();
+            request.Status__c = STATUS_COMPLETE;
+            update request;
+            Test.stopTest();
+
+            ProgramCohortMember storedMember = [
+                SELECT ProgramEnrollmentStatus
+                FROM ProgramCohortMember
+                WHERE Id = :member.Id
+            ];
+            ProgramEnrollment storedEnrollment = [
+                SELECT Status, isDeferred__c
+                FROM ProgramEnrollment
+                WHERE Id = :member.ProgramEnrollmentId
+            ];
+
+            System.assertEquals(
+                'Pending Re Enrollment',
+                storedMember.ProgramEnrollmentStatus,
+                'Batch enrolment status should move to Pending Re Enrollment.'
+            );
+            System.assertEquals(
+                'Pending Re Enrollment',
+                storedEnrollment.Status,
+                'Programme Enrollment status should move to Pending Re Enrollment.'
+            );
+            System.assertEquals(
+                true,
+                storedEnrollment.isDeferred__c,
+                'Programme Enrollment should be marked deferred.'
+            );
+        }
+    }
+
+    @IsTest
+    static void missingBatchEnrollmentDoesNotBlockPendingReEnrollment() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            Deferment_Request__c request = buildRequest(STATUS_APPROVED);
+
+            Test.startTest();
+            request.Status__c = STATUS_COMPLETE;
+            update request;
+            Test.stopTest();
+
+            System.assertEquals(
+                STATUS_PENDING,
+                storedStatus(request.Id),
+                'A request without a batch enrolment must still park at Pending Re-enrollment.'
+            );
+        }
+    }
+
+    @IsTest
+    static void alreadyPendingDoesNotRestampEnrollment() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            SpjimrPortalTestDataFactory.Ctx ctx =
+                SpjimrPortalTestDataFactory.buildAll('defstay');
+
+            List<ProgramCohortMember> members = [
+                SELECT Id, ProgramEnrollmentId
+                FROM ProgramCohortMember
+                WHERE ProgramCohortId = :ctx.programCohortId
+                LIMIT 1
+            ];
+            if (members.isEmpty() || members[0].ProgramEnrollmentId == null) {
+                System.assert(false, 'Test setup needs a Program Cohort Member.');
+                return;
+            }
+
+            ProgramCohortMember member = members[0];
+
+            Deferment_Request__c request = new Deferment_Request__c(
+                Status__c = STATUS_PENDING,
+                Program_Cohort_Member__c = member.Id
+            );
+            insert request;
+
+            update new ProgramEnrollment(
+                Id = member.ProgramEnrollmentId,
+                Status = 'Enrolled in Batch',
+                isDeferred__c = false
+            );
+
+            Test.startTest();
+            request.Rejoining_Date__c = Date.today().addMonths(4);
+            update request;
+            Test.stopTest();
+
+            ProgramEnrollment storedEnrollment = [
+                SELECT Status, isDeferred__c
+                FROM ProgramEnrollment
+                WHERE Id = :member.ProgramEnrollmentId
+            ];
+            System.assertEquals(
+                false,
+                storedEnrollment.isDeferred__c,
+                'Editing a request already at Pending Re-enrollment must not restamp enrollment.'
+            );
+        }
+    }
+
+    @IsTest
+    static void rejoiningCompleteSetsProgramEnrollmentActiveRejoined() {
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            SpjimrPortalTestDataFactory.Ctx ctx =
+                SpjimrPortalTestDataFactory.buildAll('defrejn');
+
+            List<ProgramCohortMember> members = [
+                SELECT Id, ProgramEnrollmentId
+                FROM ProgramCohortMember
+                WHERE ProgramCohortId = :ctx.programCohortId
+                LIMIT 1
+            ];
+            if (members.isEmpty() || members[0].ProgramEnrollmentId == null) {
+                System.assert(false, 'Test setup needs a Program Cohort Member.');
+                return;
+            }
+
+            ProgramCohortMember member = members[0];
+            update new ProgramEnrollment(
+                Id = member.ProgramEnrollmentId,
+                Status = 'Pending Re Enrollment',
+                isDeferred__c = true
+            );
+
+            Deferment_Request__c request = new Deferment_Request__c(
+                Status__c = 'Payment Confirmed',
+                Program_Cohort_Member__c = member.Id
+            );
+            insert request;
+
+            Test.startTest();
+            request.Status__c = 'Rejoining Complete';
+            update request;
+            Test.stopTest();
+
+            ProgramEnrollment storedEnrollment = [
+                SELECT Status, isDeferred__c
+                FROM ProgramEnrollment
+                WHERE Id = :member.ProgramEnrollmentId
+            ];
+            ProgramCohortMember storedMember = [
+                SELECT ProgramEnrollmentStatus
+                FROM ProgramCohortMember
+                WHERE Id = :member.Id
+            ];
+            System.assertEquals(
+                'Active - Rejoined',
+                storedEnrollment.Status,
+                'Programme Enrollment status should be Active - Rejoined.'
+            );
+            System.assertEquals(
+                false,
+                storedEnrollment.isDeferred__c,
+                'isDeferred should be cleared when rejoining is complete.'
+            );
+            System.assertEquals(
+                'Active - Rejoined',
+                storedMember.ProgramEnrollmentStatus,
+                'Batch enrolment status should follow Programme Enrollment.'
+            );
+        }
+    }
+
+    private static Map<String, Id> buildRunningBatch() {
+
+        Id programId = SpjimrPortalTestDataFactory.insertProgram();
+        Id cohortId = SpjimrPortalTestDataFactory.insertProgramCohort(programId);
+
+        if (cohortId != null) {
+            update new ProgramCohort(
+                Id = cohortId,
+                EndDate = Date.today().addYears(3)
+            );
+        }
+
+        return new Map<String, Id>{
+            'programme' => programId,
+            'batch' => cohortId
+        };
+    }
+
+    @IsTest
+    static void advancesOnceEveryRejoiningDetailIsFilled() {
+
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+
+            Map<String, Id> batch = buildRunningBatch();
+
+            Deferment_Request__c request = new Deferment_Request__c(
+                Status__c = STATUS_DETAILS_DUE,
+                Programme__c = batch.get('programme')
+            );
+            insert request;
+
+            Test.startTest();
+            request.Rejoining_Date__c = Date.today().addDays(60);
+            request.Rejoining_Fee_Deadline__c = Date.today().addDays(45);
+            request.Rejoining_Batch__c = batch.get('batch');
+            update request;
+            Test.stopTest();
+
+            System.assertEquals(
+                STATUS_APPROVED,
+                storedStatus(request.Id),
+                'Filling every rejoining detail should move the tracker on.'
+            );
+        }
+    }
+
+    @IsTest
+    static void staysPutWhileARejoiningDetailIsMissing() {
+
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+
+            Deferment_Request__c request = buildRequest(STATUS_DETAILS_DUE);
+
+            Test.startTest();
+            request.Rejoining_Date__c = Date.today().addDays(60);
+            request.Rejoining_Fee_Deadline__c = Date.today().addDays(45);
+            update request;
+            Test.stopTest();
+
+            System.assertEquals(
+                STATUS_DETAILS_DUE,
+                storedStatus(request.Id),
+                'A request with no Rejoining Batch is not finished, so it must wait.'
+            );
+        }
+    }
+
+    @IsTest
+    static void clearingADetailLaterDoesNotDragTheTrackerBack() {
+
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+
+            Deferment_Request__c request = buildRequest(STATUS_APPROVED);
+
+            Test.startTest();
+            request.Rejoining_Fee_Deadline__c = null;
+            update request;
+            Test.stopTest();
+
+            System.assertEquals(
+                STATUS_APPROVED,
+                storedStatus(request.Id),
+                'A request past this stage must not be pulled back by a cleared field.'
+            );
         }
     }
 }

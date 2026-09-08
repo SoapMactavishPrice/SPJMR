@@ -4,6 +4,8 @@ import { NavigationMixin } from 'lightning/navigation';
 import { CurrentPageReference } from 'lightning/navigation';
 import { refreshApex } from '@salesforce/apex';
 
+import fetchMetadataBulk from '@salesforce/apex/ApplicationFormController.fetchMetadataBulk';
+
 const STATES = {
     APPLY: 'APPLY',
     EDIT: 'EDIT',
@@ -66,6 +68,8 @@ export default class ApAccountPrograms extends NavigationMixin(LightningElement)
     showApplist = true;
     isValidApplicant = true;
 
+    metadataPromise;
+
     async doShowApplication(event) {
         this.programCode = event.detail;
         this.showApplist = false;
@@ -87,8 +91,12 @@ export default class ApAccountPrograms extends NavigationMixin(LightningElement)
     wiredResult;
 
     @wire(getProgramsForLoggedInUser)
-    wiredPrograms(result) {
+    async wiredPrograms(result) {
         this.wiredResult = result;
+        const blockActionsByProgram =
+            await this.loadBlockActionsConfig();
+
+        console.log('blockActionsByProgram ' +JSON.stringify(blockActionsByProgram));
         let appIds = [];
 
         if (result.data) {
@@ -98,10 +106,25 @@ export default class ApAccountPrograms extends NavigationMixin(LightningElement)
                 return;
             }
 
-            this.data = result.data.map(item => ({
-                ...item,
-                actionModel: this.buildActionModel(item)
-            }));
+            this.data = result.data.map(item => {
+                const blockActions =
+                    blockActionsByProgram[item.programCode] === true;
+
+                console.log(
+                    'Program Code:',
+                    item.programCode,
+                    'Block Config:',
+                    blockActionsByProgram[item.programCode],
+                    'Block Actions:',
+                    blockActions
+                );
+
+                return {
+                    ...item,
+                    blockActions,
+                    actionModel: this.buildActionModel(item)
+                };
+            });
 
             this.data.forEach(item => {
                 appIds.push(item?.applicationId ? item.applicationId : '');
@@ -115,6 +138,72 @@ export default class ApAccountPrograms extends NavigationMixin(LightningElement)
             console.log('error', JSON.stringify(this.error));
             this.data = [];
         }
+    }
+
+    async loadBlockActionsConfig() {
+        if (!this.metadataPromise) {
+            this.metadataPromise = (async () => {
+                try {
+                    const metadataResponse = await fetchMetadataBulk({
+                        requests: [
+                            {
+                                metadataName: 'ApplicationProgramBasedConfig__mdt',
+                                fields: [
+                                    'Intent__c',
+                                    'ProgramCode__c',
+                                    'Type__c',
+                                    'ConfigValue__c'
+                                ],
+                                filters: [
+                                    {
+                                        field: 'Intent__c',
+                                        operator: '=',
+                                        value: 'BlockApplicationActions'
+                                    }
+                                ]
+                            }
+                        ]
+                    });
+
+                    const blockActionsByProgram = {};
+
+                    const records =
+                        metadataResponse?.ApplicationProgramBasedConfig__mdt || [];
+
+                    records.forEach(rec => {
+                        if (
+                            rec.Type__c === 'Boolean' &&
+                            rec.ConfigValue__c != null
+                        ) {
+                            const programCode =
+                                rec.ProgramCode__c?.trim().toUpperCase();
+
+                            if (programCode) {
+                                blockActionsByProgram[programCode] =
+                                    rec.ConfigValue__c.trim().toLowerCase() === 'true';
+                            }
+                        }
+                    });
+
+                    console.log(
+                        'blockActionsByProgram',
+                        JSON.stringify(blockActionsByProgram)
+                    );
+
+                    return blockActionsByProgram;
+
+                } catch (error) {
+                    console.error(
+                        'Error fetching BlockApplicationActions metadata',
+                        error
+                    );
+
+                    return {};
+                }
+            })();
+        }
+
+        return await this.metadataPromise;
     }
 
     buildActionModel(item) {

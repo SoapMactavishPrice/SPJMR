@@ -4,7 +4,7 @@ trigger WithdrawalRequestTrigger on Withdrawal_Request__c (after insert) {
         // routed to the Programme Office team. Never throws.
         WithdrawalApprovalService.submitForApproval(Trigger.new);
 
-        // Styled email + custom bell notification to the Programme Office approvers.
+        // Styled email + custom bell notification to Programme Office and the student.
         WithdrawalRequestNotificationService.sendNotifications(Trigger.new);
     }
 }

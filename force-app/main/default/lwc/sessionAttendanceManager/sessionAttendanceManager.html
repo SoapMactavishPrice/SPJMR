@@ -90,6 +90,13 @@
                             <span class="stat-label">Leave</span>
                             <span class="stat-value">{totalLeaveSanctioned}</span>
                         </div>
+                        <template for:each={deviceTiles} for:item="device">
+                            <div key={device.deviceId} class={device.pillClass}
+                                 data-device={device.deviceId} onclick={handleDeviceFilter}>
+                                <span class="stat-label">{device.deviceId}</span>
+                                <span class="stat-value">{device.count}</span>
+                            </div>
+                        </template>
                     </div>
                     <template if:false={isFutureSessionReadOnly}>
                         <div class="attendance-stats-actions">
@@ -123,6 +130,7 @@
                                 <th>Roll Number</th>
                                 <th>Student Registration Number</th>
                                 <th>Student Name</th>
+                                <th>Device ID</th>
                                 <th>Term Code</th>
                                 <th>Leave Type</th>
                                 <th>Attendance</th>
@@ -136,6 +144,7 @@
                                     <td>{row.rollNumber}</td>
                                     <td>{row.registrationNumber}</td>
                                     <td>{row.studentName}</td>
+                                    <td>{row.serialNumber}</td>
                                     <td>{row.termCode}</td>
                                     <td class="leave-type-cell">
                                         <template if:true={row.attendanceIsSanctionedLeave}>

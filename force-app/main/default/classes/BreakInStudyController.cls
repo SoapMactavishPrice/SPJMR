@@ -19,6 +19,17 @@ public with sharing class BreakInStudyController {
             if (endDate <= startDate) {
                 throwError('End Date & Time must be greater than Start Date & Time.');
             }
+            // NEW: Start Date/Time must not be in the past. A 2-minute grace buffer
+            // accounts for the delay between the user selecting "current time" and
+            // the request reaching the server, so a genuine "now" selection isn't
+            // wrongly rejected.
+            Datetime allowedFrom = Datetime.now().addMinutes(-2);
+            if (startDate < allowedFrom) {
+                throwError(
+                'Start Date & Time cannot be in the past. ' +
+                'Please select the current date/time or a future date/time.'
+                );
+            }
             // A negative fee used to save. It then showed the student a
             // negative amount while, because the form only treats a fee above
             // zero as payable, quietly waiving the Transaction Details

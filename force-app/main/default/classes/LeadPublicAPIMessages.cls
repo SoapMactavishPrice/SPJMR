@@ -13,4 +13,8 @@ public with sharing class LeadPublicAPIMessages {
         'Applicant already exists. An opportunity for this program is already present.';
     public static final String MISSING_REQUIRED_FIELDS = 'Missing required fields.';
     public static final String INVALID_PROGRAMME = 'Invalid programme code.';
+    public static final String LEAD_ALTERNATE_PHONE_UPDATED =
+    'Lead already exists. This program is already linked; the new phone number has been saved as an alternate contact number.';
+public static final String APPLICANT_ALTERNATE_PHONE_UPDATED =
+    'Applicant already exists. An opportunity for this program is already present; the new phone number has been saved as an alternate contact number.';
 }

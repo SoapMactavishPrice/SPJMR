@@ -214,7 +214,7 @@ for (const chunk of chunks) {
     }
 
     handleOpen() {
-        window.open(this.previewUrl, '_blank');
+        openInNewTab(this.previewUrl);
         this.cleanup();
     }
 

@@ -73,7 +73,12 @@ public without sharing class LeaveRequestController {
         String endClean   = endDate.replace('T', ' ').left(19);
         Datetime startDT = Datetime.valueOf(startClean);   // FIX: SE-1171,1170 changed from valueOfGmt to valueOf — same timezone bug as getSessions(),
         Datetime endDT   = Datetime.valueOf(endClean);      // was causing leave records to be saved with Start_Date__c/End_Date__c shifted
-
+        
+        // ============ ADD THE OVERLAP CHECK HERE ============
+        LeaveOverlapResult overlapCheck = checkLeaveOverlap(startDate, endDate);
+        if (overlapCheck.status != 'NONE') {
+            throw new AuraHandledException(overlapCheck.message);
+        }
         // -------------------------------------------------
         // GET USER + CONTACT + ACCOUNT
         // -------------------------------------------------
@@ -123,9 +128,11 @@ public without sharing class LeaveRequestController {
 
         List<ProgramEnrollment> peList;
 
+        // NOTE: ProgramId added here (was previously re-queried a second time
+        // inside populateStudentHierarchyFields — merged per review comment).
         if(contactId != null && studentAccountId != null){
             peList = [
-                SELECT Id, ContactId, AccountId
+                SELECT Id, ContactId, AccountId, ProgramId
                 FROM ProgramEnrollment
                 WHERE ContactId = :contactId
                 OR AccountId   = :studentAccountId
@@ -133,14 +140,14 @@ public without sharing class LeaveRequestController {
             ];
         } else if(contactId != null){
             peList = [
-                SELECT Id, ContactId, AccountId
+                SELECT Id, ContactId, AccountId, ProgramId
                 FROM ProgramEnrollment
                 WHERE ContactId = :contactId
                 LIMIT 1
             ];
         } else{
             peList = [
-                SELECT Id, ContactId, AccountId
+                SELECT Id, ContactId, AccountId, ProgramId
                 FROM ProgramEnrollment
                 WHERE AccountId = :studentAccountId
                 LIMIT 1
@@ -150,6 +157,8 @@ public without sharing class LeaveRequestController {
         if(peList.isEmpty()){
             throw new AuraHandledException('No Program Enrollment found.');
         }
+
+        Id programmeMasterId = peList[0].ProgramId;
 
         // -------------------------------------------------
         // GET PROGRAM COHORT MEMBER
@@ -209,7 +218,7 @@ public without sharing class LeaveRequestController {
 
         // Populate Batch__c / Division__c / Division_Name__c / Programme_Master__c /
         // Batch_Group__c / Term__c from the student's current enrollment hierarchy.
-        populateStudentHierarchyFields(leaveRec, studentAccountId, batchEnrollmentId);
+        populateStudentHierarchyFields(leaveRec, studentAccountId, batchEnrollmentId, programmeMasterId);
 
         insert leaveRec;
 
@@ -260,7 +269,10 @@ public without sharing class LeaveRequestController {
 
        Confirmed field mappings (via Object Manager, per screenshots):
          - Batch__c            <- ProgramCohortMember.ProgramCohortId
-         - Programme_Master__c <- ProgramEnrollment.ProgramId
+         - Programme_Master__c <- ProgramEnrollment.ProgramId (passed in,
+                                    reusing the peList already queried in
+                                    saveLeaveRequest — avoids a duplicate
+                                    ProgramEnrollment query. Per review comment.)
          - Term__c              <- current active AcademicTermEnrollment.AcademicTermId
                                     (same "current term" logic as
                                     StudentProfileDashboardController.getUserInfo())
@@ -268,21 +280,32 @@ public without sharing class LeaveRequestController {
                                     (the field labeled "Batch Group" on the Term
                                     object — Lookup(Batch Group). NOT sourced from
                                     Division; that was the earlier bug that threw
-                                    FIELD_INTEGRITY_EXCEPTION because
-                                    Division__r.Division_Group__c pointed to a
-                                    different object than Batch_Group__c expects.)
+                                    FIELD_INTEGRITY_EXCEPTION.)
          - Division__c /
            Division_Name__c    <- Division_Enrollment__c.Division__c /
                                     Division__r.Division_Name__c, scoped to the
                                     student's current-term AcademicTermEnrollment
+
+       QUERY COUNT (per review comment — reduced from 5 to 2):
+         1) ProgramCohortMember  — for Batch__c
+         2) AcademicTermEnrollment — combined query that pulls Term dates,
+            Is_Active__c, AcademicTerm.AcademicYearId (Batch Group), AND the
+            related Division_Enrollment__c records via the child relationship
+            Division_Enrollments__r, all in one SOQL call instead of three
+            separate queries (term loop + AcademicTerm + Division_Enrollment__c).
     ========================================================= */
     private static void populateStudentHierarchyFields(Leave_Application__c leaveRec,
                                                          Id studentAccountId,
-                                                         Id batchEnrollmentId) {
+                                                         Id batchEnrollmentId,
+                                                         Id programmeMasterId) {
 
         if (studentAccountId == null) {
             return;
         }
+
+        // Programme_Master__c — reused from saveLeaveRequest's existing
+        // ProgramEnrollment query, no extra SOQL needed.
+        leaveRec.Programme_Master__c = programmeMasterId;
 
         // Batch__c
         if (batchEnrollmentId != null) {
@@ -297,26 +320,18 @@ public without sharing class LeaveRequestController {
             }
         }
 
-        // Programme_Master__c
-        List<ProgramEnrollment> peList = [
-            SELECT ProgramId
-            FROM ProgramEnrollment
-            WHERE AccountId = :studentAccountId
-            LIMIT 1
-        ];
-        if (!peList.isEmpty()) {
-            leaveRec.Programme_Master__c = peList[0].ProgramId;
-        }
-
-        // Current active AcademicTermEnrollment (same logic as getUserInfo())
+        // Single combined query: current Term + Batch Group (via AcademicTerm
+        // relationship) + Division (via child subquery on Division_Enrollments__r).
         Date todayDate = Date.today();
-        Id currentTermId;
 
         for (AcademicTermEnrollment ate : [
             SELECT Id, AcademicTermId,
                    AcademicTerm.Term_Start_Date__c,
                    AcademicTerm.Term_End_Date__c,
-                   AcademicTerm.Is_Active__c
+                   AcademicTerm.Is_Active__c,
+                   AcademicTerm.AcademicYearId,
+                   (SELECT Division__c, Division__r.Division_Name__c
+                    FROM Division_Enrollments__r)
             FROM AcademicTermEnrollment
             WHERE LearnerAccountId = :studentAccountId
             ORDER BY AcademicTerm.Term_Start_Date__c DESC
@@ -325,41 +340,23 @@ public without sharing class LeaveRequestController {
                 && ate.AcademicTerm.Term_End_Date__c != null
                 && ate.AcademicTerm.Term_Start_Date__c <= todayDate
                 && ate.AcademicTerm.Term_End_Date__c >= todayDate;
+
             if (ate.AcademicTerm.Is_Active__c == true && termInRange) {
-                currentTermId = ate.AcademicTermId;
+                leaveRec.Term__c = ate.AcademicTermId;
+
+                if (ate.AcademicTerm.AcademicYearId != null) {
+                    leaveRec.Batch_Group__c = ate.AcademicTerm.AcademicYearId;
+                }
+
+                if (ate.Division_Enrollments__r != null && !ate.Division_Enrollments__r.isEmpty()) {
+                    Division_Enrollment__c de = ate.Division_Enrollments__r[0];
+                    if (de.Division__c != null) {
+                        leaveRec.Division__c      = de.Division__c;
+                        leaveRec.Division_Name__c = de.Division__r.Division_Name__c;
+                    }
+                }
+
                 break;
-            }
-        }
-
-        if (currentTermId != null) {
-            leaveRec.Term__c = currentTermId;
-
-            // Batch_Group__c comes from Term.AcademicYearId (field labeled
-            // "Batch Group" on the Term object) — confirmed via Object Manager.
-            List<AcademicTerm> termList = [
-                SELECT AcademicYearId
-                FROM AcademicTerm
-                WHERE Id = :currentTermId
-                LIMIT 1
-            ];
-            if (!termList.isEmpty() && termList[0].AcademicYearId != null) {
-                leaveRec.Batch_Group__c = termList[0].AcademicYearId;
-            }
-        }
-
-        // Division__c / Division_Name__c
-        if (currentTermId != null) {
-            List<Division_Enrollment__c> deList = [
-                SELECT Division__c,
-                       Division__r.Division_Name__c
-                FROM Division_Enrollment__c
-                WHERE Academic_Term_Enrollment__r.LearnerAccountId = :studentAccountId
-                AND Academic_Term_Enrollment__r.AcademicTermId = :currentTermId
-                LIMIT 1
-            ];
-            if (!deList.isEmpty() && deList[0].Division__c != null) {
-                leaveRec.Division__c      = deList[0].Division__c;
-                leaveRec.Division_Name__c = deList[0].Division__r.Division_Name__c;
             }
         }
     }
@@ -480,6 +477,71 @@ public without sharing class LeaveRequestController {
         return result;
     }
 
+    public class LeaveOverlapResult {
+    @AuraEnabled public String status;   // NONE, EXACT, OVERLAP, EXTENSION
+    @AuraEnabled public String message;
+}
+
+@AuraEnabled
+public static LeaveOverlapResult checkLeaveOverlap(String startDate, String endDate) {
+
+    LeaveOverlapResult result = new LeaveOverlapResult();
+    result.status = 'NONE';
+
+    if (startDate == null || endDate == null) {
+        return result;
+    }
+
+    String startClean = startDate.replace('T', ' ').left(19);
+    String endClean   = endDate.replace('T', ' ').left(19);
+    Datetime newStart  = Datetime.valueOf(startClean);
+    Datetime newEnd    = Datetime.valueOf(endClean);
+
+    User u = [
+        SELECT ContactId, Contact.AccountId, AccountId
+        FROM User
+        WHERE Id = :UserInfo.getUserId()
+        LIMIT 1
+    ];
+
+    Id studentAccountId = u.ContactId != null ? u.Contact.AccountId : u.AccountId;
+    if (studentAccountId == null) {
+        return result;
+    }
+
+    List<Leave_Application__c> existing = [
+        SELECT Id, Start_Date__c, End_Date__c, Status__c
+        FROM Leave_Application__c
+        WHERE Student__c = :studentAccountId
+        AND (NOT Status__c LIKE 'Rejected%')
+        AND Start_Date__c < :newEnd
+        AND End_Date__c   > :newStart
+        ORDER BY Start_Date__c ASC
+        LIMIT 1
+    ];
+
+    if (existing.isEmpty()) {
+        return result;
+    }
+
+    Leave_Application__c match = existing[0];
+
+    if (match.Start_Date__c == newStart && match.End_Date__c == newEnd) {
+        result.status  = 'EXACT';
+        result.message = 'You have already submitted a leave application for the selected date and time.';
+
+    } else if (newStart == match.Start_Date__c && newEnd > match.End_Date__c) {
+        result.status  = 'EXTENSION';
+        result.message = 'You have already submitted a leave application for the selected duration. Please submit a new leave application for the additional time.';
+
+    } else {
+        result.status  = 'OVERLAP';
+        result.message = 'You have already submitted a leave application for the selected date and time duration.';
+    }
+
+    return result;
+}
+
     /* =========================================================
        GET STUDENT TERM ENROLLMENT IDS
     ========================================================= */
@@ -541,4 +603,5 @@ public without sharing class LeaveRequestController {
             this.attendance   = attendance;
         }
     }
+    
 }

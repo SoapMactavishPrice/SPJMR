@@ -51,6 +51,10 @@ export default class SessionAttendanceManager extends LightningElement {
     /** Client-side filter on roll number and student name (Attendance Sheet search). */
     @track attendanceSearchText = '';
     @track selectedAttendanceFilter = 'All';
+    // Device ID (Session_Enrollment__c.Serial_Number__c) tile filter. '' = no
+    // device filter; it narrows the rows on top of the attendance filter rather
+    // than replacing it, so "Present on device X" is one click each.
+    @track selectedDeviceFilter = '';
     /** Optional division context passed by timetable View Attendance URL. */
     prefillDivisionId = null;
 
@@ -87,6 +91,12 @@ export default class SessionAttendanceManager extends LightningElement {
             row => row.attendance === this.selectedAttendanceFilter
         );
     }
+
+    if (this.selectedDeviceFilter) {
+        list = list.filter(
+            row => row.serialNumber === this.selectedDeviceFilter
+        );
+    }
         const q = (this.attendanceSearchText || '').trim().toLowerCase();
         //const list = this.rows || [];
         if (q) {
@@ -97,6 +107,34 @@ export default class SessionAttendanceManager extends LightningElement {
         });
     }
     return list;
+    }
+
+    /**
+     * One tile per distinct Device ID present in this session, with how many
+     * students that device accounted for. Counts are of the whole session, not
+     * of the currently filtered list, so they stay put as you click around -
+     * the same way the Present/Absent/Late/Leave counts behave.
+     * Rows with no Device ID are left out: a blank tile filters to nothing
+     * useful and would just take up space until the batches start stamping it.
+     */
+    get deviceTiles() {
+        const counts = new Map();
+
+        (this.rows || []).forEach(row => {
+            const deviceId = (row.serialNumber || '').trim();
+            if (!deviceId) {
+                return;
+            }
+            counts.set(deviceId, (counts.get(deviceId) || 0) + 1);
+        });
+
+        return [...counts.keys()].sort().map(deviceId => ({
+            deviceId,
+            count: counts.get(deviceId),
+            pillClass: deviceId === this.selectedDeviceFilter
+                ? 'stat-pill stat-pill-device stat-pill-device-selected'
+                : 'stat-pill stat-pill-device'
+        }));
     }
 
     get hasNoSearchMatches() {
@@ -336,6 +374,7 @@ export default class SessionAttendanceManager extends LightningElement {
                         id: r.id,
                         attendance,
                         rollNumber: r.rollNumber || '',
+                        serialNumber: r.serialNumber || '',
                         registrationNumber: r.registrationNumber || '',
                         remark: r.remark || '',
                         inviteResponse: r.inviteResponse || '',
@@ -396,6 +435,13 @@ export default class SessionAttendanceManager extends LightningElement {
     handleAttendanceFilter(event) {
     this.selectedAttendanceFilter = event.currentTarget.dataset.status;
 }
+
+    /** Clicking the tile of the device already being filtered on clears it. */
+    handleDeviceFilter(event) {
+        const deviceId = event.currentTarget.dataset.device || '';
+        this.selectedDeviceFilter =
+            deviceId === this.selectedDeviceFilter ? '' : deviceId;
+    }
 
     handleProgramChange(event) {
         const previousSession = this.selectedSession;
@@ -550,6 +596,7 @@ export default class SessionAttendanceManager extends LightningElement {
         this.sessionId = this.selectedSession || null;
         this.attendanceSearchText = '';
         this.selectedAttendanceFilter = 'All';
+        this.selectedDeviceFilter = '';
         this.clearSessionMeta();
         if (this.selectedSession) {
             const opt = (this.sessionOptions || []).find(o => o.value === this.selectedSession);

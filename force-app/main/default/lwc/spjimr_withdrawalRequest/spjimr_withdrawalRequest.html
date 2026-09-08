@@ -31,7 +31,7 @@
                 <div class="tracker-row">
                     <template for:each={trackerSteps} for:item="step">
                         <div class="tracker-step" key={step.key}>
-                            <div class={step.circleClass}>{step.number}</div>
+                            <div class={step.circleClass}>{step.displayNumber}</div>
                             <div class={step.labelClass}>{step.label}</div>
                         </div>
                     </template>
@@ -106,6 +106,18 @@
                             <div class="window-banner">
                                 <span class="status-note-label">Rejection remarks:</span>
                                 {rejectionRemarkDisplay}
+                            </div>
+                        </template>
+                    </template>
+
+                    <template if:true={showFinalRejectionStatusNote}>
+                        <div class="window-banner">
+                            Your withdrawal request has been rejected. You can apply again.
+                        </div>
+                        <template if:true={hasFinalRejectionRemark}>
+                            <div class="window-banner">
+                                <span class="status-note-label">Final rejection remarks:</span>
+                                {finalRejectionRemarkDisplay}
                             </div>
                         </template>
                     </template>

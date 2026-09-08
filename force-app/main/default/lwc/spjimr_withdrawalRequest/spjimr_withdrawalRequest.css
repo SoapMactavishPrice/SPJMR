@@ -453,6 +453,13 @@
     color: var(--spjimr-primary);
 }
 
+.step-circle_disabled {
+    background-color: #f3f3f3;
+    border-color: #e0e0e0;
+    color: #b0b0b0;
+    opacity: 0.65;
+}
+
 .step-label {
     font-size: 0.72rem;
     color: var(--spjimr-muted);
@@ -463,6 +470,11 @@
 .step-label_active {
     color: var(--spjimr-primary);
     font-weight: 700;
+}
+
+.step-label_disabled {
+    color: #b0b0b0;
+    opacity: 0.65;
 }
 
 .tracker-table-wrap {

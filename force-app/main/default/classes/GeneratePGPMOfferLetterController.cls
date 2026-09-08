@@ -9,6 +9,7 @@ public with sharing class GeneratePGPMOfferLetterController {
     public String batchName { get; private set; }
     public String letterDate { get; private set; }
     public String offerDeadline { get; private set; }
+    public String signedLetterAcceptanceDeadline { get; private set; }
     public String firstInstallmentDeadline { get; private set; }
     public String balanceFeePaymentDeadline { get; private set; }
     public String programmeStartDate { get; private set; }
@@ -30,6 +31,8 @@ public with sharing class GeneratePGPMOfferLetterController {
                 Application__r.Batch__r.Name,
                 Application__r.Batch__r.StartDate,
                 Offer_Letter_Date__c,
+                LastDateOfAcceptance__c,
+                SignedLetterOfAcceptanceEta__c,
                 PaymentOfTheFirstInstallmentEta__c,
                 BalanceFeePaymentETA__c
             FROM Admission_Decision__c
@@ -51,8 +54,17 @@ public with sharing class GeneratePGPMOfferLetterController {
 
         if (decision.Offer_Letter_Date__c != null) {
             letterDate = formatDate(decision.Offer_Letter_Date__c, false, false);
-            offerDeadline = formatDate(decision.Offer_Letter_Date__c, true, false);
         }
+        offerDeadline = formatDate(
+            decision.LastDateOfAcceptance__c,
+            true,
+            false
+        );
+        signedLetterAcceptanceDeadline = formatDate(
+            decision.SignedLetterOfAcceptanceEta__c,
+            true,
+            false
+        );
         firstInstallmentDeadline = formatDate(
             decision.PaymentOfTheFirstInstallmentEta__c,
             true,

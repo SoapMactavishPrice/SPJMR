@@ -77,7 +77,7 @@
         We look forward to your confirmation and acceptance of the offer of admission with
         deposit of admission fees of Rs. 65,000/- latest by {!offerDeadline}. The signed
         letter of acceptance (as detailed in Annexure 1) needs to be uploaded to the
-        admission portal by {!offerDeadline}. The 1st installment of fees of Rs.10,85,000
+        admission portal by {!signedLetterAcceptanceDeadline}. The 1st installment of fees of Rs.10,85,000
         is payable by {!firstInstallmentDeadline} and the balance amount of Rs. 10,00,000
         needs to be paid by {!balanceFeePaymentDeadline}. All fee payments as per Annexure 2 are to be
         made through wire/NEFT/RTGS transfer.

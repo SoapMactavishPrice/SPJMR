@@ -399,7 +399,7 @@ Id studentAccountId = req.Account__c;
 
         System.debug(LoggingLevel.ERROR, '=== UPDATING FINAL DEFERMENT STATUS ===');
 
-        req.Status__c = 'Rejoining Details';
+        req.Status__c = 'Rejoining Details Updated';
         req.Approval_Status__c = 'Pending';
         // Both approval levels are done at this point, so the request is
         // Approved, not Pending. Leaving it Pending hid every newly approved

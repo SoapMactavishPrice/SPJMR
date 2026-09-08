@@ -9,7 +9,7 @@ public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
     private Integer totalMarkedAbsent  = 0;
     private Integer totalSkipped       = 0;
     private Integer totalFailed        = 0;
-
+    //working
     public Database.QueryLocator start(Database.BatchableContext bc) {
         Datetime completedCutoff = System.now().addMinutes(-ABSENT_BUFFER_MIN);
         Datetime windowStart     = System.now().addDays(-LOOKBACK_DAYS);
@@ -18,10 +18,13 @@ public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
             SELECT Id,
                    Registeration_Number__c,
                    Attendance__c,
+                   Serial_Number__c,
                    Session__r.Start_Time__c,
                    Session__r.End_Time__c
             FROM   Session_Enrollment__c
-            WHERE  (Attendance__c = NULL OR Attendance__c = 'Absent')
+            WHERE  (Attendance__c = NULL
+                    OR Attendance__c = 'Absent'
+                    OR Attendance__c = 'Sanctioned Leave')
               AND  Session__r.End_Time__c   <  :completedCutoff
               AND  Session__r.Start_Time__c >= :windowStart
             ORDER BY Session__r.Start_Time__c ASC
@@ -54,7 +57,7 @@ public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
 
         // ── 2. Fetch every log that could possibly match this set ─────────────
         List<Attendance_Log__c> logs = [
-            SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c
+            SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c, Device_ID__c
             FROM   Attendance_Log__c
             WHERE  Roll_Number__c   IN :rollNumbers
               AND  Log_Date_Time__c >= :minStart
@@ -100,10 +103,24 @@ public class AttendanceMarkingBatch implements Database.Batchable<SObject>,
 
             if (matchedLog != null) {
                 // Either currently NULL (first marking) or 'Absent' (late-log correction)
+                Boolean changed = false;
+
                 if (se.Attendance__c != 'Present') {
                     se.Attendance__c = 'Present';
-                    enrollmentsToUpdate.add(se);
+                    changed = true;
                     totalMarkedPresent++;
+                }
+
+                // Record WHICH device the student punched at. Attendance_Log__c
+                // rows are purged after 5 days, so the device cannot be looked
+                // up later - it has to be stamped at the moment of marking.
+                if (se.Serial_Number__c != matchedLog.Device_ID__c) {
+                    se.Serial_Number__c = matchedLog.Device_ID__c;
+                    changed = true;
+                }
+
+                if (changed) {
+                    enrollmentsToUpdate.add(se);
                 }
                 if (matchedLog.Status__c != 'Synced') {
                     matchedLog.Status__c = 'Synced';

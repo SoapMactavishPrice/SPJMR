@@ -527,11 +527,16 @@ throw new AuraHandledException(
         /*
          * Final business status.
          */
-        // req.Status__c = 'Rejoining Details';
-        // Not a member of the restricted Status__c picklist, so the
-        // update was rejected and the final approval could never save.
+        // "Rejoining Details" means the details are DUE. It is back on the
+        // restricted picklist, so this saves again. Must match
+        // DefermentApprovalController.approveFinal: stamping "Updated" here
+        // marks the request complete with every rejoining field still empty,
+        // and enforceStatusOrder then refuses to let it be walked back.
+        // "Rejoining Details Updated" is set by
+        // DefermentRequestStatusHandler.advanceOnRejoiningDetails, on save,
+        // once the Rejoining Date, Batch and Fee Deadline are all filled in.
         req.Status__c =
-            'Rejoining Details Updated';
+            'Rejoining Details';
 
         req.Approval_Status__c =
             'Approved';

@@ -83,6 +83,12 @@ private class RejoiningReminderBatchTest {
             Role__c = 'Programme Office'
         );
 
+        insert new Program_Team_Members__c(
+            Program_Team__c = team.Id,
+            User__c = UserInfo.getUserId(),
+            Role__c = 'Manager'
+        );
+
         return programme;
     }
 
@@ -248,7 +254,7 @@ private class RejoiningReminderBatchTest {
     }
 
     @IsTest
-    static void countsMissingDatesPerProgrammeForOneBellEach() {
+    static void raisesOneBellPathPerMissingDateRequest() {
 
         System.runAs(new User(Id = UserInfo.getUserId())) {
 
@@ -270,6 +276,19 @@ private class RejoiningReminderBatchTest {
                     ? 0
                     : RejoiningReminderBatch.lastOutbox.size(),
                 'Three undated requests should produce no e-mail at all.'
+            );
+
+            System.assertEquals(
+                3,
+                [
+                    SELECT COUNT()
+                    FROM Deferment_Request__c
+                    WHERE Programme__c = :programme.Id
+                    AND Rejoining_Date__c = null
+                    AND Approval_Status__c = 'Approved'
+                    AND Status__c != 'Withdrawal'
+                ],
+                'Each undated request stays in scope for its own bell.'
             );
         }
     }
@@ -465,9 +484,9 @@ private class RejoiningReminderBatchTest {
                 [
                     SELECT COUNT()
                     FROM CronTrigger
-                    WHERE CronJobDetail.Name = 'Rejoining_Reminder_Nightly'
+                    WHERE CronJobDetail.Name = 'Rejoining_Reminder_Weekly'
                 ],
-                'The nightly reminder job should be registered exactly once.'
+                'The Monday 1 AM reminder job should be registered exactly once.'
             );
 
             RejoiningReminderScheduler.abortAll();
@@ -477,7 +496,10 @@ private class RejoiningReminderBatchTest {
                 [
                     SELECT COUNT()
                     FROM CronTrigger
-                    WHERE CronJobDetail.Name = 'Rejoining_Reminder_Nightly'
+                    WHERE CronJobDetail.Name IN (
+                        'Rejoining_Reminder_Weekly',
+                        'Rejoining_Reminder_Nightly'
+                    )
                 ],
                 'abortAll should clear the scheduled job.'
             );

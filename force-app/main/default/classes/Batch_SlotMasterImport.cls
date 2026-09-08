@@ -245,7 +245,7 @@ global without sharing class Batch_SlotMasterImport implements Database.Batchabl
             SlotStartTime__c = parseTime(slotStart, 'Slot Start Time'),
             Capacity__c = parseCapacity(capacity),
             Status__c = 'Available',
-            Mode__c = 'Offline'
+            Mode__c = 'Online'
         );
         if (!String.isBlank(slotEnd)) {
             slot.SlotEndtime__c = parseTime(slotEnd, 'Slot End Time');

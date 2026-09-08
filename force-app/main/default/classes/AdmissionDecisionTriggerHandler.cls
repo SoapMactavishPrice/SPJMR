@@ -55,7 +55,10 @@ public class AdmissionDecisionTriggerHandler {
         List<Admission_Decision__c> decisions
     ) {
         for (Admission_Decision__c decision : decisions) {
-            if (decision.Result__c != 'Waitlisted') {
+            if (
+                !String.isBlank(decision.Result__c) &&
+                decision.Result__c != 'Waitlisted'
+            ) {
                 decision.WaitlistNumber__c = null;
             }
 
@@ -88,7 +91,10 @@ public class AdmissionDecisionTriggerHandler {
 
             if (
                 oldDecision.Result__c == 'Eligible for Admission' &&
-                decision.Result__c != 'Eligible for Admission'
+                (
+                    decision.Result__c == 'Waitlisted' ||
+                    decision.Result__c == 'Not Eligible'
+                )
             ) {
                 decision.Offer_Letter_Date__c = null;
                 decision.LastDateOfAcceptance__c = null;
@@ -98,7 +104,11 @@ public class AdmissionDecisionTriggerHandler {
                 decision.BalanceFeePaymentETA__c = null;
             }
 
-            if (oldDecision.Result__c == 'Waitlisted') {
+            if (
+                oldDecision.Result__c == 'Waitlisted' &&
+                !String.isBlank(decision.Result__c) &&
+                decision.Result__c != 'Waitlisted'
+            ) {
                 decision.WaitlistNumber__c = null;
             }
         }

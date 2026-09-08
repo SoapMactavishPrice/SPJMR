@@ -354,7 +354,12 @@ public with sharing class AdmissionDecisionImportBatch
             new Map<Id, List<Admission_Decision__c>>();
 
         for (Admission_Decision__c existingDecision : [
-            SELECT Id, Application__c
+            SELECT Id, Application__c, WaitlistNumber__c,
+                Offer_Letter_Date__c, LastDateOfAcceptance__c,
+                SignedLetterOfAcceptanceEta__c,
+                PaymentOfTheAcceptanceFeeEta__c,
+                PaymentOfTheFirstInstallmentEta__c,
+                BalanceFeePaymentETA__c
             FROM Admission_Decision__c
             WHERE Application__c IN :applicationIds
         ]) {
@@ -424,28 +429,47 @@ public with sharing class AdmissionDecisionImportBatch
                     );
                 }
 
-                String admissionDecision = normaliseAdmissionDecision(
+                String importedDecision = normaliseAdmissionDecision(
                     require(row, 'Admission Decision')
                 );
 
-                if (admissionDecision == null) {
+                if (importedDecision == null) {
 
                     throw new ImportException(
-                        'Admission Decision must be one of : Eligible for Admission, Waitlisted or Not Eligible.'
+                        'Admission Decision must be one of : Eligible for Admission, Waitlisted, Not Eligible or TestUpload.'
                     );
 
                 }
 
-                Admission_Decision__c decision = existingDecisions == null || existingDecisions.isEmpty()
+                Admission_Decision__c existingDecision =
+                    existingDecisions == null || existingDecisions.isEmpty()
+                        ? null
+                        : existingDecisions[0];
+                Admission_Decision__c decision = existingDecision == null
                     ? new Admission_Decision__c(Application__c = applicationId)
-                    : new Admission_Decision__c(Id = existingDecisions[0].Id);
+                    : new Admission_Decision__c(Id = existingDecision.Id);
+                Boolean isTestUpload = importedDecision == 'TestUpload';
+                String admissionDecision = isTestUpload ? null : importedDecision;
 
                 decision.Result__c = admissionDecision;
 
-                if (admissionDecision == 'Waitlisted') {
+                if (isTestUpload) {
+
+                    applyTestUploadValues(decision, row);
+
+                } else if (admissionDecision == 'Waitlisted') {
 
                     String waitlistNumber = row.values.get('Waitlist Number');
                     if (
+                        String.isBlank(waitlistNumber) &&
+                        existingDecision != null &&
+                        existingDecision.WaitlistNumber__c != null
+                    ) {
+                        decision.WaitlistNumber__c =
+                            existingDecision.WaitlistNumber__c;
+                    }
+                    if (
+                        decision.WaitlistNumber__c == null &&
                         isWaitlistNumberRequired(
                             applicationByNumber.get(applicationNumber)
                         )
@@ -453,9 +477,10 @@ public with sharing class AdmissionDecisionImportBatch
                         waitlistNumber = require(row, 'Waitlist Number');
                     }
 
-                    decision.WaitlistNumber__c = String.isBlank(waitlistNumber)
-                        ? null
-                        : Decimal.valueOf(waitlistNumber);
+                    if (!String.isBlank(waitlistNumber)) {
+                        decision.WaitlistNumber__c =
+                            Decimal.valueOf(waitlistNumber);
+                    }
 
                 } else {
 
@@ -466,54 +491,60 @@ public with sharing class AdmissionDecisionImportBatch
                 if (admissionDecision == 'Eligible for Admission') {
 
                     decision.Offer_Letter_Date__c =
-                        parseDate(
-                            require(
-                                row,
-                                'Offer Date'
-                            )
+                        resolveRequiredDate(
+                            row,
+                            'Offer Date',
+                            existingDecision == null
+                                ? null
+                                : existingDecision.Offer_Letter_Date__c
                         );
 
                     decision.LastDateOfAcceptance__c =
-                        parseDate(
-                            require(
-                                row,
-                                'Last Date of Acceptance'
-                            )
+                        resolveRequiredDate(
+                            row,
+                            'Last Date of Acceptance',
+                            existingDecision == null
+                                ? null
+                                : existingDecision.LastDateOfAcceptance__c
                         );
 
                     decision.SignedLetterOfAcceptanceEta__c =
-                        parseDate(
-                            require(
-                                row,
-                                'Last Date of Uploading the Signed Letter of Acceptance'
-                            )
+                        resolveRequiredDate(
+                            row,
+                            'Last Date of Uploading the Signed Letter of Acceptance',
+                            existingDecision == null
+                                ? null
+                                : existingDecision.SignedLetterOfAcceptanceEta__c
                         );
 
                     decision.PaymentOfTheAcceptanceFeeEta__c =
-                        parseDate(
-                            require(
-                                row,
-                                'Last Date for Completing the Payment of the Acceptance Fee'
-                            )
+                        resolveRequiredDate(
+                            row,
+                            'Last Date for Completing the Payment of the Acceptance Fee',
+                            existingDecision == null
+                                ? null
+                                : existingDecision.PaymentOfTheAcceptanceFeeEta__c
                         );
 
                     decision.PaymentOfTheFirstInstallmentEta__c =
-                        parseDate(
-                            require(
-                                row,
-                                'Last Date for Completing the Payment of the First Installment'
-                            )
+                        resolveRequiredDate(
+                            row,
+                            'Last Date for Completing the Payment of the First Installment',
+                            existingDecision == null
+                                ? null
+                                : existingDecision.PaymentOfTheFirstInstallmentEta__c
                         );
 
                     decision.BalanceFeePaymentETA__c =
-                        parseDate(
-                            require(
-                                row,
-                                'Balance Fee Payment ETA'
-                            )
+                        resolveRequiredDate(
+                            row,
+                            'Balance Fee Payment ETA',
+                            existingDecision == null
+                                ? null
+                                : existingDecision.BalanceFeePaymentETA__c
                         );
 
-                } else {
+                } else if (!isTestUpload) {
 
                     clearAdmissionDates(decision);
 
@@ -550,6 +581,62 @@ public with sharing class AdmissionDecisionImportBatch
         decision.PaymentOfTheAcceptanceFeeEta__c = null;
         decision.PaymentOfTheFirstInstallmentEta__c = null;
         decision.BalanceFeePaymentETA__c = null;
+    }
+
+    private static Date resolveRequiredDate(
+        Row row,
+        String header,
+        Date existingValue
+    ) {
+        String value = row.values.get(header);
+        if (String.isBlank(value)) {
+            if (existingValue != null) {
+                return existingValue;
+            }
+            throw new ImportException(header + ' is mandatory.');
+        }
+        return parseDate(value);
+    }
+
+    private static void applyTestUploadValues(
+        Admission_Decision__c decision,
+        Row row
+    ) {
+        String waitlistNumber = row.values.get('Waitlist Number');
+        if (!String.isBlank(waitlistNumber)) {
+            decision.WaitlistNumber__c = Decimal.valueOf(waitlistNumber);
+        }
+
+        String value = row.values.get('Offer Date');
+        if (!String.isBlank(value)) {
+            decision.Offer_Letter_Date__c = parseDate(value);
+        }
+        value = row.values.get('Last Date of Acceptance');
+        if (!String.isBlank(value)) {
+            decision.LastDateOfAcceptance__c = parseDate(value);
+        }
+        value = row.values.get(
+            'Last Date of Uploading the Signed Letter of Acceptance'
+        );
+        if (!String.isBlank(value)) {
+            decision.SignedLetterOfAcceptanceEta__c = parseDate(value);
+        }
+        value = row.values.get(
+            'Last Date for Completing the Payment of the Acceptance Fee'
+        );
+        if (!String.isBlank(value)) {
+            decision.PaymentOfTheAcceptanceFeeEta__c = parseDate(value);
+        }
+        value = row.values.get(
+            'Last Date for Completing the Payment of the First Installment'
+        );
+        if (!String.isBlank(value)) {
+            decision.PaymentOfTheFirstInstallmentEta__c = parseDate(value);
+        }
+        value = row.values.get('Balance Fee Payment ETA');
+        if (!String.isBlank(value)) {
+            decision.BalanceFeePaymentETA__c = parseDate(value);
+        }
     }
 
     private Boolean isWaitlistNumberRequired(Application__c application) {
@@ -627,6 +714,9 @@ public with sharing class AdmissionDecisionImportBatch
         }
         if (normalisedValue == 'not eligible') {
             return 'Not Eligible';
+        }
+        if (normalisedValue == 'testupload') {
+            return 'TestUpload';
         }
 
         return null;

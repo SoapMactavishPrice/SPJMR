@@ -79,6 +79,29 @@
     border-color: rgba(123, 31, 162, 0.2);
 }
 
+/* Device ID tiles. Dark so they read as a different axis of filtering from the
+   pastel attendance tiles, which they combine with rather than replace. */
+.stat-pill-device {
+    background: #4a4a4a;
+    border-color: #3a3a3a;
+    cursor: pointer;
+}
+
+.stat-pill-device .stat-label,
+.stat-pill-device .stat-value {
+    color: #ffffff;
+}
+
+.stat-pill-device .stat-label {
+    letter-spacing: 0.04em;
+    text-transform: none;
+}
+
+.stat-pill-device-selected {
+    background: #1b1b1b;
+    box-shadow: 0 0 0 2px #0176d3;
+}
+
 .filter-panel {
     padding: 0.5rem 0.5rem 0.75rem;
     background: #fbfbfe;

@@ -528,7 +528,7 @@ public without sharing class LeaveApprovalActionController {
     }
 
     // ================= UPDATE LEAVE =================
-    @AuraEnabled
+     @AuraEnabled
     public static void updateLeave(
         Id leaveId,
         Date startDate,

@@ -496,7 +496,7 @@ static void testPermissionSetAssigner() {
 
 
 
-   user u = [SELECT Id FROM User LIMIT 1];
+   user u = [SELECT Id FROM User WHERE Profile.Name = 'System Administrator' LIMIT 1];
 
    
 

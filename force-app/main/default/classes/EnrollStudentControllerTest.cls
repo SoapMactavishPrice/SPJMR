@@ -295,4 +295,177 @@ private class EnrollStudentControllerTest {
         }
         Test.stopTest();
     }
+
+    private static Id createRejoiningBatch(Id programId, String tag) {
+        ProgramCohort pc = new ProgramCohort(
+            Name = 'Rejoin Batch ' + tag,
+            ProgramId = programId,
+            EndDate = Date.today().addYears(2)
+        );
+        try {
+            pc.put('Batch_Code__c', tag);
+        } catch (Exception e) {
+        }
+        try {
+            pc.put('Short_Batch_Code__c', tag);
+        } catch (Exception e) {
+        }
+        try {
+            pc.put('Batch_Sub_Type__c', 'Class Room');
+        } catch (Exception e) {
+        }
+        try {
+            pc.put('Batch_Base_Currency__c', 'INR');
+        } catch (Exception e) {
+        }
+        try {
+            pc.put('Batch_Intake__c', 2);
+        } catch (Exception e) {
+        }
+        try {
+            pc.put('is_Active__c', true);
+        } catch (Exception e) {
+        }
+        for (String fname : new List<String>{
+            'Allow_Exchange_Participation__c',
+            'Allow_Multi_Program_Batch__c',
+            'Allow_Previous_Batch_Same_Programme__c',
+            'Allow_Re_Evaluation__c',
+            'Cannot_Exceed_Program_Intake__c',
+            'Is_Student_Exchange__c',
+            'IsAcceptingApplications__c',
+            'SPJIMR_Is_Major_Specialisation__c',
+            'SPJIMR_Is_Minor_Specialisation__c',
+            'SPJIMR_Is_Specialisation_Program__c'
+        }) {
+            try {
+                pc.put(fname, false);
+            } catch (Exception e) {
+            }
+        }
+        insert pc;
+        return pc.Id;
+    }
+
+    @IsTest
+    static void getStudentsForBatch_includesRejoiningStudentAssignedToBatch() {
+        ProgramCohort originalBatch = [
+            SELECT Id, ProgramId
+            FROM ProgramCohort
+            LIMIT 1
+        ];
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+
+        SObject prog = [
+            SELECT Id
+            FROM Program
+            WHERE Id = :originalBatch.ProgramId
+            LIMIT 1
+        ];
+        try {
+            prog.put('Programme_Intake__c', 100);
+            update prog;
+        } catch (Exception e) {
+        }
+
+        Id peId = createFreshEnrollment(originalBatch.ProgramId, acc.Id, 'REJLIST');
+        ProgramCohortMember original = new ProgramCohortMember(
+            ProgramCohortId = originalBatch.Id,
+            ProgramEnrollmentId = peId,
+            Roll_Number__c = 'KEEP-ROLL-001',
+            Serial_Number__c = 7
+        );
+        insert original;
+
+        Id rejoiningBatchId = createRejoiningBatch(originalBatch.ProgramId, 'RL1');
+
+        insert new Deferment_Request__c(
+            Status__c = 'Pending Re-enrollment',
+            Program_Cohort_Member__c = original.Id,
+            Programme__c = originalBatch.ProgramId,
+            Rejoining_Batch__c = rejoiningBatchId,
+            Rejoining_Date__c = Date.today().addDays(30)
+        );
+
+        Test.startTest();
+        EnrollStudentController.BatchStudentWrapper wrapper =
+            EnrollStudentController.getStudentsForBatch(rejoiningBatchId);
+        Test.stopTest();
+
+        Set<Id> listed = new Set<Id>();
+        for (EnrollStudentController.ProgramEnrollmentWrapper row : wrapper.students) {
+            listed.add(row.Id);
+        }
+        System.assert(
+            listed.contains(peId),
+            'Student assigned on Deferment Request should appear in Enroll Student list.'
+        );
+    }
+
+    @IsTest
+    static void saveSelectedStudents_rejoiningKeepsExistingRollNumber() {
+        ProgramCohort originalBatch = [
+            SELECT Id, ProgramId
+            FROM ProgramCohort
+            LIMIT 1
+        ];
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+
+        SObject prog = [
+            SELECT Id
+            FROM Program
+            WHERE Id = :originalBatch.ProgramId
+            LIMIT 1
+        ];
+        try {
+            prog.put('Programme_Intake__c', 100);
+            update prog;
+        } catch (Exception e) {
+        }
+
+        Id peId = createFreshEnrollment(originalBatch.ProgramId, acc.Id, 'REJKEEP');
+        ProgramCohortMember original = new ProgramCohortMember(
+            ProgramCohortId = originalBatch.Id,
+            ProgramEnrollmentId = peId,
+            Roll_Number__c = 'KEEP-ROLL-009',
+            Serial_Number__c = 9
+        );
+        insert original;
+
+        Id rejoiningBatchId = createRejoiningBatch(originalBatch.ProgramId, 'RK1');
+
+        insert new Deferment_Request__c(
+            Status__c = 'Pending Re-enrollment',
+            Program_Cohort_Member__c = original.Id,
+            Programme__c = originalBatch.ProgramId,
+            Rejoining_Batch__c = rejoiningBatchId,
+            Rejoining_Date__c = Date.today().addDays(30)
+        );
+
+        Test.startTest();
+        EnrollStudentController.saveSelectedStudents(
+            rejoiningBatchId,
+            new List<Id>{ peId },
+            new List<Id>()
+        );
+        Test.stopTest();
+
+        ProgramCohortMember created = [
+            SELECT Roll_Number__c, Serial_Number__c
+            FROM ProgramCohortMember
+            WHERE ProgramCohortId = :rejoiningBatchId
+            AND ProgramEnrollmentId = :peId
+            LIMIT 1
+        ];
+        System.assertEquals(
+            'KEEP-ROLL-009',
+            created.Roll_Number__c,
+            'Rejoining enroll must reuse the existing roll number.'
+        );
+        System.assertEquals(
+            9,
+            Integer.valueOf(created.Serial_Number__c),
+            'Rejoining enroll must reuse the existing serial number.'
+        );
+    }
 }

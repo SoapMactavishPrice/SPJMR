@@ -4,6 +4,8 @@ public without sharing class SessionAttendanceController {
         @AuraEnabled public Id id;
         @AuraEnabled public String attendance;
         @AuraEnabled public String rollNumber;
+        /** Session_Enrollment__c.Serial_Number__c — manually maintained serial number for the enrollment. */
+        @AuraEnabled public String serialNumber;
         /** Account.Registration_Number__c via Academic Term Enrollment learner account */
         @AuraEnabled public String registrationNumber;
         @AuraEnabled public String remark;
@@ -202,6 +204,7 @@ public without sharing class SessionAttendanceController {
             SELECT Id,
                    Attendance__c,
                    Roll_Number__c,
+                   Serial_Number__c,
                    Remark__c,
                    Invite_Response__c,
                    Student_Name__c,
@@ -238,6 +241,7 @@ public without sharing class SessionAttendanceController {
             r.id = se.Id;
             r.attendance = se.Attendance__c;
             r.rollNumber = se.Roll_Number__c;
+            r.serialNumber = se.Serial_Number__c;
             r.registrationNumber = (se.Academic_Term_Enrollment__r != null
                 && se.Academic_Term_Enrollment__r.LearnerAccount != null)
                 ? se.Academic_Term_Enrollment__r.LearnerAccount.Registration_Number__c

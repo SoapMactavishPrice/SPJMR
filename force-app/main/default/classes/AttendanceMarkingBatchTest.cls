@@ -3,7 +3,7 @@ private class AttendanceMarkingBatchTest {
 
     static final Datetime SESS_START = System.now().addHours(-3);
     static final Datetime SESS_END   = System.now().addHours(-2);
-
+    //test
     static Id prep(SpjimrPortalTestDataFactory.Ctx ctx, String roll, String attendance) {
         List<ProgramCohortMember> members =
             [SELECT Id FROM ProgramCohortMember
@@ -164,7 +164,7 @@ private class AttendanceMarkingBatchTest {
     }
 
     @IsTest
-    static void sanctionedLeave_isUntouched() {
+    static void sanctionedLeave_becomesPresentWhenLogExists() {
         SpjimrPortalTestDataFactory.Ctx ctx = SpjimrPortalTestDataFactory.buildAll('ambs');
         Id seId = prep(ctx, 'AMB-SL', 'Sanctioned Leave');
 
@@ -174,7 +174,6 @@ private class AttendanceMarkingBatchTest {
             return;
         }
 
-        // Insert a log so the batch would mark Present if it wrongly processes this
         String roll = rollOf(seId);
         insert buildLog(roll, SESS_START.addMinutes(20));
 
@@ -183,9 +182,30 @@ private class AttendanceMarkingBatchTest {
         Test.stopTest();
 
         System.assertEquals(
+            'Present',
+            [SELECT Attendance__c FROM Session_Enrollment__c WHERE Id = :seId].Attendance__c,
+            'Sanctioned Leave must become Present when a matching attendance log exists.');
+    }
+
+    @IsTest
+    static void sanctionedLeave_staysWhenNoLog() {
+        SpjimrPortalTestDataFactory.Ctx ctx = SpjimrPortalTestDataFactory.buildAll('ambsnl');
+        Id seId = prep(ctx, 'AMB-SL2', 'Sanctioned Leave');
+
+        if (seId == null) {
+            System.assert(false,
+                'Test setup failed: could not wire ProgramCohortMember / ATE.');
+            return;
+        }
+
+        Test.startTest();
+        Database.executeBatch(new AttendanceMarkingBatch(), 200);
+        Test.stopTest();
+
+        System.assertEquals(
             'Sanctioned Leave',
             [SELECT Attendance__c FROM Session_Enrollment__c WHERE Id = :seId].Attendance__c,
-            'Sanctioned Leave enrollments must not be modified by the batch.');
+            'Sanctioned Leave must stay when there is no matching attendance log.');
     }
 
     @IsTest

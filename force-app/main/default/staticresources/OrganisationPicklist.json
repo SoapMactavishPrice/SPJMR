@@ -1,0 +1,2090 @@
+[
+  {
+    "label": "A C Neilsen",
+    "value": "A C Neilsen"
+  },
+  {
+    "label": "ABB",
+    "value": "ABB"
+  },
+  {
+    "label": "ACC",
+    "value": "ACC"
+  },
+  {
+    "label": "Accenture",
+    "value": "Accenture"
+  },
+  {
+    "label": "Adani",
+    "value": "Adani"
+  },
+  {
+    "label": "Adani Wilmar Limited",
+    "value": "Adani Wilmar Limited"
+  },
+  {
+    "label": "ADDO Online Marketing Solutions",
+    "value": "ADDO Online Marketing Solutions"
+  },
+  {
+    "label": "Aditya Birla Group Cos.",
+    "value": "Aditya Birla Group Cos."
+  },
+  {
+    "label": "Adobe systems",
+    "value": "Adobe systems"
+  },
+  {
+    "label": "Aegis",
+    "value": "Aegis"
+  },
+  {
+    "label": "Affine Analytics",
+    "value": "Affine Analytics"
+  },
+  {
+    "label": "Agarni Foods Private Limited",
+    "value": "Agarni Foods Private Limited"
+  },
+  {
+    "label": "AIG",
+    "value": "AIG"
+  },
+  {
+    "label": "Aker",
+    "value": "Aker"
+  },
+  {
+    "label": "Alexandria Carbon Black",
+    "value": "Alexandria Carbon Black"
+  },
+  {
+    "label": "Alfa ltd",
+    "value": "Alfa ltd"
+  },
+  {
+    "label": "Alstom",
+    "value": "Alstom"
+  },
+  {
+    "label": "Amadeus Labs",
+    "value": "Amadeus Labs"
+  },
+  {
+    "label": "Amazon",
+    "value": "Amazon"
+  },
+  {
+    "label": "Amdocs",
+    "value": "Amdocs"
+  },
+  {
+    "label": "Amec Foster Wheeler India Pvt Ltd",
+    "value": "Amec Foster Wheeler India Pvt Ltd"
+  },
+  {
+    "label": "American Express",
+    "value": "American Express"
+  },
+  {
+    "label": "Analytics Quotient",
+    "value": "Analytics Quotient"
+  },
+  {
+    "label": "Aptech",
+    "value": "Aptech"
+  },
+  {
+    "label": "Aricent Group",
+    "value": "Aricent Group"
+  },
+  {
+    "label": "Ashok Leyland",
+    "value": "Ashok Leyland"
+  },
+  {
+    "label": "Asian Paints",
+    "value": "Asian Paints"
+  },
+  {
+    "label": "AT Kearney",
+    "value": "AT Kearney"
+  },
+  {
+    "label": "Av Cell Inc.",
+    "value": "Av Cell Inc."
+  },
+  {
+    "label": "Av Nackawic Inc.",
+    "value": "Av Nackawic Inc."
+  },
+  {
+    "label": "Axis Bank Ltd.",
+    "value": "Axis Bank Ltd."
+  },
+  {
+    "label": "Axis Risk Consulting",
+    "value": "Axis Risk Consulting"
+  },
+  {
+    "label": "Axles India Limited",
+    "value": "Axles India Limited"
+  },
+  {
+    "label": "Axtria India Pvt Ltd",
+    "value": "Axtria India Pvt Ltd"
+  },
+  {
+    "label": "Bajaj Auto",
+    "value": "Bajaj Auto"
+  },
+  {
+    "label": "Bangalore Biotech Labs Pvt Ltd (Biozeen)",
+    "value": "Bangalore Biotech Labs Pvt Ltd (Biozeen)"
+  },
+  {
+    "label": "Bank of America",
+    "value": "Bank of America"
+  },
+  {
+    "label": "Barc",
+    "value": "Barc"
+  },
+  {
+    "label": "Barclays",
+    "value": "Barclays"
+  },
+  {
+    "label": "BASF",
+    "value": "BASF"
+  },
+  {
+    "label": "Bharat Electronics",
+    "value": "Bharat Electronics"
+  },
+  {
+    "label": "Bharati Telecom",
+    "value": "Bharati Telecom"
+  },
+  {
+    "label": "BHEL",
+    "value": "BHEL"
+  },
+  {
+    "label": "Birla Jingwei Fibres Company Limited",
+    "value": "Birla Jingwei Fibres Company Limited"
+  },
+  {
+    "label": "Birla Lao Pulp And Plantations Company Limited",
+    "value": "Birla Lao Pulp And Plantations Company Limited"
+  },
+  {
+    "label": "Birla Sun Life Asset Management",
+    "value": "Birla Sun Life Asset Management"
+  },
+  {
+    "label": "Birla Sun Life Insurance Company",
+    "value": "Birla Sun Life Insurance Company"
+  },
+  {
+    "label": "Birlasoft Ltd",
+    "value": "Birlasoft Ltd"
+  },
+  {
+    "label": "Bluestar",
+    "value": "Bluestar"
+  },
+  {
+    "label": "BMR Advisors",
+    "value": "BMR Advisors"
+  },
+  {
+    "label": "BNP Paribas India Solutions Pvt. Ltd.",
+    "value": "BNP Paribas India Solutions Pvt. Ltd."
+  },
+  {
+    "label": "BOC India",
+    "value": "BOC India"
+  },
+  {
+    "label": "Bosch India",
+    "value": "Bosch India"
+  },
+  {
+    "label": "BPCL",
+    "value": "BPCL"
+  },
+  {
+    "label": "Brakes India Limited",
+    "value": "Brakes India Limited"
+  },
+  {
+    "label": "British Telecom",
+    "value": "British Telecom"
+  },
+  {
+    "label": "Bureau Veritas India Limited",
+    "value": "Bureau Veritas India Limited"
+  },
+  {
+    "label": "C Tech Corporation",
+    "value": "C Tech Corporation"
+  },
+  {
+    "label": "Cairn India Limited",
+    "value": "Cairn India Limited"
+  },
+  {
+    "label": "Calderys India Refractories Limited",
+    "value": "Calderys India Refractories Limited"
+  },
+  {
+    "label": "Cameroon Alumina Limited",
+    "value": "Cameroon Alumina Limited"
+  },
+  {
+    "label": "Capgemini India Pvt. Ltd",
+    "value": "Capgemini India Pvt. Ltd"
+  },
+  {
+    "label": "Career Launcher",
+    "value": "Career Launcher"
+  },
+  {
+    "label": "Caterpillar",
+    "value": "Caterpillar"
+  },
+  {
+    "label": "Cerner Healthcare Solutions Pvt. Ltd.",
+    "value": "Cerner Healthcare Solutions Pvt. Ltd."
+  },
+  {
+    "label": "Cisco Systems",
+    "value": "Cisco Systems"
+  },
+  {
+    "label": "Citigroup",
+    "value": "Citigroup"
+  },
+  {
+    "label": "Citrix RandD",
+    "value": "Citrix RandD"
+  },
+  {
+    "label": "COAL INDIA LIMITED",
+    "value": "COAL INDIA LIMITED"
+  },
+  {
+    "label": "Coca Cola",
+    "value": "Coca Cola"
+  },
+  {
+    "label": "Cognizant Technology Solutions",
+    "value": "Cognizant Technology Solutions"
+  },
+  {
+    "label": "Colgate Palmolive",
+    "value": "Colgate Palmolive"
+  },
+  {
+    "label": "Columbian Chemicals Company",
+    "value": "Columbian Chemicals Company"
+  },
+  {
+    "label": "Convergys",
+    "value": "Convergys"
+  },
+  {
+    "label": "Credit Suisse",
+    "value": "Credit Suisse"
+  },
+  {
+    "label": "CRISIL",
+    "value": "CRISIL"
+  },
+  {
+    "label": "CSC",
+    "value": "CSC"
+  },
+  {
+    "label": "Cummins",
+    "value": "Cummins"
+  },
+  {
+    "label": "Cybage Software Pvt. Ltd.",
+    "value": "Cybage Software Pvt. Ltd."
+  },
+  {
+    "label": "Cyient Ltd",
+    "value": "Cyient Ltd"
+  },
+  {
+    "label": "D. E. Shaw",
+    "value": "D. E. Shaw"
+  },
+  {
+    "label": "Dahej Harbour and Infrastructure Limited",
+    "value": "Dahej Harbour and Infrastructure Limited"
+  },
+  {
+    "label": "Daimler India Commercial Vehicles",
+    "value": "Daimler India Commercial Vehicles"
+  },
+  {
+    "label": "Dell",
+    "value": "Dell"
+  },
+  {
+    "label": "Deloitte Consulting",
+    "value": "Deloitte Consulting"
+  },
+  {
+    "label": "Deloitte Haskins and Sells, Mumbai",
+    "value": "Deloitte Haskins and Sells, Mumbai"
+  },
+  {
+    "label": "DELOITTE TOUCHE TOHMATSU INDIA PVT. LTD.",
+    "value": "DELOITTE TOUCHE TOHMATSU INDIA PVT. LTD."
+  },
+  {
+    "label": "Delphi",
+    "value": "Delphi"
+  },
+  {
+    "label": "Delphi - Tvs",
+    "value": "Delphi - Tvs"
+  },
+  {
+    "label": "Development Consultants Pvt. Ltd.",
+    "value": "Development Consultants Pvt. Ltd."
+  },
+  {
+    "label": "DGM Ayurvedic Medical College and Hospital",
+    "value": "DGM Ayurvedic Medical College and Hospital"
+  },
+  {
+    "label": "Diebold Systems Pvt Ltd",
+    "value": "Diebold Systems Pvt Ltd"
+  },
+  {
+    "label": "Disha Financial Counselling",
+    "value": "Disha Financial Counselling"
+  },
+  {
+    "label": "Domsj Fabriker",
+    "value": "Domsj Fabriker"
+  },
+  {
+    "label": "Dr. Reddys Laboratories",
+    "value": "Dr. Reddys Laboratories"
+  },
+  {
+    "label": "DRDO",
+    "value": "DRDO"
+  },
+  {
+    "label": "Eaton Technologies Private Limited",
+    "value": "Eaton Technologies Private Limited"
+  },
+  {
+    "label": "Edelweiss",
+    "value": "Edelweiss"
+  },
+  {
+    "label": "Edgeverve Systems Limited",
+    "value": "Edgeverve Systems Limited"
+  },
+  {
+    "label": "Eicher Motors",
+    "value": "Eicher Motors"
+  },
+  {
+    "label": "EIL",
+    "value": "EIL"
+  },
+  {
+    "label": "EMC Corporation",
+    "value": "EMC Corporation"
+  },
+  {
+    "label": "Emerson",
+    "value": "Emerson"
+  },
+  {
+    "label": "Equinox Realty",
+    "value": "Equinox Realty"
+  },
+  {
+    "label": "Ericsson",
+    "value": "Ericsson"
+  },
+  {
+    "label": "Ernst and Young",
+    "value": "Ernst and Young"
+  },
+  {
+    "label": "Escorts",
+    "value": "Escorts"
+  },
+  {
+    "label": "Essar Capital Limited",
+    "value": "Essar Capital Limited"
+  },
+  {
+    "label": "Essar Communications",
+    "value": "Essar Communications"
+  },
+  {
+    "label": "Essar Group Cos.",
+    "value": "Essar Group Cos."
+  },
+  {
+    "label": "Essar Oil",
+    "value": "Essar Oil"
+  },
+  {
+    "label": "Essar Ports",
+    "value": "Essar Ports"
+  },
+  {
+    "label": "Essar Power",
+    "value": "Essar Power"
+  },
+  {
+    "label": "Essar Projects",
+    "value": "Essar Projects"
+  },
+  {
+    "label": "Essar Shipping",
+    "value": "Essar Shipping"
+  },
+  {
+    "label": "Essar Steel",
+    "value": "Essar Steel"
+  },
+  {
+    "label": "Essel Mining And Industries Limited",
+    "value": "Essel Mining And Industries Limited"
+  },
+  {
+    "label": "Evalueserve",
+    "value": "Evalueserve"
+  },
+  {
+    "label": "EXL Analytics",
+    "value": "EXL Analytics"
+  },
+  {
+    "label": "EXL Service",
+    "value": "EXL Service"
+  },
+  {
+    "label": "Eyechat Technologies Pvt Ltd",
+    "value": "Eyechat Technologies Pvt Ltd"
+  },
+  {
+    "label": "Fiat India",
+    "value": "Fiat India"
+  },
+  {
+    "label": "Fidelity International Limited",
+    "value": "Fidelity International Limited"
+  },
+  {
+    "label": "FinIQ Consulting India Private Limited",
+    "value": "FinIQ Consulting India Private Limited"
+  },
+  {
+    "label": "Firestone Tvs Private Limited",
+    "value": "Firestone Tvs Private Limited"
+  },
+  {
+    "label": "Flipkart",
+    "value": "Flipkart"
+  },
+  {
+    "label": "Fluor Daniel India Pvt Ltd",
+    "value": "Fluor Daniel India Pvt Ltd"
+  },
+  {
+    "label": "Ford Motor Private Limited",
+    "value": "Ford Motor Private Limited"
+  },
+  {
+    "label": "Fractal Analytics",
+    "value": "Fractal Analytics"
+  },
+  {
+    "label": "Future Capital Holdings",
+    "value": "Future Capital Holdings"
+  },
+  {
+    "label": "Future Consumer Enterprise Limited",
+    "value": "Future Consumer Enterprise Limited"
+  },
+  {
+    "label": "Future First",
+    "value": "Future First"
+  },
+  {
+    "label": "Future Generali",
+    "value": "Future Generali"
+  },
+  {
+    "label": "Future Group.",
+    "value": "Future Group."
+  },
+  {
+    "label": "Future Lifestyle Fashions",
+    "value": "Future Lifestyle Fashions"
+  },
+  {
+    "label": "Future Retail Ltd.",
+    "value": "Future Retail Ltd."
+  },
+  {
+    "label": "Future Ventures",
+    "value": "Future Ventures"
+  },
+  {
+    "label": "GE and Group Cos.",
+    "value": "GE and Group Cos."
+  },
+  {
+    "label": "General Motors",
+    "value": "General Motors"
+  },
+  {
+    "label": "Genpact",
+    "value": "Genpact"
+  },
+  {
+    "label": "Glaxosmithkline",
+    "value": "Glaxosmithkline"
+  },
+  {
+    "label": "Global Logic India Pvt. Ltd.",
+    "value": "Global Logic India Pvt. Ltd."
+  },
+  {
+    "label": "GMMCO Ltd",
+    "value": "GMMCO Ltd"
+  },
+  {
+    "label": "GMR group-DIAL (Delhi International Airport Limited)",
+    "value": "GMR group-DIAL (Delhi International Airport Limited)"
+  },
+  {
+    "label": "GMR Infrastructure imited",
+    "value": "GMR Infrastructure imited"
+  },
+  {
+    "label": "Godrej Agrovet",
+    "value": "Godrej Agrovet"
+  },
+  {
+    "label": "Godrej and Boyce",
+    "value": "Godrej and Boyce"
+  },
+  {
+    "label": "Godrej Chemicals",
+    "value": "Godrej Chemicals"
+  },
+  {
+    "label": "Godrej Consumer Products",
+    "value": "Godrej Consumer Products"
+  },
+  {
+    "label": "Godrej Group Cos.",
+    "value": "Godrej Group Cos."
+  },
+  {
+    "label": "Godrej Natures Basket",
+    "value": "Godrej Natures Basket"
+  },
+  {
+    "label": "Godrej Properties",
+    "value": "Godrej Properties"
+  },
+  {
+    "label": "Godrej tyson Foods",
+    "value": "Godrej tyson Foods"
+  },
+  {
+    "label": "Goldman Sachs",
+    "value": "Goldman Sachs"
+  },
+  {
+    "label": "Google",
+    "value": "Google"
+  },
+  {
+    "label": "Google India Pvt. Ltd.",
+    "value": "Google India Pvt. Ltd."
+  },
+  {
+    "label": "Grail Research",
+    "value": "Grail Research"
+  },
+  {
+    "label": "Grant Thornton India LLP",
+    "value": "Grant Thornton India LLP"
+  },
+  {
+    "label": "Grasim Bhiwani Textiles Limited",
+    "value": "Grasim Bhiwani Textiles Limited"
+  },
+  {
+    "label": "Grasim Industries",
+    "value": "Grasim Industries"
+  },
+  {
+    "label": "Grasim Industries Limited",
+    "value": "Grasim Industries Limited"
+  },
+  {
+    "label": "Greking, Gmatprepking, Bankpoking",
+    "value": "Greking, Gmatprepking, Bankpoking"
+  },
+  {
+    "label": "Grofers India Pvt. Ltd",
+    "value": "Grofers India Pvt. Ltd"
+  },
+  {
+    "label": "Gujarat State Fertilizers and Chemicals, Vadodara",
+    "value": "Gujarat State Fertilizers and Chemicals, Vadodara"
+  },
+  {
+    "label": "Haldia Petrochemicals",
+    "value": "Haldia Petrochemicals"
+  },
+  {
+    "label": "Half Tick Info Services Private Limited",
+    "value": "Half Tick Info Services Private Limited"
+  },
+  {
+    "label": "HCL and Group Cos.",
+    "value": "HCL and Group Cos."
+  },
+  {
+    "label": "HDFC or HDFC Bank",
+    "value": "HDFC or HDFC Bank"
+  },
+  {
+    "label": "HEADSTRONG or GENPACT",
+    "value": "HEADSTRONG or GENPACT"
+  },
+  {
+    "label": "Hero Motocorp",
+    "value": "Hero Motocorp"
+  },
+  {
+    "label": "Hewitt Associates",
+    "value": "Hewitt Associates"
+  },
+  {
+    "label": "Hewlett Packard",
+    "value": "Hewlett Packard"
+  },
+  {
+    "label": "Hindalco Industries",
+    "value": "Hindalco Industries"
+  },
+  {
+    "label": "Hindalco Industries Limited",
+    "value": "Hindalco Industries Limited"
+  },
+  {
+    "label": "Hindalco-Almex Aerospace Limited",
+    "value": "Hindalco-Almex Aerospace Limited"
+  },
+  {
+    "label": "Hindustan UniLever",
+    "value": "Hindustan UniLever"
+  },
+  {
+    "label": "Honda Cars India Ltd",
+    "value": "Honda Cars India Ltd"
+  },
+  {
+    "label": "Honda Motorcycle and Scooter India Pvt. Ltd. (HMSI)",
+    "value": "Honda Motorcycle and Scooter India Pvt. Ltd. (HMSI)"
+  },
+  {
+    "label": "Honeywell",
+    "value": "Honeywell"
+  },
+  {
+    "label": "HPCL",
+    "value": "HPCL"
+  },
+  {
+    "label": "HPCL-Mittal Energy Limited",
+    "value": "HPCL-Mittal Energy Limited"
+  },
+  {
+    "label": "HSBC",
+    "value": "HSBC"
+  },
+  {
+    "label": "Ht Media Ltd.",
+    "value": "Ht Media Ltd."
+  },
+  {
+    "label": "Huawei Telecommunications (I) Co. Pvt. Ltd.",
+    "value": "Huawei Telecommunications (I) Co. Pvt. Ltd."
+  },
+  {
+    "label": "Hughes Software",
+    "value": "Hughes Software"
+  },
+  {
+    "label": "Hyundai Motor India",
+    "value": "Hyundai Motor India"
+  },
+  {
+    "label": "I-flex Solutions",
+    "value": "I-flex Solutions"
+  },
+  {
+    "label": "I2 Technologies",
+    "value": "I2 Technologies"
+  },
+  {
+    "label": "IBM",
+    "value": "IBM"
+  },
+  {
+    "label": "ICICI Bank Ltd.",
+    "value": "ICICI Bank Ltd."
+  },
+  {
+    "label": "ICICI Direct",
+    "value": "ICICI Direct"
+  },
+  {
+    "label": "ICICI Foundation",
+    "value": "ICICI Foundation"
+  },
+  {
+    "label": "ICICI Group Cos.",
+    "value": "ICICI Group Cos."
+  },
+  {
+    "label": "ICICI Lombard General Insurance Company",
+    "value": "ICICI Lombard General Insurance Company"
+  },
+  {
+    "label": "ICICI Prudential Amc and Trust",
+    "value": "ICICI Prudential Amc and Trust"
+  },
+  {
+    "label": "ICICI Prudential Life Insurance Company",
+    "value": "ICICI Prudential Life Insurance Company"
+  },
+  {
+    "label": "ICICI Securities",
+    "value": "ICICI Securities"
+  },
+  {
+    "label": "ICICI Venture",
+    "value": "ICICI Venture"
+  },
+  {
+    "label": "IDBI or IDBI Bank",
+    "value": "IDBI or IDBI Bank"
+  },
+  {
+    "label": "Idea",
+    "value": "Idea"
+  },
+  {
+    "label": "Idea Cellular Limited",
+    "value": "Idea Cellular Limited"
+  },
+  {
+    "label": "iLead Consulting Pvt Lte",
+    "value": "iLead Consulting Pvt Lte"
+  },
+  {
+    "label": "IMRB International",
+    "value": "IMRB International"
+  },
+  {
+    "label": "IMS India Learning Resources",
+    "value": "IMS India Learning Resources"
+  },
+  {
+    "label": "Inautix",
+    "value": "Inautix"
+  },
+  {
+    "label": "India Motor Parts And Accessories Limited",
+    "value": "India Motor Parts And Accessories Limited"
+  },
+  {
+    "label": "India Nippon Electricals Limited",
+    "value": "India Nippon Electricals Limited"
+  },
+  {
+    "label": "Indiabulls Housing Finance Limited (Ibhfl)",
+    "value": "Indiabulls Housing Finance Limited (Ibhfl)"
+  },
+  {
+    "label": "Indiabulls Real Estate Limited (Ibrel)",
+    "value": "Indiabulls Real Estate Limited (Ibrel)"
+  },
+  {
+    "label": "Indiabulls Ventures Limited (Ibvl)",
+    "value": "Indiabulls Ventures Limited (Ibvl)"
+  },
+  {
+    "label": "IndiaMart Intermesh Limited",
+    "value": "IndiaMart Intermesh Limited"
+  },
+  {
+    "label": "Indian Hotels",
+    "value": "Indian Hotels"
+  },
+  {
+    "label": "Indian Oil Corporation Ltd",
+    "value": "Indian Oil Corporation Ltd"
+  },
+  {
+    "label": "Indian Steel And Wire Products",
+    "value": "Indian Steel And Wire Products"
+  },
+  {
+    "label": "Indo Phil Cotton Mills",
+    "value": "Indo Phil Cotton Mills"
+  },
+  {
+    "label": "Indo Phil Textile Mills",
+    "value": "Indo Phil Textile Mills"
+  },
+  {
+    "label": "Indo Thai Synthetics",
+    "value": "Indo Thai Synthetics"
+  },
+  {
+    "label": "Indus Valley Partners",
+    "value": "Indus Valley Partners"
+  },
+  {
+    "label": "InfoEdge India Ltd. (Naukri.com)",
+    "value": "InfoEdge India Ltd. (Naukri.com)"
+  },
+  {
+    "label": "Infosys Technologies",
+    "value": "Infosys Technologies"
+  },
+  {
+    "label": "Intel",
+    "value": "Intel"
+  },
+  {
+    "label": "Intellect Design Arena Limited",
+    "value": "Intellect Design Arena Limited"
+  },
+  {
+    "label": "IOCL",
+    "value": "IOCL"
+  },
+  {
+    "label": "Irizar Tvs Limited",
+    "value": "Irizar Tvs Limited"
+  },
+  {
+    "label": "iRunway",
+    "value": "iRunway"
+  },
+  {
+    "label": "ISRO",
+    "value": "ISRO"
+  },
+  {
+    "label": "Itc Essentra Limited",
+    "value": "Itc Essentra Limited"
+  },
+  {
+    "label": "ITC Group Cos.",
+    "value": "ITC Group Cos."
+  },
+  {
+    "label": "Itc Infotech",
+    "value": "Itc Infotech"
+  },
+  {
+    "label": "J P Morgan",
+    "value": "J P Morgan"
+  },
+  {
+    "label": "Jacobs Engineering India Pvt. Ltd",
+    "value": "Jacobs Engineering India Pvt. Ltd"
+  },
+  {
+    "label": "JDA Software India Pvt Ltd",
+    "value": "JDA Software India Pvt Ltd"
+  },
+  {
+    "label": "Jindal Stainless Ltd.",
+    "value": "Jindal Stainless Ltd."
+  },
+  {
+    "label": "John Deere",
+    "value": "John Deere"
+  },
+  {
+    "label": "Johnson and Johnson",
+    "value": "Johnson and Johnson"
+  },
+  {
+    "label": "Johnson Controls India Pvt. Ltd.",
+    "value": "Johnson Controls India Pvt. Ltd."
+  },
+  {
+    "label": "Jones Lang Lasalle",
+    "value": "Jones Lang Lasalle"
+  },
+  {
+    "label": "JSW Steel",
+    "value": "JSW Steel"
+  },
+  {
+    "label": "Jubilant LifeSciences Ltd.",
+    "value": "Jubilant LifeSciences Ltd."
+  },
+  {
+    "label": "Justdial Private Limited",
+    "value": "Justdial Private Limited"
+  },
+  {
+    "label": "Kony Labs",
+    "value": "Kony Labs"
+  },
+  {
+    "label": "Kotak Group",
+    "value": "Kotak Group"
+  },
+  {
+    "label": "Kotak International Business",
+    "value": "Kotak International Business"
+  },
+  {
+    "label": "Kotak Mahindra Asset Management Company Ltd (Kmamc)",
+    "value": "Kotak Mahindra Asset Management Company Ltd (Kmamc)"
+  },
+  {
+    "label": "Kotak Mahindra Bank Ltd.",
+    "value": "Kotak Mahindra Bank Ltd."
+  },
+  {
+    "label": "Kotak Mahindra Capital Company (Kmcc)",
+    "value": "Kotak Mahindra Capital Company (Kmcc)"
+  },
+  {
+    "label": "Kotak Mahindra Old Mutual Life Insurance Ltd",
+    "value": "Kotak Mahindra Old Mutual Life Insurance Ltd"
+  },
+  {
+    "label": "Kotak Mahindra Prime Ltd (Kmpl)",
+    "value": "Kotak Mahindra Prime Ltd (Kmpl)"
+  },
+  {
+    "label": "Kotak Private Equity Group (Kpeg)",
+    "value": "Kotak Private Equity Group (Kpeg)"
+  },
+  {
+    "label": "Kotak Realty Fund",
+    "value": "Kotak Realty Fund"
+  },
+  {
+    "label": "Kotak Securities Ltd",
+    "value": "Kotak Securities Ltd"
+  },
+  {
+    "label": "KPMG",
+    "value": "KPMG"
+  },
+  {
+    "label": "Larsen And Toubro Infotech Limited",
+    "value": "Larsen And Toubro Infotech Limited"
+  },
+  {
+    "label": "Larsen and Toubro Ltd.",
+    "value": "Larsen and Toubro Ltd."
+  },
+  {
+    "label": "Larsen and Toubro Technology Services Limited",
+    "value": "Larsen and Toubro Technology Services Limited"
+  },
+  {
+    "label": "LatentView Analytics",
+    "value": "LatentView Analytics"
+  },
+  {
+    "label": "Legends School of Transformation",
+    "value": "Legends School of Transformation"
+  },
+  {
+    "label": "LG",
+    "value": "LG"
+  },
+  {
+    "label": "Liaoning Birla Carbon Company Limited",
+    "value": "Liaoning Birla Carbon Company Limited"
+  },
+  {
+    "label": "Life Insurance Corporation (LIC)",
+    "value": "Life Insurance Corporation (LIC)"
+  },
+  {
+    "label": "Limetray",
+    "value": "Limetray"
+  },
+  {
+    "label": "Lucas Indian Service Limited",
+    "value": "Lucas Indian Service Limited"
+  },
+  {
+    "label": "Lucas Tvs Limited",
+    "value": "Lucas Tvs Limited"
+  },
+  {
+    "label": "Madura Fashion and Lifestyle",
+    "value": "Madura Fashion and Lifestyle"
+  },
+  {
+    "label": "Magma Fincorp Limited",
+    "value": "Magma Fincorp Limited"
+  },
+  {
+    "label": "Mahan Coal Limited",
+    "value": "Mahan Coal Limited"
+  },
+  {
+    "label": "Mahindra and Mahindra",
+    "value": "Mahindra and Mahindra"
+  },
+  {
+    "label": "Mahindra Comviva",
+    "value": "Mahindra Comviva"
+  },
+  {
+    "label": "Make My Trip: India Pvt Ltd",
+    "value": "Make My Trip: India Pvt Ltd"
+  },
+  {
+    "label": "Mangalore Chemicals and Fretilizers Limited",
+    "value": "Mangalore Chemicals and Fretilizers Limited"
+  },
+  {
+    "label": "Manufacturers Equipment And Supply Company (Mesco)",
+    "value": "Manufacturers Equipment And Supply Company (Mesco)"
+  },
+  {
+    "label": "Marico",
+    "value": "Marico"
+  },
+  {
+    "label": "Maruti Suzuki India Limited",
+    "value": "Maruti Suzuki India Limited"
+  },
+  {
+    "label": "McKinsey",
+    "value": "McKinsey"
+  },
+  {
+    "label": "Mercedes Benz",
+    "value": "Mercedes Benz"
+  },
+  {
+    "label": "MERCEDES-BENZ RD INDIA PVT LTD",
+    "value": "MERCEDES-BENZ RD INDIA PVT LTD"
+  },
+  {
+    "label": "Michelin India TamilNadu Tyres Pvt Ltd",
+    "value": "Michelin India TamilNadu Tyres Pvt Ltd"
+  },
+  {
+    "label": "Microfinance Information Exchange",
+    "value": "Microfinance Information Exchange"
+  },
+  {
+    "label": "Microsoft",
+    "value": "Microsoft"
+  },
+  {
+    "label": "Mindtree",
+    "value": "Mindtree"
+  },
+  {
+    "label": "MIRAFRA TECHNOLOGIES",
+    "value": "MIRAFRA TECHNOLOGIES"
+  },
+  {
+    "label": "Monster.com India Pvt. Ltd.",
+    "value": "Monster.com India Pvt. Ltd."
+  },
+  {
+    "label": "Morgan Stanley Advantage Services",
+    "value": "Morgan Stanley Advantage Services"
+  },
+  {
+    "label": "Motorola",
+    "value": "Motorola"
+  },
+  {
+    "label": "Mphasis",
+    "value": "Mphasis"
+  },
+  {
+    "label": "Mu Sigma",
+    "value": "Mu Sigma"
+  },
+  {
+    "label": "MuVa Hospital",
+    "value": "MuVa Hospital"
+  },
+  {
+    "label": "N G Chemical and Fertilizer",
+    "value": "N G Chemical and Fertilizer"
+  },
+  {
+    "label": "National Thermal Power Corporation",
+    "value": "National Thermal Power Corporation"
+  },
+  {
+    "label": "Nec Technologies India Limited",
+    "value": "Nec Technologies India Limited"
+  },
+  {
+    "label": "Nestle",
+    "value": "Nestle"
+  },
+  {
+    "label": "NetApp",
+    "value": "NetApp"
+  },
+  {
+    "label": "Netcracker Technology Solutions Private Limited",
+    "value": "Netcracker Technology Solutions Private Limited"
+  },
+  {
+    "label": "Newgen Softwares Technologies Ltd",
+    "value": "Newgen Softwares Technologies Ltd"
+  },
+  {
+    "label": "Nokia",
+    "value": "Nokia"
+  },
+  {
+    "label": "Nomura",
+    "value": "Nomura"
+  },
+  {
+    "label": "Novelis Inc.",
+    "value": "Novelis Inc."
+  },
+  {
+    "label": "NTPC",
+    "value": "NTPC"
+  },
+  {
+    "label": "NTT DATA",
+    "value": "NTT DATA"
+  },
+  {
+    "label": "NUCLEUS SOFTWARE EXPORTS LIMITED",
+    "value": "NUCLEUS SOFTWARE EXPORTS LIMITED"
+  },
+  {
+    "label": "NYK Shipmanagement PTE Ltd",
+    "value": "NYK Shipmanagement PTE Ltd"
+  },
+  {
+    "label": "Office of the District Government Pleader",
+    "value": "Office of the District Government Pleader"
+  },
+  {
+    "label": "Ola cabs - ANI Technologies Pvt. Ltd.",
+    "value": "Ola cabs - ANI Technologies Pvt. Ltd."
+  },
+  {
+    "label": "ONGC",
+    "value": "ONGC"
+  },
+  {
+    "label": "Oracle",
+    "value": "Oracle"
+  },
+  {
+    "label": "Oracle Financial Services Software Ltd.",
+    "value": "Oracle Financial Services Software Ltd."
+  },
+  {
+    "label": "OYO Rooms (Oravel Stays Pvt. Ltd.)",
+    "value": "OYO Rooms (Oravel Stays Pvt. Ltd.)"
+  },
+  {
+    "label": "PaGaLGuY.comor Prepathon",
+    "value": "PaGaLGuY.comor Prepathon"
+  },
+  {
+    "label": "Pan Century Surfactants Inc.",
+    "value": "Pan Century Surfactants Inc."
+  },
+  {
+    "label": "Pantaloons Fashion and Retail Limited",
+    "value": "Pantaloons Fashion and Retail Limited"
+  },
+  {
+    "label": "Patni Computer Services",
+    "value": "Patni Computer Services"
+  },
+  {
+    "label": "Paytm ( One97 Communications Pvt Ltd)",
+    "value": "Paytm ( One97 Communications Pvt Ltd)"
+  },
+  {
+    "label": "Pearson Education",
+    "value": "Pearson Education"
+  },
+  {
+    "label": "Pepsi Co",
+    "value": "Pepsi Co"
+  },
+  {
+    "label": "Persistent Systems Limited",
+    "value": "Persistent Systems Limited"
+  },
+  {
+    "label": "Pfizer",
+    "value": "Pfizer"
+  },
+  {
+    "label": "Phillips",
+    "value": "Phillips"
+  },
+  {
+    "label": "Polaris Software",
+    "value": "Polaris Software"
+  },
+  {
+    "label": "Powergrid Corporation Of India Limited",
+    "value": "Powergrid Corporation Of India Limited"
+  },
+  {
+    "label": "Practo Technologies Private Limited",
+    "value": "Practo Technologies Private Limited"
+  },
+  {
+    "label": "Pricewaterhousecoopers",
+    "value": "Pricewaterhousecoopers"
+  },
+  {
+    "label": "Pt Elegant Textile Industry",
+    "value": "Pt Elegant Textile Industry"
+  },
+  {
+    "label": "Pt Indo Bharat Rayon",
+    "value": "Pt Indo Bharat Rayon"
+  },
+  {
+    "label": "Pt Indo Liberty Textiles",
+    "value": "Pt Indo Liberty Textiles"
+  },
+  {
+    "label": "Pt Indo Raya Kimia",
+    "value": "Pt Indo Raya Kimia"
+  },
+  {
+    "label": "Pt Sunrise Bumi Textiles",
+    "value": "Pt Sunrise Bumi Textiles"
+  },
+  {
+    "label": "Punj Lloyd Limited",
+    "value": "Punj Lloyd Limited"
+  },
+  {
+    "label": "Qualcom",
+    "value": "Qualcom"
+  },
+  {
+    "label": "Raymond",
+    "value": "Raymond"
+  },
+  {
+    "label": "RBS",
+    "value": "RBS"
+  },
+  {
+    "label": "Reliance",
+    "value": "Reliance"
+  },
+  {
+    "label": "Reliance Capital",
+    "value": "Reliance Capital"
+  },
+  {
+    "label": "Reliance Communications Ltd.",
+    "value": "Reliance Communications Ltd."
+  },
+  {
+    "label": "Reliance Entertainment",
+    "value": "Reliance Entertainment"
+  },
+  {
+    "label": "Reliance Group (Jio+Securities)",
+    "value": "Reliance Group (Jio+Securities)"
+  },
+  {
+    "label": "Reliance Industries Ltd. (Ril)",
+    "value": "Reliance Industries Ltd. (Ril)"
+  },
+  {
+    "label": "Reliance Infrastructure",
+    "value": "Reliance Infrastructure"
+  },
+  {
+    "label": "Reliance Power",
+    "value": "Reliance Power"
+  },
+  {
+    "label": "Reliance Retail Ltd.",
+    "value": "Reliance Retail Ltd."
+  },
+  {
+    "label": "Renault Nissan Automotive India Private Limited",
+    "value": "Renault Nissan Automotive India Private Limited"
+  },
+  {
+    "label": "Renault Nissan Technology and Business Centre",
+    "value": "Renault Nissan Technology and Business Centre"
+  },
+  {
+    "label": "Reserve Bank Of India",
+    "value": "Reserve Bank Of India"
+  },
+  {
+    "label": "RLDA Design Studio",
+    "value": "RLDA Design Studio"
+  },
+  {
+    "label": "ROBERT BOSCH ENGINEERING BUSINESS SOLUTION PVT LTD",
+    "value": "ROBERT BOSCH ENGINEERING BUSINESS SOLUTION PVT LTD"
+  },
+  {
+    "label": "RPG Group",
+    "value": "RPG Group"
+  },
+  {
+    "label": "S and P (Capital IQ and Global Market Intelligence)",
+    "value": "S and P (Capital IQ and Global Market Intelligence)"
+  },
+  {
+    "label": "SAIL",
+    "value": "SAIL"
+  },
+  {
+    "label": "Saint Gobain",
+    "value": "Saint Gobain"
+  },
+  {
+    "label": "Samsung",
+    "value": "Samsung"
+  },
+  {
+    "label": "Samsung India Software Operations",
+    "value": "Samsung India Software Operations"
+  },
+  {
+    "label": "Samtel",
+    "value": "Samtel"
+  },
+  {
+    "label": "SAP India",
+    "value": "SAP India"
+  },
+  {
+    "label": "Sapient Consulting Pvt. Ltd.",
+    "value": "Sapient Consulting Pvt. Ltd."
+  },
+  {
+    "label": "Satyam Computer Services",
+    "value": "Satyam Computer Services"
+  },
+  {
+    "label": "Schneider Electric India Pvt Ltd",
+    "value": "Schneider Electric India Pvt Ltd"
+  },
+  {
+    "label": "Shapoorji Pallonji and Company private limited",
+    "value": "Shapoorji Pallonji and Company private limited"
+  },
+  {
+    "label": "Shell India Markets Pvt. Ltd.",
+    "value": "Shell India Markets Pvt. Ltd."
+  },
+  {
+    "label": "Shriniwas S. Nadkarni and Co, Chartered Accountants",
+    "value": "Shriniwas S. Nadkarni and Co, Chartered Accountants"
+  },
+  {
+    "label": "Siemens",
+    "value": "Siemens"
+  },
+  {
+    "label": "SKF India Ltd.",
+    "value": "SKF India Ltd."
+  },
+  {
+    "label": "Snapdeal - Jasper Infotech Pvt. Ltd.",
+    "value": "Snapdeal - Jasper Infotech Pvt. Ltd."
+  },
+  {
+    "label": "Sony India Sofware Centre Private Limited",
+    "value": "Sony India Sofware Centre Private Limited"
+  },
+  {
+    "label": "Sopra Steria India Private Limited",
+    "value": "Sopra Steria India Private Limited"
+  },
+  {
+    "label": "Southern Roadways Limited",
+    "value": "Southern Roadways Limited"
+  },
+  {
+    "label": "Standard Chartered Bank",
+    "value": "Standard Chartered Bank"
+  },
+  {
+    "label": "State Bank of India",
+    "value": "State Bank of India"
+  },
+  {
+    "label": "Steel Authority of India Ltd",
+    "value": "Steel Authority of India Ltd"
+  },
+  {
+    "label": "Sterlite Industries",
+    "value": "Sterlite Industries"
+  },
+  {
+    "label": "Sundaram Auto Components Limited - Plastics Division",
+    "value": "Sundaram Auto Components Limited - Plastics Division"
+  },
+  {
+    "label": "Sundaram Auto Components Limited - Rubber Division",
+    "value": "Sundaram Auto Components Limited - Rubber Division"
+  },
+  {
+    "label": "Sundaram Brake Linings Limited",
+    "value": "Sundaram Brake Linings Limited"
+  },
+  {
+    "label": "Sundaram Dynacast Private Limited",
+    "value": "Sundaram Dynacast Private Limited"
+  },
+  {
+    "label": "Sundaram Fasteners Limited",
+    "value": "Sundaram Fasteners Limited"
+  },
+  {
+    "label": "Sundaram Textiles Limited",
+    "value": "Sundaram Textiles Limited"
+  },
+  {
+    "label": "Sundaram-Clayton Limited",
+    "value": "Sundaram-Clayton Limited"
+  },
+  {
+    "label": "Swiss Singapore Overseas Enterprises Pte Limited",
+    "value": "Swiss Singapore Overseas Enterprises Pte Limited"
+  },
+  {
+    "label": "Symantec",
+    "value": "Symantec"
+  },
+  {
+    "label": "Syntel",
+    "value": "Syntel"
+  },
+  {
+    "label": "Taj Air",
+    "value": "Taj Air"
+  },
+  {
+    "label": "Tal Manufacturing Solutions",
+    "value": "Tal Manufacturing Solutions"
+  },
+  {
+    "label": "Tanfac Industries Limited",
+    "value": "Tanfac Industries Limited"
+  },
+  {
+    "label": "Tas-Agt Systems",
+    "value": "Tas-Agt Systems"
+  },
+  {
+    "label": "Tata Advanced Materials",
+    "value": "Tata Advanced Materials"
+  },
+  {
+    "label": "Tata Advanced Systems",
+    "value": "Tata Advanced Systems"
+  },
+  {
+    "label": "Tata Africa Holdings",
+    "value": "Tata Africa Holdings"
+  },
+  {
+    "label": "Tata Ag",
+    "value": "Tata Ag"
+  },
+  {
+    "label": "Tata Aia Life Insurance",
+    "value": "Tata Aia Life Insurance"
+  },
+  {
+    "label": "Tata Aig General Insurance",
+    "value": "Tata Aig General Insurance"
+  },
+  {
+    "label": "Tata Asset Management",
+    "value": "Tata Asset Management"
+  },
+  {
+    "label": "Tata Autocomp Systems",
+    "value": "Tata Autocomp Systems"
+  },
+  {
+    "label": "Tata Bluescope Steel",
+    "value": "Tata Bluescope Steel"
+  },
+  {
+    "label": "Tata Capital",
+    "value": "Tata Capital"
+  },
+  {
+    "label": "Tata Ceramics",
+    "value": "Tata Ceramics"
+  },
+  {
+    "label": "Tata Chemicals",
+    "value": "Tata Chemicals"
+  },
+  {
+    "label": "Tata Chemicals Europe",
+    "value": "Tata Chemicals Europe"
+  },
+  {
+    "label": "Tata Chemicals Magadi",
+    "value": "Tata Chemicals Magadi"
+  },
+  {
+    "label": "Tata Chemicals North America",
+    "value": "Tata Chemicals North America"
+  },
+  {
+    "label": "Tata Classedge",
+    "value": "Tata Classedge"
+  },
+  {
+    "label": "Tata Communications",
+    "value": "Tata Communications"
+  },
+  {
+    "label": "Tata Consultancy Services",
+    "value": "Tata Consultancy Services"
+  },
+  {
+    "label": "Tata Consulting Engineers",
+    "value": "Tata Consulting Engineers"
+  },
+  {
+    "label": "Tata Cummins",
+    "value": "Tata Cummins"
+  },
+  {
+    "label": "Tata Daewoo Commercial Vehicle Company",
+    "value": "Tata Daewoo Commercial Vehicle Company"
+  },
+  {
+    "label": "Tata EIxsi",
+    "value": "Tata EIxsi"
+  },
+  {
+    "label": "Tata Elxsi",
+    "value": "Tata Elxsi"
+  },
+  {
+    "label": "Tata Finance",
+    "value": "Tata Finance"
+  },
+  {
+    "label": "Tata Global Beverages",
+    "value": "Tata Global Beverages"
+  },
+  {
+    "label": "Tata Hitachi Construction Machinery",
+    "value": "Tata Hitachi Construction Machinery"
+  },
+  {
+    "label": "Tata Housing Development Company",
+    "value": "Tata Housing Development Company"
+  },
+  {
+    "label": "Tata Industrial Services",
+    "value": "Tata Industrial Services"
+  },
+  {
+    "label": "Tata Industries",
+    "value": "Tata Industries"
+  },
+  {
+    "label": "Tata Interactive Systems",
+    "value": "Tata Interactive Systems"
+  },
+  {
+    "label": "Tata International",
+    "value": "Tata International"
+  },
+  {
+    "label": "Tata International Ag",
+    "value": "Tata International Ag"
+  },
+  {
+    "label": "Tata Investment Corporation",
+    "value": "Tata Investment Corporation"
+  },
+  {
+    "label": "Tata Limited",
+    "value": "Tata Limited"
+  },
+  {
+    "label": "Tata Metaliks",
+    "value": "Tata Metaliks"
+  },
+  {
+    "label": "Tata Motors",
+    "value": "Tata Motors"
+  },
+  {
+    "label": "Tata Motors European Technical Centre",
+    "value": "Tata Motors European Technical Centre"
+  },
+  {
+    "label": "Tata Nyk",
+    "value": "Tata Nyk"
+  },
+  {
+    "label": "Tata Petrodyne",
+    "value": "Tata Petrodyne"
+  },
+  {
+    "label": "Tata Pigments",
+    "value": "Tata Pigments"
+  },
+  {
+    "label": "Tata Power",
+    "value": "Tata Power"
+  },
+  {
+    "label": "Tata Power Delhi Distribution",
+    "value": "Tata Power Delhi Distribution"
+  },
+  {
+    "label": "Tata Power Solar Systems",
+    "value": "Tata Power Solar Systems"
+  },
+  {
+    "label": "Tata Power Trading",
+    "value": "Tata Power Trading"
+  },
+  {
+    "label": "Tata Projects",
+    "value": "Tata Projects"
+  },
+  {
+    "label": "Tata Realty And Infrastructure",
+    "value": "Tata Realty And Infrastructure"
+  },
+  {
+    "label": "Tata Robins Fraser(Tata Company)",
+    "value": "Tata Robins Fraser(Tata Company)"
+  },
+  {
+    "label": "Tata Services",
+    "value": "Tata Services"
+  },
+  {
+    "label": "Tata Sia Airlines",
+    "value": "Tata Sia Airlines"
+  },
+  {
+    "label": "Tata Sky",
+    "value": "Tata Sky"
+  },
+  {
+    "label": "Tata Sponge Iron",
+    "value": "Tata Sponge Iron"
+  },
+  {
+    "label": "Tata Steel",
+    "value": "Tata Steel"
+  },
+  {
+    "label": "Tata Steel Europe",
+    "value": "Tata Steel Europe"
+  },
+  {
+    "label": "Tata Steel Kzn",
+    "value": "Tata Steel Kzn"
+  },
+  {
+    "label": "Tata Steel Processing And Distribution",
+    "value": "Tata Steel Processing And Distribution"
+  },
+  {
+    "label": "Tata Steel Thailand",
+    "value": "Tata Steel Thailand"
+  },
+  {
+    "label": "Tata Strategic Management Group",
+    "value": "Tata Strategic Management Group"
+  },
+  {
+    "label": "Tata Technologies",
+    "value": "Tata Technologies"
+  },
+  {
+    "label": "Tata Teleservices",
+    "value": "Tata Teleservices"
+  },
+  {
+    "label": "Tata Teleservices (Maharashtra)",
+    "value": "Tata Teleservices (Maharashtra)"
+  },
+  {
+    "label": "Tata-Hitachi Construction Machinery Company Ltd.",
+    "value": "Tata-Hitachi Construction Machinery Company Ltd."
+  },
+  {
+    "label": "Tatanet",
+    "value": "Tatanet"
+  },
+  {
+    "label": "Tayo Rolls",
+    "value": "Tayo Rolls"
+  },
+  {
+    "label": "Teach For India",
+    "value": "Teach For India"
+  },
+  {
+    "label": "Tech Mahindra (MBT)",
+    "value": "Tech Mahindra (MBT)"
+  },
+  {
+    "label": "TECHNIP INDIA LTD.",
+    "value": "TECHNIP INDIA LTD."
+  },
+  {
+    "label": "TEKsystems Global Services Ltd.",
+    "value": "TEKsystems Global Services Ltd."
+  },
+  {
+    "label": "Terrace Bay Pulp Mill",
+    "value": "Terrace Bay Pulp Mill"
+  },
+  {
+    "label": "Tesco",
+    "value": "Tesco"
+  },
+  {
+    "label": "Texas Instruments India",
+    "value": "Texas Instruments India"
+  },
+  {
+    "label": "Thai Acrylic Fibre",
+    "value": "Thai Acrylic Fibre"
+  },
+  {
+    "label": "Thai Carbon Black",
+    "value": "Thai Carbon Black"
+  },
+  {
+    "label": "Thai Peroxide Company Limited",
+    "value": "Thai Peroxide Company Limited"
+  },
+  {
+    "label": "Thai Rayon",
+    "value": "Thai Rayon"
+  },
+  {
+    "label": "The Smart Cube",
+    "value": "The Smart Cube"
+  },
+  {
+    "label": "The Tinplate Company Of India",
+    "value": "The Tinplate Company Of India"
+  },
+  {
+    "label": "Thermax",
+    "value": "Thermax"
+  },
+  {
+    "label": "Think and Learn Pvt Ltd",
+    "value": "Think and Learn Pvt Ltd"
+  },
+  {
+    "label": "Thought Works",
+    "value": "Thought Works"
+  },
+  {
+    "label": "Thyssen Krupp Group (Electrical Steel+Elevators+Industrial services)",
+    "value": "Thyssen Krupp Group (Electrical Steel+Elevators+Industrial services)"
+  },
+  {
+    "label": "Times Group",
+    "value": "Times Group"
+  },
+  {
+    "label": "Titan",
+    "value": "Titan"
+  },
+  {
+    "label": "Titan Company",
+    "value": "Titan Company"
+  },
+  {
+    "label": "Tkm Global Logistics",
+    "value": "Tkm Global Logistics"
+  },
+  {
+    "label": "Tm International Logistics",
+    "value": "Tm International Logistics"
+  },
+  {
+    "label": "Toyota Kirloskar Motor Pvt Ltd",
+    "value": "Toyota Kirloskar Motor Pvt Ltd"
+  },
+  {
+    "label": "Trent",
+    "value": "Trent"
+  },
+  {
+    "label": "TresVista Financial Services",
+    "value": "TresVista Financial Services"
+  },
+  {
+    "label": "Trf",
+    "value": "Trf"
+  },
+  {
+    "label": "TRIDENT GROUP",
+    "value": "TRIDENT GROUP"
+  },
+  {
+    "label": "Triumphant Institute Of Management Education Pvt. Ltd.",
+    "value": "Triumphant Institute Of Management Education Pvt. Ltd."
+  },
+  {
+    "label": "Trl Krosaki Refractories",
+    "value": "Trl Krosaki Refractories"
+  },
+  {
+    "label": "Turbo Energy Limited",
+    "value": "Turbo Energy Limited"
+  },
+  {
+    "label": "Tvs Automotive Private Limited",
+    "value": "Tvs Automotive Private Limited"
+  },
+  {
+    "label": "Tvs Autoserv",
+    "value": "Tvs Autoserv"
+  },
+  {
+    "label": "Tvs Credit Services Limited",
+    "value": "Tvs Credit Services Limited"
+  },
+  {
+    "label": "Tvs Electronics Limited",
+    "value": "Tvs Electronics Limited"
+  },
+  {
+    "label": "TVS Group",
+    "value": "TVS Group"
+  },
+  {
+    "label": "Tvs Infrastructure Limited",
+    "value": "Tvs Infrastructure Limited"
+  },
+  {
+    "label": "Tvs Logistics Services Limited",
+    "value": "Tvs Logistics Services Limited"
+  },
+  {
+    "label": "Tvs Motor Company Limited",
+    "value": "Tvs Motor Company Limited"
+  },
+  {
+    "label": "Ub Engineering",
+    "value": "Ub Engineering"
+  },
+  {
+    "label": "UB Group",
+    "value": "UB Group"
+  },
+  {
+    "label": "Uber India Systems Private Limited",
+    "value": "Uber India Systems Private Limited"
+  },
+  {
+    "label": "Ultratech Cement Lanka (Pvt.) Ltd.",
+    "value": "Ultratech Cement Lanka (Pvt.) Ltd."
+  },
+  {
+    "label": "Ultratech Cement Limited",
+    "value": "Ultratech Cement Limited"
+  },
+  {
+    "label": "Ultratech Subsidiaries",
+    "value": "Ultratech Subsidiaries"
+  },
+  {
+    "label": "United Breweries Holdings Limited",
+    "value": "United Breweries Holdings Limited"
+  },
+  {
+    "label": "United Breweries Limited",
+    "value": "United Breweries Limited"
+  },
+  {
+    "label": "UNITED HEALTH GROUP",
+    "value": "UNITED HEALTH GROUP"
+  },
+  {
+    "label": "United Phosphorus Ltd.",
+    "value": "United Phosphorus Ltd."
+  },
+  {
+    "label": "United Spirits",
+    "value": "United Spirits"
+  },
+  {
+    "label": "Urban Ladder Home Decor Solutions Pvt Ltd",
+    "value": "Urban Ladder Home Decor Solutions Pvt Ltd"
+  },
+  {
+    "label": "URBANCLAP TECHNOLOGIES INDIA PVT LTD",
+    "value": "URBANCLAP TECHNOLOGIES INDIA PVT LTD"
+  },
+  {
+    "label": "Utkal Alumina International Limited",
+    "value": "Utkal Alumina International Limited"
+  },
+  {
+    "label": "VEDANTA LIMITED",
+    "value": "VEDANTA LIMITED"
+  },
+  {
+    "label": "Verity Knowledge Solutions",
+    "value": "Verity Knowledge Solutions"
+  },
+  {
+    "label": "Verizon",
+    "value": "Verizon"
+  },
+  {
+    "label": "Videocon",
+    "value": "Videocon"
+  },
+  {
+    "label": "VIRTUSA POLARIS",
+    "value": "VIRTUSA POLARIS"
+  },
+  {
+    "label": "Vodafone India Limited",
+    "value": "Vodafone India Limited"
+  },
+  {
+    "label": "W1 Consultancy",
+    "value": "W1 Consultancy"
+  },
+  {
+    "label": "Wadia Ghandy And Co., Advocates And Solicitors",
+    "value": "Wadia Ghandy And Co., Advocates And Solicitors"
+  },
+  {
+    "label": "Wells Fargo India Private Limited",
+    "value": "Wells Fargo India Private Limited"
+  },
+  {
+    "label": "Welspun Projects Limited",
+    "value": "Welspun Projects Limited"
+  },
+  {
+    "label": "Wheels India Limited",
+    "value": "Wheels India Limited"
+  },
+  {
+    "label": "Whirlpool of India Limited",
+    "value": "Whirlpool of India Limited"
+  },
+  {
+    "label": "Willis Towers Watson India",
+    "value": "Willis Towers Watson India"
+  },
+  {
+    "label": "Wipro Enterprises Limited",
+    "value": "Wipro Enterprises Limited"
+  },
+  {
+    "label": "Wipro Ge Healthcare Private Limited",
+    "value": "Wipro Ge Healthcare Private Limited"
+  },
+  {
+    "label": "Wipro Group",
+    "value": "Wipro Group"
+  },
+  {
+    "label": "Wipro Kawasaki Precision Machinery Private Limited",
+    "value": "Wipro Kawasaki Precision Machinery Private Limited"
+  },
+  {
+    "label": "Wipro Technologies",
+    "value": "Wipro Technologies"
+  },
+  {
+    "label": "Zensar Tech.",
+    "value": "Zensar Tech."
+  },
+  {
+    "label": "Zf Electronics Tvs (India) Private Limited",
+    "value": "Zf Electronics Tvs (India) Private Limited"
+  },
+  {
+    "label": "Zoho Corporation",
+    "value": "Zoho Corporation"
+  },
+  {
+    "label": "Zomato Media Private Ltd.",
+    "value": "Zomato Media Private Ltd."
+  },
+  {
+    "label": "ZS Associates",
+    "value": "ZS Associates"
+  },
+  {
+    "label": "Zycus Infotech Private Limited",
+    "value": "Zycus Infotech Private Limited"
+  },
+  {
+    "label": "Other",
+    "value": "Other"
+  }
+]

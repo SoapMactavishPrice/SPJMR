@@ -25,7 +25,7 @@ const SAMPLE_HEADERS = [
 const INSTRUCTIONS = [
     ['Column Name','Mandatory','Format / Value to Enter','Description / Validation'],
     ['Application Number','Yes','Existing Application Number','Enter an existing Application Number (Application__c.Name).'],
-    ['Admission Decision','Yes','Eligible for Admission / Waitlisted / Not Eligible','Allowed values are Eligible for Admission, Waitlisted and Not Eligible.'],
+    ['Admission Decision','Yes','Eligible for Admission / Waitlisted / Not Eligible / TestUpload','Use TestUpload to store the other values with a blank Result. Upload the final decision later.'],
     ['Waitlist Number','Conditional','Whole Number','For Waitlisted decisions, mandatory only when the application program matches the active PGDM waitlist-mandatory configuration.'],
     ['Offer Date','Conditional','dd-mm-yyyy','Mandatory when Admission Decision is Eligible for Admission.'],
     ['Last Date of Acceptance','Conditional','dd-mm-yyyy','Mandatory when Admission Decision is Eligible for Admission.'],

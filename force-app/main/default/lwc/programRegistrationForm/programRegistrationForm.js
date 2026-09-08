@@ -32,6 +32,34 @@ const SLDS_COL = {
     12: 'slds-size_12-of-12'
 };
 
+const UTM_URL_PARAMS = [
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_content',
+    'utm_term',
+
+    'campaignid',
+    'campaign_id',
+    'adgroupid',
+    'adset_id',
+    'adid',
+    'ad_id',
+    'keyword',
+    'placement',
+    'matchtype',
+    'device',
+    'network',
+    'targetid',
+
+    'campaign_name',
+    'adset_name',
+    'ad_name',
+
+    'gclid',
+    'fbclid'
+];
+
 export default class ProgramRegistrationForm extends LightningElement {
     /** When set (e.g. Experience Builder), URL query param is ignored. */
     @api programIdOverride;
@@ -417,6 +445,33 @@ get consentRows() {
         checked: sel.has(o.value),
     }));
     }
+
+    getUrlParamCaseInsensitive(params, paramName) {
+    const target = paramName.toLowerCase();
+
+    for (const [key, value] of params.entries()) {
+        if (key.toLowerCase() === target) {
+            return value;
+        }
+    }
+
+    return null;
+}
+
+getUtmParamsFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const utm = {};
+
+    UTM_URL_PARAMS.forEach((paramName) => {
+        const value = this.getUrlParamCaseInsensitive(params, paramName);
+
+        if (value !== null && String(value).trim() !== '') {
+            utm[paramName] = String(value).trim();
+        }
+    });
+
+    return utm;
+}
 
     async loadConfiguration() {
         this.loading = true;
@@ -941,6 +996,13 @@ get consentRows() {
                 }
             });
         });
+        const utmParams = this.getUtmParamsFromUrl();
+
+    Object.keys(utmParams).forEach((key) => {
+        payload[key] = utmParams[key];
+    });
+    console.log('UTMs are ',JSON.stringify(utmParams))
+    console.log('Payload is now:',JSON.stringify(payload))
         return JSON.stringify(payload);
     }
 

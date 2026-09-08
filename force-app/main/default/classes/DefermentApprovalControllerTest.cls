@@ -936,7 +936,7 @@ private class DefermentApprovalControllerTest {
 
 
         System.assertEquals(
-            'Rejoining Details',
+            'Rejoining Details Updated',
             finalReq.Status__c
         );
 

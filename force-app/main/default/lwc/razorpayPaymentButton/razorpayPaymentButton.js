@@ -2,6 +2,9 @@ import { LightningElement,api,track } from 'lwc';
 import LightningAlert from 'lightning/alert';
 import { NavigationMixin } from 'lightning/navigation';
 import createOrder from '@salesforce/apex/RazorpayPaymentHandler.createOrder'
+
+import { openInNewTab } from 'c/applicationFormService';
+
 export default class RazorpayPaymentButton extends NavigationMixin(LightningElement) {
 
     @track isDisabled=false;
@@ -76,7 +79,7 @@ export default class RazorpayPaymentButton extends NavigationMixin(LightningElem
                 url: url 
             }
         }).then(generatedUrl => {
-            window.open(generatedUrl);
+            openInNewTab(generatedUrl);
             console.log('Firing Acceptance Success from razorpayPaymentButton')
             this.dispatchEvent(new CustomEvent('acceptancesuccess', {
     bubbles: true,
@@ -136,7 +139,7 @@ export default class RazorpayPaymentButton extends NavigationMixin(LightningElem
                 url: url 
             }
         }).then(generatedUrl => {
-            window.open(generatedUrl);
+            openInNewTab(generatedUrl);
             this.dispatchEvent(new CustomEvent("applicationsuccess"));
         });
 

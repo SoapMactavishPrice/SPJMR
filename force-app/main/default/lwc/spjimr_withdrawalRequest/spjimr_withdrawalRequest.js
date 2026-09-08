@@ -62,16 +62,18 @@ const REASONS_FOR_CHOICE_OPTIONS = [
 const TRACKER_STEPS = [
     { number: 1, label: 'Applied', value: 'Applied' },
     { number: 2, label: 'Accepted (PO Review)', value: 'Accepted (PO Review)' },
-    { number: 3, label: 'Clearance & Exit', value: 'Clearance & Exit' },
-    { number: 4, label: 'Final Approval', value: 'Final Approval' },
-    { number: 5, label: 'Withdrawn', value: 'Withdrawal' }
+    { number: 3, label: 'Chairperson Review', value: 'CHAIRPERSON_REVIEW', chairpersonStep: true },
+    { number: 4, label: 'Clearance & Exit', value: 'Clearance & Exit' },
+    { number: 5, label: 'Final Approval', value: 'Final Approval' },
+    { number: 6, label: 'Withdrawn', value: 'Withdrawal' }
 ];
 
 // Terminal statuses that allow a new submission when the batch window is open.
 const RESUBMIT_WITHDRAWAL_STATUSES = new Set([
     'Recalled',
     'Rejected',
-    'Rejected with Comments'
+    'Rejected with Comments',
+    'Final Rejection'
 ]);
 
 const REJECTED_WITHDRAWAL_STATUSES = new Set([
@@ -96,6 +98,7 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
     @track trackerStatusValue = '';
     @track trackerApprovedRejected = '';
     @track trackerRemark = '';
+    @track escalateToChairperson = false;
     @track currentStep = 1;
 
     connectedCallback() {
@@ -157,7 +160,11 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
                     this.trackerStatusValue = status.status || '';
                     this.trackerApprovedRejected = status.approvedRejected || '—';
                     this.trackerRemark = status.remark || '—';
-                    this.currentStep = this.stepNumberForStatus(this.trackerStatusValue);
+                    this.escalateToChairperson = !!status?.escalateToChairperson;
+                    this.currentStep = this.stepNumberForStatus(
+                        this.trackerStatusValue,
+                        this.escalateToChairperson
+                    );
                 }
             })
             .catch((error) => {
@@ -168,12 +175,47 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
             });
     }
 
-    stepNumberForStatus(statusValue) {
+    stepNumberForStatus(statusValue, escalateToChairperson = false) {
+        if (statusValue === 'Applied') {
+            return 1;
+        }
+        // PO approved (with or without chairperson checkbox) stays on step 2.
+        if (statusValue === 'Accepted (PO Review)') {
+            return 2;
+        }
+        // Chairperson approved -> step 3; PO-only approved stays on step 2.
+        if (statusValue === 'Approved') {
+            return escalateToChairperson ? 3 : 2;
+        }
         const match = TRACKER_STEPS.find((s) => s.value === statusValue);
-        // Rejected / Rejected with Comments / Recalled aren't part of the
-        // linear sequence - default to step 1 so the tracker still renders
-        // sensibly; the status pill shows the real status text regardless.
         return match ? match.number : 1;
+    }
+
+    getTrackerCircleClass(isActive, isComplete) {
+        if (isActive) return 'step-circle step-circle_active';
+        if (isComplete) return 'step-circle step-circle_complete';
+        return 'step-circle';
+    }
+
+    get visibleTrackerStepDefinitions() {
+        return TRACKER_STEPS.filter(
+            (step) => !step.chairpersonStep || this.escalateToChairperson
+        );
+    }
+
+    // ---- Tracker display ----
+    get trackerSteps() {
+        return this.visibleTrackerStepDefinitions.map((step, index) => {
+            const isActive = step.number === Number(this.currentStep);
+            const isComplete = step.number < Number(this.currentStep);
+            return {
+                ...step,
+                key: step.number,
+                displayNumber: index + 1,
+                circleClass: this.getTrackerCircleClass(isActive, isComplete),
+                labelClass: isActive ? 'step-label step-label_active' : 'step-label'
+            };
+        });
     }
 
     get canResubmitWithdrawal() {
@@ -208,12 +250,20 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
         return REJECTED_WITHDRAWAL_STATUSES.has(this.trackerStatusValue);
     }
 
+    get isFinalRejectionWithdrawal() {
+        return this.trackerStatusValue === 'Final Rejection';
+    }
+
     get showRecalledStatusNote() {
         return this.canResubmitWithdrawal && this.isRecalledWithdrawal;
     }
 
     get showRejectedStatusNote() {
-        return this.canResubmitWithdrawal && this.isRejectedWithdrawal;
+        return this.canResubmitWithdrawal && this.isRejectedWithdrawal && !this.isFinalRejectionWithdrawal;
+    }
+
+    get showFinalRejectionStatusNote() {
+        return this.canResubmitWithdrawal && this.isFinalRejectionWithdrawal;
     }
 
     get hasRejectionRemark() {
@@ -222,6 +272,15 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
     }
 
     get rejectionRemarkDisplay() {
+        return this.trackerRemark;
+    }
+
+    get hasFinalRejectionRemark() {
+        const remark = (this.trackerRemark || '').trim();
+        return remark.length > 0 && remark !== '—';
+    }
+
+    get finalRejectionRemarkDisplay() {
         return this.trackerRemark;
     }
 
@@ -357,27 +416,15 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
         return this.otherInstituteHasError ? 'text-input text-input_error' : 'text-input';
     }
 
-    // ---- Tracker display ----
-    get trackerSteps() {
-        return TRACKER_STEPS.map((step) => {
-            const isActive = step.number === Number(this.currentStep);
-            const isComplete = step.number < Number(this.currentStep);
-            return {
-                ...step,
-                key: step.number,
-                circleClass: this.getTrackerCircleClass(isActive, isComplete),
-                labelClass: isActive ? 'step-label step-label_active' : 'step-label'
-            };
-        });
-    }
-
-    getTrackerCircleClass(isActive, isComplete) {
-        if (isActive) return 'step-circle step-circle_active';
-        if (isComplete) return 'step-circle step-circle_complete';
-        return 'step-circle';
-    }
-
     get trackerStatusLabel() {
+        // After chairperson approval, show the Chairperson Review step label.
+        if (this.trackerStatusValue === 'Approved' && this.escalateToChairperson) {
+            return 'Chairperson Review';
+        }
+        // PO-only approval (no chairperson) stays labeled as Accepted (PO Review).
+        if (this.trackerStatusValue === 'Approved' && !this.escalateToChairperson) {
+            return 'Accepted (PO Review)';
+        }
         const match = TRACKER_STEPS.find((s) => s.number === Number(this.currentStep));
         return this.trackerStatusValue || (match ? match.label : 'Applied');
     }

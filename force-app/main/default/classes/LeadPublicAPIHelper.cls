@@ -5,9 +5,11 @@ public without sharing class LeadPublicAPIHelper {
     public enum Scenario {
         LEAD_CREATED,
         LEAD_EXISTING_NEW_PROGRAM,
+        LEAD_EXISTING_ALTERNATE_PHONE_UPDATED,
         LEAD_EXISTING_PROGRAM_ALREADY_LINKED,
         APPLICANT_NEW_OPPORTUNITY,
-        APPLICANT_OPPORTUNITY_ALREADY_EXISTS
+        APPLICANT_OPPORTUNITY_ALREADY_EXISTS,
+        APPLICANT_ALTERNATE_PHONE_UPDATED
     }
 
     public class ResultWrapper {
@@ -37,6 +39,12 @@ public without sharing class LeadPublicAPIHelper {
         if (s == Scenario.APPLICANT_OPPORTUNITY_ALREADY_EXISTS) {
             return LeadPublicAPIMessages.APPLICANT_OPPORTUNITY_ALREADY_EXISTS;
         }
+        if (s == Scenario.LEAD_EXISTING_ALTERNATE_PHONE_UPDATED) {
+            return LeadPublicAPIMessages.LEAD_ALTERNATE_PHONE_UPDATED;
+        }
+        if (s == Scenario.APPLICANT_ALTERNATE_PHONE_UPDATED) {
+            return LeadPublicAPIMessages.APPLICANT_ALTERNATE_PHONE_UPDATED;
+        }
         return '';
     }
 
@@ -44,63 +52,107 @@ public without sharing class LeadPublicAPIHelper {
      * Prepares Lead upsert and optional Lead_Program__c for the non-applicant path.
      * Mutates {@code leadToPrograms} when a new program is linked so batch processing stays consistent.
      */
-    public static ResultWrapper processLead(
-        LeadPublicAPI.LeadWrapper lw,
-        Map<String, Program> programMap,
-        Map<String, Id> stateMap,
-        Map<String, Id> cityMap,
-        Id countryId,
-        Id recordTypeId,
-        Map<String, Lead> emailToLead,
-        Map<String, Lead> phoneToLead,
-        Map<Id, Set<Id>> leadToPrograms
+   public static ResultWrapper processLead(
+    LeadPublicAPI.LeadWrapper lw,
+    Map<String, Program> programMap,
+    Map<String, Id> stateMap,
+    Map<String, Id> cityMap,
+    Id countryId,
+    Id recordTypeId,
+    Map<String, Lead> emailToLead,
+    Map<String, Lead> phoneToLead,
+    Map<Id, Set<Id>> leadToPrograms,
+    Map<String, Object> utmFormValues
+) {
+    Program prog = programMap.get(lw.Programme);
+    if (prog == null) {
+        throw new LeadPublicAPIException(LeadPublicAPIMessages.INVALID_PROGRAMME);
+    }
+
+    Lead existing = resolveExistingLead(lw, emailToLead, phoneToLead);
+
+    Lead leadRow;
+    ResultWrapper out = new ResultWrapper();
+
+    if (existing == null) {
+        leadRow = new Lead();
+        leadRow.RecordTypeId = recordTypeId;
+        leadRow.Status = 'Untouched';
+        out.scenario = Scenario.LEAD_CREATED;
+    } else {
+        leadRow = new Lead(Id = existing.Id);
+        out.scenario = Scenario.LEAD_EXISTING_NEW_PROGRAM;
+    }
+
+    applyWrapperToLead(leadRow, lw, countryId, stateMap, cityMap);
+
+    // Preserve the original phone on an existing lead — a differing
+    // incoming phone routes to AlternateContactNumber__c below instead
+    // of silently overwriting the lead's primary Phone.
+    if (existing != null && String.isNotBlank(existing.Phone)) {
+        leadRow.Phone = existing.Phone;
+    }
+
+    if (existing == null) {
+    LeadMappingAndTouchService.mapUtmToLead(
+        leadRow,
+        utmFormValues
+    );
+}
+
+    Set<Id> programsForLead = existing != null ? leadToPrograms.get(existing.Id) : null;
+
+    if (existing != null) {
+        if (programsForLead != null && programsForLead.contains(prog.Id)) {
+    out.leadProgram = null;
+    out.scenario = Scenario.LEAD_EXISTING_PROGRAM_ALREADY_LINKED;
+
+    String incomingDigits = normalizePhone(lw.Phone);
+    String existingDigits = normalizePhone(existing.Phone);
+    String alternateDigits = normalizePhone(existing.AlternateContactNumber__c);
+
+    Boolean phoneAlreadyOnFile =
+        String.isNotBlank(incomingDigits) &&
+        (
+            incomingDigits == existingDigits || incomingDigits == alternateDigits
+        );
+
+    if (
+        String.isNotBlank(incomingDigits) &&
+        !phoneAlreadyOnFile &&
+        String.isBlank(existing.AlternateContactNumber__c)
     ) {
-        Program prog = programMap.get(lw.Programme);
-        if (prog == null) {
-            throw new LeadPublicAPIException(LeadPublicAPIMessages.INVALID_PROGRAMME);
+        String altPhone = formatAlternatePhone(countryId, lw.Phone);
+
+        if (String.isNotBlank(altPhone)) {
+            leadRow.AlternateContactNumber__c = altPhone;
+            out.scenario = Scenario.LEAD_EXISTING_ALTERNATE_PHONE_UPDATED;
         }
+    }
 
-        Lead existing = resolveExistingLead(lw, emailToLead, phoneToLead);
-
-        Lead leadRow;
-        ResultWrapper out = new ResultWrapper();
-
-        if (existing == null) {
-            leadRow = new Lead();
-            leadRow.RecordTypeId = recordTypeId;
-            leadRow.Status = 'Untouched';
-            out.scenario = Scenario.LEAD_CREATED;
-        } else {
-            leadRow = new Lead(Id = existing.Id);
-            out.scenario = Scenario.LEAD_EXISTING_NEW_PROGRAM;
-        }
-
-        applyWrapperToLead(leadRow, lw, countryId, stateMap, cityMap);
-
-        Set<Id> programsForLead = existing != null ? leadToPrograms.get(existing.Id) : null;
-
-        if (existing != null) {
-            if (programsForLead != null && programsForLead.contains(prog.Id)) {
-                out.leadProgram = null;
-                out.scenario = Scenario.LEAD_EXISTING_PROGRAM_ALREADY_LINKED;
-            } else {
-                Lead_Program__c lp = baseLeadProgram(lw, prog.Id);
-                out.leadProgram = lp;
-                out.scenario = Scenario.LEAD_EXISTING_NEW_PROGRAM;
-                Id leadKey = existing.Id;
-                if (!leadToPrograms.containsKey(leadKey)) {
-                    leadToPrograms.put(leadKey, new Set<Id>());
-                }
-                leadToPrograms.get(leadKey).add(prog.Id);
-            }
-        } else {
+    // Nothing changed -> do not perform Lead DML
+    if (out.scenario == Scenario.LEAD_EXISTING_PROGRAM_ALREADY_LINKED) {
+        leadRow = null;
+    }
+} else {
             Lead_Program__c lp = baseLeadProgram(lw, prog.Id);
             out.leadProgram = lp;
+            out.scenario = Scenario.LEAD_EXISTING_NEW_PROGRAM;
+            Id leadKey = existing.Id;
+            if (!leadToPrograms.containsKey(leadKey)) {
+                leadToPrograms.put(leadKey, new Set<Id>());
+            }
+            leadToPrograms.get(leadKey).add(prog.Id);
         }
-
-        out.leadRecord = leadRow;
-        return out;
+    } else {
+        Lead_Program__c lp = baseLeadProgram(lw, prog.Id);
+        out.leadProgram = lp;
     }
+
+    out.leadRecord = leadRow;
+out.leadId = existing != null ? existing.Id : null;
+return out;
+}
 
     private static Lead resolveExistingLead(
         LeadPublicAPI.LeadWrapper lw,
@@ -172,8 +224,7 @@ public without sharing class LeadPublicAPIHelper {
         target.UTMParameterIds__c = lw.UTMParameters;
 
         target.Company = String.isNotBlank(lw.LastName)
-            ? fn + ' ' + ln + ' (Individual)'
-            : fn + ' (Individual)';
+            ? fn + ' ' + ln + ' (Individual)': fn + ' (Individual)';
     }
 	@TestVisible
     private static String normalizeYesNo(String raw) {
@@ -197,4 +248,30 @@ public without sharing class LeadPublicAPIHelper {
             Phone__c = lw.Phone
         );
     }
+    private static String normalizePhone(String phone) {
+    return String.isBlank(phone) ? null : phone.replaceAll('[^0-9]', '');
+}
+public static String formatAlternatePhone(Id countryId, String phone) {
+    if (String.isBlank(phone)) {
+        return null;
+    }
+    String phoneDigits = normalizePhone(phone);
+    if (countryId == null) {
+        return phone;
+    }
+    List<Country_Master__c> countries = [
+        SELECT Country_Code__c
+        FROM Country_Master__c
+        WHERE Id = :countryId
+        LIMIT 1
+    ];
+    if (countries.isEmpty() || String.isBlank(countries[0].Country_Code__c)) {
+        return phone;
+    }
+    String countryCode = normalizePhone(countries[0].Country_Code__c);
+    if (phoneDigits.startsWith(countryCode)) {
+        phoneDigits = phoneDigits.substring(countryCode.length());
+    }
+    return '+' + countryCode + ' ' + phoneDigits;
+}
 }

@@ -5,6 +5,7 @@ public without sharing class FinalPdfFileFetcher {
         @AuraEnabled public String base64Data;
         @AuraEnabled public String fileType; // pdf / image
     }
+
     public class PdfMetaWrapper {
 
     @AuraEnabled public Id versionId;
@@ -13,13 +14,16 @@ public without sharing class FinalPdfFileFetcher {
     @AuraEnabled public Integer contentSize;
 
     }
+
     public class PdfChunkWrapper {
         
+        @AuraEnabled public Id versionId;
         @AuraEnabled public String fileName;
         @AuraEnabled public String base64Data;
         @AuraEnabled public String fileType;
         
     }
+
     @AuraEnabled
     public static List<PdfFileWrapper> getAllPdfFiles(Id recordId) {
 
@@ -60,6 +64,9 @@ public without sharing class FinalPdfFileFetcher {
             'DOC_PG_CERTIFICATE',
             'DOC_PG_MARKSHEET',
             'DOC_CONVERSION_FACTOR',
+            'DOC_LOR_ACAD',
+            'DOC_LOR_PROF',
+            'DOC_APPOINTMENT_ORDER',
             'DOC_OFFER_LETTER',
             'DOC_SALARY_SLIP',
             'DOC_WORK_EXP_1',
@@ -67,6 +74,7 @@ public without sharing class FinalPdfFileFetcher {
             'DOC_WORK_EXP_3',
             'DOC_WORK_EXP_4',
             'DOC_WORK_EXP_5',
+            'DOC_EXTRA_CURRICULAR_ACTIVITIES',
             'DOC_CAT_SCORE_CARD',
             'DOC_GMAT_SCORE_CARD',
             'DOC_GMAT_ADMIT_CARD',
@@ -156,182 +164,201 @@ public without sharing class FinalPdfFileFetcher {
 
         return result;
     }
+
     @AuraEnabled
-public static List<PdfMetaWrapper> getDocumentMetadata(Id recordId) {
+    public static List<PdfMetaWrapper> getDocumentMetadata(Id recordId) {
 
-    List<PdfMetaWrapper> result = new List<PdfMetaWrapper>();
+        List<PdfMetaWrapper> result = new List<PdfMetaWrapper>();
 
-    // Same document order
-    List<String> orderedNames = new List<String>{
-        'DOC_RESUME',
-        'Class 10 Mark Sheet',
-        'Class 12 Mark Sheet',
-        'DOC_CLASS_X',
-        'DOC_CLASS_XII',
-        'DOC_DIPLOMA',
-        'DOC_GRAD',
-        'DOC_POST_GRAD',
-        'DOC_COMPETITIVE_GRE',
-        'DOC_COMPETITIVE_GMAT',
-        'DOC_COMPETITIVE_CAT',
-        'DOC_COMPETITIVE_XAT',
-        'DOC_COMPETITIVE_NMAT',
-        'DOC_COMPETITIVE_GMATFocus',
-        'DOC_LANGUAGE_TOEFL',
-        'DOC_LANGUAGE_IELTS',
-        'DOC_EXPERIENCE_LETTER',
-        'DOC_PASSPORT',
-        'DOC_AADHAAR',
-        'DOC_CLASS_X_CERTIFICATE',
-        'DOC_CLASS_X_MARKSHEET',
-        'DOC_CLASS_XII_CERTIFICATE',
-        'DOC_CLASS_XII_MARKSHEET',
-        'DOC_DIPLOMA_CERTIFICATE',
-        'DOC_DIPLOMA_MARKSHEET',
-        'DOC_GRAD_CERTIFICATE',
-        'DOC_GRAD_MARKSHEET',
-        'DOC_PG_CERTIFICATE',
-        'DOC_PG_MARKSHEET',
-        'DOC_CONVERSION_FACTOR',
-        'DOC_OFFER_LETTER',
-        'DOC_SALARY_SLIP',
-        'DOC_WORK_EXP_1',
-        'DOC_WORK_EXP_2',
-        'DOC_WORK_EXP_3',
-        'DOC_WORK_EXP_4',
-        'DOC_WORK_EXP_5',
-        'DOC_CAT_SCORE_CARD',
-        'DOC_GMAT_SCORE_CARD',
-        'DOC_GMAT_ADMIT_CARD',
-        'DOC_GMAT_FOCUS_SCORE_CARD',
-        'DOC_ACHIEVEMENTS'
-    };
+        // Same document order
+        List<String> orderedNames = new List<String>{
+            'DOC_RESUME',
+            'Class 10 Mark Sheet',
+            'Class 12 Mark Sheet',
+            'DOC_CLASS_X',
+            'DOC_CLASS_XII',
+            'DOC_DIPLOMA',
+            'DOC_GRAD',
+            'DOC_POST_GRAD',
+            'DOC_COMPETITIVE_GRE',
+            'DOC_COMPETITIVE_GMAT',
+            'DOC_COMPETITIVE_CAT',
+            'DOC_COMPETITIVE_XAT',
+            'DOC_COMPETITIVE_NMAT',
+            'DOC_COMPETITIVE_GMATFocus',
+            'DOC_LANGUAGE_TOEFL',
+            'DOC_LANGUAGE_IELTS',
+            'DOC_EXPERIENCE_LETTER',
+            'DOC_PASSPORT',
+            'DOC_AADHAAR',
+            'DOC_CLASS_X_CERTIFICATE',
+            'DOC_CLASS_X_MARKSHEET',
+            'DOC_CLASS_XII_CERTIFICATE',
+            'DOC_CLASS_XII_MARKSHEET',
+            'DOC_DIPLOMA_CERTIFICATE',
+            'DOC_DIPLOMA_MARKSHEET',
+            'DOC_GRAD_CERTIFICATE',
+            'DOC_GRAD_MARKSHEET',
+            'DOC_PG_CERTIFICATE',
+            'DOC_PG_MARKSHEET',
+            'DOC_CONVERSION_FACTOR',
+            'DOC_LOR_ACAD',
+            'DOC_LOR_PROF',
+            'DOC_APPOINTMENT_ORDER',
+            'DOC_OFFER_LETTER',
+            'DOC_SALARY_SLIP',
+            'DOC_WORK_EXP_1',
+            'DOC_WORK_EXP_2',
+            'DOC_WORK_EXP_3',
+            'DOC_WORK_EXP_4',
+            'DOC_WORK_EXP_5',
+            'DOC_EXTRA_CURRICULAR_ACTIVITIES',
+            'DOC_CAT_SCORE_CARD',
+            'DOC_GMAT_SCORE_CARD',
+            'DOC_GMAT_ADMIT_CARD',
+            'DOC_GMAT_FOCUS_SCORE_CARD',
+            'DOC_ACHIEVEMENTS'
+        };
 
-    List<Document_Details__c> docList = [
-        SELECT Id, Document_Code__c
-        FROM Document_Details__c
-        WHERE Application_No__c = :recordId
-        AND Document_Code__c != 'PASSPORT_PHOTO'
-    ];
+        List<Document_Details__c> docList = [
+            SELECT Id, Document_Code__c
+            FROM Document_Details__c
+            WHERE Application_No__c = :recordId
+            AND Document_Code__c != 'PASSPORT_PHOTO'
+        ];
 
-    if(docList.isEmpty()){
+        if(docList.isEmpty()){
+            return result;
+        }
+
+        Map<String,List<Id>> docNameToContentIds = new Map<String,List<Id>>();
+
+        Set<Id> docIds = new Set<Id>();
+
+        for(Document_Details__c d : docList){
+            docIds.add(d.Id);
+        }
+
+        List<ContentDocumentLink> links = [
+            SELECT ContentDocumentId, LinkedEntityId
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId IN :docIds
+        ];
+
+        Map<Id,String> detailToCode = new Map<Id,String>();
+
+        for(Document_Details__c d : docList){
+            detailToCode.put(d.Id,d.Document_Code__c);
+        }
+
+        for(ContentDocumentLink cdl : links){
+
+            String code = detailToCode.get(cdl.LinkedEntityId);
+
+            if(String.isBlank(code)){
+                continue;
+            }
+
+            if(!docNameToContentIds.containsKey(code)){
+                docNameToContentIds.put(code,new List<Id>());
+            }
+
+            docNameToContentIds.get(code).add(cdl.ContentDocumentId);
+
+        }
+
+        for(String docName : orderedNames){
+
+            if(!docNameToContentIds.containsKey(docName)){
+                continue;
+            }
+
+            for(ContentVersion cv : [
+
+                SELECT
+                    Id,
+                    Title,
+                    FileExtension,
+                    ContentSize
+
+                FROM ContentVersion
+
+                WHERE ContentDocumentId IN :docNameToContentIds.get(docName)
+
+                AND IsLatest=true
+
+                ORDER BY ContentSize DESC
+
+            ]){
+
+                if(cv.FileExtension==null){
+                    continue;
+                }
+
+                if(cv.FileExtension.toLowerCase()!='pdf'){
+                    continue;
+                }
+
+                PdfMetaWrapper w = new PdfMetaWrapper();
+
+                w.versionId = cv.Id;
+                w.fileName = cv.Title;
+                w.fileType = 'pdf';
+                w.contentSize = cv.ContentSize;
+
+                result.add(w);
+
+            }
+
+        }
+
         return result;
+
     }
 
-    Map<String,List<Id>> docNameToContentIds = new Map<String,List<Id>>();
+    @AuraEnabled
+    public static List<PdfChunkWrapper> getPdfChunk(List<Id> versionIds) {
 
-    Set<Id> docIds = new Set<Id>();
+        List<PdfChunkWrapper> result = new List<PdfChunkWrapper>();
 
-    for(Document_Details__c d : docList){
-        docIds.add(d.Id);
-    }
-
-    List<ContentDocumentLink> links = [
-        SELECT ContentDocumentId, LinkedEntityId
-        FROM ContentDocumentLink
-        WHERE LinkedEntityId IN :docIds
-    ];
-
-    Map<Id,String> detailToCode = new Map<Id,String>();
-
-    for(Document_Details__c d : docList){
-        detailToCode.put(d.Id,d.Document_Code__c);
-    }
-
-    for(ContentDocumentLink cdl : links){
-
-        String code = detailToCode.get(cdl.LinkedEntityId);
-
-        if(String.isBlank(code)){
-            continue;
+        if (versionIds == null || versionIds.isEmpty()) {
+            return result;
         }
 
-        if(!docNameToContentIds.containsKey(code)){
-            docNameToContentIds.put(code,new List<Id>());
-        }
+        Map<Id, ContentVersion> versionsById = new Map<Id, ContentVersion>();
 
-        docNameToContentIds.get(code).add(cdl.ContentDocumentId);
-
-    }
-
-    for(String docName : orderedNames){
-
-        if(!docNameToContentIds.containsKey(docName)){
-            continue;
-        }
-
-        for(ContentVersion cv : [
-
+        for (ContentVersion cv : [
             SELECT
                 Id,
                 Title,
-                FileExtension,
-                ContentSize
-
+                VersionData,
+                FileExtension
             FROM ContentVersion
+            WHERE Id IN :versionIds
+        ]) {
+            versionsById.put(cv.Id, cv);
+        }
 
-            WHERE ContentDocumentId IN :docNameToContentIds.get(docName)
+        // Return files in EXACTLY the same order
+        // as versionIds supplied by the caller.
+        for (Id versionId : versionIds) {
 
-            AND IsLatest=true
+            ContentVersion cv = versionsById.get(versionId);
 
-            ORDER BY ContentSize DESC
-
-        ]){
-
-            if(cv.FileExtension==null){
+            if (cv == null) {
                 continue;
             }
 
-            if(cv.FileExtension.toLowerCase()!='pdf'){
-                continue;
-            }
-
-            PdfMetaWrapper w = new PdfMetaWrapper();
+            PdfChunkWrapper w = new PdfChunkWrapper();
 
             w.versionId = cv.Id;
             w.fileName = cv.Title;
             w.fileType = 'pdf';
-            w.contentSize = cv.ContentSize;
+            w.base64Data = EncodingUtil.base64Encode(cv.VersionData);
 
             result.add(w);
-
         }
 
+        return result;
     }
-
-    return result;
-
-}
-    @AuraEnabled
-public static List<PdfChunkWrapper> getPdfChunk(List<Id> versionIds){
-
-    List<PdfChunkWrapper> result = new List<PdfChunkWrapper>();
-
-    for(ContentVersion cv : [
-
-        SELECT
-            Id,
-            Title,
-            VersionData,
-            FileExtension
-
-        FROM ContentVersion
-
-        WHERE Id IN :versionIds
-
-    ]){
-
-        PdfChunkWrapper w = new PdfChunkWrapper();
-
-        w.fileName = cv.Title;
-        w.fileType = 'pdf';
-        w.base64Data = EncodingUtil.base64Encode(cv.VersionData);
-
-        result.add(w);
-
-    }
-
-    return result;
-
-}
 }

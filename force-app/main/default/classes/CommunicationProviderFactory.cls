@@ -116,6 +116,7 @@ public class CommunicationProviderFactory {
                                 Id,
                                 Result__c,
                                 Offer_Letter_Date__c,
+                                LastDateOfAcceptance__c,
                                 WaitlistNumber__c,
                                 Offer_Accepted__c,
                                 Offer_Declined__c,
@@ -154,7 +155,21 @@ public class CommunicationProviderFactory {
 
                 data.put('AdmissionDecisionId', decision.Id);
                 data.put('AdmissionResult', decision.Result__c);
-                data.put('OfferDate', decision.Offer_Letter_Date__c);
+
+                Date offerDate = decision.Offer_Letter_Date__c;
+                String offerDateFormatted =
+                    String.valueOf(offerDate.day()).leftPad(2, '0') + '/' +
+                    String.valueOf(offerDate.month()).leftPad(2, '0') + '/' +
+                    String.valueOf(offerDate.year());
+                data.put('offerDateFormatted', offerDateFormatted);
+
+                Date offerExpiryDate = decision.LastDateOfAcceptance__c;
+                String offerExpiryDateFormatted =
+                    String.valueOf(offerExpiryDate.day()).leftPad(2, '0') + '/' +
+                    String.valueOf(offerExpiryDate.month()).leftPad(2, '0') + '/' +
+                    String.valueOf(offerExpiryDate.year());
+                data.put('OfferExpiryDate', offerExpiryDateFormatted);
+
                 data.put('WaitlistNumber', decision.WaitlistNumber__c);
                 data.put('OfferAccepted', decision.Offer_Accepted__c);
                 data.put('OfferDeclined', decision.Offer_Declined__c);
@@ -314,7 +329,7 @@ public class CommunicationProviderFactory {
                         BookingState__c,
                         RoundMaster__r.Name,
                         Panel_Master__r.Name,
-                        SlotMaster__r.SlotDate__c,
+                        format(SlotMaster__r.SlotDate__c),
                         SlotMaster__r.SlotStartTime__c,
                         SlotMaster__r.SlotEndTime__c,
                         SlotMaster__r.LocationMaster__r.AddressInformation__c,
@@ -384,7 +399,7 @@ public class CommunicationProviderFactory {
                                 BookingState__c,
                                 RoundMaster__r.Name,
                                 Panel_Master__r.Name,
-                                SlotMaster__r.SlotDate__c,
+                                format(SlotMaster__r.SlotDate__c),
                                 SlotMaster__r.SlotStartTime__c,
                                 SlotMaster__r.SlotEndTime__c,
                                 SlotMaster__r.LocationMaster__r.AddressInformation__c
@@ -436,7 +451,14 @@ public class CommunicationProviderFactory {
 
             data.put('BookingId', booking.Id);
             data.put('BookingState', booking.BookingState__c);
-            data.put('InterviewDate', booking.SlotMaster__r.SlotDate__c);
+
+            Date slotDate = booking.SlotMaster__r.SlotDate__c;
+            String formattedDate =
+                String.valueOf(slotDate.day()).leftPad(2, '0') + '/' +
+                String.valueOf(slotDate.month()).leftPad(2, '0') + '/' +
+                String.valueOf(slotDate.year());
+            data.put('InterviewDate', formattedDate);
+
             data.put(
                 'InterviewTime',
                 formatTime(booking.SlotMaster__r.SlotStartTime__c)

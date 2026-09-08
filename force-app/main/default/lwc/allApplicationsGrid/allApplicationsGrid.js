@@ -21,21 +21,30 @@ export default class AllApplicationsGrid extends NavigationMixin(LightningElemen
         if (value && Array.isArray(value)) {
             this._tableData = value.map(row => {
 
-                const hideWorkflowColumns =
-                    row.isDecisionPresent || row.isRejected;
+                const hideAction =
+                    row.isDecisionPresent ||
+                    row.isRejected ||
+                    row?.blockActions;
+
+                const hideStage =
+                    row.isDecisionPresent ||
+                    row.isRejected;
+
+                const hideInterview =
+                    row.isDecisionPresent ||
+                    row.isRejected;
 
                 return {
                     ...row,
-                    hideAction: hideWorkflowColumns,
-                    hideInterview: hideWorkflowColumns,
-                    hideStage: hideWorkflowColumns,
+                    hideAction,
+                    hideInterview,
+                    hideStage,
                     bookingInfoString: row.bookingInfo
                         ? JSON.stringify(row.bookingInfo)
                         : null
                 };
             });
         }
-
     }
 
     @api tableLabel;

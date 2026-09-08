@@ -1,10 +1,14 @@
 /**
- * Sends an Email + Salesforce Custom Notification to the Programme Office
- * approver(s) whenever a Withdrawal_Request__c record is submitted, whether
- * created by an internal Admin or by a student via the Student Portal.
+ * Sends Email + Salesforce Custom Notification when a Withdrawal_Request__c
+ * is submitted (After Insert via WithdrawalRequestTrigger):
+ *   1. Programme Office approvers (existing)
+ *   2. The submitting student (portal User linked to Student__c)
  *
- * Called from WithdrawalRequestTrigger (After Insert). All entry points are
- * wrapped so a notification failure can never roll back the record insert.
+ * Approve / reject / recall student notifications stay in
+ * WithdrawalApprovalController and are not changed here.
+ *
+ * All entry points are wrapped so a notification failure can never roll
+ * back the record insert.
  *
  * KEY DESIGN NOTES
  *
@@ -23,16 +27,17 @@
  *    Role__c = 'Programme Office'. There is no queue and no fallback list -
  *    when a request's Programme has no Programme Office team member (or the
  *    Programme lookup is blank), that request is logged as a STOP and no
- *    notification is sent for it, matching LeaveApproverResolver /
- *    DefermentApprovalNotificationService behaviour.
+ *    PO notification is sent for it, matching LeaveApproverResolver /
+ *    DefermentApprovalNotificationService behaviour. Student acknowledgement
+ *    still runs independently of PO recipient resolution.
  *
  * 3. Email is built manually (not via a stored EmailTemplate). Salesforce
  *    does not allow setWhatId() together with setTargetObjectId() when the
  *    target is a User - "WhatId is not available for sending emails to
  *    UserIds." Since every recipient here is a User (not a Contact/Lead),
  *    a stored template's merge fields cannot be resolved. The HTML body
- *    below is styled to match the org's "Withdrawal Request Submitted"
- *    Classic Email Template layout.
+ *    uses the same purple header + detail-table layout as the
+ *    approve / reject / recall student emails.
  *
  * 4. Diagnostics persist to Notification_Debug__c (Long Text Area) on the
  *    record itself, in a `finally` block so it saves regardless of where
@@ -55,6 +60,7 @@ public without sharing class WithdrawalRequestNotificationService {
         List<String> diagnosticLines = new List<String>();
         try {
             sendNotificationsInternal(withdrawalRequests, diagnosticLines);
+            notifyStudentsOnSubmit(withdrawalRequests, diagnosticLines);
         } catch (Exception e) {
             log(diagnosticLines, 'UNCAUGHT EXCEPTION: ' + e.getMessage() + ' | ' + e.getStackTraceString());
         } finally {
@@ -285,6 +291,210 @@ public without sharing class WithdrawalRequestNotificationService {
         }
 
         log(diagnosticLines, 'Done.');
+    }
+
+    /**
+     * Acknowledges the submitting student with Email + portal bell notification.
+     * Portal header bell reads Portal_Notification__c (same as Photo Upload /
+     * Attendance), not Messaging.CustomNotification.
+     * Email HTML matches approve/reject/recall styling.
+     * Does not modify WithdrawalApprovalController.
+     */
+    private static void notifyStudentsOnSubmit(
+        List<Withdrawal_Request__c> withdrawalRequests,
+        List<String> diagnosticLines
+    ) {
+        if (withdrawalRequests == null || withdrawalRequests.isEmpty()) {
+            return;
+        }
+
+        log(diagnosticLines, '--- Student submit notify ---');
+
+        Set<Id> requestIds = new Set<Id>();
+        Set<Id> studentAccountIds = new Set<Id>();
+        for (Withdrawal_Request__c request : withdrawalRequests) {
+            if (request.Id != null) {
+                requestIds.add(request.Id);
+            }
+            if (request.Student__c != null) {
+                studentAccountIds.add(request.Student__c);
+            }
+        }
+        if (requestIds.isEmpty()) {
+            log(diagnosticLines, 'STOP (student): no request Ids available.');
+            return;
+        }
+
+        Map<Id, Withdrawal_Request__c> detailedRequests = new Map<Id, Withdrawal_Request__c>([
+            SELECT Id, Name, Status__c, Student__c, Student__r.Name, Programme_Master__r.Name
+            FROM Withdrawal_Request__c
+            WHERE Id IN :requestIds
+            WITH SYSTEM_MODE
+        ]);
+
+        for (Withdrawal_Request__c detail : detailedRequests.values()) {
+            if (detail.Student__c != null) {
+                studentAccountIds.add(detail.Student__c);
+            }
+        }
+        if (studentAccountIds.isEmpty()) {
+            log(diagnosticLines, 'STOP (student): no Student__c on submitted requests.');
+            return;
+        }
+
+        // Portal User per Student Account (needed for email delivery).
+        Map<Id, User> studentAccountToUser = new Map<Id, User>();
+        for (User portalUser : [
+            SELECT Id, Name, Email, IsActive, Contact.AccountId
+            FROM User
+            WHERE Contact.AccountId IN :studentAccountIds
+            AND IsActive = true
+            WITH SYSTEM_MODE
+        ]) {
+            Id accountId = portalUser.Contact.AccountId;
+            if (accountId != null && !studentAccountToUser.containsKey(accountId)) {
+                studentAccountToUser.put(accountId, portalUser);
+            }
+        }
+
+        Id orgWideEmailAddressId = null;
+        List<OrgWideEmailAddress> owaList = [
+            SELECT Id
+            FROM OrgWideEmailAddress
+            WHERE DisplayName = :ORG_WIDE_EMAIL_DISPLAY_NAME
+            WITH SYSTEM_MODE
+            LIMIT 1
+        ];
+        if (!owaList.isEmpty()) {
+            orgWideEmailAddressId = owaList[0].Id;
+        } else {
+            log(diagnosticLines, 'WARN (student): OrgWideEmailAddress \''
+                + ORG_WIDE_EMAIL_DISPLAY_NAME + '\' not found - student emails use default sender.');
+        }
+
+        List<Messaging.SingleEmailMessage> emails = new List<Messaging.SingleEmailMessage>();
+        List<Portal_Notification__c> portalNotifs = new List<Portal_Notification__c>();
+
+        for (Withdrawal_Request__c request : withdrawalRequests) {
+            Withdrawal_Request__c detail = detailedRequests.get(request.Id);
+            if (detail == null || detail.Student__c == null) {
+                log(diagnosticLines, 'STOP (student): request ' + request.Id + ' has no Student__c.');
+                continue;
+            }
+
+            String programmeName = (detail.Programme_Master__r != null)
+                ? detail.Programme_Master__r.Name
+                : '';
+            String statusValue = String.isNotBlank(detail.Status__c) ? detail.Status__c : 'Applied';
+            String referenceNumber = detail.Name;
+            String bellBody =
+                'Your withdrawal request ' + referenceNumber
+                + ' has been submitted successfully and is now ' + statusValue + '. '
+                + 'You will be notified when there is an update.';
+
+            // Portal header bell (spjimr_header) reads Portal_Notification__c.
+            portalNotifs.add(new Portal_Notification__c(
+                Title__c = 'Withdrawal Request Submitted',
+                Body__c = bellBody,
+                Recipient_Account__c = detail.Student__c,
+                Is_Read__c = false
+            ));
+
+            User studentUser = studentAccountToUser.get(detail.Student__c);
+            if (studentUser == null) {
+                log(diagnosticLines, 'WARN (student email): no active portal User for Account '
+                    + detail.Student__c + ' on request ' + referenceNumber
+                    + ' - portal bell still queued.');
+                continue;
+            }
+
+            String studentName = String.isNotBlank(studentUser.Name)
+                ? studentUser.Name
+                : (detail.Student__r != null ? detail.Student__r.Name : 'Student');
+
+            if (String.isBlank(studentUser.Email)) {
+                log(diagnosticLines, 'STOP (student email): User ' + studentUser.Id
+                    + ' has blank Email for ' + referenceNumber + '.');
+                continue;
+            }
+
+            Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
+            email.setTargetObjectId(studentUser.Id);
+            email.setSaveAsActivity(false);
+            if (orgWideEmailAddressId != null) {
+                email.setOrgWideEmailAddressId(orgWideEmailAddressId);
+            }
+            email.setSubject('Withdrawal Request Submitted – ' + referenceNumber);
+            email.setPlainTextBody(
+                'Dear ' + studentName + ',\n\n'
+                + 'This is to acknowledge that your withdrawal request has been successfully submitted.\n\n'
+                + 'Request Reference Number: ' + referenceNumber + '\n'
+                + 'Request Status: ' + statusValue + '\n'
+                + 'Programme: ' + programmeName + '\n\n'
+                + 'Your request will be reviewed as per the applicable process. '
+                + 'You will be notified once there is an update on the request.\n\n'
+                + 'This is an automated notification. Please do not reply to this email.'
+            );
+            email.setHtmlBody(
+                '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #ddd;">'
+                + '<div style="background:#4b2e83;color:#fff;padding:16px 20px;font-size:18px;font-weight:bold;">Withdrawal Request</div>'
+                + '<div style="padding:20px;">'
+                + '<p style="font-weight:bold;">Dear ' + studentName.escapeHtml4() + ',</p>'
+                + '<p>This is to acknowledge that your withdrawal request has been successfully submitted.</p>'
+                + '<table style="width:100%;border-collapse:collapse;margin-top:12px;">'
+                + buildEmailRow('Request Reference Number', referenceNumber)
+                + buildEmailRow('Request Status', statusValue)
+                + buildEmailRow('Programme', programmeName)
+                + '</table>'
+                + '<p style="margin-top:16px;">Your request will be reviewed as per the applicable process. '
+                + 'You will be notified once there is an update on the request.</p>'
+                + '<p style="color:#c0392b;font-size:12px;">This is an automated notification. Please do not reply to this email.</p>'
+                + '</div></div>'
+            );
+            emails.add(email);
+        }
+
+        if (!portalNotifs.isEmpty()) {
+            try {
+                List<Database.SaveResult> notifResults = Database.insert(
+                    portalNotifs, false, AccessLevel.SYSTEM_MODE
+                );
+                Integer inserted = 0;
+                for (Database.SaveResult sr : notifResults) {
+                    if (sr.isSuccess()) {
+                        inserted++;
+                    } else {
+                        for (Database.Error err : sr.getErrors()) {
+                            log(diagnosticLines, 'Portal_Notification__c insert FAILED: '
+                                + err.getStatusCode() + ' - ' + err.getMessage());
+                        }
+                    }
+                }
+                log(diagnosticLines, 'Portal bells inserted: ' + inserted
+                    + ' of ' + portalNotifs.size() + '.');
+            } catch (Exception portalEx) {
+                log(diagnosticLines, 'Portal_Notification__c insert EXCEPTION: '
+                    + portalEx.getMessage());
+            }
+        }
+
+        if (!emails.isEmpty()) {
+            List<Messaging.SendEmailResult> emailResults = Messaging.sendEmail(emails, false);
+            Integer emailsSent = 0;
+            for (Messaging.SendEmailResult r : emailResults) {
+                if (r.isSuccess()) {
+                    emailsSent++;
+                } else {
+                    for (Messaging.SendEmailError err : r.getErrors()) {
+                        log(diagnosticLines, 'Student email FAILED: '
+                            + err.getStatusCode() + ' - ' + err.getMessage());
+                    }
+                }
+            }
+            log(diagnosticLines, 'Student emails sent: ' + emailsSent + ' of ' + emails.size() + '.');
+        }
+
+        log(diagnosticLines, 'Student submit notify done.');
     }
 
     private static String buildEmailRow(String label, String value) {

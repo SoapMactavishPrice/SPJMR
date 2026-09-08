@@ -1882,11 +1882,19 @@ public static String saveEmergencyContact(String recordId, String name, String r
      * reflects the latest approver update on the next page visit.
      *
      * Approved/Rejected column mapping (real Status__c values):
-     *   'Withdrawal'                          -> 'Approved'
-     *   'Rejected' / 'Rejected with Comments'  -> 'Rejected'
-     *   'Applied' / 'Accepted (PO Review)' /
-     *     'Clearance & Exit' / 'Final Approval' -> 'Pending review'
-     *   anything else (e.g. 'Recalled')        -> shown as-is
+     *   'Rejected' / 'Rejected with Comments' / 'Final Rejection' -> 'Rejected'
+     *   'Accepted (PO Review)'                                    -> 'Approved by L1'
+     *   'Approved' (PO-only or after chairperson)                 -> 'Approved by L1'
+     *   'Clearance & Exit'                                        -> 'Approved by L1'
+     *   'Final Approval'                                          -> 'Approved by L2'
+     *   'Withdrawal'                                              -> 'Approved'
+     *   'Applied'                                                 -> 'Pending review'
+     *   anything else (e.g. 'Recalled')                           -> shown as-is
+     *
+     * Remark column:
+     *   'Final Approval' / 'Withdrawal' -> Final_Approval_Remark__c
+     *   'Final Rejection'               -> Final_Rejection_Remark__c
+     *   otherwise                       -> Remarks__c
      */
     public class WithdrawalRequestStatus {
         @AuraEnabled public Boolean hasRequest = false;
@@ -1898,13 +1906,14 @@ public static String saveEmergencyContact(String recordId, String name, String r
         @AuraEnabled public String status;
         @AuraEnabled public String approvedRejected;
         @AuraEnabled public String remark;
+        @AuraEnabled public Boolean escalateToChairperson;
     }
 
     private static final Set<String> WITHDRAWAL_IN_PROGRESS_STATUSES = new Set<String>{
-        'Applied', 'Accepted (PO Review)', 'Clearance & Exit', 'Final Approval'
+        'Applied', 'Accepted (PO Review)', 'Clearance & Exit'
     };
     private static final Set<String> WITHDRAWAL_REJECTED_STATUSES = new Set<String>{
-        'Rejected', 'Rejected with Comments'
+        'Rejected', 'Rejected with Comments', 'Final Rejection'
     };
 
     @AuraEnabled(cacheable = false)
@@ -1939,7 +1948,9 @@ public static String saveEmergencyContact(String recordId, String name, String r
 
             List<Withdrawal_Request__c> requests = [
                 SELECT Id, Name, CreatedDate, Student__r.Name, Application_ID__c,
-                       Reason_for_Withdrawal__c, Any_Other_Reason__c, Status__c, Remarks__c
+                       Reason_for_Withdrawal__c, Any_Other_Reason__c, Status__c, Remarks__c,
+                       Final_Approval_Remark__c, Final_Rejection_Remark__c,
+                       Escalate_To_Chairperson__c
                 FROM Withdrawal_Request__c
                 WHERE Student__c = :accountId
                 ORDER BY CreatedDate DESC
@@ -1960,18 +1971,32 @@ public static String saveEmergencyContact(String recordId, String name, String r
                 ? req.Any_Other_Reason__c
                 : req.Reason_for_Withdrawal__c;
             status.status = req.Status__c;
+            status.escalateToChairperson = req.Escalate_To_Chairperson__c == true;
 
-            if (req.Status__c == 'Approved') {
-                status.approvedRejected = 'Approved';
-            } else if (WITHDRAWAL_REJECTED_STATUSES.contains(req.Status__c)) {
+            if (WITHDRAWAL_REJECTED_STATUSES.contains(req.Status__c)) {
                 status.approvedRejected = 'Rejected';
+            } else if (req.Status__c == 'Accepted (PO Review)' || req.Status__c == 'Approved') {
+                // PO Review and Chairperson Review both show L1.
+                status.approvedRejected = 'Approved by L1';
+            } else if (req.Status__c == 'Clearance & Exit') {
+                status.approvedRejected = 'Approved by L1';
+            } else if (req.Status__c == 'Final Approval') {
+                status.approvedRejected = 'Approved by L2';
+            } else if (req.Status__c == 'Withdrawal') {
+                status.approvedRejected = 'Approved';
             } else if (WITHDRAWAL_IN_PROGRESS_STATUSES.contains(req.Status__c)) {
                 status.approvedRejected = 'Pending review';
             } else {
                 status.approvedRejected = req.Status__c;
             }
 
-            status.remark = req.Remarks__c;
+            if (req.Status__c == 'Final Approval' || req.Status__c == 'Withdrawal') {
+                status.remark = req.Final_Approval_Remark__c;
+            } else if (req.Status__c == 'Final Rejection') {
+                status.remark = req.Final_Rejection_Remark__c;
+            } else {
+                status.remark = req.Remarks__c;
+            }
 
             return status;
 

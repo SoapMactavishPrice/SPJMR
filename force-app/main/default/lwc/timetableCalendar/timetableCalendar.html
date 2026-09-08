@@ -56,8 +56,8 @@
                             onchange={handleTermChange}
                             disabled={isBatchGroupNotSelected}>
                         </lightning-combobox>
-                    </div>
-                    <div class="filter-item division-filter-item">
+                  </div>
+             <!--     <div class="filter-item division-filter-item">
                         <lightning-combobox
                             label="Division"
                             value={selectedDivision}
@@ -66,7 +66,37 @@
                             onchange={handleDivisionChange}
                             disabled={isTermNotSelected}>
                         </lightning-combobox>
+                    </div> -->
+                    <!-- REPLACE WITH: -->
+                    <div class="filter-item division-filter-item">
+                    <span class="filter-label">Division</span>
+                        <div class="division-filter-picklist" role="group" aria-label="Division filter">
+                            <div class="division-filter-pills-wrap">
+                                <template if:true={hasDivisionPills}>
+                                    <div class="division-filter-pills-container">
+                                        <template for:each={divisionFilterPills} for:item="div">
+                                            <span key={div.value} class="division-filter-pill">
+                                            {div.label}
+                                            <button type="button" class="division-filter-pill-remove"
+                                            data-division-id={div.value}
+                                            onclick={handleDivisionFilterRemove}>×</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </template>
+            <!-- removed: <p class="faculty-filter-hint">No division selected</p> -->
+                                <lightning-combobox
+                                  placeholder="Add division..."
+                                  options={divisionFilterAvailableOptions}
+                                  value=""
+                                  onchange={handleDivisionFilterAdd}
+                                  variant="label-hidden"
+                                  disabled={isTermNotSelected}>
+                                </lightning-combobox>
+                            </div>
+                        </div>
                     </div>
+                    
                     <!-- Faculty Filter -->
                     <div class="filter-item faculty-filter-item">
                         <span class="filter-label">Faculty</span>
@@ -488,7 +518,8 @@
                             </div>
                             <div class="context-item">
                                 <span class="context-label">DIVISION</span>
-                                <template if:true={isAllDivisionsSelected}>
+                               <template if:true={isAllDivisionsSelected}>
+                                
                                     <lightning-combobox
                                         value={modalDivisionId}
                                         placeholder="Select Division"
@@ -498,8 +529,10 @@
                                     </lightning-combobox>
                                 </template>
                                 <template if:false={isAllDivisionsSelected}>
+                                    <!-- Single Division: existing time grid -->
+                                    
                                     <div class="context-value-readonly">{createModalDivisionLabel}</div>
-                                </template>
+                                    </template>
                             </div>
                             <div class="context-item context-item-course">
                                 <span class="context-label">COURSE <span class="required-asterisk">*</span></span>

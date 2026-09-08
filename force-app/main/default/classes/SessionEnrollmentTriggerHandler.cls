@@ -37,6 +37,7 @@ public without sharing class SessionEnrollmentTriggerHandler {
                    Attendance__c,
                    Session__c,
                    Session__r.Name,
+                   Session__r.Course__r.Name,
                    Academic_Term_Enrollment__r.LearnerAccountId
             FROM Session_Enrollment__c
             WHERE Id IN :enrollmentIds
@@ -53,13 +54,24 @@ public without sharing class SessionEnrollmentTriggerHandler {
             String sessionName = String.isNotBlank(se.Session__r.Name)
                 ? se.Session__r.Name
                 : 'your session';
+
+            String courseName = (se.Session__r.Course__r != null
+                    && String.isNotBlank(se.Session__r.Course__r.Name))
+                ? se.Session__r.Course__r.Name
+                : null;
+
             String statusLabel = attendanceLabelForMessage(se.Attendance__c);
-            String body =
-                'Your attendance has been marked as ' +
+
+            // Format: "Your attendance has been marked [Status] for [Session] - [Course]"
+            String body = 'Your attendance has been marked ' +
                 statusLabel +
-                ' for "' +
-                sessionName +
-                '".';
+                ' for ' +
+                sessionName;
+
+            if (courseName != null) {
+                body += ' - ' + courseName;
+            }
+            body += '.';
 
             toInsert.add(
                 new Portal_Notification__c(
@@ -116,13 +128,13 @@ public without sharing class SessionEnrollmentTriggerHandler {
         }
         String s = attendance.trim().toLowerCase();
         if (s == 'absent' || s == 'a') {
-            return 'Absent';
+            return 'absent';
         }
         if (s == 'late') {
-            return 'Late';
+            return 'late';
         }
         if (s == 'sanctioned leave' || s == 'sanctioned' || s == 'sl') {
-            return 'Sanctioned Leave';
+            return 'sanctioned leave';
         }
         return attendance.trim();
     }

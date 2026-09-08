@@ -1,14 +1,14 @@
 import { LightningElement, api } from 'lwc';
 import pdfLib from '@salesforce/resourceUrl/pdf_lib';
 import { loadScript } from 'lightning/platformResourceLoader';
-//import getAllPdfFiles from '@salesforce/apex/FinalPdfFileFetcher.getAllPdfFiles';
-import getDocumentMetadata from '@salesforce/apex/FinalPdfFileFetcher.getDocumentMetadata';
-import getPdfChunk from '@salesforce/apex/FinalPdfFileFetcher.getPdfChunk';
-import getVfPdfBase64 from '@salesforce/apex/VfPdfFetcher.getVfPdfBase64';
-//import getApplicationNumber from '@salesforce/apex/ApplicationNumberFetcher.getApplicationNumber';
+
+import libPdf from '@salesforce/resourceUrl/libpdf';
+import { generatePdf } from 'c/pdfHelper';
+
 import getApplicationInfo from '@salesforce/apex/ApplicationNumberFetcher.getApplicationNumber';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
 
 export default class GenerateFinalPdf extends LightningElement {
 
@@ -32,6 +32,7 @@ export default class GenerateFinalPdf extends LightningElement {
             // ==============================
             if (!this.libLoaded) {
                 await loadScript(this, pdfLib);
+                await loadScript(this, libPdf);
                 this.libLoaded = true;
             }
             // ==============================
@@ -56,123 +57,15 @@ export default class GenerateFinalPdf extends LightningElement {
             const fileName = programCode === 'PGPM' ? `PGPM_Application_${appNumber}.pdf`: `GMP_Application_${appNumber}.pdf`;
 
             const { PDFDocument } = window.PDFLib;
-            const mergedPdf = await PDFDocument.create();
+            const { PDF: LibPDF } = window.LibPDF;
 
-            // ==============================
-            // 1️⃣ LOAD VF PDF
-            // ==============================
-            const vfBase64 = await getVfPdfBase64({ recordId: this.recordId });
-            const vfBytes = Uint8Array.from(atob(vfBase64), c => c.charCodeAt(0));
-            const vfPdf = await PDFDocument.load(vfBytes);
-
-            const vfPages = await mergedPdf.copyPages(vfPdf, vfPdf.getPageIndices());
-            vfPages.forEach(p => mergedPdf.addPage(p));
-
-            // ==============================
-            // 2️⃣ LOAD ATTACHMENTS (PARALLEL)
-            // ==============================
-           /* const files = await getAllPdfFiles({ recordId: this.recordId });
-
-            const loadJobs = files.map(async (f) => {
-            const bytes = Uint8Array.from(atob(f.base64Data), c => c.charCodeAt(0));
-            const pdf = await PDFDocument.load(bytes);
-            return pdf;
+            const finalBytes = await generatePdf({
+                recordId: this.recordId,
+                PDFDocument,
+                LibPDF,
+                includeApplicationForm: true,
+                includeDocuments: true
             });
-
-
-            const loadedFiles = await Promise.all(loadJobs);
-
-            // ==============================
-            // 3️⃣ ADD FILES
-            // ==============================
-            for (let pdf of loadedFiles) {
-            const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-            pages.forEach(p => mergedPdf.addPage(p));
-            }
-             */
-            // ==============================
-// 2️⃣ LOAD ATTACHMENTS USING CHUNKS
-// ==============================
-
-const metadata = await getDocumentMetadata({
-    recordId: this.recordId
-});
-
-const MAX_CHUNK_SIZE = 5000000;
-
-let chunks = [];
-let currentChunk = [];
-let currentSize = 0;
-
-for (const file of metadata) {
-
-    if (
-        currentChunk.length > 0 &&
-        currentSize + file.contentSize > MAX_CHUNK_SIZE
-    ) {
-
-        chunks.push(currentChunk);
-
-        currentChunk = [];
-
-        currentSize = 0;
-    }
-
-    currentChunk.push(file);
-
-    currentSize += file.contentSize;
-}
-
-if (currentChunk.length > 0) {
-
-    chunks.push(currentChunk);
-
-}
-
-// ==============================
-// 3️⃣ LOAD EACH CHUNK
-// ==============================
-
-for (const chunk of chunks) {
-
-    const versionIds = chunk.map(file => file.versionId);
-
-    const pdfFiles = await getPdfChunk({
-        versionIds: versionIds
-    });
-
-    for (const pdfFile of pdfFiles) {
-
-        if (!pdfFile.base64Data) {
-            continue;
-        }
-
-        const pdf = await PDFDocument.load(
-
-            Uint8Array.from(
-
-                atob(pdfFile.base64Data),
-
-                c => c.charCodeAt(0)
-
-            )
-
-        );
-
-        const pages = await mergedPdf.copyPages(
-            pdf,
-            pdf.getPageIndices()
-        );
-
-        pages.forEach(page => mergedPdf.addPage(page));
-
-    }
-
-}
-            // ==============================
-            // 4️⃣ SAVE & DOWNLOAD
-            // ==============================
-            const finalBytes = await mergedPdf.save();
 
             const blob = new Blob([finalBytes], { type: "application/pdf" });
             const link = document.createElement("a");

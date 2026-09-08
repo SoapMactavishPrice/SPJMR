@@ -12,7 +12,7 @@ public class AttendanceBackfillBatch implements Database.Batchable<SObject>,
     private Integer markedAbsent          = 0;
     private Integer logsSynced            = 0;
     private Integer failed                = 0;
-
+    //working
     private final Datetime windowStartOverride;
     private final Datetime windowEndOverride;
 
@@ -31,7 +31,7 @@ public class AttendanceBackfillBatch implements Database.Batchable<SObject>,
             Datetime ws = windowStartOverride;
             Datetime we = windowEndOverride;
             return Database.getQueryLocator([
-                SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c
+                SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c, Device_ID__c
                 FROM   Attendance_Log__c
                 WHERE  Status__c        = 'Pending'
                   AND  Log_Date_Time__c >= :ws
@@ -44,7 +44,7 @@ public class AttendanceBackfillBatch implements Database.Batchable<SObject>,
         Datetime windowStart = System.now().addDays(-LOOKBACK_DAYS);
 
         return Database.getQueryLocator([
-            SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c
+            SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c, Device_ID__c
             FROM   Attendance_Log__c
             WHERE  Status__c        = 'Pending'
               AND  Log_Date_Time__c >= :windowStart
@@ -103,11 +103,13 @@ public class AttendanceBackfillBatch implements Database.Batchable<SObject>,
         processedSessionIds.addAll(discoveredSessionIds);
 
         List<Session_Enrollment__c> enrollments = [
-            SELECT Id, Registeration_Number__c, Attendance__c, Session__c,
+            SELECT Id, Registeration_Number__c, Attendance__c, Serial_Number__c, Session__c,
                    Session__r.Start_Time__c, Session__r.End_Time__c
             FROM   Session_Enrollment__c
             WHERE  Session__c IN :discoveredSessionIds
-              AND  (Attendance__c = NULL OR Attendance__c = 'Absent')
+              AND  (Attendance__c = NULL
+                    OR Attendance__c = 'Absent'
+                    OR Attendance__c = 'Sanctioned Leave')
               AND  Registeration_Number__c != NULL
         ];
         if (enrollments.isEmpty()) return;
@@ -126,7 +128,7 @@ public class AttendanceBackfillBatch implements Database.Batchable<SObject>,
         Map<String, List<Attendance_Log__c>> logMap =
             new Map<String, List<Attendance_Log__c>>();
         for (Attendance_Log__c log : [
-            SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c
+            SELECT Id, Roll_Number__c, Log_Date_Time__c, Status__c, Device_ID__c
             FROM   Attendance_Log__c
             WHERE  Roll_Number__c   IN :rollNumbers
               AND  Log_Date_Time__c >= :spanStart
@@ -158,10 +160,24 @@ public class AttendanceBackfillBatch implements Database.Batchable<SObject>,
             }
 
             if (matchedLog != null) {
+                Boolean changed = false;
+
                 if (se.Attendance__c != 'Present') {
                     se.Attendance__c = 'Present';
-                    enrollmentsToUpdate.add(se);
+                    changed = true;
                     markedPresent++;
+                }
+
+                // Record WHICH device the student punched at. Attendance_Log__c
+                // rows are purged after 5 days, so the device cannot be looked
+                // up later - it has to be stamped at the moment of marking.
+                if (se.Serial_Number__c != matchedLog.Device_ID__c) {
+                    se.Serial_Number__c = matchedLog.Device_ID__c;
+                    changed = true;
+                }
+
+                if (changed) {
+                    enrollmentsToUpdate.add(se);
                 }
                 if (matchedLog.Status__c != 'Synced') {
                     matchedLog.Status__c = 'Synced';

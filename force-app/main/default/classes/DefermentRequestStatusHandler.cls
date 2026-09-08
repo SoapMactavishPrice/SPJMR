@@ -1,61 +1,33 @@
-/**
- * @description Status automation for Deferment_Request__c. Two jobs:
- *
- *              1. Advances a request from "Deferment Process Complete" to
- *                 "Pending Re-enrollment" so the student is held in the stage
- *                 that the rejoining reminders and the Programme Office alert
- *                 both read from. Runs in a before context, so the corrected
- *                 status is saved with the record itself and costs no DML.
- *
- *              2. Places the student in their rejoining batch the moment the
- *                 Programme Office marks the request "Student Record
- *                 Reactivated". The process document defines that status as
- *                 "Student mapped to rejoining batch; Roll No. and Email ID
- *                 retained", and nothing was doing it, so a student could reach
- *                 "Rejoining Complete" with no membership of the batch they
- *                 were returning to. Runs in an after context because it
- *                 inserts a record.
- *
- *              Deliberately does NOT choose the term, division or courses:
- *              section 8.4 of the process document makes term placement "a
- *              manual decision made by the Programme Manager... no automated
- *              placement rule applies".
- */
+@SuppressWarnings('PMD.CyclomaticComplexity,PMD.CognitiveComplexity,PMD.QueueableWithoutFinalizer')
 public with sharing class DefermentRequestStatusHandler {
-
-    /** Stage reached once every exit formality of the deferment is done. */
     @TestVisible
     private static final String STATUS_PROCESS_COMPLETE =
         'Deferment Process Complete';
 
-    /** Stage the student waits in until they return to campus. */
     @TestVisible
     private static final String STATUS_PENDING_REENROLLMENT =
         'Pending Re-enrollment';
 
-    /** Terminal stage for a student who has said they are not coming back. */
     @TestVisible
     private static final String STATUS_WITHDRAWAL = 'Withdrawal';
 
-    /** Stage that closes the rejoining process. */
     @TestVisible
     private static final String STATUS_REJOINING_COMPLETE = 'Rejoining Complete';
 
-    /** Stage by which Finance has recorded the student's payment. */
+    @TestVisible
+    private static final String STATUS_ALL_RIGHTS_REACTIVATED =
+        'All Rights Reactivated';
+
     @TestVisible
     private static final String STATUS_PAYMENT_CONFIRMED = 'Payment Confirmed';
 
-    /**
-     * The order of the tracker, exactly as sections 5 and 7 of the process
-     * document set it out. Withdrawal is deliberately absent: it is a terminal
-     * status reachable from any point, not a step in the sequence.
-     */
     private static final List<String> STATUS_ORDER = new List<String>{
         'Deferment Form Enabled',
         'Form Submitted',
         'Pending Chairperson\'s Approval',
         'Pending Dean\'s / AD\'s Approval',
         'Rejoining Details',
+        'Rejoining Details Updated',
         'No Dues Process Initiated',
         'No Dues Process Complete',
         'Access Removal Complete',
@@ -74,25 +46,27 @@ public with sharing class DefermentRequestStatusHandler {
         'Rejoining Complete'
     };
 
-    /** Position of each status in STATUS_ORDER, built once per transaction. */
     private static Map<String, Integer> positions;
 
-    /** Stage at which the student is mapped to the batch they rejoin. */
     @TestVisible
     private static final String STATUS_RECORD_REACTIVATED =
         'Student Record Reactivated';
 
-    /**
-     * @description Rewrites "Deferment Process Complete" to
-     *              "Pending Re-enrollment" before the record is saved.
-     *
-     *              Because the rewrite happens in a before context, the
-     *              completed status is never stored, so "is currently
-     *              Deferment Process Complete" and "has just been changed to
-     *              Deferment Process Complete" are the same test and no
-     *              Trigger.oldMap comparison is needed.
-     * @param requests the records being inserted or updated (Trigger.new)
-     */
+    @TestVisible
+    private static final String STATUS_REJOINING_DETAILS = 'Rejoining Details';
+
+    @TestVisible
+    private static final String STATUS_REJOINING_DETAILS_UPDATED =
+        'Rejoining Details Updated';
+
+    @TestVisible
+    private static final String ENROLLMENT_STATUS_PENDING_REENROLLMENT =
+        'Pending Re Enrollment';
+
+    @TestVisible
+    private static final String ENROLLMENT_STATUS_ACTIVE_REJOINED =
+        'Active - Rejoined';
+
     public static void applyPendingReEnrollment(
         List<Deferment_Request__c> requests
     ) {
@@ -101,7 +75,6 @@ public with sharing class DefermentRequestStatusHandler {
         }
 
         for (Deferment_Request__c request : requests) {
-
             if (request.Status__c != STATUS_PROCESS_COMPLETE) {
                 continue;
             }
@@ -110,26 +83,138 @@ public with sharing class DefermentRequestStatusHandler {
         }
     }
 
-    /**
-     * @description Refuses a negative Deferment Application Fee, whichever way
-     *              it is entered - the Break in Study button, a direct edit on
-     *              the record, or the API.
-     *
-     *              A negative fee used to save. It showed the student a
-     *              negative amount on their form and, because the form only
-     *              treats a fee above zero as payable, quietly waived the
-     *              Transaction Details screenshot as well. Section 8.2 allows a
-     *              fee or zero, never less than zero.
-     * @param requests the records being inserted or updated (Trigger.new)
-     */
-    public static void rejectNegativeFee(List<Deferment_Request__c> requests) {
-
+    public static void applyRejoiningComplete(
+        List<Deferment_Request__c> requests
+    ) {
         if (requests == null) {
             return;
         }
 
         for (Deferment_Request__c request : requests) {
+            if (request.Status__c != STATUS_ALL_RIGHTS_REACTIVATED) {
+                continue;
+            }
 
+            request.Status__c = STATUS_REJOINING_COMPLETE;
+        }
+    }
+
+    public static void markStudentDeferredOnPendingReEnrollment(
+        List<Deferment_Request__c> requests,
+        Map<Id, Deferment_Request__c> oldById
+    ) {
+        applyEnrollmentStatusForTransition(
+            requests,
+            oldById,
+            STATUS_PENDING_REENROLLMENT,
+            ENROLLMENT_STATUS_PENDING_REENROLLMENT,
+            true
+        );
+    }
+
+    public static void markEnrollmentActiveOnRejoiningComplete(
+        List<Deferment_Request__c> requests,
+        Map<Id, Deferment_Request__c> oldById
+    ) {
+        applyEnrollmentStatusForTransition(
+            requests,
+            oldById,
+            STATUS_REJOINING_COMPLETE,
+            ENROLLMENT_STATUS_ACTIVE_REJOINED,
+            false
+        );
+    }
+
+    private static void applyEnrollmentStatusForTransition(
+        List<Deferment_Request__c> requests,
+        Map<Id, Deferment_Request__c> oldById,
+        String requestStatus,
+        String enrollmentStatus,
+        Boolean markDeferred
+    ) {
+        if (requests == null || requests.isEmpty()) {
+            return;
+        }
+
+        Set<Id> memberIds = new Set<Id>();
+        for (Deferment_Request__c request : requests) {
+            if (!justBecameStatus(request, oldById, requestStatus)) {
+                continue;
+            }
+            if (request.Program_Cohort_Member__c != null) {
+                memberIds.add(request.Program_Cohort_Member__c);
+            }
+        }
+
+        if (memberIds.isEmpty()) {
+            return;
+        }
+
+        List<ProgramCohortMember> members = [
+            SELECT Id, ProgramEnrollmentId
+            FROM ProgramCohortMember
+            WHERE Id IN :memberIds
+            WITH SYSTEM_MODE
+        ];
+
+        Set<Id> enrollmentIds = new Set<Id>();
+        for (ProgramCohortMember member : members) {
+            if (member.ProgramEnrollmentId != null) {
+                enrollmentIds.add(member.ProgramEnrollmentId);
+            }
+        }
+
+        if (enrollmentIds.isEmpty()) {
+            return;
+        }
+
+        List<ProgramEnrollment> enrollmentsToUpdate = new List<ProgramEnrollment>();
+        for (ProgramEnrollment enrollment : [
+            SELECT Id, Status, isDeferred__c
+            FROM ProgramEnrollment
+            WHERE Id IN :enrollmentIds
+            WITH SYSTEM_MODE
+        ]) {
+            Boolean changed = false;
+            if (enrollment.Status != enrollmentStatus) {
+                enrollment.Status = enrollmentStatus;
+                changed = true;
+            }
+            if (markDeferred != null && enrollment.isDeferred__c != markDeferred) {
+                enrollment.isDeferred__c = markDeferred;
+                changed = true;
+            }
+            if (changed) {
+                enrollmentsToUpdate.add(enrollment);
+            }
+        }
+
+        if (!enrollmentsToUpdate.isEmpty()) {
+            Database.update(enrollmentsToUpdate, false);
+        }
+    }
+
+    private static Boolean justBecameStatus(
+        Deferment_Request__c request,
+        Map<Id, Deferment_Request__c> oldById,
+        String status
+    ) {
+        if (request == null || request.Status__c != status) {
+            return false;
+        }
+        if (oldById == null || request.Id == null) {
+            return true;
+        }
+        Deferment_Request__c oldRequest = oldById.get(request.Id);
+        return oldRequest == null || oldRequest.Status__c != status;
+    }
+
+    public static void rejectNegativeFee(List<Deferment_Request__c> requests) {
+        if (requests == null) {
+            return;
+        }
+
+        for (Deferment_Request__c request : requests) {
             if (
                 request.Deferment_Application_Fee__c == null ||
                 request.Deferment_Application_Fee__c >= 0
@@ -144,33 +229,35 @@ public with sharing class DefermentRequestStatusHandler {
         }
     }
 
-    /**
-     * @description Keeps the tracker honest. Section 5 of the process document
-     *              makes status transitions linear and says no completed step
-     *              "can be reopened once finalised", but the Status field is an
-     *              ordinary picklist and nothing was checking it - a request
-     *              could be dragged backwards into a finished approval, or sent
-     *              straight to "Rejoining Complete" from anywhere, skipping the
-     *              fees and the payment entirely.
-     *
-     *              Two rules, deliberately no more:
-     *                1. a request cannot move backwards;
-     *                2. it cannot reach "Rejoining Complete" from before
-     *                   "Payment Confirmed".
-     *
-     *              Forward movement in between is left alone on purpose.
-     *              "Return to Campus Notification Sent" is stamped by the
-     *              nightly job rather than a person, so insisting on one step at
-     *              a time would strand the Programme Office whenever that mail
-     *              could not be sent.
-     *
-     *              Three documented moves stay open: a rejection sending the
-     *              request back to the student (8.1), Withdrawal from any point
-     *              (8.4), and the automatic hop from "Deferment Process
-     *              Complete" to "Pending Re-enrollment".
-     * @param requests the records being updated (Trigger.new)
-     * @param oldById the records as they were before this save (Trigger.oldMap)
-     */
+    public static void advanceOnRejoiningDetails(
+        List<Deferment_Request__c> requests,
+        Map<Id, Deferment_Request__c> oldById
+    ) {
+        if (requests == null || oldById == null) {
+            return;
+        }
+
+        for (Deferment_Request__c request : requests) {
+            if (request.Status__c != STATUS_REJOINING_DETAILS) {
+                continue;
+            }
+
+            if (!hasEveryRejoiningDetail(request)) {
+                continue;
+            }
+
+            request.Status__c = STATUS_REJOINING_DETAILS_UPDATED;
+        }
+    }
+
+    private static Boolean hasEveryRejoiningDetail(
+        Deferment_Request__c request
+    ) {
+        return request.Rejoining_Date__c != null
+            && request.Rejoining_Batch__c != null
+            && request.Rejoining_Fee_Deadline__c != null;
+    }
+
     public static void enforceStatusOrder(
         List<Deferment_Request__c> requests,
         Map<Id, Deferment_Request__c> oldById
@@ -180,7 +267,6 @@ public with sharing class DefermentRequestStatusHandler {
         }
 
         for (Deferment_Request__c request : requests) {
-
             Deferment_Request__c old = oldById.get(request.Id);
 
             if (old == null || old.Status__c == request.Status__c) {
@@ -191,54 +277,48 @@ public with sharing class DefermentRequestStatusHandler {
                 continue;
             }
 
-            Integer wasAt = positionOf(old.Status__c);
-            Integer goingTo = positionOf(request.Status__c);
-
-            if (wasAt == null || goingTo == null) {
-                continue;
-            }
-
-            if (goingTo < wasAt) {
-                request.addError(
-                    'A Deferment Request cannot be moved back to "' +
-                    request.Status__c + '" once it has reached "' +
-                    old.Status__c + '". Completed steps cannot be reopened.'
-                );
-                continue;
-            }
-
-            if (
-                request.Status__c == STATUS_REJOINING_COMPLETE &&
-                wasAt < positionOf(STATUS_PAYMENT_CONFIRMED)
-            ) {
-                request.addError(
-                    'This student cannot be marked "Rejoining Complete" yet. ' +
-                    'The rejoining fee has not been confirmed by Finance - ' +
-                    'the request is still at "' + old.Status__c + '".'
-                );
-            }
+            checkOneMove(request, old);
         }
     }
 
-    /**
-     * @description The moves the process document allows outside the sequence:
-     *              marking a student Withdrawal, and an approver rejecting the
-     *              request back to the student.
-     * @param request the record being updated
-     * @return true when this change must not be order-checked
-     */
+    private static void checkOneMove(
+        Deferment_Request__c request,
+        Deferment_Request__c old
+    ) {
+        Integer wasAt = positionOf(old.Status__c);
+        Integer goingTo = positionOf(request.Status__c);
+
+        if (wasAt == null || goingTo == null) {
+            return;
+        }
+
+        if (goingTo < wasAt) {
+            request.addError(
+                'A Deferment Request cannot be moved back to "' +
+                request.Status__c + '" once it has reached "' +
+                old.Status__c + '". Completed steps cannot be reopened.'
+            );
+            return;
+        }
+
+        if (
+            request.Status__c == STATUS_REJOINING_COMPLETE &&
+            wasAt < positionOf(STATUS_PAYMENT_CONFIRMED)
+        ) {
+            request.addError(
+                'This student cannot be marked "Rejoining Complete" yet. ' +
+                'The rejoining fee has not been confirmed by Finance - ' +
+                'the request is still at "' + old.Status__c + '".'
+            );
+        }
+    }
+
     private static Boolean isAlwaysAllowed(Deferment_Request__c request) {
         return request.Status__c == STATUS_WITHDRAWAL
             || request.Approval_Status__c == 'Rejected';
     }
 
-    /**
-     * @description Where a status sits in the documented sequence.
-     * @param status the Status__c value to place
-     * @return its position, or null for a value outside the sequence
-     */
     private static Integer positionOf(String status) {
-
         if (positions == null) {
             positions = new Map<String, Integer>();
             for (Integer i = 0; i < STATUS_ORDER.size(); i++) {
@@ -249,22 +329,6 @@ public with sharing class DefermentRequestStatusHandler {
         return positions.get(status);
     }
 
-    /**
-     * @description Creates the student's membership of their rejoining batch
-     *              when a request reaches "Student Record Reactivated",
-     *              carrying the existing Roll Number across unchanged.
-     *
-     *              Refuses the save, with a message the Programme Office can
-     *              act on, when the request has no Rejoining Batch or no
-     *              original batch enrolment to copy the Roll Number from -
-     *              silently doing nothing is what let a student be marked
-     *              rejoined with nowhere to go.
-     *
-     *              Safe to run more than once: a student who already belongs to
-     *              the rejoining batch is skipped rather than duplicated.
-     * @param requests the records just saved (Trigger.new)
-     * @param oldById the records as they were before this save (Trigger.oldMap)
-     */
     public static void mapStudentToRejoiningBatch(
         List<Deferment_Request__c> requests,
         Map<Id, Deferment_Request__c> oldById
@@ -287,7 +351,6 @@ public with sharing class DefermentRequestStatusHandler {
         List<ProgramCohortMember> toCreate = new List<ProgramCohortMember>();
 
         for (Deferment_Request__c request : reactivated) {
-
             ProgramCohortMember original = originalByRequest.get(request.Id);
 
             if (original == null || original.ProgramEnrollmentId == null) {
@@ -315,55 +378,17 @@ public with sharing class DefermentRequestStatusHandler {
             return;
         }
 
-        /*
-         * Handed to a queued job rather than inserted here.
-         *
-         * Creating the enrolment inside this after-update trigger puts it at
-         * the second level of a chain that keeps going: the org's own
-         * ProgramCohortMemberTrigger fires, updates the Programme Enrolment's
-         * batch, and that cascades into the Programme Cohort triggers. In
-         * devfeat the platform gives up at that depth and throws a bare
-         * "Internal Salesforce.com Error" - the identical insert run on its own
-         * succeeds every time.
-         *
-         * A Queueable runs a moment later in a fresh transaction, so the org's
-         * automation gets a clean stack to work in. Everything that can be
-         * checked without DML has already been checked above, so the Programme
-         * Office still gets an immediate, readable message for the mistakes
-         * they can actually make.
-         */
         System.enqueueJob(new RejoiningBatchEnroller(toCreate));
     }
 
-    /**
-     * @description Inserts the rejoining batch enrolments a moment after the
-     *              Deferment Request is saved, in its own transaction.
-     *
-     *              If the insert still fails - the chosen batch is full, or has
-     *              no intake set - the Programme Manager who owns the request is
-     *              e-mailed. A batch enrolment that quietly never happened is
-     *              exactly the failure this whole change exists to prevent, so
-     *              it must not fail silently now that nobody is watching the
-     *              screen.
-     */
     public class RejoiningBatchEnroller implements Queueable {
-
         private final List<ProgramCohortMember> enrolments;
 
-        /**
-         * @description Holds the enrolments until the job runs.
-         * @param members the batch enrolments to create
-         */
         public RejoiningBatchEnroller(List<ProgramCohortMember> members) {
             this.enrolments = members;
         }
 
-        /**
-         * @description Creates the enrolments and reports anything that failed.
-         * @param ctx the queueable context
-         */
         public void execute(QueueableContext ctx) {
-
             List<Database.SaveResult> results =
                 Database.insert(enrolments, false);
 
@@ -384,13 +409,7 @@ public with sharing class DefermentRequestStatusHandler {
             }
         }
 
-        /**
-         * @description E-mails whoever owns the Deferment Requests for the
-         *              rejoining batches that could not be filled.
-         * @param problems one line per failed enrolment
-         */
         private void warnOwners(List<String> problems) {
-
             Set<Id> batchIds = new Set<Id>();
             for (ProgramCohortMember m : enrolments) {
                 batchIds.add(m.ProgramCohortId);
@@ -433,14 +452,6 @@ public with sharing class DefermentRequestStatusHandler {
         }
     }
 
-    /**
-     * @description Picks out the requests that have just moved into "Student
-     *              Record Reactivated", and stops any that have no Rejoining
-     *              Batch chosen.
-     * @param requests the records just saved (Trigger.new)
-     * @param oldById the records as they were before this save (Trigger.oldMap)
-     * @return the requests that should be mapped to a rejoining batch
-     */
     private static List<Deferment_Request__c> justReactivated(
         List<Deferment_Request__c> requests,
         Map<Id, Deferment_Request__c> oldById
@@ -453,7 +464,6 @@ public with sharing class DefermentRequestStatusHandler {
         }
 
         for (Deferment_Request__c request : requests) {
-
             if (request.Status__c != STATUS_RECORD_REACTIVATED) {
                 continue;
             }
@@ -481,12 +491,6 @@ public with sharing class DefermentRequestStatusHandler {
         return reactivated;
     }
 
-    /**
-     * @description Loads the batch enrolment each request was raised against,
-     *              which is where the Roll Number that must be retained lives.
-     * @param reactivated the requests being mapped to a rejoining batch
-     * @return the original batch enrolment, by Deferment Request Id
-     */
     private static Map<Id, ProgramCohortMember> originalEnrolments(
         List<Deferment_Request__c> reactivated
     ) {
@@ -523,14 +527,6 @@ public with sharing class DefermentRequestStatusHandler {
         return byRequest;
     }
 
-    /**
-     * @description Finds the students who already belong to the rejoining batch
-     *              they are being mapped to, so running twice cannot duplicate
-     *              a membership.
-     * @param reactivated the requests being mapped to a rejoining batch
-     * @param originalByRequest the original batch enrolment, by request Id
-     * @return the Programme Enrolment Ids that are already in their batch
-     */
     private static Set<Id> existingMemberships(
         List<Deferment_Request__c> reactivated,
         Map<Id, ProgramCohortMember> originalByRequest
@@ -539,7 +535,6 @@ public with sharing class DefermentRequestStatusHandler {
         Set<Id> enrolmentIds = new Set<Id>();
 
         for (Deferment_Request__c request : reactivated) {
-
             ProgramCohortMember original = originalByRequest.get(request.Id);
 
             if (original == null || original.ProgramEnrollmentId == null) {

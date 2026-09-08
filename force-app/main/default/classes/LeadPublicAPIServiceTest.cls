@@ -6,8 +6,10 @@ private class LeadPublicAPIServiceTest {
 		User u=createSystemAdminUser();
         System.RunAs(u){
         Country_Master__c india = new Country_Master__c(
-            Name = 'India'
-        );
+    Name = 'India',
+    Country_Code__c = '+91',
+    AcceptedNumberLength__c = '10'
+);
         insert india;
 
         State__c stateRec = new State__c(
@@ -74,102 +76,7 @@ private class LeadPublicAPIServiceTest {
     insert u;
     return u;
 }
-
- /*   @IsTest
-static void testApplicantExistingCampaignMember() {
-	
-    User u = [SELECT Id,UserRoleId FROM User WHERE LastName='Admin' LIMIT 1];
-    System.assertNotEquals(
-    null,
-    u.UserRoleId,
-    'Test Account owner must have a role'
-);
-    System.runAs(u){
-        
-    
-    Campaign camp = [SELECT Id FROM Campaign LIMIT 1];
-
-    Id applicantRtId =
-        Schema.SObjectType.Account
-            .getRecordTypeInfosByDeveloperName()
-            .get('Applicant')
-            .getRecordTypeId();
-
-    Profile applicantProfile = [
-    SELECT Id
-    FROM Profile
-    WHERE Name = 'SPJIMR Applicant'
-    LIMIT 1
-];
-Id ownerId = u != null ? u.Id : UserInfo.getUserId();
-    Account applicant = new Account(
-        RecordTypeId = applicantRtId,
-        FirstName = 'John',
-        LastName = 'Doe',
-        PersonEmail = 'johnexisting@test.com',
-        PersonMobilePhone = '9999999999',
-        ownerId=ownerId
-    );
-    insert applicant;
-
-    applicant = [
-        SELECT Id, PersonContactId
-        FROM Account
-        WHERE Id = :applicant.Id
-    ];
-    
-    User applicantUser = new User(
-    Username = 'john@test.com',
-    Alias = 'jdoe',
-    Email = 'john@test.com',
-    LastName = 'Doe',
-    FirstName = 'John',
-    CommunityNickname = 'john' + System.currentTimeMillis(),
-    TimeZoneSidKey = 'Asia/Kolkata',
-    LocaleSidKey = 'en_US',
-    EmailEncodingKey = 'UTF-8',
-    LanguageLocaleKey = 'en_US',
-    ProfileId = applicantProfile.Id,
-    ContactId = applicant.PersonContactId
-);
-
-insert applicantUser;
-
-    // Existing Campaign Member
-    insert new CampaignMember(
-        CampaignId = camp.Id,
-        ContactId = applicant.PersonContactId,
-        Status = 'Sent'
-    );
-
-    String body =
-    '[' +
-        '{' +
-            '"FirstName":"John",' +
-            '"LastName":"Doe",' +
-            '"Email":"johnexisting@test.com",' +
-            '"Phone":"9999999999",' +
-            '"Programme":"PGDM",' +
-            '"CampaignId":"' + camp.Id + '"' +
-        '}' +
-    ']';
-
-    Test.startTest();
-    LeadPublicAPIService.execute(body);
-    Test.stopTest();
-
-    List<CampaignMember> cms = [
-        SELECT Id
-        FROM CampaignMember
-        WHERE CampaignId = :camp.Id
-        AND ContactId = :applicant.PersonContactId
-    ];
-
-    // Still only one CampaignMember
-    System.assertEquals(1, cms.size());
-    }
-}
- */   
+ 
     @IsTest
 static void testInsertCampaignMemberForLead() {
 
@@ -192,7 +99,7 @@ static void testInsertCampaignMemberForLead() {
             '"FirstName":"Lead",' +
             '"LastName":"Campaign",' +
             '"Email":"leadcampaign@test.com",' +
-            '"Phone":"9999991111",' +
+            '"Phone":"+919999991111",' +
             '"Programme":"PGDM",' +
             '"CampaignId":"' + camp.Id + '"' +
         '}' +
@@ -220,99 +127,7 @@ static void testInsertCampaignMemberForLead() {
     System.assertEquals(1, cms.size());
     System.assertEquals('Sent', cms[0].Status);
 }
-    
- /*   @IsTest
-static void testApplicantPath() {
-
-    User u = [SELECT Id,UserRoleId FROM User WHERE LastName='Admin' LIMIT 1];
-    System.assertNotEquals(
-    null,
-    u.UserRoleId,
-    'Test Account owner must have a role'
-);
-    System.runAs(u){
-     Program prog = new Program(
-            Name = 'DM',
-            Program_Code__c = 'DM',
-            Programme_Type__c='Full-time',
-            Short_Programme_Code__c = 'DM',
-            StartDate = System.Today(),
-            Programme_Sub_Type__c = 'Class Room'
-        );
-        insert prog;
-
-    Country_Master__c india = new Country_Master__c(
-        Name = 'India'
-    );
-    insert india;
-
-    Id applicantRtId =
-        Schema.SObjectType.Account
-        .getRecordTypeInfosByDeveloperName()
-        .get('Applicant')
-        .getRecordTypeId();
-Id ownerId = u != null ? u.Id : UserInfo.getUserId();
-
-    Account applicant = new Account(
-        RecordTypeId = applicantRtId,
-        FirstName = 'John',
-        LastName = 'Doe',
-        PersonEmail = 'john@test.com',
-        PersonMobilePhone = '9999999999',
-        ownerId=ownerId
-    );
-    insert applicant;
-    
-    Profile portalProfile = [
-    SELECT Id
-    FROM Profile
-    WHERE Name = 'SPJIMR Applicant'
-    LIMIT 1
-];
-Account acc = [SELECT PersonContactId FROM Account WHERE Id=:applicant.Id LIMIT 1];
-User applicantUser = new User(
-    Username = 'john@test.com',
-    Alias = 'jdoe',
-    Email = 'john@test.com',
-    LastName = 'Doe',
-    FirstName = 'John',
-    CommunityNickname = 'john' + DateTime.now().getTime(),
-    TimeZoneSidKey = 'America/Los_Angeles',
-    LocaleSidKey = 'en_US',
-    EmailEncodingKey = 'UTF-8',
-    LanguageLocaleKey = 'en_US',
-    ProfileId = portalProfile.Id,
-    ContactId = acc.PersonContactId
-);
-insert applicantUser;
-    String body =
-    '[' +
-        '{' +
-            '"FirstName":"John",' +
-            '"LastName":"Doe",' +
-            '"Email":"john@test.com",' +
-            '"Phone":"9999999999",' +
-            '"Programme":"PGDM"' +
-        '}' +
-    ']';
-
-    Test.startTest();
-
-    LeadPublicAPIService.ProcessOutcome result =
-        LeadPublicAPIService.execute(body);
-
-    Test.stopTest();
-
-    List<Opportunity> opps = [
-        SELECT Id, AccountId, Program__c
-        FROM Opportunity
-        WHERE AccountId = :applicant.Id
-    ];
-
-    System.assertEquals(1, opps.size());
-    }
-}
-*/
+ 
     @IsTest
     static void testMissingRequiredFields() {
 
@@ -328,9 +143,8 @@ insert applicantUser;
         LeadPublicAPIService.ProcessOutcome result =
             LeadPublicAPIService.execute(body);
         Test.stopTest();
-
-        System.assertEquals(201, result.statusCode);
-        System.assert(result.responseJson.contains('success'));
+		system.debug('Result: '+result);
+        System.assertEquals(400, result.statusCode);
     }
 
     @IsTest
@@ -340,7 +154,7 @@ insert applicantUser;
             '[{' +
             '"LastName":"Hari",' +
             '"Email":"nav@test.com",' +
-            '"Phone":"9999999999",' +
+            '"Phone":"+919999999999",' +
             '"Programme":"INVALID"' +
             '}]';
 
@@ -360,7 +174,7 @@ insert applicantUser;
             '"FirstName":"Navaneeth",' +
             '"LastName":"Hari",' +
             '"Email":"navaneeth@test.com",' +
-            '"Phone":"8888888888",' +
+            '"Phone":"+918888888888",' +
             '"Programme":"PGDM",' +
             '"State":"Kerala",' +
             '"City":"Kochi"' +
@@ -389,7 +203,7 @@ insert applicantUser;
             LastName = 'Existing',
             Company = 'Test',
             Email = 'existing@test.com',
-            Phone = '7777777777'
+            Phone = '+91 7777777777'
         );
         insert existingLead;
 
@@ -398,7 +212,7 @@ insert applicantUser;
             '"FirstName":"Test",' +
             '"LastName":"Existing",' +
             '"Email":"existing@test.com",' +
-            '"Phone":"7777777777",' +
+            '"Phone":"+91 7777777777",' +
             '"Programme":"PGDM"' +
             '}]';
 
@@ -440,7 +254,7 @@ static void testProcessApplicantPath() {
             FirstName = 'Applicant',
             LastName = 'Test',
             PersonEmail = 'applicant@test.com',
-            PersonMobilePhone = '9999999999'
+            PersonMobilePhone = '+91 9999999999'
         );
 
         Program prog = [
@@ -458,7 +272,7 @@ static void testProcessApplicantPath() {
         lw.FirstName = 'Test';
         lw.LastName = 'Applicant';
         lw.Email = 'applicant@test.com';
-        lw.Phone = '9999999999';
+        lw.Phone = '+91 9999999999';
         lw.Programme = 'PGDM';
 
         LeadPublicAPIService.ReferenceData ref =
@@ -490,7 +304,8 @@ static void testProcessApplicantPath() {
                 oppsToInsert,
                 indexToOpp,
                 indexToAcc,
-                campaignIndexMap
+                campaignIndexMap,
+                new Map<Id, Account>()
             );
 
         Test.stopTest();
@@ -500,6 +315,146 @@ static void testProcessApplicantPath() {
             result
         );
      
+    }
+    
+}
+    @IsTest
+static void testInvalidPhoneLength() {
+
+    String body =
+        '[{' +
+        '"FirstName":"Invalid",' +
+        '"LastName":"Phone",' +
+        '"Email":"invalidphone@test.com",' +
+        '"Phone":"+91999999999",' +
+        '"Programme":"PGDM"' +
+        '}]';
+
+    Test.startTest();
+
+    LeadPublicAPIService.ProcessOutcome result =
+        LeadPublicAPIService.execute(body);
+
+    Test.stopTest();
+
+    System.assertEquals(400, result.statusCode);
+    System.assert(
+        result.responseJson.contains('Invalid phone number length.')
+    );
+}
+    
+    @IsTest
+static void testAttachApplicationsInOrder() {
+
+    User admin = [
+        SELECT Id
+        FROM User
+        WHERE LastName = 'Admin'
+        LIMIT 1
+    ];
+
+    System.runAs(admin) {
+
+        Program prog = [
+            SELECT Id, Name, Program_Code__c
+            FROM Program
+            WHERE Program_Code__c = 'PGDM'
+            LIMIT 1
+        ];
+
+        Id applicantRtId =
+            Schema.SObjectType.Account
+                .getRecordTypeInfosByDeveloperName()
+                .get('Applicant')
+                .getRecordTypeId();
+
+        Account acc = new Account(
+            RecordTypeId = applicantRtId,
+            FirstName = 'Attach',
+            LastName = 'Test',
+            PersonEmail = 'attach@test.com',
+            PersonMobilePhone = '+919999999999'
+        );
+        insert acc;
+
+        acc = [
+            SELECT Id, FirstName, LastName, PersonEmail,
+                   PersonMobilePhone, PersonContactId
+            FROM Account
+            WHERE Id = :acc.Id
+        ];
+
+        Profile applicantProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'SPJIMR Applicant'
+            LIMIT 1
+        ];
+
+        User applicantUser = new User(
+            Username = 'attach' + System.currentTimeMillis() + '@test.com',
+            Alias = 'attest',
+            Email = 'attach' + System.currentTimeMillis() + '@test.com',
+            LastName = 'Applicant',
+            FirstName = 'Attach',
+            CommunityNickname = 'attach' + System.currentTimeMillis(),
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            ProfileId = applicantProfile.Id,
+            ContactId = acc.PersonContactId
+        );
+        insert applicantUser;
+
+        Opportunity opp = new Opportunity(
+            AccountId = acc.Id,
+            Program__c = prog.Id,
+            Name = 'Attach Test - ' + prog.Name,
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(90)
+        );
+        insert opp;
+
+        opp = [
+            SELECT Id, AccountId, Program__c, LeadSource
+            FROM Opportunity
+            WHERE Id = :opp.Id
+        ];
+
+        Map<Integer, Opportunity> indexToOpp =
+            new Map<Integer, Opportunity>{
+                0 => opp
+            };
+
+        Map<Integer, Account> indexToAcc =
+            new Map<Integer, Account>{
+                0 => acc
+            };
+
+        LeadPublicAPI.LeadWrapper lw =
+            new LeadPublicAPI.LeadWrapper();
+
+        lw.FirstName = 'Attach';
+        lw.LastName = 'Test';
+        lw.Email = 'attach@test.com';
+        lw.Phone = '+919999999999';
+        lw.Programme = 'PGDM';
+
+        Map<Integer, LeadPublicAPI.LeadWrapper> validByIndex =
+            new Map<Integer, LeadPublicAPI.LeadWrapper>{
+                0 => lw
+            };
+
+        Test.startTest();
+
+        LeadPublicAPIService.attachApplicationsInOrder(
+            indexToOpp,
+            indexToAcc,
+            validByIndex
+        );
+
+        Test.stopTest();
     }
 }
     

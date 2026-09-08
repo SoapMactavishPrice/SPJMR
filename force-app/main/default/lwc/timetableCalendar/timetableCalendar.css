@@ -4319,12 +4319,22 @@
     margin-bottom: 0.25rem;
     display: block;
 }
+/*se-1339*/
+/* Division label font */
+.division-filter-item .filter-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #181818;
+    margin-bottom: 0.25rem;
+    display: block;
+}/*se-1339*/
 
 /* Reduce faculty combobox width/height feel */
 .faculty-filter-item lightning-combobox {
     --slds-c-input-spacing-block-start: 0.15rem;
     --slds-c-input-spacing-block-end: 0.15rem;
 }
+
 
 /* Smaller hint text */
 .faculty-filter-hint {

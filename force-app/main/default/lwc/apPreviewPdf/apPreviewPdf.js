@@ -1,12 +1,13 @@
 import { LightningElement, api } from 'lwc';
 import pdfLib from '@salesforce/resourceUrl/pdf_lib';
 import { loadScript } from 'lightning/platformResourceLoader';
-import getDocumentMetadata from '@salesforce/apex/FinalPdfFileFetcher.getDocumentMetadata';
-import getPdfChunk from '@salesforce/apex/FinalPdfFileFetcher.getPdfChunk';
-import getVfPdfBase64 from '@salesforce/apex/VfPdfFetcher.getVfPdfBase64';
+
 import getApplicationNumber from '@salesforce/apex/ApplicationNumberFetcher.getApplicationNumber';
 import { CloseActionScreenEvent } from 'lightning/actions';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+import libPdf from '@salesforce/resourceUrl/libpdf';
+import { generatePdf } from 'c/pdfHelper';
 
 import { openInNewTab } from 'c/applicationFormService';
 
@@ -46,6 +47,8 @@ export default class ApPreviewPdf extends LightningElement {
             // ==============================
             if (!this.libLoaded) {
                 await loadScript(this, pdfLib);
+                await loadScript(this, libPdf);
+
                 this.libLoaded = true;
             }
             // ==============================
@@ -59,77 +62,16 @@ export default class ApPreviewPdf extends LightningElement {
             }
 
             const { PDFDocument } = window.PDFLib;
-            const mergedPdf = await PDFDocument.create();
-         
-            const vfBase64 = await getVfPdfBase64({ recordId: this.recordId });
-            const vfBytes = Uint8Array.from(atob(vfBase64), c => c.charCodeAt(0));
-            const vfPdf = await PDFDocument.load(vfBytes);
+            const { PDF: LibPDF } = window.LibPDF;
 
-            const vfPages = await mergedPdf.copyPages(vfPdf, vfPdf.getPageIndices());
-            vfPages.forEach(p => mergedPdf.addPage(p));
 
-            const metadata = await getDocumentMetadata({
-                recordId: this.recordId
+            const finalBytes = await generatePdf({
+                recordId: this.recordId,
+                PDFDocument,
+                LibPDF,
+                includeApplicationForm: true,
+                includeDocuments: true
             });
-
-            const MAX_CHUNK_SIZE = 5000000;
-
-            let chunks = [];
-            let currentChunk = [];
-            let currentSize = 0;
-
-            for (const file of metadata) {
-
-                if (
-                    currentChunk.length > 0 &&
-                    currentSize + file.contentSize > MAX_CHUNK_SIZE
-                ) {
-                    chunks.push(currentChunk);
-                    currentChunk = [];
-                    currentSize = 0;
-                }
-
-                currentChunk.push(file);
-                currentSize += file.contentSize;
-            }
-
-            if (currentChunk.length > 0) {
-                chunks.push(currentChunk);
-            }
-
-            console.log('Chunk length '+chunks.length);
-
-            for (const chunk of chunks) {
-
-                const versionIds = chunk.map(file => file.versionId);
-
-                const pdfFiles = await getPdfChunk({
-                    versionIds
-                });
-
-                const loadedFiles = await Promise.all(
-                    pdfFiles
-                        .filter(file => file.base64Data)
-                        .map(async file => {
-                            const bytes = Uint8Array.from(
-                                atob(file.base64Data),
-                                c => c.charCodeAt(0)
-                            );
-
-                            return PDFDocument.load(bytes);
-                        })
-                );
-
-                for (const pdf of loadedFiles) {
-                    const pages = await mergedPdf.copyPages(
-                        pdf,
-                        pdf.getPageIndices()
-                    );
-                    pages.forEach(page => mergedPdf.addPage(page));
-                }
-            }
-
-            const finalBytes = await mergedPdf.save();
 
             const blob = new Blob([finalBytes], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);

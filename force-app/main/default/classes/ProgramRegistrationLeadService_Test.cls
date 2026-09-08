@@ -88,11 +88,23 @@ static void testCreateLeadAndProgram() {
     ];
 
     Test.startTest();
-
+Map<String, Object> formValues = new Map<String, Object>{
+    'firstName' => 'Test',
+    'lastName' => 'User',
+    'email' => 'test@example.com',
+    'phone' => '+91 9876543210',
+    'utm_source' => 'google',
+    'utm_medium' => 'cpc',
+    'utm_campaign' => 'test_campaign',
+    'utm_term' => 'test_term',
+    'utm_content' => 'test_content'
+};
     ProgramRegistrationLeadService.createLeadAndProgram(
         lead,
         p.Id,
-        cfg
+        cfg,
+        formValues,
+        false
     );
 
     Test.stopTest();

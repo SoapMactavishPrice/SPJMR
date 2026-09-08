@@ -74,3 +74,8 @@
     border-radius: 12px;
     font-weight: 600;
 }
+
+.status-resubmitted {
+    background-color: #fff4e5;
+    color: #b25900;
+}

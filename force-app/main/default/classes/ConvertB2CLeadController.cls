@@ -1,6 +1,6 @@
 public without sharing class ConvertB2CLeadController {
     
-    public class ConversionResult {
+    public class ConversionResult { 
         @AuraEnabled public Boolean isSuccess;
         @AuraEnabled public String message;
         @AuraEnabled public String displayMessage;
@@ -242,6 +242,10 @@ private static ConversionResult handleLeadConversionFailure(
             
             result.accountId = lcr.getAccountId();
             result.contactId = lcr.getContactId();
+            LeadMappingAndTouchService.migrateLeadTouchesToApplicant(
+                leadId,
+                lcr.getAccountId()
+            );
             
             // First update: Change RecordType only (Person Account limitation)
             Account accRecordType = new Account(
@@ -271,7 +275,7 @@ private static ConversionResult handleLeadConversionFailure(
                 PersonMailingCountry = leadRecord.Country_Master_backend__r != null ? leadRecord.Country_Master_backend__r.Name : leadRecord.Country,
                 Country_Master__c = leadRecord.Country_Master_backend__c,
                 State_Master__c = leadRecord.State_Master__c,
-                District_City__c = leadRecord.District_City__c, 
+                District_City__c = leadRecord.District_City__c,
                 Entrance_Exam_Name__c = leadRecord.XS_EntranceExamName__c,
                 Has_Entrance_Exam_Score__c = leadRecord.XS_DoYouHaveEntranceExamScore__c,
                 Publisher_Name__c = leadRecord.Publisher_Name__c,
@@ -281,8 +285,6 @@ private static ConversionResult handleLeadConversionFailure(
                 //     : null
             );
             update acc;
-            //List<Account> listCon = [SELECT PersonContactId FROM Account WHERE
-            //Id =:acc.Id LIMIT 1];
               List<AccountShare> shares = new List<AccountShare>();
             Map<Id, Program> programById = new Map<Id, Program>();
             List<String> orderedProgramIds = new List<String>();
@@ -316,12 +318,11 @@ String formattedProgrammeNames =
                 }
             }
 
-          //update new Contact(Id=listCon[0].PersonContactId,Programs_Applied__c=formattedProgrammeNames);
+          
             Map<String, String> userResult = createCommunityUser(lcr.getAccountId(),formattedProgrammeNames);
             if (userResult.containsKey('ERROR')) {
                 result.isSuccess = false;
-                result.message =
-                    'Lead converted but community user creation failed: ' + userResult.get('ERROR');
+                result.message ='Lead converted but community user creation failed: ' + userResult.get('ERROR');
                 return result;
             }
             
@@ -340,10 +341,7 @@ String formattedProgrammeNames =
             }
             for (Id pid : programIdsForNames) {
                 if (!programById.containsKey(pid)) {
-                    for (Program row : [
-                        SELECT Id, Name, Program_Code__c, ParentProgramId
-                        FROM Program
-                        WHERE Id = :pid
+                    for (Program row : [SELECT Id, Name, Program_Code__c, ParentProgramId FROM Program WHERE Id = :pid
                         LIMIT 1
                     ]) {
                         programById.put(row.Id, row);
@@ -365,8 +363,7 @@ String formattedProgrammeNames =
                 Id programIdForOpp = B2CProgramParentHelper.opportunityAndApplicationProgramId(members);
                 Program nameSource = programById.get(programIdForOpp);
                 String programDisplayName = nameSource != null && String.isNotBlank(nameSource.Name)
-                    ? nameSource.Name
-                    : 'Program';
+                    ? nameSource.Name : 'Program';
 
                 Id reuseAppId = B2CProgramParentHelper.findReusableApplicationForParentFamily(
                     lcr.getAccountId(),
@@ -387,16 +384,14 @@ String formattedProgrammeNames =
                     }
                 }
                 opp.LeadSource = sourceLp != null && sourceLp.Lead_Source__c != null
-                    ? sourceLp.Lead_Source__c
-                    : leadRecord.LeadSource;
+                    ? sourceLp.Lead_Source__c: leadRecord.LeadSource;
                 opp.RecordTypeId = b2cOppRtId;
                 if (reuseAppId != null) {
                     opp.Application__c = reuseAppId;
                 }
 
                 opp.B2C_Program_Code__c = nameSource != null && String.isNotBlank(nameSource.Program_Code__c)
-                    ? nameSource.Program_Code__c.trim()
-                    : null;
+                    ? nameSource.Program_Code__c.trim(): null;
 
                 opportunitiesToInsert.add(opp);
                 familyKeyToOpportunity.put(B2CProgramParentHelper.familyGroupKey(members[0]), opp);
@@ -475,8 +470,7 @@ String formattedProgrammeNames =
                     app.Applicant__c = lcr.getAccountId();
                     app.Program__c = programIdForAppList[idx];
                     app.LeadSource__c = sourceLp != null && sourceLp.Lead_Source__c != null
-                        ? sourceLp.Lead_Source__c
-                        : leadRecord.LeadSource;
+                        ? sourceLp.Lead_Source__c: leadRecord.LeadSource;
                     app.HasExamScores__c = leadRecord.XS_DoYouHaveEntranceExamScore__c=='Yes'?
                     'Yes':'No';
                     
@@ -515,8 +509,7 @@ String formattedProgrammeNames =
                  'Please check your inbox for your login credentials to begin your' +
                  ' application for the ' + formattedProgrammeNames+ ' at SPJIMR.';
             } else {
-                result.message = 'Lead converted successfully! Created: 1 Account (Applicant) and ' +
-                    opportunitiesToInsert.size() + ' Opportunity(ies). Application creation is set to manual.';
+                result.message = 'Lead converted successfully! Created: 1 Account (Applicant) and ' + opportunitiesToInsert.size() + ' Opportunity(ies). Application creation is set to manual.';
             }
             
         } catch (Exception e) {
@@ -700,11 +693,9 @@ private static Map<String, Object> handleCreateApplicationException(
 
         Account pa = listPersonAccount[0];
         String aliasFirst = (pa.FirstName != null && pa.FirstName.length() > 0)
-            ? pa.FirstName.substring(0, 1)
-            : 'U';
+            ? pa.FirstName.substring(0, 1): 'U';
         String aliasLast = (pa.LastName != null && pa.LastName.length() > 0)
-            ? pa.LastName.substring(0, 1)
-            : 'U';
+            ? pa.LastName.substring(0, 1): 'U';
 
         User u = new User(
             LastName = pa.LastName,

@@ -441,7 +441,7 @@ static void testGetActiveDefermentRequest_Approved() {
 
     Deferment_Request__c req = createRequest(
         acc.Id,
-        'Rejoining Details',
+        'Rejoining Details Updated',
         1000,
         Datetime.now().addHours(-5),
         Datetime.now().addHours(5)
@@ -458,7 +458,7 @@ static void testGetActiveDefermentRequest_Approved() {
         System.assertEquals(
             'APPROVED',
             result.windowStatus,
-            'Request with status Rejoining Details should be APPROVED.'
+            'Request with status Rejoining Details Updated should be APPROVED.'
         );
 
         System.assert(

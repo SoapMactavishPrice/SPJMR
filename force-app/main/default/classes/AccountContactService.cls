@@ -75,7 +75,7 @@ public without sharing class AccountContactService {
     }
 
 
-    private static Set<Id> getChildAccountIds(Set<Id> parentIds) {
+  /*  private static Set<Id> getChildAccountIds(Set<Id> parentIds) {
 
         Set<Id> allChildIds = new Set<Id>();
         Set<Id> toProcess = new Set<Id>(parentIds);
@@ -99,7 +99,7 @@ public without sharing class AccountContactService {
         }
 
         return allChildIds;
-    }
+    }*/
 
     public class FlowInput {
     @InvocableVariable(required=true)

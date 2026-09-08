@@ -1,18 +1,32 @@
 <template>
-    <div style="min-height:150px" class="slds-align_absolute-center slds-text-align_center">
-
-        <template if:true={isLoading}>
-            <lightning-spinner alternative-text="Generating PDF..." size="medium"></lightning-spinner>
-            <div style="margin-top:12px;font-weight:bold;">
-                Generating PDF, please wait...
+    <template if:true={isGenerating}>
+        <div class="slds-p-around_large slds-align_absolute-center">
+            <div>
+                <lightning-spinner alternative-text="Generating PDF"></lightning-spinner>
+                <div class="slds-m-top_medium slds-text-heading_small">
+                    Generating PDF preview...
+                </div>
             </div>
-        </template>
+        </div>
+    </template>
 
-        <template if:false={isLoading}>
-            <div style="font-weight:bold;">
-                Starting PDF generation...
+    <template if:true={isReady}>
+        <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">PDF Ready</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    Your PDF preview has been generated.
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Close" onclick={handleClose}></lightning-button>
+                    <lightning-button class="slds-m-left_small" variant="brand"
+                        label="Open PDF"
+                        onclick={handleOpen}></lightning-button>
+                </footer>
             </div>
-        </template>
-
-    </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
 </template>
