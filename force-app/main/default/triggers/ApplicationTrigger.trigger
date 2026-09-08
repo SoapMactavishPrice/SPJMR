@@ -1,4 +1,7 @@
-trigger ApplicationTrigger on Application__c (After Insert ,After Update ) {
+trigger ApplicationTrigger on Application__c (after insert, after update, before update) {
+    if (Trigger.isBefore && Trigger.isUpdate) {
+        ApplicationTriggerHandler.handleBeforeUpdate(Trigger.new, Trigger.oldMap);
+    }
     if (Trigger.isAfter && Trigger.isUpdate) {
         ApplicationTriggerHandler.handleAfterUpdate(Trigger.new, Trigger.oldMap);
     }

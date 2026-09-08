@@ -50,6 +50,29 @@ public without sharing class ApplicationTriggerHandler {
     }
 
     /**
+     * Before update: clear OfferWithdrawalDateTime__c when Applicant_State_Management__c changes to 'Offer Issued'.
+     *
+     * @param newList Trigger.new Application rows.
+     * @param oldMap Trigger.oldMap by Application Id.
+     */
+    public static void handleBeforeUpdate(List<Application__c> newList, Map<Id, Application__c> oldMap) {
+        if (newList == null || newList.isEmpty() || oldMap == null) {
+            return;
+        }
+
+        for (Application__c app : newList) {
+            Application__c oldApp = oldMap.get(app.Id);
+            if (oldApp == null) {
+                continue;
+            }
+
+            if (changedTo(app.Applicant_State_Management__c, oldApp.Applicant_State_Management__c, 'Offer Issued')) {
+                app.OfferWithdrawalDateTime__c = null;
+            }
+        }
+    }
+
+    /**
      * After update: push stage to related opportunities when status or application stage changes.
      *
      * @param newList Trigger.new Application rows.
