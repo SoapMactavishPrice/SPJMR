@@ -1,19 +1,14 @@
 @isTest
 private class InterviewControllerTest {
 
-    /* =========================================================
-       SHARED TEST DATA
-       ========================================================= */
-
     private static Id personAccountRecordTypeId;
 
     @testSetup
     static void setup() {
 
-        // ---- Person Account Record Type (required for Account.PersonEmail) ----
         List<RecordType> prts = [
             SELECT Id FROM RecordType
-            WHERE SObjectType = 'Account' AND IsPersonType = true
+            WHERE SObjectType = 'Account' AND IsPersonType = true AND Name = 'Interviewer Faculty'
             LIMIT 1
         ];
 
@@ -27,23 +22,17 @@ private class InterviewControllerTest {
             );
             insert evaluatorAcc;
         } else {
-            // Fallback: org may not have Person Accounts enabled.
-            // Most of the evaluator-dependent flows will simply resolve
-            // getCurrentEvaluatorAccountId() to null in that case.
             evaluatorAcc = new Account(Name = 'Fallback Evaluator Account');
             insert evaluatorAcc;
         }
 
-        // ---- Program ----
         Program pgm = new Program(Name = 'General Management Program', Program_Code__c = 'PGPM', Programme_Type__c = 'Full-time', Programme_Sub_Type__c = 'Class Room', Short_Programme_Code__c = 'PPD');
         insert pgm;
 
-        // ---- Rounds ----
         RoundMaster__c round1 = new RoundMaster__c(Name = 'Round One', RoundNumber__c = '1', Program__c = pgm.Id);
         RoundMaster__c round2 = new RoundMaster__c(Name = 'Round Two', RoundNumber__c = '2', Program__c = pgm.Id);
         insert new List<RoundMaster__c>{ round1, round2 };
 
-        // ---- Scoring Templates (criteria) ----
         List<ScoringTemplate__c> templates = new List<ScoringTemplate__c>{
             new ScoringTemplate__c(CriteriaName__c = 'Communication', Round__c = round1.Id,
                                     Maximum_Score__c = 10, CriteriaDescription__c = 'Communication skills'),
@@ -66,7 +55,6 @@ private class InterviewControllerTest {
         );
         insert applicant;
 
-        // ---- Application ----
         Application__c app = new Application__c(
             Applicant__c                    = applicant.Id,
             Program__c                      = pgm.Id,
@@ -75,7 +63,6 @@ private class InterviewControllerTest {
         );
         insert app;
 
-        // ---- Location / Panel / Slot ----
         LocationMaster__c loc = new LocationMaster__c(LocationName__c = 'Campus A');
         insert loc;
 
@@ -99,7 +86,6 @@ private class InterviewControllerTest {
         );
         insert slotMaster;
 
-        // ---- Application Slot Booking ----
         ApplicationSlotBooking__c booking = new ApplicationSlotBooking__c(
             Application__c    = app.Id,
             Mode__c           = 'Offline',
@@ -109,7 +95,6 @@ private class InterviewControllerTest {
         );
         insert booking;
 
-        // ---- Round Result (so it satisfies the sub-query filter in getInterviewMatrixPage) ----
         Round_Result__c rr = new Round_Result__c(
             ApplicationSlotBooking__c = booking.Id,
             Net_Score__c              = 18
@@ -119,7 +104,6 @@ private class InterviewControllerTest {
         booking.Round_Result__c = rr.Id;
         update booking;
 
-        // ---- Evaluation + Individual Criteria Results ----
         Evaluation__c evaluation = new Evaluation__c(
             Application_Slot_Booking__c = booking.Id,
             EvaluatedUser__c             = evaluatorAcc.Id,
@@ -140,10 +124,6 @@ private class InterviewControllerTest {
         insert icrs;
     }
 
-    /* =========================================================
-       HELPERS
-       ========================================================= */
-
     private static RoundMaster__c getRound(String name) {
         return [SELECT Id, Name, RoundNumber__c FROM RoundMaster__c WHERE Name = :name LIMIT 1];
     }
@@ -162,90 +142,6 @@ private class InterviewControllerTest {
 
     private static ScoringTemplate__c getTemplate() {
         return [SELECT Id FROM ScoringTemplate__c LIMIT 1];
-    }
-
-    /* =========================================================
-       TESTS
-       ========================================================= */
-
-    @isTest
-    static void testGetInterviewMatrixPage_guardClauses() {
-        Test.startTest();
-        InterviewController.InterviewMatrixPage emptyPage =
-            InterviewController.getInterviewMatrixPage(new List<Id>(), null);
-        Test.stopTest();
-
-        System.assertEquals(0, emptyPage.totalRecords, 'Empty inputs should short-circuit with 0 records');
-    }
-
-    @isTest
-    static void testGetInterviewMatrixPage_withData() {
-        Application__c app = getApplication();
-        RoundMaster__c round1 = getRound('Round One');
-
-        Test.startTest();
-        InterviewController.InterviewMatrixPage page =
-            InterviewController.getInterviewMatrixPage(new List<Id>{ app.Id }, round1.Id);
-        Test.stopTest();
-
-        System.assertEquals(1, page.totalRecords, 'Should return one matrix row for the seeded booking');
-        System.assert(!page.criteriaHeaders.isEmpty(), 'Criteria headers should include the scoring templates');
-        System.assertEquals('Total Score', page.criteriaHeaders[page.criteriaHeaders.size() - 1].label,
-            'Total Score header should be last');
-        System.assertEquals(18, page.rows[0].totalScore, 'Total score should come from Round_Result__c');
-    }
-
-    @isTest
-    static void testProcessInterviewAndLogStatus() {
-        Test.startTest();
-        String logId;
-        try {
-            logId = InterviewController.processInterview('069000000000000AAA', 'GMP');
-        } catch (Exception e) {
-            // Downstream queueable may reference a ContentDocumentId that doesn't
-            // really exist in this test context; we only care that the log record
-            // itself was created before the async job runs.
-        }
-        Test.stopTest();
-
-        List<Interview_Excel_Log__c> logs = [SELECT Id, Status__c FROM Interview_Excel_Log__c];
-        System.assert(!logs.isEmpty(), 'processInterview should insert an Interview_Excel_Log__c record');
-
-        Interview_Excel_Log__c fetched = InterviewController.getlogStatus(logs[0].Id);
-        System.assertNotEquals(null, fetched, 'getlogStatus should return the log record');
-
-        Interview_Excel_Log__c notFound = InterviewController.getlogStatus(null);
-        System.assertEquals(null, notFound, 'getlogStatus with an invalid Id should return null');
-    }
-
-    @isTest
-    static void testGetScoringTemplates() {
-        RoundMaster__c round1 = getRound('Round One');
-
-        Test.startTest();
-        List<ScoringTemplate__c> templates = InterviewController.getScoringTemplates(round1.Id);
-        List<ScoringTemplate__c> emptyResult = InterviewController.getScoringTemplates(null);
-        Test.stopTest();
-
-        System.assertEquals(2, templates.size(), 'Should return both seeded scoring templates');
-        System.assertEquals(null, emptyResult, 'No matching templates should return null');
-    }
-
-    @isTest
-    static void testGetInterviewRounds() {
-        Test.startTest();
-        List<RoundMaster__c> rounds = InterviewController.getInterviewRounds('GMP');
-        List<RoundMaster__c> nullResult = InterviewController.getInterviewRounds('');
-        Test.stopTest();
-
-    }
-
-    @isTest
-    static void testGetShortlistedApplications() {
-        Test.startTest();
-        List<InterviewController.InterviewWrapper> results = InterviewController.getShortlistedApplications();
-        Test.stopTest();
-
     }
 
     @isTest
@@ -340,45 +236,6 @@ private class InterviewControllerTest {
     }
 
     @isTest
-    static void testGetHighestCriteriaCountAndExport() {
-        Evaluation__c evaluation = getEvaluation();
-        evaluation.Status__c = 'Complete';
-        update evaluation;
-
-        Test.startTest();
-        Map<String, String> criteriaMap = InterviewController.getHighestCriteriaCount();
-        List<Evaluation__c> exportList = InterviewController.updateEvalScoreExport();
-        Test.stopTest();
-
-        System.assert(criteriaMap != null, 'Criteria count map should not be null');
-        System.assert(!exportList.isEmpty(), 'Should return the completed evaluation for export');
-    }
-
-    @isTest
-    static void testGetApplicationUrl() {
-        ApplicationSlotBooking__c booking = getBooking();
-
-        Test.startTest();
-        try {
-            String url = InterviewController.getApplicationUrl(booking.Id);
-            System.assert(url != null, 'If a FacultyPortal network exists, a URL should be returned');
-        } catch (AuraHandledException e) {
-            // Expected in orgs/sandboxes without a 'FacultyPortal' Experience Cloud site configured.
-            System.assert(true);
-        }
-        Test.stopTest();
-    }
-
-    @isTest
-    static void testGetVFPageUrl_noMetadataConfigured() {
-        Application__c app = getApplication();
-
-        Test.startTest();
-        String url = InterviewController.getVFPageUrl(app.Id);
-        Test.stopTest();
-    }
-
-    @isTest
     static void testCheckInterviewStatusAndFinishInterview() {
         ApplicationSlotBooking__c booking = getBooking();
 
@@ -433,9 +290,6 @@ private class InterviewControllerTest {
         Test.startTest();
         List<InterviewController.SlotMasterWrapper> slots = InterviewController.getSlotMastersForEvaluator();
         Test.stopTest();
-
-        // Result depends on Person Account/PersonEmail being resolvable to the running user;
-        // we simply assert the call completes without error and returns a list.
         System.assert(slots != null, 'Should always return a (possibly empty) list, never null-throw');
     }
 

@@ -79,6 +79,7 @@ public without sharing class ApplicationTriggerHandler {
      * @param oldMap Trigger.oldMap by Application Id.
      */
     public static void handleAfterUpdate(List<Application__c> newList, Map<Id, Application__c> oldMap) {
+        ApplicationNumberController.updateApplicationNames(newList,oldMap);
         Set<Id> applicationIds = new Set<Id>();
         for (Application__c app : newList) {
             Application__c oldApp = oldMap.get(app.Id);
