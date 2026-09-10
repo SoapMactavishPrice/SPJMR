@@ -134,7 +134,7 @@
 
                     <div class="offer-actions">
                         <template lwc:if={offer.viewVariant}>
-                            <lightning-button label="View" icon-name="utility:preview" variant={offer.viewVariant}
+                            <lightning-button label={offer.viewLabel} icon-name="utility:preview" variant={offer.viewVariant}
                                 data-admid={offer.admissionDecisionId} onclick={handleViewAcceptance}>
                             </lightning-button>
                         </template>

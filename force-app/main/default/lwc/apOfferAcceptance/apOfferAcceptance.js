@@ -294,6 +294,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                             showWithdrawButton: false,
                             showAwaitingResponse: false,
                             viewVariant: 'neutral', // Show View button for withdrawn
+                            viewLabel: 'View Refund Details',
                             showButtons: false
                         };
                     }
@@ -309,7 +310,8 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         hasPendingDocuments: false,
                         showDownloadOffer: false,
                         showAwaitingResponse: false,
-                        viewVariant: 'neutral' // Show View button for withdrawn
+                        viewVariant: 'neutral', // Show View button for withdrawn
+                        viewLabel: 'View Refund Details'
                     };
                 }
 
@@ -548,6 +550,7 @@ export default class ApOfferAcceptance extends NavigationMixin(LightningElement)
                         selectedRejected: false,
                         showButtons: computedShowButtons,
                         viewVariant: viewVariant,
+                        viewLabel: isWithdrawn ? 'View Refund Details' : 'View',
                         showWithdrawButton: (applicantState === 'Offer Accepted'),
                         showDownloadOffer: (!!item.offerLetterLink && !offerDownloadHidden),
                         isWithdrawDisabled: (item.isOfferWithdrawn === 'true'),
