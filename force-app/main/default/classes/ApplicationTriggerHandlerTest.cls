@@ -20,6 +20,20 @@ private class ApplicationTriggerHandlerTest {
         return opp;
     }
 
+    private static Program createProgram() {
+        Program programRec = new Program(
+            Name = 'PGPM',
+            Program_Code__c = 'PGPM',
+            StartDate = Date.today().addDays(11),
+            EndDate = Date.today().addDays(21),
+            Programme_Type__c = 'Full-time',
+            Programme_Sub_Type__c = 'Class Room',
+            Short_Programme_Code__c = 'PPD'
+        );
+        insert programRec;
+        return programRec;
+    }
+
     @IsTest
     static void testInitiatedStatusUpdatesOpportunity() {
 
@@ -205,13 +219,7 @@ private class ApplicationTriggerHandlerTest {
 
     @IsTest
     static void testHandleApplicationStatusChangeScenarios_OfferAccepted() {
-        Program programRec = new Program(Name = 'PGDM', Program_Code__c = 'PGPM',
-            StartDate = Date.today().addDays(8).addDays(8).addDays(-5),
-            EndDate = Date.today().addDays(8).addDays(8).addDays(5),
-            Programme_Type__c = 'Full-time',
-            Programme_Sub_Type__c = 'Class Room',
-            Short_Programme_Code__c = 'PPD');
-        insert programRec;
+        Program programRec = createProgram();
 
         Application__c app = createApplication();
         app.Program__c = programRec.Id;
@@ -422,17 +430,11 @@ private class ApplicationTriggerHandlerTest {
 
     @IsTest
     static void testHandleAfterInsertPgdmSync_WithMatchingOwner() {
-        Program programRec = new Program(Name = 'PGPM', Program_Code__c = 'PGPM',
-            StartDate = Date.today().addDays(8).addDays(8).addDays(-5),
-            EndDate = Date.today().addDays(8).addDays(8).addDays(5),
-            Programme_Type__c = 'Full-time',
-            Programme_Sub_Type__c = 'Class Room',
-            Short_Programme_Code__c = 'PPD');
-        insert programRec;
+        Program programRec = createProgram();
 
         RecordType personRt = [
-            SELECT Id FROM RecordType 
-            WHERE SObjectType = 'Account' AND IsPersonType = true 
+            SELECT Id FROM RecordType
+            WHERE SObjectType = 'Account' AND IsPersonType = true
             LIMIT 1
         ];
 
@@ -458,10 +460,6 @@ private class ApplicationTriggerHandlerTest {
         List<Program_Detail__c> details = [
             SELECT ProgrammesInterestedIn__c FROM Program_Detail__c WHERE Application__c = :app.Id
         ];
-        // System.assertEquals(
-        //     'Post Graduate Diploma in Management;Post Graduate Diploma in Management (Business Management)',
-        //     details[0].ProgrammesInterestedIn__c
-        // );
     }
 
     @IsTest
@@ -485,27 +483,16 @@ private class ApplicationTriggerHandlerTest {
         Test.stopTest();
     }
 
-    // ===== PGDM sync (update) =====
+    // ===== PGDM sync (update) — single PGPM Program record only =====
 
     @IsTest
     static void testHandleAfterUpdatePgdmSync_UpdatesDetail() {
-        Program programOld = new Program(Name = 'PGOM', Program_Code__c = 'PGPM',
-            StartDate = Date.today().addDays(8).addDays(8).addDays(-5),
-            EndDate = Date.today().addDays(8).addDays(8).addDays(5),
-            Programme_Type__c = 'Full-time',
-            Programme_Sub_Type__c = 'Class Room',
-            Short_Programme_Code__c = 'PPD');
-        Program programNew = new Program(Name = 'PGJM', Program_Code__c = 'PGPM',
-            StartDate = Date.today().addDays(8).addDays(8).addDays(-5),
-            EndDate = Date.today().addDays(8).addDays(8).addDays(5),
-            Programme_Type__c = 'Full-time',
-            Programme_Sub_Type__c = 'Class Room',
-            Short_Programme_Code__c = 'PPD');
-        insert new List<Program>{programOld, programNew};
+        Program programRec = createProgram();
 
         Application__c app = createApplication();
-        app.Program__c = programOld.Id;
-        update app;
+
+        Application__c oldApp = app.clone(false, true, false, false);
+        oldApp.Program__c = null;
 
         Program_Detail__c detail = new Program_Detail__c(
             Application__c = app.Id,
@@ -513,8 +500,7 @@ private class ApplicationTriggerHandlerTest {
         );
         insert detail;
 
-        Application__c oldApp = app.clone(false, true, false, false);
-        app.Program__c = programNew.Id;
+        app.Program__c = programRec.Id;
         update app;
 
         Test.startTest();
@@ -527,32 +513,18 @@ private class ApplicationTriggerHandlerTest {
         List<Program_Detail__c> updatedDetails = [
             SELECT ProgrammesInterestedIn__c FROM Program_Detail__c WHERE Id = :detail.Id
         ];
-        // System.assertEquals(
-        //     'Post Graduate Diploma in Management (Business Management)',
-        //     updatedDetails[0].ProgrammesInterestedIn__c
-        // );
     }
 
     @IsTest
     static void testHandleAfterUpdatePgdmSync_SkipsWhenPaymentLocked() {
-        Program programOld = new Program(Name = 'PGLM', Program_Code__c = 'PGPM',
-            StartDate = Date.today().addDays(8).addDays(8).addDays(-5),
-            EndDate = Date.today().addDays(8).addDays(8).addDays(5),
-            Programme_Type__c = 'Full-time',
-            Programme_Sub_Type__c = 'Class Room',
-            Short_Programme_Code__c = 'PPD');
-        Program programNew = new Program(Name = 'PGUM', Program_Code__c = 'PGPM',
-            StartDate = Date.today().addDays(8).addDays(8).addDays(-5),
-            EndDate = Date.today().addDays(8).addDays(8).addDays(5),
-            Programme_Type__c = 'Full-time',
-            Programme_Sub_Type__c = 'Class Room',
-            Short_Programme_Code__c = 'PPD');
-        insert new List<Program>{programOld, programNew};
+        Program programRec = createProgram();
 
         Application__c app = createApplication();
-        app.Program__c = programOld.Id;
         app.Application_Status__c = 'Paid';
         update app;
+
+        Application__c oldApp = app.clone(false, true, false, false);
+        oldApp.Program__c = null;
 
         Program_Detail__c detail = new Program_Detail__c(
             Application__c = app.Id,
@@ -560,8 +532,7 @@ private class ApplicationTriggerHandlerTest {
         );
         insert detail;
 
-        Application__c oldApp = app.clone(false, true, false, false);
-        app.Program__c = programNew.Id;
+        app.Program__c = programRec.Id;
         update app;
 
         Test.startTest();

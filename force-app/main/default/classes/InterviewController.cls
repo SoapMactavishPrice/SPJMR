@@ -153,7 +153,7 @@ global with sharing class InterviewController {
                     Application_Slot_Booking__c = request.bookingId,
                     EvaluatedUser__c = currentAccId,
                     EvaluatedBy__c = currentEvaluator.Name,
-                    Status__c = 'Pending'
+                    Status__c = 'In Progress'
                 );
                 insertIndexToRequest.put(evaluationsToInsert.size(), request);
                 evaluationsToInsert.add(newEvaluation);
@@ -273,7 +273,7 @@ global with sharing class InterviewController {
         try {
             Id currentAccId = getCurrentEvaluatorAccountId();
             if (currentAccId == null) {
-                return 'Pending';
+                return 'Not Started';
             }
 
             List<Evaluation__c> listEvalId = [
@@ -290,7 +290,7 @@ global with sharing class InterviewController {
                 }
             }
 
-            return 'Pending';
+            return 'Not Started';
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
@@ -429,7 +429,7 @@ global with sharing class InterviewController {
                 Evaluation__c evalRecord = new Evaluation__c(Application_Slot_Booking__c = slotId,
                EvaluatedUser__c = listEvaluator[0].Id,EvaluatedBy__c = listEvaluator[0].Name,
                 // Scoring_Template__c =criteriaList[0].Id,
-                Status__c = 'Pending' );
+                Status__c = 'In Progress' );
                 
                 try{
                     insert evalRecord;

@@ -14,7 +14,7 @@ import { openInNewTab } from 'c/applicationFormService';
 
 const STATUS_VARIANT = {
     'Complete'    : 'slds-badge slds-theme_success',
-    'Pending'     : 'slds-badge slds-theme_warning',
+    'In Progress' : 'slds-badge slds-theme_warning',
     'Not Started' : 'slds-badge'
 };
 

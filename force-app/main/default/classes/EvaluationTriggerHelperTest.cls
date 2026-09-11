@@ -44,7 +44,7 @@ private class EvaluationTriggerHelperTest {
         Evaluation__c eval = new Evaluation__c(
             Application_Slot_Booking__c = booking.Id,
             EvaluatedUser__c = evaluator.Id,
-            Status__c = 'Pending'
+            Status__c = 'In Progress'
         );
         insert eval;
     }
@@ -54,7 +54,7 @@ private class EvaluationTriggerHelperTest {
         Evaluation__c eval = [SELECT Id, Status__c, EvaluationDate__c FROM Evaluation__c LIMIT 1];
         
         Evaluation__c oldEval = eval.clone(true, true, false, false);
-        oldEval.Status__c = 'Pending';
+        oldEval.Status__c = 'In Progress';
         
         eval.Status__c = 'Complete';
 
@@ -73,13 +73,13 @@ private class EvaluationTriggerHelperTest {
     @IsTest
     static void testUpdateEvaluationDateBasedOnStatusNoChange() {
         Evaluation__c eval = [SELECT Id, Status__c, EvaluationDate__c FROM Evaluation__c LIMIT 1];
-        eval.Status__c = 'Pending';
+        eval.Status__c = 'In Progress';
         update eval;
         
         eval = [SELECT Id, Status__c, EvaluationDate__c FROM Evaluation__c WHERE Id = :eval.Id];
         
         Evaluation__c oldEval = eval.clone(true, true, false, false);
-        oldEval.Status__c = 'Pending';
+        oldEval.Status__c = 'In Progress';
 
         Map<Id, Evaluation__c> oldMap = new Map<Id, Evaluation__c>{ eval.Id => oldEval };
 

@@ -108,7 +108,7 @@ private class InterviewControllerTest {
             Application_Slot_Booking__c = booking.Id,
             EvaluatedUser__c             = evaluatorAcc.Id,
             EvaluatedBy__c               = evaluatorAcc.Name,
-            Status__c                    = 'Pending'
+            Status__c                    = 'In Progress'
         );
         insert evaluation;
 
@@ -243,7 +243,7 @@ private class InterviewControllerTest {
         String statusBefore = InterviewController.checkInterviewStatus(booking.Id);
         Test.stopTest();
 
-        System.assertEquals('Pending', statusBefore);
+        System.assertEquals('Not Started', statusBefore);
     }
 
     @isTest
