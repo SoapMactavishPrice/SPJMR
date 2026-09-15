@@ -1,5 +1,58 @@
 @IsTest
 private class OfferLetterGeneratorBulkTest {
+
+    @testSetup
+    static void setup() {
+        Profile sysAdminProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'System Administrator'
+            LIMIT 1
+        ];
+
+        UserRole studentCounsellorRole = new UserRole(
+            Name = 'Student_Counsellor',
+            DeveloperName = 'StudentCounsellor'
+        );
+        insert studentCounsellorRole;
+
+        User testUser = new User(
+            FirstName = 'Test',
+            LastName = 'Admin',
+            Alias = 'tadmin',
+            Email = 'testadmin@example.com',
+            Username = 'testadmin.@987example.com',
+            ProfileId = sysAdminProfile.Id,
+            UserRoleId = studentCounsellorRole.Id,
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_IN',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert testUser;
+
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team', 'EducationCloudAccess')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('Admissions_Team')
+            ),
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('EducationCloudAccess')
+            )
+        };
+    }
+
     private static Integer sequence = 0;
 
     private static Program createProgram(String programCode) {
@@ -59,33 +112,49 @@ private class OfferLetterGeneratorBulkTest {
 
     @IsTest
     static void constructorTreatsNullListAsEmpty() {
-        OfferLetterGeneratorBulk job = new OfferLetterGeneratorBulk(null);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+            OfferLetterGeneratorBulk job = new OfferLetterGeneratorBulk(null);
 
-        Test.startTest();
-        job.execute(null);
-        Test.stopTest();
+            Test.startTest();
+            job.execute(null);
+            Test.stopTest();
 
-        // No exception and no further jobs enqueued confirms the null
-        // list was normalized to empty and execute() short-circuited.
-        System.assertEquals(
-            0,
-            [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'OfferLetterGeneratorBulk']
-        );
+            // No exception and no further jobs enqueued confirms the null
+            // list was normalized to empty and execute() short-circuited.
+            System.assertEquals(
+                0,
+                [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'OfferLetterGeneratorBulk']
+            );
+        }
     }
 
     @IsTest
     static void executeIsNoOpForEmptyList() {
-        OfferLetterGeneratorBulk job =
-            new OfferLetterGeneratorBulk(new List<Id>());
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+            OfferLetterGeneratorBulk job =
+                new OfferLetterGeneratorBulk(new List<Id>());
 
-        Test.startTest();
-        job.execute(null);
-        Test.stopTest();
+            Test.startTest();
+            job.execute(null);
+            Test.stopTest();
 
-        System.assertEquals(
-            0,
-            [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'OfferLetterGeneratorBulk']
-        );
+            System.assertEquals(
+                0,
+                [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'OfferLetterGeneratorBulk']
+            );
+        }
     }
 
     // ---------------------------------------------------------------
@@ -95,24 +164,32 @@ private class OfferLetterGeneratorBulkTest {
 
     @IsTest
     static void executeSkipsCommunicationWhenDecisionNotEligible() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(programRecord.Id, 'Dana Park');
-        Admission_Decision__c decision = createDecision(application.Id, 'Not Eligible');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(programRecord.Id, 'Dana Park');
+            Admission_Decision__c decision = createDecision(application.Id, 'Not Eligible');
 
-        OfferLetterGeneratorBulk job =
-            new OfferLetterGeneratorBulk(new List<Id>{ decision.Id });
+            OfferLetterGeneratorBulk job =
+                new OfferLetterGeneratorBulk(new List<Id>{ decision.Id });
 
-        Test.startTest();
-        job.execute(null);
-        Test.stopTest();
+            Test.startTest();
+            job.execute(null);
+            Test.stopTest();
 
-        // Not eligible => generateOfferLetter returns null before any
-        // ContentVersion/config lookup, and no chained job is enqueued
-        // since the (deduped) id list is now empty.
-        System.assertEquals(
-            0,
-            [SELECT COUNT() FROM ContentVersion WHERE AdmissionId__c = :decision.Id]
-        );
+            // Not eligible => generateOfferLetter returns null before any
+            // ContentVersion/config lookup, and no chained job is enqueued
+            // since the (deduped) id list is now empty.
+            System.assertEquals(
+                0,
+                [SELECT COUNT() FROM ContentVersion WHERE AdmissionId__c = :decision.Id]
+            );
+        }
     }
 
     // ---------------------------------------------------------------
@@ -123,21 +200,29 @@ private class OfferLetterGeneratorBulkTest {
 
     @IsTest
     static void executeSwallowsExceptionWhenNoActiveConfigForProgramCode() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(programRecord.Id, 'Lee Chow');
-        Admission_Decision__c decision = createDecision(application.Id, 'Eligible for Admission');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(programRecord.Id, 'Lee Chow');
+            Admission_Decision__c decision = createDecision(application.Id, 'Eligible for Admission');
 
-        OfferLetterGeneratorBulk job =
-            new OfferLetterGeneratorBulk(new List<Id>{ decision.Id });
+            OfferLetterGeneratorBulk job =
+                new OfferLetterGeneratorBulk(new List<Id>{ decision.Id });
 
-        Test.startTest();
-        job.execute(null);
-        Test.stopTest();
+            Test.startTest();
+            job.execute(null);
+            Test.stopTest();
 
-        // System.assertEquals(
-        //     0,
-        //     [SELECT COUNT() FROM ContentVersion WHERE AdmissionId__c = :decision.Id]
-        // );
+            // System.assertEquals(
+            //     0,
+            //     [SELECT COUNT() FROM ContentVersion WHERE AdmissionId__c = :decision.Id]
+            // );
+        }
     }
 
     // ---------------------------------------------------------------
@@ -148,26 +233,34 @@ private class OfferLetterGeneratorBulkTest {
 
     @IsTest
     static void executeEnqueuesFollowUpJobWhenMultipleIdsRemain() {
-        Program programRecord = createProgram('PGPM');
-        Application__c firstApplication = createApplication(programRecord.Id, 'Alpha One');
-        Application__c secondApplication = createApplication(programRecord.Id, 'Beta Two');
-        Admission_Decision__c firstDecision =
-            createDecision(firstApplication.Id, 'Not Eligible');
-        Admission_Decision__c secondDecision =
-            createDecision(secondApplication.Id, 'Not Eligible');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c firstApplication = createApplication(programRecord.Id, 'Alpha One');
+            Application__c secondApplication = createApplication(programRecord.Id, 'Beta Two');
+            Admission_Decision__c firstDecision =
+                createDecision(firstApplication.Id, 'Not Eligible');
+            Admission_Decision__c secondDecision =
+                createDecision(secondApplication.Id, 'Not Eligible');
 
-        OfferLetterGeneratorBulk job = new OfferLetterGeneratorBulk(
-            new List<Id>{ firstDecision.Id, secondDecision.Id }
-        );
+            OfferLetterGeneratorBulk job = new OfferLetterGeneratorBulk(
+                new List<Id>{ firstDecision.Id, secondDecision.Id }
+            );
 
-        Test.startTest();
-        job.execute(null);
-        Test.stopTest();
+            Test.startTest();
+            job.execute(null);
+            Test.stopTest();
 
-        System.assertEquals(
-            1,
-            [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'OfferLetterGeneratorBulk']
-        );
+            System.assertEquals(
+                1,
+                [SELECT COUNT() FROM AsyncApexJob WHERE ApexClass.Name = 'OfferLetterGeneratorBulk']
+            );
+        }
     }
 
     // ---------------------------------------------------------------
@@ -176,11 +269,19 @@ private class OfferLetterGeneratorBulkTest {
 
     @IsTest
     static void getVisualforcePageNameReturnsNullWhenNoActiveConfigMatches() {
-        String result = OfferLetterGeneratorBulk.getVisualforcePageName(
-            'NONEXISTENTCODE' + sequence
-        );
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+            String result = OfferLetterGeneratorBulk.getVisualforcePageName(
+                'NONEXISTENTCODE' + sequence
+            );
 
-        System.assertEquals(null, result);
+            System.assertEquals(null, result);
+        }
     }
 
         // ---------------------------------------------------------------
@@ -189,9 +290,17 @@ private class OfferLetterGeneratorBulkTest {
 
     @IsTest
     static void getVisualforcePageNameReturnsConfiguredPageForPGPM() {
-        String result = OfferLetterGeneratorBulk.getVisualforcePageName('PGPM');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
+        System.runAs(testUser) {
+            String result = OfferLetterGeneratorBulk.getVisualforcePageName('PGPM');
 
-        System.assertEquals('GenerateOfferLetter_PGPM', result);
+            System.assertEquals('GenerateOfferLetter_PGPM', result);
+        }
     }
 
     // ---------------------------------------------------------------
@@ -210,43 +319,51 @@ private class OfferLetterGeneratorBulkTest {
 
     @IsTest
     static void executeGeneratesOfferLetterAndCommunicatesForEligiblePgpmDecision() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(programRecord.Id, 'Nina Torres');
-        Admission_Decision__c decision =
-            createDecision(application.Id, 'Eligible for Admission');
-
-        OfferLetterGeneratorBulk job =
-            new OfferLetterGeneratorBulk(new List<Id>{ decision.Id });
-
-        Test.startTest();
-        job.execute(null);
-        Test.stopTest();
-
-        List<ContentVersion> versions = [
-            SELECT Id, Title, ContentDocumentId
-            FROM ContentVersion
-            WHERE AdmissionId__c = :decision.Id
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        // System.assertEquals(1, versions.size());
-        // System.assertEquals('Offer Letter - Nina Torres.pdf', versions[0].Title);
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(programRecord.Id, 'Nina Torres');
+            Admission_Decision__c decision =
+                createDecision(application.Id, 'Eligible for Admission');
 
-        // System.assertEquals(
-        //     1,
-        //     [
-        //         SELECT COUNT()
-        //         FROM ContentDocumentLink
-        //         WHERE ContentDocumentId = :versions[0].ContentDocumentId
-        //         AND LinkedEntityId = :decision.Id
-        //     ]
-        // );
-        System.assertEquals(
-            1,
-            [
-                SELECT COUNT()
-                FROM ContentDistribution
-                WHERE ContentVersionId = :versions[0].Id
-            ]
-        );
+            OfferLetterGeneratorBulk job =
+                new OfferLetterGeneratorBulk(new List<Id>{ decision.Id });
+
+            Test.startTest();
+            job.execute(null);
+            Test.stopTest();
+
+            List<ContentVersion> versions = [
+                SELECT Id, Title, ContentDocumentId
+                FROM ContentVersion
+                WHERE AdmissionId__c = :decision.Id
+            ];
+            // System.assertEquals(1, versions.size());
+            // System.assertEquals('Offer Letter - Nina Torres.pdf', versions[0].Title);
+
+            // System.assertEquals(
+            //     1,
+            //     [
+            //         SELECT COUNT()
+            //         FROM ContentDocumentLink
+            //         WHERE ContentDocumentId = :versions[0].ContentDocumentId
+            //         AND LinkedEntityId = :decision.Id
+            //     ]
+            // );
+            System.assertEquals(
+                1,
+                [
+                    SELECT COUNT()
+                    FROM ContentDistribution
+                    WHERE ContentVersionId = :versions[0].Id
+                ]
+            );
+        }
     }
 
     // ---------------------------------------------------------------
@@ -259,31 +376,39 @@ private class OfferLetterGeneratorBulkTest {
 
     @IsTest
     static void executeUsesDefaultFileNameWhenApplicantNameUnavailable() {
-        Program programRecord = createProgram('PGPM');
-
-        Application__c application = new Application__c(
-            Program__c = programRecord.Id
-            // Applicant__c intentionally left blank
-        );
-        insert application;
-
-        Admission_Decision__c decision =
-            createDecision(application.Id, 'Eligible for Admission');
-
-        OfferLetterGeneratorBulk job =
-            new OfferLetterGeneratorBulk(new List<Id>{ decision.Id });
-
-        Test.startTest();
-        job.execute(null);
-        Test.stopTest();
-
-        ContentVersion version = [
-            SELECT Title
-            FROM ContentVersion
-            WHERE AdmissionId__c = :decision.Id
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
             LIMIT 1
         ];
-        System.assertEquals('Offer Letter.pdf', version.Title);
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+
+            Application__c application = new Application__c(
+                Program__c = programRecord.Id
+                // Applicant__c intentionally left blank
+            );
+            insert application;
+
+            Admission_Decision__c decision =
+                createDecision(application.Id, 'Eligible for Admission');
+
+            OfferLetterGeneratorBulk job =
+                new OfferLetterGeneratorBulk(new List<Id>{ decision.Id });
+
+            Test.startTest();
+            job.execute(null);
+            Test.stopTest();
+
+            ContentVersion version = [
+                SELECT Title
+                FROM ContentVersion
+                WHERE AdmissionId__c = :decision.Id
+                LIMIT 1
+            ];
+            System.assertEquals('Offer Letter.pdf', version.Title);
+        }
     }
 
     // ---------------------------------------------------------------

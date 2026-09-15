@@ -31,8 +31,7 @@ export default class AllApplicationsGrid extends NavigationMixin(LightningElemen
                     row.isRejected;
 
                 const hideInterview =
-                    row.isDecisionPresent ||
-                    row.isRejected;
+                    row.isDecisionPresent
 
                 return {
                     ...row,

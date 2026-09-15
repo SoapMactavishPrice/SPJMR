@@ -1,5 +1,5 @@
 global class B2CImportBatch implements Database.Batchable<sObject> {
-    
+
     global Database.QueryLocator start(Database.BatchableContext BC) {
         String query = 'SELECT Id, Name, CreatedDate, Name__c, Email__c,'+
             'Phone__c, Country__c, State__c, City__c, Years_of_Work_Experience__c,'+
@@ -7,12 +7,12 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
             'Organization__c, How_did_you_find_out_about_us__c, Current_Designation__c, Age__c,'+
             'College__c, Graduation_Year__c, Programme__c, Status__c, LeadSource__c,Send_Welcome_and_Verification_Email__c '+
             'FROM Lead_Import__c WHERE Status__c = \'Pending\'';
-        
+
         return Database.getQueryLocator(query);
     }
-    
+
     global void execute(Database.BatchableContext BC, List<Lead_Import__c> scope) {
-        
+
         List<Lead_Import__c> importsToUpdate = new List<Lead_Import__c>();
         Set<String> emailSet = new Set<String>();
         Set<String> phoneSet = new Set<String>();
@@ -20,9 +20,10 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
         Set<String> countryNames = new Set<String>();
         Set<String> stateNames = new Set<String>();
         Set<String> cityNames = new Set<String>();
-        
+
         Id b2cRecordTypeId = Schema.SObjectType.Lead.getRecordTypeInfosByDeveloperName().get('B2C').getRecordTypeId();
-        
+        Id applicantRtId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Applicant').getRecordTypeId();
+
         for (Lead_Import__c ld : scope) {
             if (ld.Email__c != null) emailSet.add(ld.Email__c.trim());
             if (ld.Phone__c != null) phoneSet.add(ld.Phone__c.trim());
@@ -31,12 +32,12 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
             if (ld.State__c != null) stateNames.add(ld.State__c.trim());
             if (ld.City__c != null) cityNames.add(ld.City__c.trim());
         }
-        
+
         Map<String, Lead> mapEmailToLead = new Map<String, Lead>();
         Map<String, Lead> mapPhoneToLead = new Map<String, Lead>();
         Map<String, Lead> pendingEmailToLead = new Map<String, Lead>();
         Map<String, Lead> pendingPhoneToLead = new Map<String, Lead>();
-        
+
         for (Lead l : [
             SELECT Id, Email, Phone,Send_Welcome_and_Verification_Email__c
             FROM Lead
@@ -46,19 +47,40 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
             if (l.Email != null) mapEmailToLead.put(l.Email.trim(), l);
             if (l.Phone != null) mapPhoneToLead.put(l.Phone.trim(), l);
         }
-        
+
+        // ------------------------------------------------------------
+        // Existing Applicant Accounts -- rows matching one of these
+        // route through the Opportunity/Application decision logic
+        // instead of the Lead path below.
+        // ------------------------------------------------------------
+        Map<String, Account> mapEmailToAccount = new Map<String, Account>();
+        Map<String, Account> mapPhoneToAccount = new Map<String, Account>();
+
+        if (!emailSet.isEmpty() || !phoneSet.isEmpty()) {
+            for (Account acc : [
+                SELECT Id, FirstName, LastName, PersonEmail, PersonMobilePhone, Phone
+                FROM Account
+                WHERE RecordTypeId = :applicantRtId
+                AND (PersonEmail IN :emailSet OR PersonMobilePhone IN :phoneSet OR Phone IN :phoneSet)
+            ]) {
+                if (acc.PersonEmail != null) mapEmailToAccount.put(acc.PersonEmail.trim(), acc);
+                if (acc.PersonMobilePhone != null) mapPhoneToAccount.put(acc.PersonMobilePhone.trim(), acc);
+                if (acc.Phone != null) mapPhoneToAccount.put(acc.Phone.trim(), acc);
+            }
+        }
+
         Map<String, Program> programCodeToProgram = new Map<String, Program>();
         Map<String, Country_Master__c> mapCountryNameToCountry = new Map<String, Country_Master__c>();
         Map<String, State__c> mapStateKeyToState = new Map<String, State__c>();
         Map<String, City__c> mapCityKeyToCity = new Map<String, City__c>();
-        
+
         for (Country_Master__c c : [
             SELECT Id, Name FROM Country_Master__c
             WHERE Name IN :countryNames
         ]) {
             mapCountryNameToCountry.put(normalize(c.Name), c);
         }
-        
+
         for (State__c s : [
             SELECT Id, Name, Country_Master__c FROM State__c
             WHERE Name IN :stateNames
@@ -66,7 +88,7 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
             String key = normalize(s.Name) + '|' + s.Country_Master__c;
             mapStateKeyToState.put(key, s);
         }
-        
+
         for (City__c c : [
             SELECT Id, Name, State__c FROM City__c
             WHERE Name IN :cityNames
@@ -74,20 +96,20 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
             String key = normalize(c.Name) + '|' + c.State__c;
             mapCityKeyToCity.put(key, c);
         }
-        
+
         for (Program p : [
-            SELECT Id, Program_Code__c FROM Program
+            SELECT Id, Program_Code__c, Name, ParentProgramId FROM Program
             WHERE Program_Code__c IN :programCodes
         ]) {
             programCodeToProgram.put(p.Program_Code__c.trim(), p);
         }
-        
+
         Set<Id> leadIds = new Set<Id>();
         for (Lead l : mapEmailToLead.values()) leadIds.add(l.Id);
         for (Lead l : mapPhoneToLead.values()) leadIds.add(l.Id);
-        
+
         Map<Id, Set<Id>> leadIdToProgramIds = new Map<Id, Set<Id>>();
-        
+
         if (!leadIds.isEmpty()) {
             for (Lead_Program__c lp : [
                 SELECT Lead__c, Program__c
@@ -100,31 +122,126 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
                 leadIdToProgramIds.get(lp.Lead__c).add(lp.Program__c);
             }
         }
-        
+
+        // ------------------------------------------------------------
+        // Bulk prefetch for the Opportunity/Application decision --
+        // accepting batches, existing Applications, PGDM-family
+        // Opportunities -- all keyed for O(1) in-memory lookup per row.
+        // ------------------------------------------------------------
+        Set<Id> programIds = new Set<Id>();
+        for (Program p : programCodeToProgram.values()) {
+            programIds.add(p.Id);
+        }
+
+        Set<Id> accountIds = new Set<Id>();
+        for (Account acc : mapEmailToAccount.values()) accountIds.add(acc.Id);
+        for (Account acc : mapPhoneToAccount.values()) accountIds.add(acc.Id);
+
+        Map<Id, Set<String>> acceptingApplicationCodesByProgramId = new Map<Id, Set<String>>();
+        Map<Id, Set<Id>> acceptingBatchIdsByProgramId = new Map<Id, Set<Id>>();
+        // Non-PGDM cycle identity -- Short_Batch_Code__c, not ProgramCohort Id.
+        // A batch code edited in place on the same ProgramCohort record still
+        // counts as a new cycle -- same convention as LeadPublicAPIService and
+        // OpportunityApplicationService.
+        Map<Id, Set<String>> acceptingShortBatchCodesByProgramId = new Map<Id, Set<String>>();
+
+        if (!programIds.isEmpty()) {
+            for (ProgramCohort pc : [
+                SELECT Id, ProgramId, Application_Code__c, Short_Batch_Code__c
+                FROM ProgramCohort
+                WHERE ProgramId IN :programIds
+                AND IsAcceptingApplications__c = true
+            ]) {
+                if (!acceptingApplicationCodesByProgramId.containsKey(pc.ProgramId)) {
+                    acceptingApplicationCodesByProgramId.put(pc.ProgramId, new Set<String>());
+                }
+                if (String.isNotBlank(pc.Application_Code__c)) {
+                    acceptingApplicationCodesByProgramId.get(pc.ProgramId).add(pc.Application_Code__c);
+                }
+
+                if (!acceptingShortBatchCodesByProgramId.containsKey(pc.ProgramId)) {
+                    acceptingShortBatchCodesByProgramId.put(pc.ProgramId, new Set<String>());
+                }
+                if (String.isNotBlank(pc.Short_Batch_Code__c)) {
+                    acceptingShortBatchCodesByProgramId.get(pc.ProgramId).add(pc.Short_Batch_Code__c);
+                }
+
+                if (!acceptingBatchIdsByProgramId.containsKey(pc.ProgramId)) {
+                    acceptingBatchIdsByProgramId.put(pc.ProgramId, new Set<Id>());
+                }
+                acceptingBatchIdsByProgramId.get(pc.ProgramId).add(pc.Id);
+            }
+        }
+
+        Map<String, List<Application__c>> applicationsByAccountProgramKey = new Map<String, List<Application__c>>();
+        Map<Id, List<Opportunity>> pgdmFamilyOpportunitiesByAccountId = new Map<Id, List<Opportunity>>();
+
+        if (!accountIds.isEmpty() && !programIds.isEmpty()) {
+            for (Application__c app : [
+                SELECT Id, Name, Batch__c, Batch__r.Short_Batch_Code__c, Program__c, Applicant__c, Application_Status__c
+                FROM Application__c
+                WHERE Applicant__c IN :accountIds
+                AND Program__c IN :programIds
+            ]) {
+                String key = app.Applicant__c + '|' + app.Program__c;
+                if (!applicationsByAccountProgramKey.containsKey(key)) {
+                    applicationsByAccountProgramKey.put(key, new List<Application__c>());
+                }
+                applicationsByAccountProgramKey.get(key).add(app);
+            }
+
+            for (Opportunity o : [
+                SELECT Id, AccountId, Program__c, Program__r.Program_Code__c, Program__r.ParentProgramId,
+                       Application__c, Application__r.Id, Application__r.Application_Status__c,
+                       Application__r.Program__c, Application__r.Batch__c,
+                       Application__r.Batch__r.Application_Code__c
+                FROM Opportunity
+                WHERE AccountId IN :accountIds
+                AND Application__c != null
+                AND Program__r.Program_Code__c IN ('PGDM', 'PGDM-BM', 'PGDM&PGDM-BM')
+                ORDER BY CreatedDate DESC
+            ]) {
+                if (!pgdmFamilyOpportunitiesByAccountId.containsKey(o.AccountId)) {
+                    pgdmFamilyOpportunitiesByAccountId.put(o.AccountId, new List<Opportunity>());
+                }
+                pgdmFamilyOpportunitiesByAccountId.get(o.AccountId).add(o);
+            }
+        }
+
+        Boolean isSiblingOppEnabled = OpportunityApplicationService.isIndividualSiblingProgrammeOpportunityEnabled();
+
         List<Lead> leadsToInsert = new List<Lead>();
         List<Lead_Program__c> lpToInsert = new List<Lead_Program__c>();
         Set<Id> newLeadIds = new Set<Id>();
         Set<string> setEntranceExamNames = new Set<string>();
         Set<string> setLeadSourceNames = new Set<string>();
         Schema.DescribeFieldResult fieldResultEntranceExam = Lead.Entrance_Exam__c.getDescribe();
-List<Schema.PicklistEntry> entries = fieldResultEntranceExam.getPicklistValues();
-for (Schema.PicklistEntry entry : entries) {
-    System.debug(entry.getLabel() + ' : ' + entry.getValue());
-    setEntranceExamNames.add(entry.getValue());
-}
+        List<Schema.PicklistEntry> entries = fieldResultEntranceExam.getPicklistValues();
+        for (Schema.PicklistEntry entry : entries) {
+            System.debug(entry.getLabel() + ' : ' + entry.getValue());
+            setEntranceExamNames.add(entry.getValue());
+        }
 
-Schema.DescribeFieldResult fieldResultLeadSource = Lead.LeadSource.getDescribe();
- entries = fieldResultLeadSource.getPicklistValues();
-for (Schema.PicklistEntry entry : entries) {
-    System.debug(entry.getLabel() + ' : ' + entry.getValue());
-    setLeadSourceNames.add(entry.getValue());
-}
+        Schema.DescribeFieldResult fieldResultLeadSource = Lead.LeadSource.getDescribe();
+        entries = fieldResultLeadSource.getPicklistValues();
+        for (Schema.PicklistEntry entry : entries) {
+            System.debug(entry.getLabel() + ' : ' + entry.getValue());
+            setLeadSourceNames.add(entry.getValue());
+        }
+
+        // Collected across the Account-path rows below, applied in bulk after the loop.
+        List<Opportunity> oppsToInsert = new List<Opportunity>();
+        Map<Integer, Lead_Import__c> oppIndexToImportRow = new Map<Integer, Lead_Import__c>();
+        Map<Integer, Account> oppIndexToAccount = new Map<Integer, Account>();
+        Map<Id, Application__c> applicationsToUpdate = new Map<Id, Application__c>();
+        List<Opportunity> existingOppsToUpdate = new List<Opportunity>();
+
         for (Lead_Import__c ld : scope) {
-            
+
             Boolean isSuccess = false;
-            
+
             try {
-                
+
                 String email = ld.Email__c != null ? ld.Email__c.trim() : null;
                 String phone = ld.Phone__c != null ? ld.Phone__c.trim() : null;
                 String programCode = ld.Programme__c != null ? ld.Programme__c.trim() : null;
@@ -132,12 +249,42 @@ for (Schema.PicklistEntry entry : entries) {
                 String countryName = ld.Country__c != null ? ld.Country__c.trim() : null;
                 String stateName = ld.State__c != null ? ld.State__c.trim() : null;
                 String cityName = ld.City__c != null ? ld.City__c.trim() : null;
-                system.debug('Send Email is '+ld.Send_Welcome_and_Verification_Email__c);
-                Boolean sendEmail=false;
-                sendEmail = 'yes'.equalsIgnoreCase(ld.Send_Welcome_and_Verification_Email__c);
-                system.debug('Send Email boolean is '+sendEmail);
+
+                Program prog = programCodeToProgram.get(programCode);
+                if (prog == null) continue;
+
+                // ------------------------------------------------------------
+                // Account path -- this import row's email/phone already
+                // belongs to an Applicant Account. Route through the same
+                // decision rules OpportunityApplicationService uses, without
+                // per-row SOQL (everything read from the prefetched maps above).
+                // ------------------------------------------------------------
+                Account existingAccount = null;
+                if (email != null && mapEmailToAccount.containsKey(email)) {
+                    existingAccount = mapEmailToAccount.get(email);
+                } else if (phone != null && mapPhoneToAccount.containsKey(phone)) {
+                    existingAccount = mapPhoneToAccount.get(phone);
+                }
+
+                if (existingAccount != null) {
+                    Boolean handled = processApplicantRow(
+                        ld, existingAccount, prog, isSiblingOppEnabled,
+                        acceptingApplicationCodesByProgramId, acceptingBatchIdsByProgramId,
+                        acceptingShortBatchCodesByProgramId,
+                        applicationsByAccountProgramKey, pgdmFamilyOpportunitiesByAccountId,
+                        oppsToInsert, oppIndexToImportRow, oppIndexToAccount,
+                        applicationsToUpdate, existingOppsToUpdate
+                    );
+                    // Whether created, reused, or genuinely blocked (already
+                    // registered / no accepting batch), this row has been
+                    // processed and should not fall through to the Lead path.
+                    importsToUpdate.add(new Lead_Import__c(Id = ld.Id, Status__c = 'Complete'));
+                    continue;
+                }
+
+                Boolean sendEmail = 'yes'.equalsIgnoreCase(ld.Send_Welcome_and_Verification_Email__c);
                 Lead existingLead;
-                
+
                 if (email != null && mapEmailToLead.containsKey(email)) {
                     existingLead = mapEmailToLead.get(email);
                 } else if (phone != null && mapPhoneToLead.containsKey(phone)) {
@@ -147,39 +294,33 @@ for (Schema.PicklistEntry entry : entries) {
                 } else if (phone != null && pendingPhoneToLead.containsKey(phone)) {
                     existingLead = pendingPhoneToLead.get(phone);
                 }
-                
-                Program prog = programCodeToProgram.get(programCode);
-                
+
                 Id countryId, stateId, cityId;
-                
+
                 Country_Master__c country = mapCountryNameToCountry.get(normalize(countryName));
-                
+
                 if (country != null) {
                     countryId = country.Id;
-                    
+
                     String stateKey = normalize(stateName) + '|' + country.Id;
                     State__c state = mapStateKeyToState.get(stateKey);
-                    
+
                     if (state != null) {
                         stateId = state.Id;
-                        
+
                         String cityKey = normalize(cityName) + '|' + state.Id;
                         City__c city = mapCityKeyToCity.get(cityKey);
-                        
+
                         if (city != null) {
                             cityId = city.Id;
                         }
                     }
                 }
-                
-                if (prog == null) continue;
-                
+
                 if (existingLead != null) {
-                    system.debug('Found Existing Lead '+existingLead);
-                    
-                    
+
                     Set<Id> existingPrograms = leadIdToProgramIds.get(existingLead.Id);
-                    
+
                     if (existingPrograms == null || !existingPrograms.contains(prog.Id)) {
                         lpToInsert.add(new Lead_Program__c(
                             Lead__c = existingLead.Id,
@@ -188,18 +329,18 @@ for (Schema.PicklistEntry entry : entries) {
                         Phone__c = phone,
                         Lead_Source__c = lpSource
                             ));
-                        
+
                         if (!leadIdToProgramIds.containsKey(existingLead.Id)) {
                             leadIdToProgramIds.put(existingLead.Id, new Set<Id>());
                         }
                         leadIdToProgramIds.get(existingLead.Id).add(prog.Id);
                     }
-                    
+
                     isSuccess = true;
                 } else {
-                    
+
                     List<String> formatName = ld.Name__c != null ? ld.Name__c.trim().split(' ') : new List<String>();
-                    
+
                     String fname;
                     String lname;
                     String entranceExam = ld.Entrance_Exam_Name__c;
@@ -222,7 +363,7 @@ for (Schema.PicklistEntry entry : entries) {
                         fname = 'Unknown';
                         lname = '.';
                     }
-                    
+
                     Lead newLead = new Lead(
                         FirstName = fname,
                     LastName = lname,
@@ -238,26 +379,26 @@ for (Schema.PicklistEntry entry : entries) {
                     XS_SPJIMR_PartnerCompany__c = String.isNotBlank(partnerComp)?partnerComp:'',
                     XS_EnterOrganisation__c = String.isNotBlank(organization)?organization:'',
                     XS_EntranceExamName__c = setEntranceExamNames.contains(entranceExam)?entranceExam:'',
-                    XS_Year__c = String.isNotBlank(gradYear)?gradYear:'', 
+                    XS_Year__c = String.isNotBlank(gradYear)?gradYear:'',
                     XS_College__c = String.isNotBlank(college)?college:'',
                     XS_Age__c=age!=null?String.valueOf(age):'',
                     XS_HowDidYouFindOutAboutUs__c = String.isNotBlank(howDidyouFind)?howDidyouFind:'',
                     XS_CurrentDesigination__c = String.isNotBlank(designation)?designation:'',
                     Send_Welcome_and_Verification_Email__c=sendEmail
                         );
-                    
+
                     leadsToInsert.add(newLead);
-                    
+
                     if (email != null) pendingEmailToLead.put(email, newLead);
                     if (phone != null) pendingPhoneToLead.put(phone, newLead);
-                    
+
                     isSuccess = true;
                 }
-                
+
             } catch (Exception e) {
                 System.debug('Error for record ' + ld.Id + ' : ' + e.getMessage());
             }
-            
+
             if (isSuccess) {
                 importsToUpdate.add(new Lead_Import__c(
                     Id = ld.Id,
@@ -265,35 +406,35 @@ for (Schema.PicklistEntry entry : entries) {
                     ));
             }
         }
-        
+
         if (!leadsToInsert.isEmpty()) {
             insert leadsToInsert;
-            
+
             for (Lead l : leadsToInsert) {
                 newLeadIds.add(l.Id);
                 if (l.Email != null) mapEmailToLead.put(l.Email.trim(), l);
                 if (l.Phone != null) mapPhoneToLead.put(l.Phone.trim(), l);
             }
-            
+
             for (Lead_Import__c ld : scope) {
                 String email = ld.Email__c != null ? ld.Email__c.trim() : null;
                 String phone = ld.Phone__c != null ? ld.Phone__c.trim() : null;
                 String programCode = ld.Programme__c != null ? ld.Programme__c.trim() : null;
                 String lpSource = ld.LeadSource__c;
-                
+
                 Program prog = programCodeToProgram.get(programCode);
                 if (prog == null) continue;
-                
+
                 Lead l;
-                
+
                 if (email != null && mapEmailToLead.containsKey(email)) {
                     l = mapEmailToLead.get(email);
                 } else if (phone != null && mapPhoneToLead.containsKey(phone)) {
                     l = mapPhoneToLead.get(phone);
                 }
-                
+
                 if (l == null || !newLeadIds.contains(l.Id)) continue;
-                
+
                 lpToInsert.add(new Lead_Program__c(
                     Lead__c = l.Id,
                 Program__c = prog.Id,
@@ -301,25 +442,342 @@ for (Schema.PicklistEntry entry : entries) {
                 Phone__c = phone,
                 Lead_Source__c = lpSource
                     ));
-                
+
                 if (!leadIdToProgramIds.containsKey(l.Id)) {
                     leadIdToProgramIds.put(l.Id, new Set<Id>());
                 }
                 leadIdToProgramIds.get(l.Id).add(prog.Id);
             }
         }
-        
-        
-        
+
         if (!lpToInsert.isEmpty()) {
             insert lpToInsert;
         }
-        
+
+        // ------------------------------------------------------------
+        // Apply the Account-path Opportunity/Application results in
+        // bulk, same shape as LeadPublicAPIService.execute().
+        // ------------------------------------------------------------
+        if (!applicationsToUpdate.isEmpty()) {
+            update applicationsToUpdate.values();
+        }
+        if (!existingOppsToUpdate.isEmpty()) {
+            update existingOppsToUpdate;
+        }
+        if (!oppsToInsert.isEmpty()) {
+            insert oppsToInsert;
+
+            if (ConvertB2CLeadController.isAutoApplicationCreationEnabled()) {
+                attachApplicationsInBulk(oppsToInsert, oppIndexToImportRow, oppIndexToAccount);
+            }
+        }
+
         if (!importsToUpdate.isEmpty()) {
             update importsToUpdate;
         }
     }
-    
+
+    /**
+     * Decides create / reuse / block for one Account-path import row, using only
+     * the prefetched maps (no SOQL). Mirrors OpportunityApplicationService's
+     * PGDM-family and non-PGDM rules. Opportunities needing an Application are
+     * left with Application__c null and collected via oppIndexToImportRow /
+     * oppIndexToAccount for the bulk attachApplicationsInBulk pass after insert.
+     *
+     * @return true if an Opportunity was inserted or an existing one reused/updated; false if blocked.
+     */
+    private static Boolean processApplicantRow(
+        Lead_Import__c ld,
+        Account acc,
+        Program prog,
+        Boolean isSiblingOppEnabled,
+        Map<Id, Set<String>> acceptingApplicationCodesByProgramId,
+        Map<Id, Set<Id>> acceptingBatchIdsByProgramId,
+        Map<Id, Set<String>> acceptingShortBatchCodesByProgramId,
+        Map<String, List<Application__c>> applicationsByAccountProgramKey,
+        Map<Id, List<Opportunity>> pgdmFamilyOpportunitiesByAccountId,
+        List<Opportunity> oppsToInsert,
+        Map<Integer, Lead_Import__c> oppIndexToImportRow,
+        Map<Integer, Account> oppIndexToAccount,
+        Map<Id, Application__c> applicationsToUpdate,
+        List<Opportunity> existingOppsToUpdate
+    ) {
+        String firstName = ld.Name__c;
+        String lastName = '';
+        if (String.isNotBlank(ld.Name__c)) {
+            List<String> parts = ld.Name__c.trim().split(' ');
+            firstName = parts[0];
+            lastName = parts.size() > 1 ? parts[parts.size() - 1] : '';
+        }
+
+        Schema.RecordTypeInfo b2cOppRti = Schema.SObjectType.Opportunity.getRecordTypeInfosByDeveloperName().get('B2C_Opportunity');
+        Id b2cOppRt = b2cOppRti != null ? b2cOppRti.getRecordTypeId() : null;
+
+        if (B2CProgramParentHelper.isPGDMFamily(prog)) {
+
+            Set<String> currentCodes = acceptingApplicationCodesByProgramId.get(prog.Id);
+            if (currentCodes == null || currentCodes.isEmpty()) {
+                return false; // no open admission window
+            }
+
+            List<Opportunity> familyOpps = pgdmFamilyOpportunitiesByAccountId.get(acc.Id);
+            if (familyOpps == null) {
+                familyOpps = new List<Opportunity>();
+            }
+
+            // 1. Same-program check
+            for (Opportunity existingOpp : familyOpps) {
+                if (existingOpp.Program__c != prog.Id || existingOpp.Application__c == null) {
+                    continue;
+                }
+                String existingCode = existingOpp.Application__r.Batch__r != null
+                    ? existingOpp.Application__r.Batch__r.Application_Code__c
+                    : null;
+                if (String.isNotBlank(existingCode) && currentCodes.contains(existingCode)) {
+                    if (prog.ParentProgramId != null && existingOpp.Application__r.Program__c != prog.ParentProgramId) {
+                        applicationsToUpdate.put(
+                            existingOpp.Application__c,
+                            new Application__c(Id = existingOpp.Application__c, Program__c = prog.ParentProgramId)
+                        );
+                    }
+                    return false; // already registered this cycle
+                }
+                // older cycle -- fall through
+            }
+
+            // 2. Sibling / Parent-Program check
+            Id reusableApplicationId = null;
+            for (Opportunity existingOpp : familyOpps) {
+                if (existingOpp.Program__c == prog.Id || existingOpp.Application__c == null) {
+                    continue;
+                }
+
+                String existingCode = existingOpp.Application__r.Batch__r != null
+                    ? existingOpp.Application__r.Batch__r.Application_Code__c
+                    : null;
+                Boolean sameCycle = String.isNotBlank(existingCode) && currentCodes.contains(existingCode);
+                Boolean isPaid = ApplicationNumberController.paidStatuses.contains(existingOpp.Application__r.Application_Status__c);
+
+                Boolean existingIsParentProgram =
+                    prog.ParentProgramId != null && existingOpp.Program__c == prog.ParentProgramId;
+
+                if (existingIsParentProgram) {
+                    if (!isPaid) {
+                        return false; // Parent Program application unpaid -- never allow PGDM/PGDM-BM
+                    }
+                    if (sameCycle) {
+                        return false; // Parent paid, same cycle
+                    }
+                    continue; // paid + different cycle -- allow, keep scanning
+                }
+
+                if (sameCycle) {
+                    if (prog.ParentProgramId != null && existingOpp.Application__r.Program__c != prog.ParentProgramId) {
+                        applicationsToUpdate.put(
+                            existingOpp.Application__c,
+                            new Application__c(Id = existingOpp.Application__c, Program__c = prog.ParentProgramId)
+                        );
+                    }
+
+                    if (isSiblingOppEnabled) {
+                        Opportunity oppUpdate = new Opportunity(Id = existingOpp.Id);
+                        if (prog.ParentProgramId != null) {
+                            oppUpdate.Program__c = prog.ParentProgramId;
+                        }
+                        String parentName = getParentProgramDisplayName(prog);
+                        String fn = String.isNotBlank(firstName) ? firstName.trim() : 'Applicant';
+                        oppUpdate.Name = (fn + ' ' + lastName).trim() + ' - ' + parentName;
+                        oppUpdate.StageName = isPaid ? 'Payment' : 'Email Verified';
+                        existingOppsToUpdate.add(oppUpdate);
+                        return true;
+                    }
+
+                    reusableApplicationId = existingOpp.Application__c;
+                    break;
+                }
+
+                if (!isPaid) {
+                    reusableApplicationId = existingOpp.Application__c;
+                    break;
+                }
+                // paid sibling + old cycle -- do not reuse, keep scanning
+            }
+
+            Opportunity opp = new Opportunity(
+                AccountId = acc.Id,
+                Program__c = prog.Id,
+                Name = (String.isNotBlank(firstName) ? firstName.trim() : 'Applicant') + ' ' + lastName + ' - ' + prog.Name,
+                StageName = 'Email Verified',
+                CloseDate = Date.today().addDays(90)
+            );
+            if (b2cOppRt != null) {
+                opp.RecordTypeId = b2cOppRt;
+            }
+            if (reusableApplicationId != null) {
+                opp.Application__c = reusableApplicationId;
+            }
+            oppsToInsert.add(opp);
+            if (opp.Application__c == null) {
+                oppIndexToImportRow.put(oppsToInsert.size() - 1, ld);
+                oppIndexToAccount.put(oppsToInsert.size() - 1, acc);
+            }
+            return true;
+        }
+
+        // Non-PGDM (GMP etc.) -- identity is Short_Batch_Code__c, not the
+        // ProgramCohort Id (matches ApplicationNumberController's own convention).
+        Set<Id> acceptingBatchIds = acceptingBatchIdsByProgramId.get(prog.Id);
+        if (acceptingBatchIds == null || acceptingBatchIds.isEmpty()) {
+            return false; // no open admission window
+        }
+        Set<String> acceptingBatchCodes = acceptingShortBatchCodesByProgramId.get(prog.Id);
+        if (acceptingBatchCodes == null) {
+            acceptingBatchCodes = new Set<String>();
+        }
+
+        String key = acc.Id + '|' + prog.Id;
+        List<Application__c> existingApps = applicationsByAccountProgramKey.get(key);
+
+        Boolean inProgress = false;
+        Set<String> paidBatchCodes = new Set<String>();
+        if (existingApps != null) {
+            for (Application__c app : existingApps) {
+                if (ApplicationNumberController.paidStatuses.contains(app.Application_Status__c)) {
+                    String existingCode = app.Batch__r != null ? app.Batch__r.Short_Batch_Code__c : null;
+                    if (String.isNotBlank(existingCode) && acceptingBatchCodes.contains(existingCode)) {
+                        paidBatchCodes.add(existingCode);
+                    }
+                } else {
+                    inProgress = true;
+                }
+            }
+        }
+
+        Boolean restrict = !acceptingBatchCodes.isEmpty() && paidBatchCodes.containsAll(acceptingBatchCodes);
+        if (inProgress || restrict) {
+            return false;
+        }
+
+        Id reusableAppId = null;
+
+        Opportunity opp2 = new Opportunity(
+            AccountId = acc.Id,
+            Program__c = prog.Id,
+            Name = (String.isNotBlank(firstName) ? firstName.trim() : 'Applicant') + ' ' + lastName + ' - ' + prog.Name,
+            StageName = 'Email Verified',
+            CloseDate = Date.today().addDays(90)
+        );
+        if (b2cOppRt != null) {
+            opp2.RecordTypeId = b2cOppRt;
+        }
+        if (reusableAppId != null) {
+            opp2.Application__c = reusableAppId;
+        }
+        oppsToInsert.add(opp2);
+        if (opp2.Application__c == null) {
+            oppIndexToImportRow.put(oppsToInsert.size() - 1, ld);
+            oppIndexToAccount.put(oppsToInsert.size() - 1, acc);
+        }
+        return true;
+    }
+
+    @TestVisible
+    private static String getParentProgramDisplayName(Program selectedProgram) {
+        if (selectedProgram.ParentProgramId == null) {
+            return String.isNotBlank(selectedProgram.Name) ? selectedProgram.Name : 'Program';
+        }
+        List<Program> parentRows = [
+            SELECT Id, Name FROM Program WHERE Id = :selectedProgram.ParentProgramId LIMIT 1
+        ];
+        if (!parentRows.isEmpty() && String.isNotBlank(parentRows[0].Name)) {
+            return parentRows[0].Name;
+        }
+        return String.isNotBlank(selectedProgram.Name) ? selectedProgram.Name : 'Program';
+    }
+
+    /**
+     * Creates Applications (and Personal_Detail__c) for every inserted Opportunity
+     * that didn't already get a reused Application, in one bulk pass -- mirrors
+     * LeadPublicAPIService.attachApplicationsInOrder.
+     */
+    private static void attachApplicationsInBulk(
+        List<Opportunity> insertedOpps,
+        Map<Integer, Lead_Import__c> oppIndexToImportRow,
+        Map<Integer, Account> oppIndexToAccount
+    ) {
+        List<Integer> ordered = new List<Integer>(oppIndexToImportRow.keySet());
+        ordered.sort();
+        if (ordered.isEmpty()) {
+            return;
+        }
+
+        Set<Id> accountIds = new Set<Id>();
+        for (Account acc : oppIndexToAccount.values()) {
+            accountIds.add(acc.Id);
+        }
+
+        Map<Id, User> accountToUser = new Map<Id, User>();
+        for (User u : [SELECT Id, Contact.AccountId FROM User WHERE Contact.AccountId IN :accountIds]) {
+            accountToUser.put(u.Contact.AccountId, u);
+        }
+
+        Set<Id> programIds = new Set<Id>();
+        for (Integer i : ordered) {
+            programIds.add(insertedOpps[i].Program__c);
+        }
+        Map<Id, Program> programMap = new Map<Id, Program>(
+            [SELECT Id, Program_Code__c FROM Program WHERE Id IN :programIds]
+        );
+
+        List<String> programCodes = new List<String>();
+        for (Integer i : ordered) {
+            programCodes.add(programMap.get(insertedOpps[i].Program__c).Program_Code__c);
+        }
+
+        List<String> applicationNumbers = ConvertB2CLeadController.generateApplicationNumbersInBulk(programCodes);
+
+        List<Application__c> apps = new List<Application__c>();
+        Integer idx = 0;
+        for (Integer i : ordered) {
+            Account acc = oppIndexToAccount.get(i);
+            User applicantUser = accountToUser.get(acc.Id);
+            apps.add(new Application__c(
+                Applicant__c = acc.Id,
+                Program__c = insertedOpps[i].Program__c,
+                OwnerId = applicantUser != null ? applicantUser.Id : null,
+                Name = applicationNumbers[idx++],
+                LeadSource__c = oppIndexToImportRow.get(i).LeadSource__c
+            ));
+        }
+        insert apps;
+
+        List<Personal_Detail__c> personalDetails = new List<Personal_Detail__c>();
+        for (Integer i = 0; i < ordered.size(); i++) {
+            Account acc = oppIndexToAccount.get(ordered[i]);
+            User applicantUser = accountToUser.get(acc.Id);
+
+            Personal_Detail__c pd = new Personal_Detail__c();
+            pd.Application__c = apps[i].Id;
+            pd.First_Name__c = acc.FirstName;
+            pd.Last_Name__c = acc.LastName;
+            pd.Primary_E_mail__c = acc.PersonEmail;
+            pd.Mobile_Number__c = String.isNotBlank(acc.PersonMobilePhone) ? acc.PersonMobilePhone : acc.Phone;
+            pd.OwnerId = applicantUser != null ? applicantUser.Id : null;
+            personalDetails.add(pd);
+        }
+        if (!personalDetails.isEmpty()) {
+            insert personalDetails;
+        }
+
+        List<Opportunity> oppsToUpdate = new List<Opportunity>();
+        Integer appIdx = 0;
+        for (Integer i : ordered) {
+            insertedOpps[i].Application__c = apps[appIdx++].Id;
+            oppsToUpdate.add(new Opportunity(Id = insertedOpps[i].Id, Application__c = insertedOpps[i].Application__c));
+        }
+        update oppsToUpdate;
+    }
+
     global void finish(Database.BatchableContext bc) {
         Id defaultOwnerId = LeadRoutingService.resolveB2cDefaultOwnerUserId();
         if (defaultOwnerId != null) {
@@ -334,7 +792,7 @@ for (Schema.PicklistEntry entry : entries) {
         }
         System.debug('Import Done');
     }
-    
+
     private static String normalize(String val){
         return val == null ? null : val.trim().toLowerCase();
     }

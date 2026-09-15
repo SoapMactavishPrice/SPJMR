@@ -29,9 +29,61 @@ private class InterviewBookingImportBatchTest {
     // Test data helpers
     // -----------------------------------------------------------------
 
+    @testSetup
+    static void setup() {
+        Profile sysAdminProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'System Administrator'
+            LIMIT 1
+        ];
+
+        UserRole studentCounsellorRole = new UserRole(
+            Name = 'Student_Counsellor',
+            DeveloperName = 'StudentCounsellor'
+        );
+        insert studentCounsellorRole;
+
+        User testUser = new User(
+            FirstName = 'Test',
+            LastName = 'Admin',
+            Alias = 'tadmin',
+            Email = 'testadmin@example.com',
+            Username = 'testadmin.@987example.com',
+            ProfileId = sysAdminProfile.Id,
+            UserRoleId = studentCounsellorRole.Id,
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_IN',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert testUser;
+
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team', 'EducationCloudAccess')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('Admissions_Team')
+            ),
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('EducationCloudAccess')
+            )
+        };
+    }
+
     private static Id getPersonAccountRecordTypeId() {
         List<RecordType> rts = [
-            SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND IsPersonType = true LIMIT 1
+            SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND IsPersonType = true AND Name = 'Applicant' LIMIT 1
         ];
         return rts.isEmpty() ? null : rts[0].Id;
     }
@@ -154,16 +206,25 @@ private class InterviewBookingImportBatchTest {
 
     @isTest
     static void testStart_ReturnsQueryLocatorForGivenContentVersions() {
-        Id cvId = createContentVersionForCsv('StartTest', 'Application Number\nAPP-0001');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        InterviewBookingImportBatch batch =
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false);
+        System.runAs(testUser) {
+            Id cvId = createContentVersionForCsv('StartTest', 'Application Number\nAPP-0001');
 
-        Test.startTest();
-        Database.QueryLocator ql = batch.start(null);
-        Test.stopTest();
+            InterviewBookingImportBatch batch =
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false);
 
-        System.assertNotEquals(null, ql, 'QueryLocator should not be null');
+            Test.startTest();
+            Database.QueryLocator ql = batch.start(null);
+            Test.stopTest();
+
+            System.assertNotEquals(null, ql, 'QueryLocator should not be null');
+        }
     }
 
     // =================================================================
@@ -172,156 +233,210 @@ private class InterviewBookingImportBatchTest {
 
     @isTest
     static void testWithoutPanel_HappyPath_CreatesNewBooking() {
-        Program program = createProgram('PRG-001');
-        Application__c app = createApplication('APP-1001', program.Id);
-        SlotMaster__c slot = createSlot('SLOT-1001', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-One');
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
-            new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name } }
-        );
-        Id cvId = createContentVersionForCsv('WithoutPanelHappy', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ApplicationSlotBooking__c> bookings = [
-            SELECT Id, BookingState__c, Application__c, SlotMaster__c, RoundMaster__c
-            FROM ApplicationSlotBooking__c
-            WHERE Application__c = :app.Id
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        // System.assertEquals(1, bookings.size(), 'Expected one booking to be created');
-        // System.assertEquals('Booked', bookings[0].BookingState__c);
-        // System.assertEquals(slot.Id, bookings[0].SlotMaster__c);
-        // System.assertEquals(round.Id, bookings[0].RoundMaster__c);
+
+        System.runAs(testUser) {
+            Program program = createProgram('PRG-001');
+            Application__c app = createApplication('APP-1001', program.Id);
+            SlotMaster__c slot = createSlot('SLOT-1001', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-One');
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
+                new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name } }
+            );
+            Id cvId = createContentVersionForCsv('WithoutPanelHappy', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ApplicationSlotBooking__c> bookings = [
+                SELECT Id, BookingState__c, Application__c, SlotMaster__c, RoundMaster__c
+                FROM ApplicationSlotBooking__c
+                WHERE Application__c = :app.Id
+            ];
+            // System.assertEquals(1, bookings.size(), 'Expected one booking to be created');
+            // System.assertEquals('Booked', bookings[0].BookingState__c);
+            // System.assertEquals(slot.Id, bookings[0].SlotMaster__c);
+            // System.assertEquals(round.Id, bookings[0].RoundMaster__c);
+        }
     }
 
     @isTest
     static void testWithoutPanel_ExistingBooking_IsReusedNotDuplicated() {
-        Program program = createProgram('PGPM');
-        Application__c app = createApplication('APP-1002', program.Id);
-        SlotMaster__c slot = createSlot('SLOT-1002', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-Two');
-
-        createBooking(app.Id, slot.Id, round.Id, null, slot.SlotDate__c);
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
-            new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name } }
-        );
-        Id cvId = createContentVersionForCsv('WithoutPanelDuplicate', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ApplicationSlotBooking__c> bookings = [
-            SELECT Id FROM ApplicationSlotBooking__c WHERE Application__c = :app.Id
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, bookings.size(), 'Existing booking should be reused, not duplicated');
+
+        System.runAs(testUser) {
+            Program program = createProgram('PGPM');
+            Application__c app = createApplication('APP-1002', program.Id);
+            SlotMaster__c slot = createSlot('SLOT-1002', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-Two');
+
+            createBooking(app.Id, slot.Id, round.Id, null, slot.SlotDate__c);
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
+                new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name } }
+            );
+            Id cvId = createContentVersionForCsv('WithoutPanelDuplicate', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ApplicationSlotBooking__c> bookings = [
+                SELECT Id FROM ApplicationSlotBooking__c WHERE Application__c = :app.Id
+            ];
+            System.assertEquals(1, bookings.size(), 'Existing booking should be reused, not duplicated');
+        }
     }
 
     @isTest
     static void testWithoutPanel_ApplicationNotFound_LogsError() {
-        SlotMaster__c slot = createSlot('SLOT-1003', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-Three');
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
-            new List<List<String>>{ new List<String>{ 'NOT-A-REAL-APP', slot.Name, round.Name } }
-        );
-        Id cvId = createContentVersionForCsv('AppNotFound', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, true), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, reports.size(), 'Expected an error report to be generated');
-        System.assert(reports[0].VersionData.toString().contains('Application not found'));
+
+        System.runAs(testUser) {
+            SlotMaster__c slot = createSlot('SLOT-1003', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-Three');
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
+                new List<List<String>>{ new List<String>{ 'NOT-A-REAL-APP', slot.Name, round.Name } }
+            );
+            Id cvId = createContentVersionForCsv('AppNotFound', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, true), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, reports.size(), 'Expected an error report to be generated');
+            System.assert(reports[0].VersionData.toString().contains('Application not found'));
+        }
     }
 
     @isTest
     static void testWithoutPanel_SlotNotFound_LogsError() {
-        Application__c app = createApplication('APP-1004', createProgram('PRG-004').Id);
-        RoundMaster__c round = createRound('ROUND-Four');
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
-            new List<List<String>>{ new List<String>{ app.Name, 'NOT-A-REAL-SLOT', round.Name } }
-        );
-        Id cvId = createContentVersionForCsv('SlotNotFound', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, reports.size());
-        System.assert(reports[0].VersionData.toString().contains('Slot not found'));
+
+        System.runAs(testUser) {
+            Application__c app = createApplication('APP-1004', createProgram('PRG-004').Id);
+            RoundMaster__c round = createRound('ROUND-Four');
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
+                new List<List<String>>{ new List<String>{ app.Name, 'NOT-A-REAL-SLOT', round.Name } }
+            );
+            Id cvId = createContentVersionForCsv('SlotNotFound', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, reports.size());
+            System.assert(reports[0].VersionData.toString().contains('Slot not found'));
+        }
     }
 
     @isTest
     static void testWithoutPanel_RoundNotFound_LogsError() {
-        Application__c app = createApplication('APP-1005', createProgram('PRG-005').Id);
-        SlotMaster__c slot = createSlot('SLOT-1005', Date.today().addDays(5));
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
-            new List<List<String>>{ new List<String>{ app.Name, slot.Name, 'NOT-A-REAL-ROUND' } }
-        );
-        Id cvId = createContentVersionForCsv('RoundNotFound', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, reports.size());
-        System.assert(reports[0].VersionData.toString().contains('Round not found'));
+
+        System.runAs(testUser) {
+            Application__c app = createApplication('APP-1005', createProgram('PRG-005').Id);
+            SlotMaster__c slot = createSlot('SLOT-1005', Date.today().addDays(5));
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
+                new List<List<String>>{ new List<String>{ app.Name, slot.Name, 'NOT-A-REAL-ROUND' } }
+            );
+            Id cvId = createContentVersionForCsv('RoundNotFound', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, reports.size());
+            System.assert(reports[0].VersionData.toString().contains('Round not found'));
+        }
     }
 
     @isTest
     static void testWithoutPanel_SlotDateInPast_LogsError() {
-        Application__c app = createApplication('APP-1006', createProgram('PRG-006').Id);
-        SlotMaster__c slot = createSlot('SLOT-1006', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-Five');
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
-            new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name } }
-        );
-        Id cvId = createContentVersionForCsv('SlotDatePast', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        // System.assertEquals(1, reports.size());
-        // System.assert(reports[0].VersionData.toString().contains('Slot Date is in the past'));
+
+        System.runAs(testUser) {
+            Application__c app = createApplication('APP-1006', createProgram('PRG-006').Id);
+            SlotMaster__c slot = createSlot('SLOT-1006', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-Five');
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
+                new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name } }
+            );
+            Id cvId = createContentVersionForCsv('SlotDatePast', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            // System.assertEquals(1, reports.size());
+            // System.assert(reports[0].VersionData.toString().contains('Slot Date is in the past'));
+        }
     }
 
     // =================================================================
@@ -330,41 +445,59 @@ private class InterviewBookingImportBatchTest {
 
     @isTest
     static void testProcessFile_MissingMandatoryHeader_LogsFileError() {
-        // Missing "Round Name" header entirely
-        String csv = 'Application Number,Slot Code\nAPP-9999,SLOT-9999';
-        Id cvId = createContentVersionForCsv('MissingHeader', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, reports.size());
-        String body = reports[0].VersionData.toString();
-        System.assert(body.contains('File,Error'), 'Expected generic File/Error headers: ' + body);
-        System.assert(body.contains('Missing mandatory header'));
+
+        System.runAs(testUser) {
+            // Missing "Round Name" header entirely
+            String csv = 'Application Number,Slot Code\nAPP-9999,SLOT-9999';
+            Id cvId = createContentVersionForCsv('MissingHeader', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, reports.size());
+            String body = reports[0].VersionData.toString();
+            System.assert(body.contains('File,Error'), 'Expected generic File/Error headers: ' + body);
+            System.assert(body.contains('Missing mandatory header'));
+        }
     }
 
     @isTest
     static void testProcessFile_NoDataRows_LogsFileError() {
-        String csv = 'Application Number,Slot Code,Round Name';
-        Id cvId = createContentVersionForCsv('NoDataRows', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, reports.size());
-        System.assert(reports[0].VersionData.toString().contains('no data rows'));
+
+        System.runAs(testUser) {
+            String csv = 'Application Number,Slot Code,Round Name';
+            Id cvId = createContentVersionForCsv('NoDataRows', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, reports.size());
+            System.assert(reports[0].VersionData.toString().contains('no data rows'));
+        }
     }
 
     // =================================================================
@@ -373,133 +506,169 @@ private class InterviewBookingImportBatchTest {
 
     @isTest
     static void testWithPanel_HappyPath_CreatesNewPanelAndBooking() {
-        Program program = createProgram('PRG-010');
-        Application__c app = createApplication('APP-2001', program.Id);
-        SlotMaster__c slot = createSlot('SLOT-2001', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-Six');
-        Account interviewer = createPersonAccount('Jane', 'Doe', 'jane.doe.panel@example.com');
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name', 'Interviewer Emails' },
-            new List<List<String>>{
-                new List<String>{ app.Name, slot.Name, round.Name, interviewer.PersonEmail }
-            }
-        );
-        Id cvId = createContentVersionForCsv('WithPanelHappy', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITH_PANEL, program.Id, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<PanelMaster__c> panels = [SELECT Id, Program__c FROM PanelMaster__c WHERE Program__c = :program.Id];
-        System.assertEquals(1, panels.size(), 'Expected a new panel to be created');
-
-        List<PanelInterviewer__c> panelInterviewers = [
-            SELECT Id, Account__c FROM PanelInterviewer__c WHERE PanelMaster__c = :panels[0].Id
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, panelInterviewers.size());
-        System.assertEquals(interviewer.Id, panelInterviewers[0].Account__c);
 
-        List<ApplicationSlotBooking__c> bookings = [
-            SELECT Id, Panel_Master__c FROM ApplicationSlotBooking__c WHERE Application__c = :app.Id
-        ];
-        // System.assertEquals(1, bookings.size());
-        // System.assertEquals(panels[0].Id, bookings[0].Panel_Master__c);
+        System.runAs(testUser) {
+            Program program = createProgram('PRG-010');
+            Application__c app = createApplication('APP-2001', program.Id);
+            SlotMaster__c slot = createSlot('SLOT-2001', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-Six');
+            Account interviewer = createPersonAccount('Jane', 'Doe', 'jane.doe.panel@example.com');
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name', 'Interviewer Emails' },
+                new List<List<String>>{
+                    new List<String>{ app.Name, slot.Name, round.Name, interviewer.PersonEmail }
+                }
+            );
+            Id cvId = createContentVersionForCsv('WithPanelHappy', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITH_PANEL, program.Id, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<PanelMaster__c> panels = [SELECT Id, Program__c FROM PanelMaster__c WHERE Program__c = :program.Id];
+            System.assertEquals(1, panels.size(), 'Expected a new panel to be created');
+
+            List<PanelInterviewer__c> panelInterviewers = [
+                SELECT Id, Account__c FROM PanelInterviewer__c WHERE PanelMaster__c = :panels[0].Id
+            ];
+            System.assertEquals(1, panelInterviewers.size());
+            System.assertEquals(interviewer.Id, panelInterviewers[0].Account__c);
+
+            List<ApplicationSlotBooking__c> bookings = [
+                SELECT Id, Panel_Master__c FROM ApplicationSlotBooking__c WHERE Application__c = :app.Id
+            ];
+            // System.assertEquals(1, bookings.size());
+            // System.assertEquals(panels[0].Id, bookings[0].Panel_Master__c);
+        }
     }
 
     @isTest
     static void testWithPanel_ReusesExistingActivePanel() {
-        Program program = createProgram('PRG-011');
-        Application__c app = createApplication('APP-2002', program.Id);
-        SlotMaster__c slot = createSlot('SLOT-2002', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-Seven');
-        Account interviewer = createPersonAccount('John', 'Smith', 'john.smith.panel@example.com');
-
-        PanelMaster__c existingPanel = createPanel(program.Id, 'Active');
-        addInterviewerToPanel(existingPanel.Id, interviewer.Id);
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name', 'Interviewer Emails' },
-            new List<List<String>>{
-                new List<String>{ app.Name, slot.Name, round.Name, interviewer.PersonEmail }
-            }
-        );
-        Id cvId = createContentVersionForCsv('WithPanelReuse', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITH_PANEL, program.Id, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<PanelMaster__c> panels = [SELECT Id FROM PanelMaster__c WHERE Program__c = :program.Id];
-        System.assertEquals(1, panels.size(), 'No new panel should be created when a matching active panel exists');
-        System.assertEquals(existingPanel.Id, panels[0].Id);
-
-        List<ApplicationSlotBooking__c> bookings = [
-            SELECT Id, Panel_Master__c FROM ApplicationSlotBooking__c WHERE Application__c = :app.Id
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        // System.assertEquals(1, bookings.size());
-        // System.assertEquals(existingPanel.Id, bookings[0].Panel_Master__c);
+
+        System.runAs(testUser) {
+            Program program = createProgram('PRG-011');
+            Application__c app = createApplication('APP-2002', program.Id);
+            SlotMaster__c slot = createSlot('SLOT-2002', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-Seven');
+            Account interviewer = createPersonAccount('John', 'Smith', 'john.smith.panel@example.com');
+
+            PanelMaster__c existingPanel = createPanel(program.Id, 'Active');
+            addInterviewerToPanel(existingPanel.Id, interviewer.Id);
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name', 'Interviewer Emails' },
+                new List<List<String>>{
+                    new List<String>{ app.Name, slot.Name, round.Name, interviewer.PersonEmail }
+                }
+            );
+            Id cvId = createContentVersionForCsv('WithPanelReuse', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITH_PANEL, program.Id, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<PanelMaster__c> panels = [SELECT Id FROM PanelMaster__c WHERE Program__c = :program.Id];
+            System.assertEquals(1, panels.size(), 'No new panel should be created when a matching active panel exists');
+            System.assertEquals(existingPanel.Id, panels[0].Id);
+
+            List<ApplicationSlotBooking__c> bookings = [
+                SELECT Id, Panel_Master__c FROM ApplicationSlotBooking__c WHERE Application__c = :app.Id
+            ];
+            // System.assertEquals(1, bookings.size());
+            // System.assertEquals(existingPanel.Id, bookings[0].Panel_Master__c);
+        }
     }
 
     @isTest
     static void testWithPanel_MissingInterviewerEmail_LogsError() {
-        Program program = createProgram('PRG-012');
-        Application__c app = createApplication('APP-2003', program.Id);
-        SlotMaster__c slot = createSlot('SLOT-2003', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-Eight');
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name', 'Interviewer Emails' },
-            new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name, '' } }
-        );
-        Id cvId = createContentVersionForCsv('WithPanelMissingEmail', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITH_PANEL, program.Id, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, reports.size());
-        System.assert(reports[0].VersionData.toString().contains('Interviewer Emails is mandatory'));
+
+        System.runAs(testUser) {
+            Program program = createProgram('PRG-012');
+            Application__c app = createApplication('APP-2003', program.Id);
+            SlotMaster__c slot = createSlot('SLOT-2003', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-Eight');
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name', 'Interviewer Emails' },
+                new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name, '' } }
+            );
+            Id cvId = createContentVersionForCsv('WithPanelMissingEmail', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITH_PANEL, program.Id, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, reports.size());
+            System.assert(reports[0].VersionData.toString().contains('Interviewer Emails is mandatory'));
+        }
     }
 
     @isTest
     static void testWithPanel_InterviewerAccountNotFound_LogsError() {
-        Program program = createProgram('PRG-013');
-        Application__c app = createApplication('APP-2004', program.Id);
-        SlotMaster__c slot = createSlot('SLOT-2004', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-Nine');
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name', 'Interviewer Emails' },
-            new List<List<String>>{
-                new List<String>{ app.Name, slot.Name, round.Name, 'nobody.real@example.com' }
-            }
-        );
-        Id cvId = createContentVersionForCsv('WithPanelNoAccount', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITH_PANEL, program.Id, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, reports.size());
-        System.assert(reports[0].VersionData.toString().contains('Account not found for interviewer email'));
 
-        List<PanelMaster__c> panels = [SELECT Id FROM PanelMaster__c WHERE Program__c = :program.Id];
-        System.assertEquals(0, panels.size(), 'No panel should be created when the interviewer account is missing');
+        System.runAs(testUser) {
+            Program program = createProgram('PRG-013');
+            Application__c app = createApplication('APP-2004', program.Id);
+            SlotMaster__c slot = createSlot('SLOT-2004', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-Nine');
+
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name', 'Interviewer Emails' },
+                new List<List<String>>{
+                    new List<String>{ app.Name, slot.Name, round.Name, 'nobody.real@example.com' }
+                }
+            );
+            Id cvId = createContentVersionForCsv('WithPanelNoAccount', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITH_PANEL, program.Id, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, reports.size());
+            System.assert(reports[0].VersionData.toString().contains('Account not found for interviewer email'));
+
+            List<PanelMaster__c> panels = [SELECT Id FROM PanelMaster__c WHERE Program__c = :program.Id];
+            System.assertEquals(0, panels.size(), 'No panel should be created when the interviewer account is missing');
+        }
     }
 
     // =================================================================
@@ -508,74 +677,101 @@ private class InterviewBookingImportBatchTest {
 
     @isTest
     static void testAssignPanel_HappyPath_UpdatesBookingWithPanel() {
-        Program program = createProgram('PGPM');
-        Application__c app = createApplication('APP-3001', program.Id);
-        SlotMaster__c slot = createSlot('SLOT-3001', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-Ten');
-        Account interviewer = createPersonAccount('Alex', 'Ray', 'alex.ray.assign@example.com');
-
-        ApplicationSlotBooking__c booking = createBooking(app.Id, slot.Id, round.Id, null, slot.SlotDate__c);
-
-        String csv = buildCsv(
-            new List<String>{ 'ApplicationSlotBookingCode', 'Interviewer Emails' },
-            new List<List<String>>{ new List<String>{ booking.Name, interviewer.PersonEmail } }
-        );
-        Id cvId = createContentVersionForCsv('AssignPanelHappy', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, ASSIGN_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        ApplicationSlotBooking__c updated = [
-            SELECT Id, Panel_Master__c FROM ApplicationSlotBooking__c WHERE Id = :booking.Id
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertNotEquals(null, updated.Panel_Master__c, 'Expected the booking to have a panel assigned');
 
-        List<PanelMaster__c> panels = [SELECT Id, Program__c FROM PanelMaster__c WHERE Program__c = :program.Id];
-        System.assertEquals(1, panels.size());
-        System.assertEquals(panels[0].Id, updated.Panel_Master__c);
+        System.runAs(testUser) {
+            Program program = createProgram('PGPM');
+            Application__c app = createApplication('APP-3001', program.Id);
+            SlotMaster__c slot = createSlot('SLOT-3001', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-Ten');
+            Account interviewer = createPersonAccount('Alex', 'Ray', 'alex.ray.assign@example.com');
+
+            ApplicationSlotBooking__c booking = createBooking(app.Id, slot.Id, round.Id, null, slot.SlotDate__c);
+
+            String csv = buildCsv(
+                new List<String>{ 'ApplicationSlotBookingCode', 'Interviewer Emails' },
+                new List<List<String>>{ new List<String>{ booking.Name, interviewer.PersonEmail } }
+            );
+            Id cvId = createContentVersionForCsv('AssignPanelHappy', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, ASSIGN_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            ApplicationSlotBooking__c updated = [
+                SELECT Id, Panel_Master__c FROM ApplicationSlotBooking__c WHERE Id = :booking.Id
+            ];
+            System.assertNotEquals(null, updated.Panel_Master__c, 'Expected the booking to have a panel assigned');
+
+            List<PanelMaster__c> panels = [SELECT Id, Program__c FROM PanelMaster__c WHERE Program__c = :program.Id];
+            System.assertEquals(1, panels.size());
+            System.assertEquals(panels[0].Id, updated.Panel_Master__c);
+        }
     }
 
     @isTest
     static void testAssignPanel_BookingNotFound_LogsError() {
-        String csv = buildCsv(
-            new List<String>{ 'ApplicationSlotBookingCode', 'Interviewer Emails' },
-            new List<List<String>>{ new List<String>{ 'NOT-A-REAL-BOOKING', 'someone@example.com' } }
-        );
-        Id cvId = createContentVersionForCsv('AssignPanelNotFound', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, ASSIGN_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, reports.size());
-        System.assert(reports[0].VersionData.toString().contains('Application Slot Booking not found'));
+
+        System.runAs(testUser) {
+            String csv = buildCsv(
+                new List<String>{ 'ApplicationSlotBookingCode', 'Interviewer Emails' },
+                new List<List<String>>{ new List<String>{ 'NOT-A-REAL-BOOKING', 'someone@example.com' } }
+            );
+            Id cvId = createContentVersionForCsv('AssignPanelNotFound', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, ASSIGN_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, reports.size());
+            System.assert(reports[0].VersionData.toString().contains('Application Slot Booking not found'));
+        }
     }
 
     @isTest
     static void testAssignPanel_MissingMandatoryHeader_LogsFileError() {
-        // Missing "Interviewer Emails" header entirely
-        String csv = 'ApplicationSlotBookingCode\nASB-0001';
-        Id cvId = createContentVersionForCsv('AssignPanelMissingHeader', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, ASSIGN_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> reports = [
-            SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, reports.size());
-        System.assert(reports[0].VersionData.toString().contains('Missing mandatory header'));
+
+        System.runAs(testUser) {
+            // Missing "Interviewer Emails" header entirely
+            String csv = 'ApplicationSlotBookingCode\nASB-0001';
+            Id cvId = createContentVersionForCsv('AssignPanelMissingHeader', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, ASSIGN_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> reports = [
+                SELECT Id, VersionData FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, reports.size());
+            System.assert(reports[0].VersionData.toString().contains('Missing mandatory header'));
+        }
     }
 
     // =================================================================
@@ -584,76 +780,103 @@ private class InterviewBookingImportBatchTest {
 
     @isTest
     static void testFinish_SuccessOnly_CreatesSuccessReportNoErrorReport() {
-        Program program = createProgram('PRG-030');
-        Application__c app = createApplication('APP-4001', program.Id);
-        SlotMaster__c slot = createSlot('SLOT-4001', Date.today().addDays(5));
-        RoundMaster__c round = createRound('ROUND-Eleven');
-
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
-            new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name } }
-        );
-        Id cvId = createContentVersionForCsv('FinishSuccessOnly', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
-
-        List<ContentVersion> errorReports = [
-            SELECT Id FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        // System.assertEquals(0, errorReports.size(), 'No error report expected when everything succeeds');
 
-        List<ContentVersion> successReports = [
-            SELECT Id FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Success_Part_1'
-        ];
-        // System.assertEquals(1, successReports.size(), 'Expected a success report to be generated');
+        System.runAs(testUser) {
+            Program program = createProgram('PRG-030');
+            Application__c app = createApplication('APP-4001', program.Id);
+            SlotMaster__c slot = createSlot('SLOT-4001', Date.today().addDays(5));
+            RoundMaster__c round = createRound('ROUND-Eleven');
 
-        List<Export_Job__c> jobs = [SELECT Id FROM Export_Job__c];
-        // System.assertEquals(1, jobs.size(), 'Expected one Export_Job__c for the success report');
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
+                new List<List<String>>{ new List<String>{ app.Name, slot.Name, round.Name } }
+            );
+            Id cvId = createContentVersionForCsv('FinishSuccessOnly', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentVersion> errorReports = [
+                SELECT Id FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            // System.assertEquals(0, errorReports.size(), 'No error report expected when everything succeeds');
+
+            List<ContentVersion> successReports = [
+                SELECT Id FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Success_Part_1'
+            ];
+            // System.assertEquals(1, successReports.size(), 'Expected a success report to be generated');
+
+            List<Export_Job__c> jobs = [SELECT Id FROM Export_Job__c];
+            // System.assertEquals(1, jobs.size(), 'Expected one Export_Job__c for the success report');
+        }
     }
 
     @isTest
     static void testFinish_WithErrorsAndEmail_CreatesReportsAndSendsEmail() {
-        String csv = buildCsv(
-            new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
-            new List<List<String>>{ new List<String>{ 'DOES-NOT-EXIST', 'DOES-NOT-EXIST', 'DOES-NOT-EXIST' } }
-        );
-        Id cvId = createContentVersionForCsv('FinishWithErrors', csv);
-
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, true), 1
-        );
-        Test.stopTest();
-
-        List<Export_Job__c> jobs = [SELECT Id, Status__c FROM Export_Job__c];
-        System.assertEquals(1, jobs.size(), 'Expected one Export_Job__c for the error report');
-        System.assertEquals('Completed', jobs[0].Status__c);
-
-        List<ContentVersion> errorReports = [
-            SELECT Id FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        System.assertEquals(1, errorReports.size());
+
+        System.runAs(testUser) {
+            String csv = buildCsv(
+                new List<String>{ 'Application Number', 'Slot Code', 'Round Name' },
+                new List<List<String>>{ new List<String>{ 'DOES-NOT-EXIST', 'DOES-NOT-EXIST', 'DOES-NOT-EXIST' } }
+            );
+            Id cvId = createContentVersionForCsv('FinishWithErrors', csv);
+
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, true), 1
+            );
+            Test.stopTest();
+
+            List<Export_Job__c> jobs = [SELECT Id, Status__c FROM Export_Job__c];
+            System.assertEquals(1, jobs.size(), 'Expected one Export_Job__c for the error report');
+            System.assertEquals('Completed', jobs[0].Status__c);
+
+            List<ContentVersion> errorReports = [
+                SELECT Id FROM ContentVersion WHERE Title = 'Interview_Booking_Import_Error_Report'
+            ];
+            System.assertEquals(1, errorReports.size());
+        }
     }
 
     @isTest
     static void testFinish_DeletesOriginallyUploadedFiles() {
-        String csv = 'Application Number,Slot Code,Round Name\nAPP-X,SLOT-X,ROUND-X';
-        Id cvId = createContentVersionForCsv('ToBeDeleted', csv);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        ContentVersion cvBefore = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cvId];
-        Id contentDocId = cvBefore.ContentDocumentId;
+        System.runAs(testUser) {
+            String csv = 'Application Number,Slot Code,Round Name\nAPP-X,SLOT-X,ROUND-X';
+            Id cvId = createContentVersionForCsv('ToBeDeleted', csv);
 
-        Test.startTest();
-        Database.executeBatch(
-            new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
-        );
-        Test.stopTest();
+            ContentVersion cvBefore = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cvId];
+            Id contentDocId = cvBefore.ContentDocumentId;
 
-        List<ContentDocument> docs = [SELECT Id FROM ContentDocument WHERE Id = :contentDocId];
-        System.assertEquals(0, docs.size(), 'Originally uploaded file should be deleted after finish()');
+            Test.startTest();
+            Database.executeBatch(
+                new InterviewBookingImportBatch(new List<Id>{ cvId }, WITHOUT_PANEL, null, false, false, false), 1
+            );
+            Test.stopTest();
+
+            List<ContentDocument> docs = [SELECT Id FROM ContentDocument WHERE Id = :contentDocId];
+            System.assertEquals(0, docs.size(), 'Originally uploaded file should be deleted after finish()');
+        }
     }
 }

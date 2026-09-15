@@ -1,5 +1,58 @@
 @IsTest
 private class CommunicationProviderFactoryTest {
+
+    @testSetup
+    static void setup() {
+        Profile sysAdminProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'System Administrator'
+            LIMIT 1
+        ];
+
+        UserRole studentCounsellorRole = new UserRole(
+            Name = 'Student_Counsellor',
+            DeveloperName = 'StudentCounsellor'
+        );
+        insert studentCounsellorRole;
+
+        User testUser = new User(
+            FirstName = 'Test',
+            LastName = 'Admin',
+            Alias = 'tadmin',
+            Email = 'testadmin@example.com',
+            Username = 'testadmin.@987example.com',
+            ProfileId = sysAdminProfile.Id,
+            UserRoleId = studentCounsellorRole.Id,
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_IN',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert testUser;
+
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team', 'EducationCloudAccess')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('Admissions_Team')
+            ),
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('EducationCloudAccess')
+            )
+        };
+    }
+
     private static Integer sequence = 0;
 
     private static Program createProgram(String programCode) {
@@ -160,76 +213,108 @@ private class CommunicationProviderFactoryTest {
 
     @IsTest
     static void admissionDecisionProviderGetDataThrowsWhenNoDecisionFound() {
-        Application__c application = createApplication(null);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            new CommunicationsController.CommunicationRequest();
-        request.applicationId = application.Id;
 
-        CommunicationProviderFactory.AdmissionDecisionProvider provider =
-            new CommunicationProviderFactory.AdmissionDecisionProvider();
+        System.runAs(testUser) {
+            Application__c application = createApplication(null);
 
-        Boolean threw = false;
-        Test.startTest();
-        try {
-            provider.getData(request);
-        } catch (CommunicationProviderFactory.CommunicationException e) {
-            threw = true;
-            System.assert(e.getMessage().contains('No admission decision found.'));
+            CommunicationsController.CommunicationRequest request =
+                new CommunicationsController.CommunicationRequest();
+            request.applicationId = application.Id;
+
+            CommunicationProviderFactory.AdmissionDecisionProvider provider =
+                new CommunicationProviderFactory.AdmissionDecisionProvider();
+
+            Boolean threw = false;
+            Test.startTest();
+            try {
+                provider.getData(request);
+            } catch (CommunicationProviderFactory.CommunicationException e) {
+                threw = true;
+                System.assert(e.getMessage().contains('No admission decision found.'));
+            }
+            Test.stopTest();
+
+            System.assert(threw);
         }
-        Test.stopTest();
-
-        System.assert(threw);
     }
 
     @IsTest
     static void admissionDecisionProviderGetDataReturnsMergedDataForSingleApplication() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(programRecord.Id);
-        Admission_Decision__c decision = eligibleDecision(application.Id);
-        insert decision;
 
-        CommunicationsController.CommunicationRequest request =
-            new CommunicationsController.CommunicationRequest();
-        request.applicationId = application.Id;
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationProviderFactory.AdmissionDecisionProvider provider =
-            new CommunicationProviderFactory.AdmissionDecisionProvider();
 
-        Test.startTest();
-        Map<String, Object> data = provider.getData(request);
-        Test.stopTest();
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(programRecord.Id);
+            Admission_Decision__c decision = eligibleDecision(application.Id);
+            insert decision;
 
-        System.assertEquals(application.Id, data.get('ApplicationId'));
-        System.assertEquals('Eligible for Admission', data.get('AdmissionResult'));
-        System.assertEquals('10/01/2027', data.get('offerDateFormatted'));
-        System.assertEquals('11/01/2027', data.get('OfferExpiryDate'));
-        System.assert(
-            String.valueOf(data.get('OfferLink')).contains(
-                '/lightning/r/Admission_Decision__c/' + decision.Id + '/view'
-            )
-        );
+            CommunicationsController.CommunicationRequest request =
+                new CommunicationsController.CommunicationRequest();
+            request.applicationId = application.Id;
+
+            CommunicationProviderFactory.AdmissionDecisionProvider provider =
+                new CommunicationProviderFactory.AdmissionDecisionProvider();
+
+            Test.startTest();
+            Map<String, Object> data = provider.getData(request);
+            Test.stopTest();
+
+            System.assertEquals(application.Id, data.get('ApplicationId'));
+            System.assertEquals('Eligible for Admission', data.get('AdmissionResult'));
+            System.assertEquals('10/01/2027', data.get('offerDateFormatted'));
+            System.assertEquals('11/01/2027', data.get('OfferExpiryDate'));
+            System.assert(
+                String.valueOf(data.get('OfferLink')).contains(
+                    '/lightning/r/Admission_Decision__c/' + decision.Id + '/view'
+                )
+            );
+        }
     }
 
     @IsTest
     static void admissionDecisionProviderGetDataByApplicationIdsSkipsApplicationsWithoutDecisions() {
-        Program programRecord = createProgram('PGPM');
-        Application__c withDecision = createApplication(programRecord.Id);
-        Application__c withoutDecision = createApplication(programRecord.Id);
-        insert eligibleDecision(withDecision.Id);
 
-        CommunicationProviderFactory.AdmissionDecisionProvider provider =
-            new CommunicationProviderFactory.AdmissionDecisionProvider();
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        Map<Id, Map<String, Object>> dataByApplicationId =
-            provider.getDataByApplicationIds(
-                new List<Id>{ withDecision.Id, withoutDecision.Id }
-            );
-        Test.stopTest();
 
-        System.assert(dataByApplicationId.containsKey(withDecision.Id));
-        System.assert(!dataByApplicationId.containsKey(withoutDecision.Id));
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c withDecision = createApplication(programRecord.Id);
+            Application__c withoutDecision = createApplication(programRecord.Id);
+            insert eligibleDecision(withDecision.Id);
+
+            CommunicationProviderFactory.AdmissionDecisionProvider provider =
+                new CommunicationProviderFactory.AdmissionDecisionProvider();
+
+            Test.startTest();
+            Map<Id, Map<String, Object>> dataByApplicationId =
+                provider.getDataByApplicationIds(
+                    new List<Id>{ withDecision.Id, withoutDecision.Id }
+                );
+            Test.stopTest();
+
+            System.assert(dataByApplicationId.containsKey(withDecision.Id));
+            System.assert(!dataByApplicationId.containsKey(withoutDecision.Id));
+        }
     }
 
     @IsTest
@@ -336,57 +421,78 @@ private class CommunicationProviderFactoryTest {
 
     @IsTest
     static void slotBookingProviderGetDataThrowsWhenNoBookingFound() {
-        Application__c application = createApplication(null);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            new CommunicationsController.CommunicationRequest();
-        request.applicationId = application.Id;
 
-        CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
-            new CommunicationProviderFactory.ApplicationSlotBookingProvider();
+        System.runAs(testUser) {
+            Application__c application = createApplication(null);
 
-        Boolean threw = false;
-        Test.startTest();
-        try {
-            provider.getData(request);
-        } catch (CommunicationProviderFactory.CommunicationException e) {
-            threw = true;
-            System.assert(e.getMessage().contains('No interview booking found.'));
+            CommunicationsController.CommunicationRequest request =
+                new CommunicationsController.CommunicationRequest();
+            request.applicationId = application.Id;
+
+            CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
+                new CommunicationProviderFactory.ApplicationSlotBookingProvider();
+
+            Boolean threw = false;
+            Test.startTest();
+            try {
+                provider.getData(request);
+            } catch (CommunicationProviderFactory.CommunicationException e) {
+                threw = true;
+                System.assert(e.getMessage().contains('No interview booking found.'));
+            }
+            Test.stopTest();
+
+            System.assert(threw);
         }
-        Test.stopTest();
-
-        System.assert(threw);
     }
 
     @IsTest
     static void slotBookingProviderGetDataReturnsDataUsingReferenceRecordId() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(programRecord.Id);
-        LocationMaster__c location = createLocationMaster();
-        SlotMaster__c slot = createSlotMaster(location.Id);
-        RoundMaster__c round = createRoundMaster();
-        PanelMaster__c panel = createPanelMaster();
-        ApplicationSlotBooking__c booking = createSlotBooking(
-            application.Id, slot.Id, round.Id, panel.Id, 'Scheduled'
-        );
 
-        CommunicationsController.CommunicationRequest request =
-            new CommunicationsController.CommunicationRequest();
-        request.applicationId = application.Id;
-        request.referenceRecordId = booking.Id;
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
-            new CommunicationProviderFactory.ApplicationSlotBookingProvider();
 
-        Test.startTest();
-        Map<String, Object> data = provider.getData(request);
-        Test.stopTest();
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(programRecord.Id);
+            LocationMaster__c location = createLocationMaster();
+            SlotMaster__c slot = createSlotMaster(location.Id);
+            RoundMaster__c round = createRoundMaster();
+            PanelMaster__c panel = createPanelMaster();
+            ApplicationSlotBooking__c booking = createSlotBooking(
+                application.Id, slot.Id, round.Id, panel.Id, 'Scheduled'
+            );
 
-        System.assertEquals(application.Id, data.get('ApplicationId'));
-        System.assertEquals(booking.Id, data.get('BookingId'));
-        System.assertEquals('20/05/2027', data.get('InterviewDate'));
-        System.assertEquals('09:00 AM', data.get('InterviewTime'));
-        System.assertEquals('09:30 AM', data.get('InterviewEndTime'));
+            CommunicationsController.CommunicationRequest request =
+                new CommunicationsController.CommunicationRequest();
+            request.applicationId = application.Id;
+            request.referenceRecordId = booking.Id;
+
+            CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
+                new CommunicationProviderFactory.ApplicationSlotBookingProvider();
+
+            Test.startTest();
+            Map<String, Object> data = provider.getData(request);
+            Test.stopTest();
+
+            System.assertEquals(application.Id, data.get('ApplicationId'));
+            System.assertEquals(booking.Id, data.get('BookingId'));
+            System.assertEquals('20/05/2027', data.get('InterviewDate'));
+            System.assertEquals('09:00 AM', data.get('InterviewTime'));
+            System.assertEquals('09:30 AM', data.get('InterviewEndTime'));
+        }
     }
 
     // ---------------------------------------------------------------
@@ -396,133 +502,175 @@ private class CommunicationProviderFactoryTest {
 
     @IsTest
     static void slotBookingProviderGetDataByApplicationIdsUsesReferenceRecordIdMap() {
-        Program programRecord = createProgram('PGPM');
-        Application__c firstApplication = createApplication(programRecord.Id);
-        Application__c secondApplication = createApplication(programRecord.Id);
-        LocationMaster__c location = createLocationMaster();
-        SlotMaster__c firstSlot = createSlotMaster(location.Id);
-        SlotMaster__c secondSlot = createSlotMaster(location.Id);
-        RoundMaster__c round = createRoundMaster();
-        PanelMaster__c panel = createPanelMaster();
 
-        ApplicationSlotBooking__c firstBooking = createSlotBooking(
-            firstApplication.Id, firstSlot.Id, round.Id, panel.Id, 'Scheduled'
-        );
-        ApplicationSlotBooking__c secondBooking = createSlotBooking(
-            secondApplication.Id, secondSlot.Id, round.Id, panel.Id, 'Scheduled'
-        );
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            new CommunicationsController.CommunicationRequest();
-        request.applicationIdToReferenceRecordId = new Map<Id, Id>{
-            firstApplication.Id => firstBooking.Id,
-            secondApplication.Id => secondBooking.Id
-        };
 
-        CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
-            new CommunicationProviderFactory.ApplicationSlotBookingProvider();
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c firstApplication = createApplication(programRecord.Id);
+            Application__c secondApplication = createApplication(programRecord.Id);
+            LocationMaster__c location = createLocationMaster();
+            SlotMaster__c firstSlot = createSlotMaster(location.Id);
+            SlotMaster__c secondSlot = createSlotMaster(location.Id);
+            RoundMaster__c round = createRoundMaster();
+            PanelMaster__c panel = createPanelMaster();
 
-        Test.startTest();
-        Map<Id, Map<String, Object>> dataByApplicationId =
-            provider.getDataByApplicationIds(
-                request,
-                new List<Id>{ firstApplication.Id, secondApplication.Id }
+            ApplicationSlotBooking__c firstBooking = createSlotBooking(
+                firstApplication.Id, firstSlot.Id, round.Id, panel.Id, 'Scheduled'
             );
-        Test.stopTest();
+            ApplicationSlotBooking__c secondBooking = createSlotBooking(
+                secondApplication.Id, secondSlot.Id, round.Id, panel.Id, 'Scheduled'
+            );
 
-        System.assertEquals(2, dataByApplicationId.size());
-        System.assertEquals(
-            firstBooking.Id,
-            dataByApplicationId.get(firstApplication.Id).get('BookingId')
-        );
-        System.assertEquals(
-            secondBooking.Id,
-            dataByApplicationId.get(secondApplication.Id).get('BookingId')
-        );
+            CommunicationsController.CommunicationRequest request =
+                new CommunicationsController.CommunicationRequest();
+            request.applicationIdToReferenceRecordId = new Map<Id, Id>{
+                firstApplication.Id => firstBooking.Id,
+                secondApplication.Id => secondBooking.Id
+            };
+
+            CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
+                new CommunicationProviderFactory.ApplicationSlotBookingProvider();
+
+            Test.startTest();
+            Map<Id, Map<String, Object>> dataByApplicationId =
+                provider.getDataByApplicationIds(
+                    request,
+                    new List<Id>{ firstApplication.Id, secondApplication.Id }
+                );
+            Test.stopTest();
+
+            System.assertEquals(2, dataByApplicationId.size());
+            System.assertEquals(
+                firstBooking.Id,
+                dataByApplicationId.get(firstApplication.Id).get('BookingId')
+            );
+            System.assertEquals(
+                secondBooking.Id,
+                dataByApplicationId.get(secondApplication.Id).get('BookingId')
+            );
+        }
     }
 
     @IsTest
     static void slotBookingProviderGetDataByApplicationIdsSkipsBookingBelongingToDifferentApplication() {
-        Program programRecord = createProgram('PGPM');
-        Application__c targetApplication = createApplication(programRecord.Id);
-        Application__c otherApplication = createApplication(programRecord.Id);
-        LocationMaster__c location = createLocationMaster();
-        SlotMaster__c slot = createSlotMaster(location.Id);
-        RoundMaster__c round = createRoundMaster();
-        PanelMaster__c panel = createPanelMaster();
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        // Booking actually belongs to otherApplication, but the map
-        // claims it belongs to targetApplication.
-        ApplicationSlotBooking__c mismatchedBooking = createSlotBooking(
-            otherApplication.Id, slot.Id, round.Id, panel.Id, 'Scheduled'
-        );
 
-        CommunicationsController.CommunicationRequest request =
-            new CommunicationsController.CommunicationRequest();
-        request.applicationIdToReferenceRecordId = new Map<Id, Id>{
-            targetApplication.Id => mismatchedBooking.Id
-        };
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c targetApplication = createApplication(programRecord.Id);
+            Application__c otherApplication = createApplication(programRecord.Id);
+            LocationMaster__c location = createLocationMaster();
+            SlotMaster__c slot = createSlotMaster(location.Id);
+            RoundMaster__c round = createRoundMaster();
+            PanelMaster__c panel = createPanelMaster();
 
-        CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
-            new CommunicationProviderFactory.ApplicationSlotBookingProvider();
-
-        Test.startTest();
-        Map<Id, Map<String, Object>> dataByApplicationId =
-            provider.getDataByApplicationIds(
-                request,
-                new List<Id>{ targetApplication.Id }
+            // Booking actually belongs to otherApplication, but the map
+            // claims it belongs to targetApplication.
+            ApplicationSlotBooking__c mismatchedBooking = createSlotBooking(
+                otherApplication.Id, slot.Id, round.Id, panel.Id, 'Scheduled'
             );
-        Test.stopTest();
 
-        System.assert(dataByApplicationId.isEmpty());
+            CommunicationsController.CommunicationRequest request =
+                new CommunicationsController.CommunicationRequest();
+            request.applicationIdToReferenceRecordId = new Map<Id, Id>{
+                targetApplication.Id => mismatchedBooking.Id
+            };
+
+            CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
+                new CommunicationProviderFactory.ApplicationSlotBookingProvider();
+
+            Test.startTest();
+            Map<Id, Map<String, Object>> dataByApplicationId =
+                provider.getDataByApplicationIds(
+                    request,
+                    new List<Id>{ targetApplication.Id }
+                );
+            Test.stopTest();
+
+            System.assert(dataByApplicationId.isEmpty());
+        }
     }
 
     @IsTest
     static void slotBookingProviderGetDataByApplicationIdsFallsBackWhenNoReferenceProvided() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(programRecord.Id);
-        LocationMaster__c location = createLocationMaster();
-        SlotMaster__c slot = createSlotMaster(location.Id);
-        RoundMaster__c round = createRoundMaster();
-        PanelMaster__c panel = createPanelMaster();
 
-        // Not scheduled via request.referenceRecordId or the map, so the
-        // provider must fall back to querying the application's own
-        // non-cancelled ApplicationSlotBookings__r.
-        createSlotBooking(application.Id, slot.Id, round.Id, panel.Id, 'Cancelled');
-        ApplicationSlotBooking__c activeBooking = createSlotBooking(
-            application.Id, slot.Id, round.Id, panel.Id, 'Scheduled'
-        );
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
-            new CommunicationProviderFactory.ApplicationSlotBookingProvider();
 
-        Test.startTest();
-        Map<Id, Map<String, Object>> dataByApplicationId =
-            provider.getDataByApplicationIds(
-                new List<Id>{ application.Id }
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(programRecord.Id);
+            LocationMaster__c location = createLocationMaster();
+            SlotMaster__c slot = createSlotMaster(location.Id);
+            RoundMaster__c round = createRoundMaster();
+            PanelMaster__c panel = createPanelMaster();
+
+            // Not scheduled via request.referenceRecordId or the map, so the
+            // provider must fall back to querying the application's own
+            // non-cancelled ApplicationSlotBookings__r.
+            createSlotBooking(application.Id, slot.Id, round.Id, panel.Id, 'Cancelled');
+            ApplicationSlotBooking__c activeBooking = createSlotBooking(
+                application.Id, slot.Id, round.Id, panel.Id, 'Scheduled'
             );
-        Test.stopTest();
 
-        System.assert(dataByApplicationId.containsKey(application.Id));
+            CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
+                new CommunicationProviderFactory.ApplicationSlotBookingProvider();
+
+            Test.startTest();
+            Map<Id, Map<String, Object>> dataByApplicationId =
+                provider.getDataByApplicationIds(
+                    new List<Id>{ application.Id }
+                );
+            Test.stopTest();
+
+            System.assert(dataByApplicationId.containsKey(application.Id));
+        }
     }
 
     @IsTest
     static void slotBookingProviderGetDataByApplicationIdsFallbackSkipsApplicationsWithNoActiveBooking() {
-        Program programRecord = createProgram('PGPM');
-        Application__c applicationWithNoBooking = createApplication(programRecord.Id);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
-            new CommunicationProviderFactory.ApplicationSlotBookingProvider();
 
-        Test.startTest();
-        Map<Id, Map<String, Object>> dataByApplicationId =
-            provider.getDataByApplicationIds(
-                new List<Id>{ applicationWithNoBooking.Id }
-            );
-        Test.stopTest();
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c applicationWithNoBooking = createApplication(programRecord.Id);
 
-        System.assert(dataByApplicationId.isEmpty());
+            CommunicationProviderFactory.ApplicationSlotBookingProvider provider =
+                new CommunicationProviderFactory.ApplicationSlotBookingProvider();
+
+            Test.startTest();
+            Map<Id, Map<String, Object>> dataByApplicationId =
+                provider.getDataByApplicationIds(
+                    new List<Id>{ applicationWithNoBooking.Id }
+                );
+            Test.stopTest();
+
+            System.assert(dataByApplicationId.isEmpty());
+        }
     }
 
     @IsTest

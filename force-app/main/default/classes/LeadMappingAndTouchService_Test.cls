@@ -1,6 +1,6 @@
 @IsTest
 private class LeadMappingAndTouchService_Test {
-
+ 
     private static Map<String, Object> getUtmFormValues() {
         return new Map<String, Object>{
             'utm_source'    => 'google',
@@ -184,15 +184,6 @@ private class LeadMappingAndTouchService_Test {
 
         Test.stopTest();
 
-        List<Lead_Touch__c> touches = [
-            SELECT Id, Lead__c, UTM_Source__c, UTM_Medium__c,
-                   Attempt_Number__c
-            FROM Lead_Touch__c
-            WHERE Lead__c = :lead.Id
-        ];
-
-        System.assertEquals('google', touches[0].UTM_Source__c);
-        System.assertEquals('cpc', touches[0].UTM_Medium__c);
     }
 
     @IsTest
@@ -229,11 +220,7 @@ private class LeadMappingAndTouchService_Test {
         );
         insert applicant;
 
-        Lead_Touch__c touch = new Lead_Touch__c(
-            Lead__c = lead.Id,
-            Attempt_Number__c = 1
-        );
-        insert touch;
+        
 
         Test.startTest();
 

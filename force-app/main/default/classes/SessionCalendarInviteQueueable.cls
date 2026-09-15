@@ -140,7 +140,7 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
                    Faculty_Google_Event_Id__c,
                    Course_Activity__c, Session_Type__c, Remark__c,
                    Course__r.Name, Course__r.Course_Department__r.Name,
-                   Program__r.Program_Code__c, Batch__r.Name,
+                   Program__r.Name, Program__r.Program_Code__c, Batch__r.Name,
                    Academic_Year__r.Name, Term__r.Name
             FROM   Session__c
             WHERE  Id IN :allSessionIds
@@ -381,6 +381,7 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         }
 
         String programmeCode = (s.Program__r != null) ? s.Program__r.Program_Code__c : null;
+        String programmeName = (s.Program__r != null) ? s.Program__r.Name : null;
         String batchName     = (s.Batch__r != null) ? s.Batch__r.Name : null;
 
         String batchGroup    = (s.Academic_Year__r != null) ? s.Academic_Year__r.Name : null;
@@ -393,14 +394,16 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
             ? s.Course__r.Course_Department__r.Name
             : null;
 
+        // Faculty Google Calendar title:
+        // Course - Session - Division - Term - Batch Group - Batch - Programme Name
         List<String> summaryParts = new List<String>();
-        if (String.isNotBlank(programmeCode)) { summaryParts.add(programmeCode); }
-        if (String.isNotBlank(batchName))     { summaryParts.add(batchName); }
-        if (String.isNotBlank(batchGroup))    { summaryParts.add(batchGroup); }
-        if (String.isNotBlank(termName))      { summaryParts.add(termName); }
-        if (String.isNotBlank(divisionText))  { summaryParts.add(divisionText); }
         if (String.isNotBlank(courseSession)) { summaryParts.add(courseSession); }
-        ev.summary = String.join(summaryParts, ' | ');
+        if (String.isNotBlank(divisionText))  { summaryParts.add(divisionText); }
+        if (String.isNotBlank(termName))      { summaryParts.add(termName); }
+        if (String.isNotBlank(batchGroup))    { summaryParts.add(batchGroup); }
+        if (String.isNotBlank(batchName))     { summaryParts.add(batchName); }
+        if (String.isNotBlank(programmeName)) { summaryParts.add(programmeName); }
+        ev.summary = String.join(summaryParts, ' - ');
 
         ev.timeZone      = EVENT_TIMEZONE;
         ev.startDateTime = toGoogleTime(s.Start_Time__c);

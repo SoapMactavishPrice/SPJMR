@@ -77,7 +77,7 @@ private class RazorpayPaymentHandlerTest {
             Applicant__c = accId,
             Program__c = progId,
             Batch__c = batchId,
-            Application_Status__c = 'In Progress'
+            Application_Status__c = 'Initiated'
         );
         insert app;
 

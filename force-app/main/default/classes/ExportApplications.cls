@@ -80,9 +80,9 @@ public class ExportApplications implements Database.Batchable<SObject>, Database
         csvRows.add(
             'Application Number,' +
             'Applicant Name,' +
-            'Applicant State Management,' +
-            'Programme Code,' +
             'Application Stage,' +
+            'Programme Code,' +
+            'Form Section,' +
             'Application Status'
         );
 
@@ -209,9 +209,9 @@ public class ExportApplications implements Database.Batchable<SObject>, Database
         csvRows.add(
             'Application Number,' +
             'Applicant Name,' +
-            'Applicant State Management,' +
-            'Programme Code,' +
             'Application Stage,' +
+            'Programme Code,' +
+            'Form Section,' +
             'Application Status'
         );
 

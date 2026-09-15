@@ -49,17 +49,17 @@
     <div class="address-block">
         <div>Application No: {!applicationNumber}</div>
         <div>{!applicantName}</div>
-        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(correspondenceAddressLine1))}">
-            {!correspondenceAddressLine1}
+        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(permanentAddressLine1))}">
+            {!permanentAddressLine1}
         </apex:outputPanel>
-        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(correspondenceAddressLine2))}">
-            {!correspondenceAddressLine2}
+        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(permanentAddressLine2))}">
+            {!permanentAddressLine2}
         </apex:outputPanel>
-        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(correspondenceAddressLine3))}">
-            {!correspondenceAddressLine3}
+        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(permanentAddressLine3))}">
+            {!permanentAddressLine3}
         </apex:outputPanel>
-        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(correspondenceAddressLine4))}">
-            {!correspondenceAddressLine4}
+        <apex:outputPanel layout="block" rendered="{!NOT(ISBLANK(permanentAddressLine4))}">
+            {!permanentAddressLine4}
         </apex:outputPanel>
     </div>
 
@@ -77,7 +77,7 @@
         We look forward to your confirmation and acceptance of the offer of admission with
         deposit of admission fees of Rs. 65,000/- latest by {!offerDeadline}. The signed
         letter of acceptance (as detailed in Annexure 1) needs to be uploaded to the
-        admission portal by {!signedLetterAcceptanceDeadline}. The 1st installment of fees of Rs.10,85,000
+        admission portal by {!signedLetterAcceptanceDeadline}. The 1st installment of fees of Rs.13,85,000
         is payable by {!firstInstallmentDeadline} and the balance amount of Rs. 10,00,000
         needs to be paid by {!balanceFeePaymentDeadline}. All fee payments as per Annexure 2 are to be
         made through wire/NEFT/RTGS transfer.

@@ -10,7 +10,7 @@ import getCitiesByState from '@salesforce/apex/ProgramRegistrationLocationServic
 import resolveCountryIdByName from '@salesforce/apex/ProgramRegistrationLocationService.resolveCountryIdByName';
 import getPhoneCountryOptions from '@salesforce/apex/ProgramRegistrationLocationService.getPhoneCountryOptions';
 import sendManualEmail from '@salesforce/apex/ProgramRegistrationFormController.sendManualEmail'
-
+ 
 /** Stable references so c-phone-input is not fed a new [] every render (breaks combobox / options sync). */
 const EMPTY_PICKLIST_OPTS = [];
 const EMPTY_PHONE_COUNTRY_OPTS = [];
@@ -1251,8 +1251,19 @@ getUtmParamsFromUrl() {
     }
 
     handleLoginClick() {
-        event.preventDefault();
-        this.navigateToUrlOrPath(this.loginPath);
+        const loginUrl = this.loginPath;
+        console.log('Redirecting to : ',this.loginPath)
+    if (!loginUrl) {
+        return;
+    }
+
+    if (/^https?:\/\//i.test(loginUrl)) {
+        window.open(loginUrl, '_blank', 'noopener,noreferrer');
+        return;
+    }
+
+    const path = loginUrl.startsWith('/') ? loginUrl : `/${loginUrl}`;
+    window.open(path, '_blank', 'noopener,noreferrer');
     }
 
     /** Relative site path or absolute http(s) URL. */

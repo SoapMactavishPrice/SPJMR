@@ -268,10 +268,13 @@ handlePdfClick(event) {
                 this.toTimeOnly = '';
                 this.errorMessage = 'To date/time cannot be before or equal to From date/time.';
                 setTimeout(() => { this.errorMessage = ''; }, 3000);
-            }/*1360*/
-            else {
-                this.errorMessage = '';
-            }/*1360*/
+                return;/*se-1360*/  
+            }
+          /*se-1360*/  
+          // Validate only when complete From + To values exist
+           if (this.fromDate && this.toDate) 
+           { this.validateOverlap(); 
+           }/*se-1360*/ 
         } catch(e) {
             console.error('handleFromDate error:', e);
         }
@@ -296,11 +299,12 @@ handlePdfClick(event) {
                 this.toTimeOnly = '';
                 this.errorMessage = 'To date/time must be after From date/time.';
                 setTimeout(() => { this.errorMessage = ''; }, 3000);
+                return;/*se-1360*/
+            }
+            // IMPORTANT: validate when From time changes 
+            if (this.fromDate && this.toDate) 
+            { this.validateOverlap(); 
             }/*se-1360*/
-            else {
-                this.errorMessage = '';
-            }/*se-1360*/
-    
         } catch(e) {
             console.error('handleFromTime error:', e);
         }
@@ -330,17 +334,21 @@ handlePdfClick(event) {
                 this.toTimeOnly = '';
                 event.target.value = '';
                 setTimeout(() => { this.errorMessage = ''; }, 3000);
-                return;
+                return;/*se-1360*/
             }
-    
             this.errorMessage = '';
+        // Validate after complete To value is available
+         if (this.fromDate && this.toDate)
+          { this.validateOverlap(); 
+          }/*se-1360*/
+            
         } catch(e) {
             console.error('handleToDate error:', e);
         }
-        this.validateOverlap();   // add this line at the end
+    this.validateOverlap();   // add this line at the end
     }
 
-  /*  handleToTime(event) {
+    handleToTime(event) {
         try {
     
             console.log('================================');
@@ -373,45 +381,17 @@ handlePdfClick(event) {
                 setTimeout(() => {
                     this.errorMessage = '';
                 }, 3000);
-                 return;
+                return;/*se-1360*/
             }
-             this.errorMessage = '';
-    
+            // IMPORTANT: this handles selecting only To Time 
+            if (this.fromDate && this.toDate) 
+            { this.validateOverlap();
+             }/*se-1360*/
         } catch(e) {
             console.error('handleToTime error:', e);
         }
-        this.validateOverlap();   // add this line at the end
-    }*/
-    handleToTime(event) {
-    try {
-        this.toTimeOnly = event.target.value.substring(0, 5);
-
-        // To date hasn't been (re)selected since it was last cleared —
-        // nothing to compare yet, just remember the time and wait.
-        if (!this.toDateOnly) {
-            this.toDate = '';
-            return;
-        }
-
-        this.toDate = `${this.toDateOnly}T${this.toTimeOnly}`;
-
-        if (this.fromDate && this.toDate <= this.fromDate) {
-            if (this.toDate === this.fromDate) {
-                this.errorMessage = 'To time must be different from From time on the same day.';
-            } else {
-                this.errorMessage = 'Invalid date range: To date/time must be after From date/time.';
-            }
-            this.toDate = '';
-            this.toTimeOnly = '';
-            setTimeout(() => { this.errorMessage = ''; }, 3000);
-            return;
-        }
-        this.errorMessage = '';
-    } catch(e) {
-        console.error('handleToTime error:', e);
+     this.validateOverlap();   // add this line at the end
     }
-    this.validateOverlap();
-}
     handleLeaveType(event) {
         this.leaveType = event.target.value;
     }
@@ -725,10 +705,11 @@ endDate   : this.toDate.substring(0, 16)   + ':00',
             reader.readAsDataURL(file);
         });
     }
-    async validateOverlap() {
+   async validateOverlap() {
     if (!this.fromDate || !this.toDate) {
-        return true; // nothing to check yet
+        return true;
     }
+
     try {
         const result = await checkLeaveOverlap({
             startDate: this.fromDate.substring(0, 16) + ':00',
@@ -737,14 +718,16 @@ endDate   : this.toDate.substring(0, 16)   + ':00',
 
         if (result && result.status !== 'NONE') {
             this.errorMessage = result.message;
-            // Clear the To value so they can't submit until they pick a valid time
-            this.toDate = '';
-            this.toDateOnly = '';
-            this.toTimeOnly = '';
-            setTimeout(() => { this.errorMessage = ''; }, 4000);
+
+            setTimeout(() => {
+                this.errorMessage = '';
+            }, 4000);
+
             return false;
         }
+
         return true;
+
     } catch (error) {
         this.handleError(error);
         return false;

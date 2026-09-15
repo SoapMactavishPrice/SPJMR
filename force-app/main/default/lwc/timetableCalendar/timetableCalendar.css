@@ -1577,6 +1577,10 @@
     transform-origin: top left;
     margin-left: 4px;
     margin-right: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-sizing: border-box;
 }
 
 /* Support for overlapping events with variable widths */
@@ -1617,7 +1621,23 @@
     flex-direction: column;
     gap: 2px;
     height: 100%;
+    min-height: 0;
+    overflow: hidden;
     position: relative;
+    justify-content: flex-start;
+}
+
+/* Keep first two content rows readable; later rows yield space when the tile is short. */
+.event-content > :nth-child(1),
+.event-content > :nth-child(2) {
+    flex: 0 0 auto;
+    min-height: 1.15em;
+    max-width: 100%;
+}
+
+.event-content > :nth-child(n+3) {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .event-header {
@@ -1677,6 +1697,63 @@
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
+}
+
+/* Short tiles (≤45m): compact padding, first two lines only, never hide the top lines. */
+.calendar-event.event-density-short,
+.division-cell-event.event-density-short,
+.division-timeline-event.event-density-short,
+.month-event.event-density-short {
+    padding: 2px 6px;
+    gap: 1px;
+}
+
+.calendar-event.event-density-short .event-content {
+    gap: 1px;
+}
+
+.calendar-event.event-density-short .event-content > :nth-child(n+3),
+.division-cell-event.event-density-short > :nth-child(n+3),
+.division-timeline-event.event-density-short > :nth-child(n+3),
+.month-event.event-density-short > :nth-child(n+3) {
+    display: none;
+}
+
+.calendar-event.event-density-short .event-title,
+.calendar-event.event-density-short .event-course,
+.day-column .calendar-event.event-density-short .event-title,
+.day-column .calendar-event.event-density-short .event-course {
+    font-size: 11px;
+    line-height: 1.15;
+    white-space: nowrap;
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.calendar-event.event-density-medium .event-content > :nth-child(n+4) {
+    display: none;
+}
+
+.month-event.event-density-short .month-event-time,
+.month-event.event-density-short .month-event-title {
+    font-size: 11px;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 0 auto;
+    min-height: 1.15em;
+}
+
+.divisions-week-grid-inner .division-cell-event.event-density-short .div-cell-division,
+.divisions-week-grid-inner .division-cell-event.event-density-short .div-cell-title {
+    font-size: 9px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .event-room {
@@ -2843,6 +2920,14 @@
     flex-shrink: 0;
     direction: ltr;
     text-align: left;
+    justify-content: flex-start;
+}
+
+.month-event > :nth-child(1),
+.month-event > :nth-child(2) {
+    flex: 0 0 auto;
+    min-height: 1.15em;
+    max-width: 100%;
 }
 
 .month-event:hover {
@@ -4319,22 +4404,12 @@
     margin-bottom: 0.25rem;
     display: block;
 }
-/*se-1339*/
-/* Division label font */
-.division-filter-item .filter-label {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #181818;
-    margin-bottom: 0.25rem;
-    display: block;
-}/*se-1339*/
 
 /* Reduce faculty combobox width/height feel */
 .faculty-filter-item lightning-combobox {
     --slds-c-input-spacing-block-start: 0.15rem;
     --slds-c-input-spacing-block-end: 0.15rem;
 }
-
 
 /* Smaller hint text */
 .faculty-filter-hint {

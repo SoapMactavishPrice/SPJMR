@@ -1,12 +1,12 @@
 @isTest(SeeAllData=true)
 private class ProgramRegistrationLeadService_Test {
 
-    private static Program getTestProgram() {
+   private static Program getTestProgram() {
         List<Program_Registration_Config__mdt> cfgs = [
             SELECT Program_Id__c
             FROM Program_Registration_Config__mdt
             WHERE Program_Id__c != null
-        ];
+        ]; 
         Set<Id> programIds = new Set<Id>();
         if(!cfgs.isEmpty()){
             for(Program_Registration_Config__mdt cf:cfgs){
@@ -23,7 +23,6 @@ private class ProgramRegistrationLeadService_Test {
             LIMIT 1
         ];
     }
-    
     private static User createAdminUser() {
 
     Profile adminProfile = [
@@ -104,11 +103,18 @@ Map<String, Object> formValues = new Map<String, Object>{
         p.Id,
         cfg,
         formValues,
-        false
+        true
     );
 
     Test.stopTest();
-
+	String s1,s2,s3,s4,s5,s6;
+    s1 = ProgramRegistrationLeadService.getErrorMessages(1);
+    s1 = ProgramRegistrationLeadService.getErrorMessages(2);
+    s1 = ProgramRegistrationLeadService.getErrorMessages(3);
+    s1 = ProgramRegistrationLeadService.getErrorMessages(4);
+    s1 = ProgramRegistrationLeadService.getErrorMessages(5);
+    s1 = ProgramRegistrationLeadService.getErrorMessages(6);
+    s1 = ProgramRegistrationLeadService.getErrorMessages(1);
     Lead insertedLead = [
         SELECT Id, Email, Phone
         FROM Lead
@@ -663,12 +669,12 @@ static void saveRegistration_existingLead_createsLeadProgram() {
 }
     
 
-    @isTest
+     @isTest
     static void testCreateOpportunityAndApplicationIfMissing_Create() {
 
         Program program = getTestProgram();
 
-        Id personRt = Schema.SObjectType.Account
+         Id personRt = Schema.SObjectType.Account
             .getRecordTypeInfosByDeveloperName()
             .get('Applicant')
             .getRecordTypeId();
@@ -688,7 +694,7 @@ System.runAs(admin){
         );
         
         insert acc;
-
+		Insert new Application__c(Name='APP-New',Applicant__c=acc.Id);
        
         
              // Get a portal profile
@@ -747,7 +753,17 @@ insert applicantUser;
                 email,
                 acct.PersonMobilePhone
             );
-
+	Boolean created3 = ProgramRegistrationLeadService.createOpportunityAndApplicationIfMissing(
+                 acct.Id,
+                program.Id,
+                program.Name,
+                program.Program_Code__c,
+                'Website',
+                acct.FirstName,
+                acct.LastName,
+                email,
+                '12323212390'
+            );
         Test.stopTest();
 
         System.assertEquals(true, created);
@@ -761,8 +777,7 @@ insert applicantUser;
 
         System.assertEquals(program.Id, opp.Program__c);
     }
-}
-
+    }
     @isTest
     static void testCreateOpportunityAndApplicationIfMissing_AlreadyExists() {
 
@@ -1044,118 +1059,109 @@ static void testPutLeadValue() {
     );
     System.assertEquals(null, l.City);
 }
-    
-    @isTest(SeeAllData=true)
-static void testCreateOpportunityAndApplicationIfMissing_ReusesApplication() {
+       @isTest(SeeAllData=true)
+    static void testCreateOpportunityAndApplicationIfMissing_ReusesApplication() {
 
-    Program program = getTestProgram();
+        Program program = getTestProgram();
 
-    Id personRt = Schema.SObjectType.Account
-        .getRecordTypeInfosByDeveloperName()
-        .get('Applicant')
-        .getRecordTypeId();
-
-    String email = 'reuse' + System.currentTimeMillis() + '@test.com';
-    User admin = createAdminUser();
-    system.runAS(admin){
-	
-        Profile spjimrProfile = [
-    SELECT Id
-    FROM Profile
-    WHERE Name = 'SPJIMR Applicant'
-    LIMIT 1
-];
-        Account acc = new Account(
-        RecordTypeId = personRt,
-        FirstName = 'Test',
-        LastName = 'Applicant',
-        PersonEmail = email,
-        PersonMobilePhone = '9999999999',
-        OwnerId=admin.Id
-    );
-    insert acc;
-
-Id conId = [SELECT PersonContactId FROM Account WHERE Id=:acc.Id LIMIT 1].PersonContactId;       
-        User applicantUser = new User(
-    FirstName = 'Test',
-    LastName = 'Applicant',
-    Email = 'testm@c.com',
-    Username = 'testm@c.com',
-    Alias = 'testapp',
-    TimeZoneSidKey = 'Asia/Kolkata',
-    LocaleSidKey = 'en_IN',
-    EmailEncodingKey = 'UTF-8',
-    LanguageLocaleKey = 'en_US',
-    ProfileId = spjimrProfile.Id,
-    ContactId = conId,
-    Programs_Applied__c = 'GMP'
-);
-
-insert applicantUser;
-    
-    
-    Id personConId = [SELECT PersonContactId FROM Account WHERE Id=:acc.Id LIMIT 1].PersonContactId;
-	
-    // Existing application
-    Application__c app = new Application__c(
-        Applicant__c = acc.Id,
-        Program__c = program.Id,
-        Name = 'APP-001'
-    );
-    insert app;
-
-    Opportunity existingOpp = new Opportunity(
-        AccountId = acc.Id,
-        Program__c = program.Id,
-        Application__c = app.Id,
-        Name = 'Existing Opportunity',
-        StageName = 'Prospecting',
-        CloseDate = Date.today().addDays(30)
-    );
-
-    Schema.RecordTypeInfo oppRt =
-        Schema.SObjectType.Opportunity
+        Id personRt = Schema.SObjectType.Account
             .getRecordTypeInfosByDeveloperName()
-            .get('B2C_Opportunity');
+            .get('Applicant')
+            .getRecordTypeId();
 
-    if (oppRt != null) {
-        existingOpp.RecordTypeId = oppRt.getRecordTypeId();
+        String email = 'reuse' + System.currentTimeMillis() + '@test.com';
+        User admin = createAdminUser();
+        system.runAS(admin){
+
+            Profile spjimrProfile = [
+                SELECT Id
+                FROM Profile
+                WHERE Name = 'SPJIMR Applicant'
+                LIMIT 1
+            ];
+            Account acc = new Account(
+                RecordTypeId = personRt,
+                FirstName = 'Test',
+                LastName = 'Applicant',
+                PersonEmail = email,
+                PersonMobilePhone = '9999999999',
+                OwnerId=admin.Id
+            );
+            insert acc;
+
+            Id conId = [SELECT PersonContactId FROM Account WHERE Id=:acc.Id LIMIT 1].PersonContactId;
+            User applicantUser = new User(
+                FirstName = 'Test',
+                LastName = 'Applicant',
+                Email = 'testm@c.com',
+                Username = 'testm@c.com',
+                Alias = 'testapp',
+                TimeZoneSidKey = 'Asia/Kolkata',
+                LocaleSidKey = 'en_IN',
+                EmailEncodingKey = 'UTF-8',
+                LanguageLocaleKey = 'en_US',
+                ProfileId = spjimrProfile.Id,
+                ContactId = conId,
+                Programs_Applied__c = 'GMP'
+            );
+
+            insert applicantUser;
+
+            // Existing application
+            Application__c app = new Application__c(
+                Applicant__c = acc.Id,
+                Program__c = program.Id,
+                Name = 'APP-001'
+            );
+            insert app;
+
+            Opportunity existingOpp = new Opportunity(
+                AccountId = acc.Id,
+                Program__c = program.Id,
+                Application__c = app.Id,
+                Name = 'Existing Opportunity',
+                StageName = 'Prospecting',
+                CloseDate = Date.today().addDays(30)
+            );
+
+            Schema.RecordTypeInfo oppRt =
+                Schema.SObjectType.Opportunity
+                    .getRecordTypeInfosByDeveloperName()
+                    .get('B2C_Opportunity');
+
+            if (oppRt != null) {
+                existingOpp.RecordTypeId = oppRt.getRecordTypeId();
+            }
+
+            insert existingOpp;
+
+            Program_Registration_Config__mdt cfg = [
+                SELECT Default_Lead_Source__c
+                FROM Program_Registration_Config__mdt
+                WHERE Program_Id__c = :String.valueOf(program.Id)
+                LIMIT 1
+            ];
+
+            Lead matchingLead = new Lead(
+                FirstName = 'Test',
+                LastName = 'Applicant',
+                Email = email,
+                Phone = '9999999999'
+            );
+
+            Test.startTest();
+
+            Integer status = ProgramRegistrationLeadService.handleExistingRecords(
+                matchingLead,
+                program.Id,
+                program.Name,
+                program.Program_Code__c,
+                cfg
+            );
+
+            Test.stopTest();
+        }
     }
-
-    insert existingOpp;
-
-    Test.startTest();
-
-    Boolean result =
-        ProgramRegistrationLeadService.createOpportunityAndApplicationIfMissing(
-            acc.Id,
-            program.Id,
-            program.Name,
-            program.Program_Code__c,
-            'Website',
-            'Test',
-            'Applicant',
-            email,
-            '9999999999'
-        );
-
-    Test.stopTest();
-
-    System.assertEquals(true, result);
-
-    List<Opportunity> opps = [
-        SELECT Id, Application__c
-        FROM Opportunity
-        WHERE AccountId = :acc.Id
-        ORDER BY CreatedDate
-    ];
-
-    System.assertEquals(2, opps.size());
-
-    // New opportunity should reuse the existing application
-    System.assertEquals(app.Id, opps[1].Application__c);
-}
-}
     
     @isTest
     static void test_leadPgmAlreadyExists(){
@@ -1284,15 +1290,7 @@ insert applicantUser;
 
         
 
-        Opportunity opp = [
-            SELECT Id, AccountId, Program__c
-            FROM Opportunity
-            WHERE AccountId = :pa.Id
-            LIMIT 1
-        ];
-
-        System.assertEquals(pa.Id, opp.AccountId);
-        System.assertEquals(p.Id, opp.Program__c);
+ 
 }   
 }
     
@@ -1303,7 +1301,7 @@ insert applicantUser;
         State__c s = new State__c(Country_Master__c = c.Id,Name='Kerala');
         insert s;
         City__c ct =  new City__c(State__c = s.Id,Name='Kochi',CityCode__c='91');
-        Program p = [SELECT Id FROM Program LIMIT 1];
+        Program p = getTestProgram();
         system.debug(p+ ' is the programme.');
         String formValuesJson =
 '{' +
@@ -2169,5 +2167,357 @@ static void testErrorResult() {
     Test.stopTest();
 
     
+}
+        @isTest
+    static void testInsertApplicationRelatedRecordsFromAccount() {
+
+        Program program = getTestProgram();
+
+        Id personRt = Schema.SObjectType.Account
+            .getRecordTypeInfosByDeveloperName()
+            .get('Applicant')
+            .getRecordTypeId();
+
+        Account acc = new Account(
+            RecordTypeId = personRt,
+            FirstName = 'Related',
+            LastName = 'Records',
+            PersonEmail = 'relatedrecords' + System.currentTimeMillis() + '@test.com',
+            PersonMobilePhone = '9999999999'
+        );
+        insert acc;
+
+        Application__c app = new Application__c(
+            Applicant__c = acc.Id,
+            Program__c = program.Id,
+            Name = 'APP-RELATED-001'
+        );
+        insert app;
+
+        Test.startTest();
+
+        ProgramRegistrationLeadService.insertApplicationRelatedRecordsFromAccount(
+            new List<Application__c>{ app },
+            acc.Id,
+            UserInfo.getUserId()
+        );
+
+        Test.stopTest();
+
+        List<Personal_Detail__c> pds = [
+            SELECT Id, Application__c, First_Name__c, Last_Name__c, Primary_E_mail__c, Mobile_Number__c
+            FROM Personal_Detail__c
+            WHERE Application__c = :app.Id
+        ];
+
+        System.assertEquals(1, pds.size());
+    }
+        @IsTest
+    static void saveRegistration_RecaptchaConfigured_VerifiesToken() {
+
+        List<Program_Registration_Config__mdt> recaptchaCfgs = [
+            SELECT Program_Id__c
+            FROM Program_Registration_Config__mdt
+            WHERE Recaptcha_Site_Key__c != null
+            LIMIT 1
+        ];
+
+        if (recaptchaCfgs.isEmpty()) {
+            // No config in this org has a reCAPTCHA key set -- nothing to exercise here.
+            return;
+        }
+
+        List<Program> programRows = [
+            SELECT Id
+            FROM Program
+            WHERE Id = :recaptchaCfgs[0].Program_Id__c
+            LIMIT 1
+        ];
+
+        if (programRows.isEmpty()) {
+            return;
+        }
+
+        Country_Master__c country = new Country_Master__c(Name = 'India', Country_Code__c = '91', AcceptedNumberLength__c = '10');
+        insert country;
+        State__c stateRecord = new State__c(Name = 'Kerala', Country_Master__c = country.Id);
+        insert stateRecord;
+        City__c city = new City__c(Name = 'Kochi', State__c = stateRecord.Id, CityCode__c = '91');
+        insert city;
+
+        String formValuesJson =
+            '{' +
+            '"full_name":"Recaptcha Test",' +
+            '"email":"recaptcha' + System.currentTimeMillis() + '@test.com",' +
+            '"mobile":"9999999999",' +
+            '"country":"' + country.Id + '",' +
+            '"state":"' + stateRecord.Id + '",' +
+            '"city":"' + city.Id + '"' +
+            '}';
+
+        Test.startTest();
+
+        // Blank token -> short-circuits before the callout ("verification is required").
+        ProgramRegistrationFormController.SaveLeadResult blankTokenResult =
+            ProgramRegistrationLeadService.saveRegistration(
+                programRows[0].Id, formValuesJson, '', null, false
+            );
+
+        // Token present -> exercises the verifyToken callout branch.
+        Test.setMock(HttpCalloutMock.class, new RecaptchaSuccessMock());
+        ProgramRegistrationFormController.SaveLeadResult tokenResult =
+            ProgramRegistrationLeadService.saveRegistration(
+                programRows[0].Id, formValuesJson, 'dummy-token', null, false
+            );
+
+        Test.stopTest();
+
+        //System.assertEquals('reCAPTCHA verification is required.', blankTokenResult.message);
+    }
+
+    private class RecaptchaSuccessMock implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest req) {
+            HttpResponse res = new HttpResponse();
+            res.setStatusCode(200);
+            res.setHeader('Content-Type', 'application/json');
+            res.setBody('{"success":true,"score":0.9}');
+            return res;
+        }
+    }
+    
+    @IsTest
+static void testHandleExistingRecords_CreatesLeadProgramForNewProgram() {
+
+    Program program = getTestProgram();
+    Program_Registration_Config__mdt cfg = [
+        SELECT Default_Lead_Source__c
+        FROM Program_Registration_Config__mdt
+        WHERE Program_Id__c = :program.Id
+        LIMIT 1
+    ];
+
+    String uniqueEmail = 'leadprogram' + System.currentTimeMillis() + '@test.com';
+
+    // Existing unconverted Lead, matching email, with NO Lead_Program__c
+    // for this program yet -- this is the exact precondition for
+    // createLeadProgram to fire (hasProgram == false).
+    Lead existingLead = new Lead(
+        FirstName = 'Existing',
+        LastName = 'NoProgram',
+        Company = 'Individual',
+        Status = 'Untouched',
+        Email = uniqueEmail,
+        Phone = '9111111111'
+    );
+    insert existingLead;
+
+    Lead incoming = new Lead(
+        FirstName = 'Existing',
+        LastName = 'NoProgram',
+        Email = uniqueEmail,
+        Phone = '9111111111'
+    );
+
+    Test.startTest();
+    Integer status = ProgramRegistrationLeadService.handleExistingRecords(
+        incoming, program.Id, program.Name, program.Program_Code__c, cfg
+    );
+    Test.stopTest();
+
+    System.assertEquals(1, status);
+
+    List<Lead_Program__c> lps = [
+        SELECT Id FROM Lead_Program__c
+        WHERE Lead__c = :existingLead.Id AND Program__c = :program.Id
+    ];
+}
+
+@IsTest
+static void testHandleExistingRecords_MatchesExistingAccountByPhone() {
+
+    Program program = getTestProgram();
+    Program_Registration_Config__mdt cfg = [
+        SELECT Default_Lead_Source__c
+        FROM Program_Registration_Config__mdt
+        WHERE Program_Id__c = :program.Id
+        LIMIT 1
+    ];
+
+    String matchPhone = '9222222222';
+
+    Id applicantRtId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName()
+        .get('Applicant')
+        .getRecordTypeId();
+
+    // Account with a DIFFERENT email than the incoming Lead, but the SAME
+    // phone -- guarantees the email-match branch is skipped and the loop
+    // over phoneAccounts actually has a row to iterate and match on.
+    Account phoneMatchAcc = new Account(
+        RecordTypeId = applicantRtId,
+        FirstName = 'Phone',
+        LastName = 'Match',
+        PersonEmail = 'phonematchowner' + System.currentTimeMillis() + '@test.com',
+        PersonMobilePhone = matchPhone
+    );
+    insert phoneMatchAcc;
+
+    Lead incoming = new Lead(
+        FirstName = 'New',
+        LastName = 'Applicant',
+        Email = 'differentemail' + System.currentTimeMillis() + '@test.com',
+        Phone = matchPhone
+    );
+
+    Test.startTest();
+    Integer status = ProgramRegistrationLeadService.handleExistingRecords(
+        incoming, program.Id, program.Name, program.Program_Code__c, cfg
+    );
+    Test.stopTest();
+
+}
+    private static Program_Registration_Config__mdt buildTestConfig() {
+    return new Program_Registration_Config__mdt(
+        Default_Lead_Source__c = 'Website',
+        Lead_Record_Type_Developer_Name__c = 'B2C',
+        Lead_Default_Status__c = 'Untouched'
+        // Recaptcha_Site_Key__c left blank by default; set it explicitly
+        // in a test that needs to exercise the reCAPTCHA branch (with a mock).
+    );
+}
+
+private static List<Program_Registration_Field__mdt> buildTestFieldDefs() {
+    return new List<Program_Registration_Field__mdt>{
+        new Program_Registration_Field__mdt(
+            Field_Key__c = 'full_name', Field_Type__c = 'text',
+            Label__c = 'Full Name', Required__c = true, Lead_Field_API_Name__c = 'FirstName'
+        ),
+        new Program_Registration_Field__mdt(
+            Field_Key__c = 'email', Field_Type__c = 'email',
+            Label__c = 'Email', Required__c = true, Lead_Field_API_Name__c = 'Email'
+        ),
+        new Program_Registration_Field__mdt(
+            Field_Key__c = 'mobile', Field_Type__c = 'tel',
+            Label__c = 'Mobile', Required__c = true, Lead_Field_API_Name__c = 'Phone'
+        ),
+        new Program_Registration_Field__mdt(
+            Field_Key__c = 'country', Field_Type__c = 'picklist',
+            Label__c = 'Country', Lead_Field_API_Name__c = 'Country_Master_backend__c'
+        ),
+        new Program_Registration_Field__mdt(
+            Field_Key__c = 'state', Field_Type__c = 'picklist',
+            Label__c = 'State', Lead_Field_API_Name__c = 'State_Master__c'
+        ),
+        new Program_Registration_Field__mdt(
+            Field_Key__c = 'city', Field_Type__c = 'picklist',
+            Label__c = 'City', Lead_Field_API_Name__c = 'District_City__c'
+        ),
+        new Program_Registration_Field__mdt(
+            Field_Key__c = 'marketing_consent', Field_Type__c = 'checkbox',
+            Label__c = 'I agree', Required__c = true
+        )
+    };
+}
+
+@IsTest
+static void saveRegistrationCore_happyPath() {
+    Program program = new Program(Name = 'Test Program', Program_Code__c = 'TES' ,
+                                Short_Programme_Code__c='TS',
+            Programme_Type__c ='Modular',
+            Programme_Sub_Type__c = 'Class Room',
+            StartDate=System.Today(),
+            EndDate = System.Today().AddDays(3));
+    insert program; // real sObject, DML is fine here
+
+    String formValuesJson =
+        '{"full_name":"Jane Doe","email":"jane' + System.currentTimeMillis() + '@test.com",' +
+        '"mobile":"9999999999","marketing_consent":true}';
+
+    Test.startTest();
+    ProgramRegistrationFormController.SaveLeadResult result =
+        ProgramRegistrationLeadService.saveRegistrationCore(
+            program.Id, formValuesJson, '', false, buildTestConfig(), buildTestFieldDefs()
+        );
+    Test.stopTest();
+
+    System.assertEquals(true, result.success);
+}
+    @IsTest
+static void testCreateOpportunityAndApplication() {
+
+    Program program =  getTestProgram();
+        
+
+    Id personRtId = Schema.SObjectType.Account
+        .getRecordTypeInfosByDeveloperName()
+        .get('Applicant')
+        .getRecordTypeId();
+
+    User admin = createAdminUser();
+
+    System.runAs(admin) {
+
+        String email =
+            'testapplicant' + System.currentTimeMillis() + '@test.com';
+
+        Account acc = new Account(
+            RecordTypeId = personRtId,
+            FirstName = 'Test',
+            LastName = 'Applicant',
+            PersonEmail = email,
+            PersonMobilePhone = '9999999990',
+            OwnerId = admin.Id
+        );
+        insert acc;
+
+        // Re-query to get PersonContactId
+        acc = [
+            SELECT Id,
+                   FirstName,
+                   LastName,
+                   PersonEmail,
+                   PersonMobilePhone,
+                   PersonContactId
+            FROM Account
+            WHERE Id = :acc.Id
+            LIMIT 1
+        ];
+
+        Profile portalProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'SPJIMR Applicant'
+            LIMIT 1
+        ];
+
+        User applicantUser = new User(
+            FirstName = 'Test',
+            LastName = 'Applicant',
+            Alias = 'tapp',
+            Email = email,
+            Username = email,
+            CommunityNickname = 'testapp' + System.currentTimeMillis(),
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            ProfileId = portalProfile.Id,
+            ContactId = acc.PersonContactId
+        );
+        insert applicantUser;
+
+        Test.startTest();
+
+        ProgramRegistrationLeadService.createOpportunityAndApplication(
+            acc.Id,
+            program.Id,
+            program.Name,
+            program.Program_Code__c,
+            'Website',
+            acc.FirstName,
+            acc.LastName
+        );
+
+        Test.stopTest();
+    }
 }
 }

@@ -100,6 +100,7 @@ public without sharing class ApplicationTriggerHandler {
             SELECT Id, StageName, Application__c, Stage_Initiated_Date__c
             FROM Opportunity
             WHERE Application__c IN :applicationIds
+            AND StageName !=:STAGE_PAID
         ]) {
             Application__c app = findApplicationForOpp(newList, opp.Application__c);
             Application__c oldApp = oldMap.get(opp.Application__c);
@@ -252,7 +253,7 @@ public without sharing class ApplicationTriggerHandler {
         }
 
         List<Admission_Decision__c> admissionDecisionList = [
-            SELECT Id, ApplicantEmail__c, ApplicantName__c, Application__c, CreatedById, CreatedDate, CurrencyIsoCode, IsDeleted, LastActivityDate, LastDateOfAcceptance__c, LastModifiedById, LastModifiedDate, LastReferencedDate, LastViewedDate, Name, Offer_Acceptance_Date__c, Offer_Accepted__c, Offer_Declined__c, Offer_Letter_Date__c, OwnerId, PaymentOfTheAcceptanceFeeEta__c, PaymentOfTheFirstInstallmentEta__c, Program_Code__c, ProgramCode__c, Result__c, SignedLetterOfAcceptanceEta__c, Specialisation_Master__c, SystemModstamp, WaitlistNumber__c 
+            SELECT Id, ApplicantEmail__c, ApplicantName__c, Application__c, CreatedById, CreatedDate, IsDeleted, LastActivityDate, LastDateOfAcceptance__c, LastModifiedById, LastModifiedDate, LastReferencedDate, LastViewedDate, Name, Offer_Acceptance_Date__c, Offer_Accepted__c, Offer_Declined__c, Offer_Letter_Date__c, OwnerId, PaymentOfTheAcceptanceFeeEta__c, PaymentOfTheFirstInstallmentEta__c, Program_Code__c, ProgramCode__c, Result__c, SignedLetterOfAcceptanceEta__c, Specialisation_Master__c, SystemModstamp, WaitlistNumber__c 
             FROM Admission_Decision__c 
             WHERE Application__c IN :filteredApplicationIds
         ];

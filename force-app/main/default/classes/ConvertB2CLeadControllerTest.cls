@@ -1,7 +1,7 @@
 @IsTest
 private class ConvertB2CLeadControllerTest {
 
-    @testSetup
+    @testSetup 
     static void setup() {
 		 User admin =  createSystemAdminUser();
         system.runAS(admin){

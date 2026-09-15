@@ -970,14 +970,22 @@ public static String getApplicationStage(Id applicationId) {
                         
                     }
                     
-                   when 'Reject Round 1','Disqualified'{
+                   when 'Reject Round 1'{
                         applicationStatus = 'Disqualified';
                         isRejected = true;
                         isScheduled = false;
+                        bookingInfo = constructBookingInfo(new List<ApplicationSlotBooking__c>{sel?.ApplicationSlotBookings__r[0]});                        
                     }
 
                     when 'Reject Round 2'{
                         applicationStatus = 'Not Offered';
+                        isRejected = true;
+                        isScheduled = false;
+                        bookingInfo = constructBookingInfo(new List<ApplicationSlotBooking__c>{sel?.ApplicationSlotBookings__r[0]});                        
+                    }
+
+                    when 'Disqualified' {
+                        applicationStatus = 'Disqualified';
                         isRejected = true;
                         isScheduled = false;
                     }
@@ -992,14 +1000,9 @@ public static String getApplicationStage(Id applicationId) {
                                     allowSchedule = false;
                                 }
                             }
-                            bookingInfo = constructBookingInfo(new List<ApplicationSlotBooking__c>{sel?.ApplicationSlotBookings__r[0]});
-                            
-                            isScheduled = true;
-                            
-                            
                             
                         }
-                        
+                        bookingInfo = constructBookingInfo(new List<ApplicationSlotBooking__c>{sel?.ApplicationSlotBookings__r[0]});                        
                         isScheduled = true;
                         applicationStatus = 'Shortlisted for Interview';
                     }
@@ -1052,23 +1055,23 @@ public static String getApplicationStage(Id applicationId) {
         }
                 apbsMap.put(sel.Program__c, new AccountProgramApplicationWrapper(
                     sel.Program__r.Id,
-                sel.Program__r.Name,
-                sel.Program__r.Program_Code__c,
-                applicationStatus,
-                sel.Application_Stage__c,
-                sel.Name,
-                allowSchedule,
-                bookingInfo,
-                isScheduled,
-                isFirstRound,
-                isDecisionPresent,
-                applicantName,
-                countBookings,
-                appId,
-                isRejected,
-                applyString,
-                assignmentStatus
-                    ));
+                    sel.Program__r.Name,
+                    sel.Program__r.Program_Code__c,
+                    applicationStatus,
+                    sel.Application_Stage__c,
+                    sel.Name,
+                    allowSchedule,
+                    bookingInfo,
+                    isScheduled,
+                    isFirstRound,
+                    isDecisionPresent,
+                    applicantName,
+                    countBookings,
+                    appId,
+                    isRejected,
+                    applyString,
+                    assignmentStatus
+                ));
             }
         }
         

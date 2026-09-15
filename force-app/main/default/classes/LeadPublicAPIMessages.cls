@@ -1,6 +1,6 @@
 /**
  * User-facing API messages for createLead scenarios.
- */
+ */ 
 public with sharing class LeadPublicAPIMessages {
     public static final String LEAD_CREATED = 'Lead created successfully.';
     public static final String LEAD_EXISTS_NEW_PROGRAM =

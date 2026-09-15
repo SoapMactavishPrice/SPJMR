@@ -89,7 +89,7 @@ public without sharing class ApplicationSlotBookingTriggerHelper {
                             update updateList;
                         }
                         catch(DMLException e){
-                            system.debug('Could not Update Applicant State Management '+e.getMessage());
+                            system.debug('Could not Update Application Stage '+e.getMessage());
                         }
                     }
                 }

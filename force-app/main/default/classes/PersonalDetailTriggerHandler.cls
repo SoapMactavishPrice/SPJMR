@@ -17,10 +17,10 @@ public class PersonalDetailTriggerHandler {
         List<Personal_Detail__c> newList,
         Map<Id, Personal_Detail__c> newMap
     ) {
-        SharingOrchestrator.handleRecords(
+      /*  SharingOrchestrator.handleRecords(
             'Personal_Detail__c',
             newMap.keySet()
-        );
+        );*/
     }
 
     public void afterUpdate(

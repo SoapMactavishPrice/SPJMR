@@ -6,7 +6,7 @@ export default class ImportApplicationsContainer extends LightningElement {
 
     options = [
         {
-            label: 'Profile Shortlist / Applicant State Management',
+            label: 'Profile Shortlist / Application Stage Management',
             value: 'profileShortlist'
         },
         {

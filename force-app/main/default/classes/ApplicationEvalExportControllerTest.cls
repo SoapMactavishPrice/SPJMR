@@ -3,102 +3,165 @@ private class ApplicationEvalExportControllerTest {
     
     @TestSetup
     static void setupData() {
-        insert new Automation_Control__c(
-            SetupOwnerId = UserInfo.getOrganizationId(),
-            Skip_Flows__c = true
-        );
 
-        RecordType personRt = [
-            SELECT Id FROM RecordType 
-            WHERE SObjectType = 'Account' AND IsPersonType = true 
+        Profile sysAdminProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'System Administrator'
             LIMIT 1
         ];
-
-        Account applicant = new Account(
-            RecordTypeId = personRt.Id,
-            FirstName = 'Controller',
-            LastName = 'Test',
-            PersonEmail = 'controller.test@example.com'
+ 
+        UserRole studentCounsellorRole = new UserRole(
+            Name = 'Student_Counsellor',
+            DeveloperName = 'StudentCounsellor'
         );
-        insert applicant;
-
-        Program prog = new Program(
-            Name = 'Controller Program',
-            Program_Code__c = 'CPGM',
-            Programme_Type__c = 'Full-time',
-            Programme_Sub_Type__c = 'Class Room',
-            Short_Programme_Code__c = 'PPM'
+        insert studentCounsellorRole;
+ 
+        User testUser = new User(
+            FirstName = 'Test',
+            LastName = 'Admin',
+            Alias = 'tadmin',
+            Email = 'testadmin@example.com',
+            Username = 'testadmin.@987example.com',
+            ProfileId = sysAdminProfile.Id,
+            UserRoleId = studentCounsellorRole.Id,
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_IN',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
         );
-        insert prog;
+        insert testUser;
+ 
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+ 
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team', 'EducationCloudAccess')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+ 
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('Admissions_Team')
+            ),
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('EducationCloudAccess')
+            )
+        };
 
-        RoundMaster__c round = new RoundMaster__c(
-            Name = 'Controller Round',
-            RoundNumber__c = '1',
-            Program__c = prog.Id
-        );
-        insert round;
+        System.runAs(testUser) {
+            insert new Automation_Control__c(
+                SetupOwnerId = UserInfo.getOrganizationId(),
+                Skip_Flows__c = true
+            );
 
-        SlotMaster__c slot = new SlotMaster__c(
-            Name = 'CTRL-SLOT-001',
-            SlotDate__c = Date.today(),
-            SlotStartTime__c = Time.newInstance(9, 0, 0, 0),
-            SlotEndtime__c = Time.newInstance(10, 0, 0, 0),
-            Program_Master__c = prog.Id
-        );
-        insert slot;
+            RecordType personRt = [
+                SELECT Id FROM RecordType 
+                WHERE SObjectType = 'Account' AND IsPersonType = true 
+                LIMIT 1
+            ];
 
-        Application__c app = new Application__c(
-            Name = 'CTRL-APP-001',
-            Applicant__c = applicant.Id,
-            Program__c = prog.Id
-        );
-        insert app;
+            Account applicant = new Account(
+                RecordTypeId = personRt.Id,
+                FirstName = 'Controller',
+                LastName = 'Test',
+                PersonEmail = 'controller.test@example.com'
+            );
+            insert applicant;
 
-        PanelMaster__c panel = new PanelMaster__c(
-        );
-        insert panel;
+            Program prog = new Program(
+                Name = 'Controller Program',
+                Program_Code__c = 'CPGM',
+                Programme_Type__c = 'Full-time',
+                Programme_Sub_Type__c = 'Class Room',
+                Short_Programme_Code__c = 'PPM'
+            );
+            insert prog;
 
-        ApplicationSlotBooking__c booking = new ApplicationSlotBooking__c(
-            Application__c = app.Id,
-            SlotMaster__c = slot.Id,
-            RoundMaster__c = round.Id,
-            Panel_Master__c = panel.Id
-        );
-        insert booking;
+            RoundMaster__c round = new RoundMaster__c(
+                Name = 'Controller Round',
+                RoundNumber__c = '1',
+                Program__c = prog.Id
+            );
+            insert round;
 
-        Account evaluator = new Account(
-            RecordTypeId = personRt.Id,
-            FirstName = 'Ctrl',
-            LastName = 'Evaluator',
-            PersonEmail = 'ctrl.evaluator@example.com'
-        );
-        insert evaluator;
+            SlotMaster__c slot = new SlotMaster__c(
+                Name = 'CTRL-SLOT-001',
+                SlotDate__c = Date.today(),
+                SlotStartTime__c = Time.newInstance(9, 0, 0, 0),
+                SlotEndtime__c = Time.newInstance(10, 0, 0, 0),
+                Program_Master__c = prog.Id
+            );
+            insert slot;
 
-        Evaluation__c eval = new Evaluation__c(
-            Application_Slot_Booking__c = booking.Id,
-            EvaluatedUser__c = evaluator.Id,
-            Status__c = 'Complete'
-        );
-        insert eval;
+            Application__c app = new Application__c(
+                Name = 'CTRL-APP-001',
+                Applicant__c = applicant.Id,
+                Program__c = prog.Id
+            );
+            insert app;
+
+            PanelMaster__c panel = new PanelMaster__c(
+            );
+            insert panel;
+
+            ApplicationSlotBooking__c booking = new ApplicationSlotBooking__c(
+                Application__c = app.Id,
+                SlotMaster__c = slot.Id,
+                RoundMaster__c = round.Id,
+                Panel_Master__c = panel.Id
+            );
+            insert booking;
+
+            Account evaluator = new Account(
+                RecordTypeId = personRt.Id,
+                FirstName = 'Ctrl',
+                LastName = 'Evaluator',
+                PersonEmail = 'ctrl.evaluator@example.com'
+            );
+            insert evaluator;
+
+            Evaluation__c eval = new Evaluation__c(
+                Application_Slot_Booking__c = booking.Id,
+                EvaluatedUser__c = evaluator.Id,
+                Status__c = 'Complete'
+            );
+            insert eval;
+        }
+        
     }
 
     @IsTest
     static void testStartExportSuccess() {
-        Program prog = [SELECT Id FROM Program LIMIT 1];
-        RoundMaster__c round = [SELECT Id FROM RoundMaster__c LIMIT 1];
+        User testUser = [
+                SELECT Id
+                FROM User
+                WHERE Username LIKE 'testadmin.@987example.com'
+                LIMIT 1
+            ];
+        
+        
+        System.runAs(testUser) {
+            Program prog = [SELECT Id FROM Program LIMIT 1];
+            RoundMaster__c round = [SELECT Id FROM RoundMaster__c LIMIT 1];
 
-        Test.startTest();
-        String jobId = ApplicationEvaluationExportController.startExport(
-            prog.Id,
-            round.Id,
-            Date.today().addDays(-1),
-            Date.today(),
-            '09:00:00',
-            '10:00:00'
-        );
-        Test.stopTest();
+            Test.startTest();
+            String jobId = ApplicationEvaluationExportController.startExport(
+                prog.Id,
+                round.Id,
+                Date.today().addDays(-1),
+                Date.today(),
+                '09:00:00',
+                '10:00:00'
+            );
+            Test.stopTest();
 
-        System.assertNotEquals(null, jobId);
+            System.assertNotEquals(null, jobId);
+        }
     }
 
     @IsTest

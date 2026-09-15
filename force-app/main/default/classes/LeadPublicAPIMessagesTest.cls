@@ -1,6 +1,6 @@
 @IsTest
 private class LeadPublicAPIMessagesTest {
-    @IsTest
+    @IsTest 
 static void testLeadPublicAPIMessages() {
 
     System.assertEquals(

@@ -6,7 +6,7 @@ public with sharing class SPJIMR_ProgramCohortTriggerHandler {
 * @param oldMap Map of old ProgramCohort records (keyed by Id)
 */
     public static void handleTrigger(List<ProgramCohort> newList, Map<Id, ProgramCohort> oldMap) {
-        if (Trigger.isBefore && Trigger.isInsert) {
+        if (Trigger.isBefore && Trigger.isInsert) { 
             validateUniqueShortBatchCode(newList, null);/*956 added method*/
             validateUniqueBatchCode(newList, null);
             populateFieldsFromProgram(newList, null, true);
@@ -24,6 +24,7 @@ public with sharing class SPJIMR_ProgramCohortTriggerHandler {
             // Photo-upload window notification: fires when Profile_Window_Start_Time__c or Profile_Window_End_Time__c changes
             sendNotificationOnWindowChange((Map<Id, ProgramCohort>) Trigger.newMap, oldMap);
             // sendProfileWindowNotifications((Map<Id, ProgramCohort>) Trigger.newMap, oldMap); // commented out: replaced by sendNotificationOnWindowChange
+        	
         }
         
         if (Trigger.isAfter && Trigger.isInsert) {
@@ -38,6 +39,7 @@ public with sharing class SPJIMR_ProgramCohortTriggerHandler {
 * @param oldMap Map of old ProgramCohort records (keyed by Id)
 */
     private static void handleAfterUpdate(List<ProgramCohort> newList, Map<Id, ProgramCohort> oldMap) {
+        ApplicationNumberController.updateNonPaidOpportunities(newList,oldMap);
         // Check if Short_Batch_Code__c has changed
         List<ProgramCohort> batchesToProcess = new List<ProgramCohort>();
         for (ProgramCohort batch : newList) {

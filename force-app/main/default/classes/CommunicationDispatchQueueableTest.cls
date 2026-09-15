@@ -1,6 +1,58 @@
 @isTest
 private class CommunicationDispatchQueueableTest {
 
+    @testSetup
+    static void setup() {
+        Profile sysAdminProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'System Administrator'
+            LIMIT 1
+        ];
+
+        UserRole studentCounsellorRole = new UserRole(
+            Name = 'Student_Counsellor',
+            DeveloperName = 'StudentCounsellor'
+        );
+        insert studentCounsellorRole;
+
+        User testUser = new User(
+            FirstName = 'Test',
+            LastName = 'Admin',
+            Alias = 'tadmin',
+            Email = 'testadmin@example.com',
+            Username = 'testadmin.@987example.com',
+            ProfileId = sysAdminProfile.Id,
+            UserRoleId = studentCounsellorRole.Id,
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_IN',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert testUser;
+
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team', 'EducationCloudAccess')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('Admissions_Team')
+            ),
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('EducationCloudAccess')
+            )
+        };
+    }
+
     // ---------------------------------------------------------------
     // Test data helpers
     // ---------------------------------------------------------------
@@ -31,6 +83,7 @@ private class CommunicationDispatchQueueableTest {
             FROM RecordType
             WHERE SObjectType = 'Account'
             AND IsPersonType = true
+            AND Name = 'Applicant'
             LIMIT 1
         ];
         return recordTypes.isEmpty() ? null : recordTypes[0].Id;
@@ -154,71 +207,92 @@ private class CommunicationDispatchQueueableTest {
 
     @isTest
     static void testTwoArgConstructorDefaultsNullScopeSizeToFifty() {
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program program = createProgram(configuration.ProgramCode__c);
-        List<Application__c> applications = createApplications(program, 3);
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(program, configuration, null);
-        request.applicationIds = new List<Id>{
-            applications[0].Id,
-            applications[1].Id,
-            applications[2].Id
-        };
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{ request },
-            null
-        );
 
-        // If scopeSize did not default to 50, the first scope would only
-        // cover a fraction of the 3 ids, a continuation would be created,
-        // and enqueueRemainingIfNeeded would attempt System.enqueueJob -
-        // which would fail here since the Person Account insert above
-        // already used this test's only available job slot. Reaching the
-        // end without an exception confirms the null scopeSize fell back
-        // to 50 and processed all 3 ids in a single pass.
-        Test.startTest();
-        queueable.execute(null);
-        Test.stopTest();
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program program = createProgram(configuration.ProgramCode__c);
+            List<Application__c> applications = createApplications(program, 3);
 
-        System.assertEquals(
-            0,
-            countDispatchJobs(),
-            'Null scopeSize should default to 50, covering all 3 ' +
-            'application ids in one pass with no chaining.'
-        );
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(program, configuration, null);
+            request.applicationIds = new List<Id>{
+                applications[0].Id,
+                applications[1].Id,
+                applications[2].Id
+            };
+
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{ request },
+                null
+            );
+
+            // If scopeSize did not default to 50, the first scope would only
+            // cover a fraction of the 3 ids, a continuation would be created,
+            // and enqueueRemainingIfNeeded would attempt System.enqueueJob -
+            // which would fail here since the Person Account insert above
+            // already used this test's only available job slot. Reaching the
+            // end without an exception confirms the null scopeSize fell back
+            // to 50 and processed all 3 ids in a single pass.
+            Test.startTest();
+            queueable.execute(null);
+            Test.stopTest();
+
+            System.assertEquals(
+                0,
+                countDispatchJobs(),
+                'Null scopeSize should default to 50, covering all 3 ' +
+                'application ids in one pass with no chaining.'
+            );
+        }
     }
 
     @isTest
     static void testTwoArgConstructorDefaultsNonPositiveScopeSizeToFifty() {
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program program = createProgram(configuration.ProgramCode__c);
-        List<Application__c> applications = createApplications(program, 3);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(program, configuration, null);
-        request.applicationIds = new List<Id>{
-            applications[0].Id,
-            applications[1].Id,
-            applications[2].Id
-        };
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{ request },
-            0
-        );
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program program = createProgram(configuration.ProgramCode__c);
+            List<Application__c> applications = createApplications(program, 3);
 
-        Test.startTest();
-        queueable.execute(null);
-        Test.stopTest();
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(program, configuration, null);
+            request.applicationIds = new List<Id>{
+                applications[0].Id,
+                applications[1].Id,
+                applications[2].Id
+            };
 
-        System.assertEquals(
-            0,
-            countDispatchJobs(),
-            'Non-positive scopeSize (0) should default to 50, covering ' +
-            'all 3 application ids in one pass with no chaining.'
-        );
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{ request },
+                0
+            );
+
+            Test.startTest();
+            queueable.execute(null);
+            Test.stopTest();
+
+            System.assertEquals(
+                0,
+                countDispatchJobs(),
+                'Non-positive scopeSize (0) should default to 50, covering ' +
+                'all 3 application ids in one pass with no chaining.'
+            );
+        }
     }
 
     // ---------------------------------------------------------------
@@ -227,72 +301,92 @@ private class CommunicationDispatchQueueableTest {
 
     @isTest
     static void testExecuteProcessesMultipleRequestsInSinglePassWithoutChaining() {
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program program = createProgram(configuration.ProgramCode__c);
-        List<Application__c> applications = createApplications(program, 2);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest firstRequest =
-            buildRequest(program, configuration, applications[0].Id);
-        CommunicationsController.CommunicationRequest secondRequest =
-            buildRequest(program, configuration, applications[1].Id);
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{
-                firstRequest,
-                secondRequest
-            }
-        );
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program program = createProgram(configuration.ProgramCode__c);
+            List<Application__c> applications = createApplications(program, 2);
 
-        Test.startTest();
-        queueable.execute(null);
-        Test.stopTest();
+            CommunicationsController.CommunicationRequest firstRequest =
+                buildRequest(program, configuration, applications[0].Id);
+            CommunicationsController.CommunicationRequest secondRequest =
+                buildRequest(program, configuration, applications[1].Id);
 
-        System.assertEquals(
-            0,
-            countDispatchJobs(),
-            'Two requests that each fit within the default scope size ' +
-            'should both be processed in a single execute() call with no ' +
-            'chaining.'
-        );
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{
+                    firstRequest,
+                    secondRequest
+                }
+            );
+
+            Test.startTest();
+            queueable.execute(null);
+            Test.stopTest();
+
+            System.assertEquals(
+                0,
+                countDispatchJobs(),
+                'Two requests that each fit within the default scope size ' +
+                'should both be processed in a single execute() call with no ' +
+                'chaining.'
+            );
+        }
     }
 
     @isTest
     static void testExecuteSkipsRequestWithNoApplicationIdsAndContinuesToNextRequest() {
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program program = createProgram(configuration.ProgramCode__c);
-        List<Application__c> applications = createApplications(program, 2);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest firstRequest =
-            buildRequest(program, configuration, applications[0].Id);
 
-        CommunicationsController.CommunicationRequest emptyRequest =
-            buildRequest(program, configuration, null);
-        // applicationId, applicationIds, and applicationIdToReferenceRecordId
-        // are all left null/unset, so normalizeApplicationIds returns an
-        // empty list and this request should be skipped via `continue`.
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program program = createProgram(configuration.ProgramCode__c);
+            List<Application__c> applications = createApplications(program, 2);
 
-        CommunicationsController.CommunicationRequest secondRequest =
-            buildRequest(program, configuration, applications[1].Id);
+            CommunicationsController.CommunicationRequest firstRequest =
+                buildRequest(program, configuration, applications[0].Id);
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{
-                firstRequest,
-                emptyRequest,
-                secondRequest
-            }
-        );
+            CommunicationsController.CommunicationRequest emptyRequest =
+                buildRequest(program, configuration, null);
+            // applicationId, applicationIds, and applicationIdToReferenceRecordId
+            // are all left null/unset, so normalizeApplicationIds returns an
+            // empty list and this request should be skipped via `continue`.
 
-        Test.startTest();
-        queueable.execute(null);
-        Test.stopTest();
+            CommunicationsController.CommunicationRequest secondRequest =
+                buildRequest(program, configuration, applications[1].Id);
 
-        System.assertEquals(
-            0,
-            countDispatchJobs(),
-            'A request with no application ids should be skipped without ' +
-            'interrupting processing of the requests around it, and ' +
-            'without triggering any chaining.'
-        );
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{
+                    firstRequest,
+                    emptyRequest,
+                    secondRequest
+                }
+            );
+
+            Test.startTest();
+            queueable.execute(null);
+            Test.stopTest();
+
+            System.assertEquals(
+                0,
+                countDispatchJobs(),
+                'A request with no application ids should be skipped without ' +
+                'interrupting processing of the requests around it, and ' +
+                'without triggering any chaining.'
+            );
+        }
     }
 
     @isTest
@@ -324,35 +418,46 @@ private class CommunicationDispatchQueueableTest {
         // since CommunicationService would just reprocess the same ids),
         // but it guards against a regression that causes duplicated raw
         // ids to break something further down the pipeline.
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program program = createProgram(configuration.ProgramCode__c);
-        List<Application__c> applications = createApplications(program, 2);
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(program, configuration, applications[0].Id);
-        request.applicationIds = new List<Id>{
-            applications[0].Id,
-            applications[1].Id
-        };
-        request.applicationIdToReferenceRecordId = new Map<Id, Id>{
-            applications[0].Id => applications[0].Id,
-            applications[1].Id => applications[1].Id
-        };
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{ request }
-        );
 
-        Test.startTest();
-        queueable.execute(null);
-        Test.stopTest();
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program program = createProgram(configuration.ProgramCode__c);
+            List<Application__c> applications = createApplications(program, 2);
 
-        System.assertEquals(
-            0,
-            countDispatchJobs(),
-            'Duplicate ids supplied across map/list/single-id fields on ' +
-            'one request should not cause errors or unexpected chaining.'
-        );
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(program, configuration, applications[0].Id);
+            request.applicationIds = new List<Id>{
+                applications[0].Id,
+                applications[1].Id
+            };
+            request.applicationIdToReferenceRecordId = new Map<Id, Id>{
+                applications[0].Id => applications[0].Id,
+                applications[1].Id => applications[1].Id
+            };
+
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{ request }
+            );
+
+            Test.startTest();
+            queueable.execute(null);
+            Test.stopTest();
+
+            System.assertEquals(
+                0,
+                countDispatchJobs(),
+                'Duplicate ids supplied across map/list/single-id fields on ' +
+                'one request should not cause errors or unexpected chaining.'
+            );
+        }
     }
 
     // ---------------------------------------------------------------
@@ -370,34 +475,45 @@ private class CommunicationDispatchQueueableTest {
         // count, forcing a continuation to be built and re-queued via
         // System.enqueueJob) is intentionally not covered here - see the
         // class-level comment for why.
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program program = createProgram(configuration.ProgramCode__c);
-        List<Application__c> applications = createApplications(program, 3);
+        
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(program, configuration, null);
-        request.applicationIds = new List<Id>{
-            applications[0].Id,
-            applications[1].Id,
-            applications[2].Id
-        };
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{ request },
-            3
-        );
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program program = createProgram(configuration.ProgramCode__c);
+            List<Application__c> applications = createApplications(program, 3);
 
-        Test.startTest();
-        queueable.execute(null);
-        Test.stopTest();
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(program, configuration, null);
+            request.applicationIds = new List<Id>{
+                applications[0].Id,
+                applications[1].Id,
+                applications[2].Id
+            };
 
-        System.assertEquals(
-            0,
-            countDispatchJobs(),
-            'scopeSize equal to the total application count should ' +
-            'process everything in a single pass without creating a ' +
-            'continuation.'
-        );
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{ request },
+                3
+            );
+
+            Test.startTest();
+            queueable.execute(null);
+            Test.stopTest();
+
+            System.assertEquals(
+                0,
+                countDispatchJobs(),
+                'scopeSize equal to the total application count should ' +
+                'process everything in a single pass without creating a ' +
+                'continuation.'
+            );
+        }
     }
 
     // ---------------------------------------------------------------
@@ -406,37 +522,47 @@ private class CommunicationDispatchQueueableTest {
 
     @isTest
     static void testExecutePropagatesExceptionForMismatchedProgram() {
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program actualProgram = createProgram(configuration.ProgramCode__c);
-        Program differentProgram = createProgram('DIFFERENT_CODE');
-        List<Application__c> applications = createApplications(actualProgram, 1);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(differentProgram, configuration, applications[0].Id);
-        // Intentionally points at differentProgram while the application
-        // actually belongs to actualProgram.
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{ request }
-        );
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program actualProgram = createProgram(configuration.ProgramCode__c);
+            Program differentProgram = createProgram('DIFFERENT_CODE');
+            List<Application__c> applications = createApplications(actualProgram, 1);
 
-        Boolean exceptionThrown = false;
-        try {
-            queueable.execute(null);
-        } catch (CommunicationService.CommunicationServiceException e) {
-            exceptionThrown = true;
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(differentProgram, configuration, applications[0].Id);
+            // Intentionally points at differentProgram while the application
+            // actually belongs to actualProgram.
+
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{ request }
+            );
+
+            Boolean exceptionThrown = false;
+            try {
+                queueable.execute(null);
+            } catch (CommunicationService.CommunicationServiceException e) {
+                exceptionThrown = true;
+                System.assert(
+                    e.getMessage().contains('must belong to Program Id'),
+                    'Expected a program-mismatch error message, got: ' + e.getMessage()
+                );
+            }
+
             System.assert(
-                e.getMessage().contains('must belong to Program Id'),
-                'Expected a program-mismatch error message, got: ' + e.getMessage()
+                exceptionThrown,
+                'Expected CommunicationDispatchQueueable to propagate the ' +
+                'CommunicationServiceException thrown by CommunicationService ' +
+                'when an application does not belong to the request\'s program.'
             );
         }
-
-        System.assert(
-            exceptionThrown,
-            'Expected CommunicationDispatchQueueable to propagate the ' +
-            'CommunicationServiceException thrown by CommunicationService ' +
-            'when an application does not belong to the request\'s program.'
-        );
     }
 
         // ---------------------------------------------------------------
@@ -448,40 +574,51 @@ private class CommunicationDispatchQueueableTest {
         // A trailing companion request is included alongside the request
         // that needs continuation so the internal requests queue is never
         // empty at the point the continuation is spliced in.
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program program = createProgram(configuration.ProgramCode__c);
-        List<Application__c> applications = createApplications(program, 4);
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(program, configuration, null);
-        request.applicationIds = new List<Id>{
-            applications[0].Id,
-            applications[1].Id,
-            applications[2].Id
-        };
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest companionRequest =
-            buildRequest(program, configuration, applications[3].Id);
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{
-                request,
-                companionRequest
-            },
-            2
-        );
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program program = createProgram(configuration.ProgramCode__c);
+            List<Application__c> applications = createApplications(program, 4);
 
-        Test.startTest();
-        queueable.execute(null);
-        Test.stopTest();
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(program, configuration, null);
+            request.applicationIds = new List<Id>{
+                applications[0].Id,
+                applications[1].Id,
+                applications[2].Id
+            };
 
-        System.assertEquals(
-            1,
-            countDispatchJobs(),
-            'A scope smaller than the application count should build a ' +
-            'continuation and enqueue exactly one follow-up job carrying ' +
-            'the continuation plus the untouched companion request.'
-        );
+            CommunicationsController.CommunicationRequest companionRequest =
+                buildRequest(program, configuration, applications[3].Id);
+
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{
+                    request,
+                    companionRequest
+                },
+                2
+            );
+
+            Test.startTest();
+            queueable.execute(null);
+            Test.stopTest();
+
+            System.assertEquals(
+                1,
+                countDispatchJobs(),
+                'A scope smaller than the application count should build a ' +
+                'continuation and enqueue exactly one follow-up job carrying ' +
+                'the continuation plus the untouched companion request.'
+            );
+        }
     }
 
     @isTest
@@ -489,78 +626,99 @@ private class CommunicationDispatchQueueableTest {
         // A trailing companion request is included alongside the
         // map-sourced request so the internal requests queue is never
         // empty at the point the continuation is spliced in.
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program program = createProgram(configuration.ProgramCode__c);
-        List<Application__c> applications = createApplications(program, 4);
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(program, configuration, null);
-        request.applicationIdToReferenceRecordId = new Map<Id, Id>{
-            applications[0].Id => applications[0].Id,
-            applications[1].Id => applications[1].Id,
-            applications[2].Id => applications[2].Id
-        };
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest companionRequest =
-            buildRequest(program, configuration, applications[3].Id);
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{
-                request,
-                companionRequest
-            },
-            2
-        );
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program program = createProgram(configuration.ProgramCode__c);
+            List<Application__c> applications = createApplications(program, 4);
 
-        Test.startTest();
-        queueable.execute(null);
-        Test.stopTest();
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(program, configuration, null);
+            request.applicationIdToReferenceRecordId = new Map<Id, Id>{
+                applications[0].Id => applications[0].Id,
+                applications[1].Id => applications[1].Id,
+                applications[2].Id => applications[2].Id
+            };
 
-        System.assertEquals(
-            1,
-            countDispatchJobs(),
-            'A continuation built from a map-sourced id set should filter ' +
-            'applicationIdToReferenceRecordId down to the unprocessed ids ' +
-            'and still complete, along with the untouched companion ' +
-            'request, via exactly one follow-up job.'
-        );
+            CommunicationsController.CommunicationRequest companionRequest =
+                buildRequest(program, configuration, applications[3].Id);
+
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{
+                    request,
+                    companionRequest
+                },
+                2
+            );
+
+            Test.startTest();
+            queueable.execute(null);
+            Test.stopTest();
+
+            System.assertEquals(
+                1,
+                countDispatchJobs(),
+                'A continuation built from a map-sourced id set should filter ' +
+                'applicationIdToReferenceRecordId down to the unprocessed ids ' +
+                'and still complete, along with the untouched companion ' +
+                'request, via exactly one follow-up job.'
+            );
+        }
     }
 
     @isTest
     static void testExecuteQueuesContinuationAlongsideUnprocessedTrailingRequest() {
-        CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
-        Program program = createProgram(configuration.ProgramCode__c);
-        List<Application__c> applications = createApplications(program, 4);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest firstRequest =
-            buildRequest(program, configuration, null);
-        firstRequest.applicationIds = new List<Id>{
-            applications[0].Id,
-            applications[1].Id,
-            applications[2].Id
-        };
 
-        CommunicationsController.CommunicationRequest secondRequest =
-            buildRequest(program, configuration, applications[3].Id);
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getOfferAcceptedConfiguration();
+            Program program = createProgram(configuration.ProgramCode__c);
+            List<Application__c> applications = createApplications(program, 4);
 
-        CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
-            new List<CommunicationsController.CommunicationRequest>{
-                firstRequest,
-                secondRequest
-            },
-            2
-        );
+            CommunicationsController.CommunicationRequest firstRequest =
+                buildRequest(program, configuration, null);
+            firstRequest.applicationIds = new List<Id>{
+                applications[0].Id,
+                applications[1].Id,
+                applications[2].Id
+            };
 
-        Test.startTest();
-        queueable.execute(null);
-        Test.stopTest();
+            CommunicationsController.CommunicationRequest secondRequest =
+                buildRequest(program, configuration, applications[3].Id);
 
-        System.assertEquals(
-            1,
-            countDispatchJobs(),
-            'When the first request needs a continuation, the follow-up ' +
-            'job should carry both the continuation and the untouched ' +
-            'trailing request, completing both in one further pass.'
-        );
+            CommunicationDispatchQueueable queueable = new CommunicationDispatchQueueable(
+                new List<CommunicationsController.CommunicationRequest>{
+                    firstRequest,
+                    secondRequest
+                },
+                2
+            );
+
+            Test.startTest();
+            queueable.execute(null);
+            Test.stopTest();
+
+            System.assertEquals(
+                1,
+                countDispatchJobs(),
+                'When the first request needs a continuation, the follow-up ' +
+                'job should carry both the continuation and the untouched ' +
+                'trailing request, completing both in one further pass.'
+            );
+        }
     }
 }

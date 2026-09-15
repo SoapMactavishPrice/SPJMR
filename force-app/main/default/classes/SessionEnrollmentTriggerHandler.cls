@@ -89,6 +89,7 @@ public without sharing class SessionEnrollmentTriggerHandler {
         }
     }
 
+    @TestVisible
     private static Boolean valuesEqual(String a, String b) {
         String ta = a == null ? '' : a.trim();
         String tb = b == null ? '' : b.trim();
@@ -98,6 +99,7 @@ public without sharing class SessionEnrollmentTriggerHandler {
     /**
      * True when the stored value should trigger a student notification.
      */
+    @TestVisible
     private static Boolean isTargetAttendanceStatus(String attendance) {
         if (String.isBlank(attendance)) {
             return false;
@@ -122,6 +124,7 @@ public without sharing class SessionEnrollmentTriggerHandler {
     /**
      * Human-readable status for the notification body (uses org picklist text when sensible).
      */
+    @TestVisible
     private static String attendanceLabelForMessage(String attendance) {
         if (String.isBlank(attendance)) {
             return 'updated';

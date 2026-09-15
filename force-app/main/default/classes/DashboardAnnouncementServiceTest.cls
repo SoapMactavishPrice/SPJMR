@@ -1,5 +1,58 @@
 @IsTest
 private class DashboardAnnouncementServiceTest {
+
+    @testSetup
+    static void setup() {
+        Profile sysAdminProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'System Administrator'
+            LIMIT 1
+        ];
+
+        UserRole studentCounsellorRole = new UserRole(
+            Name = 'Student_Counsellor',
+            DeveloperName = 'StudentCounsellor'
+        );
+        insert studentCounsellorRole;
+
+        User testUser = new User(
+            FirstName = 'Test',
+            LastName = 'Admin',
+            Alias = 'tadmin',
+            Email = 'testadmin@example.com',
+            Username = 'testadmin.@987example.com',
+            ProfileId = sysAdminProfile.Id,
+            UserRoleId = studentCounsellorRole.Id,
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_IN',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert testUser;
+
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team', 'EducationCloudAccess')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('Admissions_Team')
+            ),
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('EducationCloudAccess')
+            )
+        };
+    }
+
     private static Integer sequence = 0;
 
     private static Program createProgram(String programCode) {
@@ -78,16 +131,26 @@ private class DashboardAnnouncementServiceTest {
 
     @IsTest
     static void getAnnouncementsSingleReturnsEmptyWhenApplicationNotFound() {
-        Program programRecord = createProgram('DASH1');
-        Application__c application = createApplication(programRecord.Id, null);
-        insert application;
-        Id deletedId = application.Id;
-        delete application;
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        List<CommunicationsController.DashboardAnnouncement> announcements =
-            DashboardAnnouncementService.getAnnouncements(deletedId);
 
-        System.assert(announcements.isEmpty());
+        System.runAs(testUser) {
+            Program programRecord = createProgram('DASH1');
+            Application__c application = createApplication(programRecord.Id, null);
+            insert application;
+            Id deletedId = application.Id;
+            delete application;
+
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(deletedId);
+
+            System.assert(announcements.isEmpty());
+        }
     }
 
     @IsTest
@@ -120,143 +183,214 @@ private class DashboardAnnouncementServiceTest {
 
     @IsTest
     static void getAnnouncementsEvaluatesOfferAvailableStateWithEligibleDecision() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(
-            programRecord.Id,
-            'Offer Issued'
-        );
-        insert application;
-        insertAdmissionDecision(application.Id, 'Eligible for Admission');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        List<CommunicationsController.DashboardAnnouncement> announcements =
-            DashboardAnnouncementService.getAnnouncements(application.Id);
-        Test.stopTest();
 
-        // buildAnnouncement's dashboard-enabled gate cannot be confirmed
-        // without DashboardAnnouncementEnabled__c/DashboardTemplate__c
-        // values, so only structural safety is asserted here.
-        System.assertNotEquals(null, announcements);
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(
+                programRecord.Id,
+                'Offer Issued'
+            );
+            insert application;
+            insertAdmissionDecision(application.Id, 'Eligible for Admission');
+
+            Test.startTest();
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(application.Id);
+            Test.stopTest();
+
+            // buildAnnouncement's dashboard-enabled gate cannot be confirmed
+            // without DashboardAnnouncementEnabled__c/DashboardTemplate__c
+            // values, so only structural safety is asserted here.
+            System.assertNotEquals(null, announcements);
+        }
     }
 
     @IsTest
     static void getAnnouncementsSkipsOfferAvailableWhenStateDoesNotMatch() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(
-            programRecord.Id,
-            'Offer Issued'
-        );
-        insert application;
-        insertAdmissionDecision(application.Id, 'Eligible for Admission');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        List<CommunicationsController.DashboardAnnouncement> announcements =
-            DashboardAnnouncementService.getAnnouncements(application.Id);
-        Test.stopTest();
 
-        // System.assert(announcements.isEmpty());
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(
+                programRecord.Id,
+                'Offer Issued'
+            );
+            insert application;
+            insertAdmissionDecision(application.Id, 'Eligible for Admission');
+
+            Test.startTest();
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(application.Id);
+            Test.stopTest();
+
+            // System.assert(announcements.isEmpty());
+        }
     }
 
     @IsTest
     static void getAnnouncementsSkipsOfferAvailableWhenNoAdmissionDecision() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(
-            programRecord.Id,
-            'Offer Issued'
-        );
-        insert application;
-        // no Admission_Decision__c inserted
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        List<CommunicationsController.DashboardAnnouncement> announcements =
-            DashboardAnnouncementService.getAnnouncements(application.Id);
-        Test.stopTest();
 
-        System.assert(announcements.isEmpty());
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(
+                programRecord.Id,
+                'Offer Issued'
+            );
+            insert application;
+            // no Admission_Decision__c inserted
+
+            Test.startTest();
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(application.Id);
+            Test.stopTest();
+
+            System.assert(announcements.isEmpty());
+        }
     }
 
     @IsTest
     static void getAnnouncementsEvaluatesWaitlistedState() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(
-            programRecord.Id,
-            'Waitlisted'
-        );
-        insert application;
-        insertAdmissionDecision(application.Id, 'Waitlisted');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        List<CommunicationsController.DashboardAnnouncement> announcements =
-            DashboardAnnouncementService.getAnnouncements(application.Id);
-        Test.stopTest();
 
-        System.assertNotEquals(null, announcements);
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(
+                programRecord.Id,
+                'Waitlisted'
+            );
+            insert application;
+            insertAdmissionDecision(application.Id, 'Waitlisted');
+
+            Test.startTest();
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(application.Id);
+            Test.stopTest();
+
+            System.assertNotEquals(null, announcements);
+        }
     }
 
     @IsTest
     static void getAnnouncementsEvaluatesNotEligibleState() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(
-            programRecord.Id,
-            'Reject Round 1'
-        );
-        insert application;
-        insertAdmissionDecision(application.Id, 'Not Eligible');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        List<CommunicationsController.DashboardAnnouncement> announcements =
-            DashboardAnnouncementService.getAnnouncements(application.Id);
-        Test.stopTest();
 
-        System.assertNotEquals(null, announcements);
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(
+                programRecord.Id,
+                'Reject Round 1'
+            );
+            insert application;
+            insertAdmissionDecision(application.Id, 'Not Eligible');
+
+            Test.startTest();
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(application.Id);
+            Test.stopTest();
+
+            System.assertNotEquals(null, announcements);
+        }
     }
 
     @IsTest
     static void getAnnouncementsEvaluatesOfferNotAcceptedState() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(
-            programRecord.Id,
-            'Offer Not Accepted'
-        );
-        insert application;
-        insertAdmissionDecision(application.Id, 'Eligible for Admission');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        List<CommunicationsController.DashboardAnnouncement> announcements =
-            DashboardAnnouncementService.getAnnouncements(application.Id);
-        Test.stopTest();
 
-        System.assertNotEquals(null, announcements);
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(
+                programRecord.Id,
+                'Offer Not Accepted'
+            );
+            insert application;
+            insertAdmissionDecision(application.Id, 'Eligible for Admission');
+
+            Test.startTest();
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(application.Id);
+            Test.stopTest();
+
+            System.assertNotEquals(null, announcements);
+        }
     }
 
     @IsTest
     static void getAnnouncementsListHandlesMultipleApplications() {
-        Program programRecord = createProgram('PGPM');
-        Application__c waitlistedApplication = createApplication(
-            programRecord.Id,
-            'Waitlisted'
-        );
-        Application__c untouchedApplication = createApplication(
-            programRecord.Id,
-            null
-        );
-        insert new List<Application__c>{
-            waitlistedApplication,
-            untouchedApplication
-        };
-        insertAdmissionDecision(waitlistedApplication.Id, 'Waitlisted');
+        
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        List<CommunicationsController.DashboardAnnouncement> announcements =
-            DashboardAnnouncementService.getAnnouncements(
-                new List<Id>{
-                    waitlistedApplication.Id,
-                    untouchedApplication.Id
-                }
+
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c waitlistedApplication = createApplication(
+                programRecord.Id,
+                'Waitlisted'
             );
-        Test.stopTest();
+            Application__c untouchedApplication = createApplication(
+                programRecord.Id,
+                null
+            );
+            insert new List<Application__c>{
+                waitlistedApplication,
+                untouchedApplication
+            };
+            insertAdmissionDecision(waitlistedApplication.Id, 'Waitlisted');
 
-        System.assertNotEquals(null, announcements);
+            Test.startTest();
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(
+                    new List<Id>{
+                        waitlistedApplication.Id,
+                        untouchedApplication.Id
+                    }
+                );
+            Test.stopTest();
+
+            System.assertNotEquals(null, announcements);
+        }
     }
 
     // ---------------------------------------------------------------
@@ -267,19 +401,29 @@ private class DashboardAnnouncementServiceTest {
 
     @IsTest
     static void getAnnouncementsSwallowsConfigurationLookupFailureForUnknownProgramCode() {
-        Program programRecord = createProgram('PGPM');
-        Application__c application = createApplication(
-            programRecord.Id,
-            'Waitlisted'
-        );
-        insert application;
-        insertAdmissionDecision(application.Id, 'Waitlisted');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        List<CommunicationsController.DashboardAnnouncement> announcements =
-            DashboardAnnouncementService.getAnnouncements(application.Id);
-        Test.stopTest();
 
-        // System.assert(announcements.isEmpty());
+        System.runAs(testUser) {
+            Program programRecord = createProgram('PGPM');
+            Application__c application = createApplication(
+                programRecord.Id,
+                'Waitlisted'
+            );
+            insert application;
+            insertAdmissionDecision(application.Id, 'Waitlisted');
+
+            Test.startTest();
+            List<CommunicationsController.DashboardAnnouncement> announcements =
+                DashboardAnnouncementService.getAnnouncements(application.Id);
+            Test.stopTest();
+
+            // System.assert(announcements.isEmpty());
+        }
     }
 }

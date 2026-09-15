@@ -29,7 +29,8 @@ private class LeadPublicAPIServiceTest {
             Programme_Type__c='Full-time',
             Short_Programme_Code__c = 'PDM',
             StartDate = System.Today(),
-            Programme_Sub_Type__c = 'Class Room'
+            Programme_Sub_Type__c = 'Class Room',
+            IsActive=true
         );
         insert prog;
 
@@ -236,89 +237,8 @@ static void testInsertCampaignMemberForLead() {
             );
         }
     }
-   @IsTest
-static void testProcessApplicantPath() {
 
-    User u = [
-        SELECT Id
-        FROM User
-        WHERE LastName = 'Admin'
-        LIMIT 1
-    ];
-
-    System.runAs(u) {
-
-        // In-memory Account only. No DML.
-        Account acc = new Account(
-            Id = '001000000000001AAA',
-            FirstName = 'Applicant',
-            LastName = 'Test',
-            PersonEmail = 'applicant@test.com',
-            PersonMobilePhone = '+91 9999999999'
-        );
-
-        Program prog = [
-            SELECT Id,
-                   Name,
-                   Program_Code__c
-            FROM Program
-            WHERE Program_Code__c = 'PGDM'
-            LIMIT 1
-        ];
-
-        LeadPublicAPI.LeadWrapper lw =
-            new LeadPublicAPI.LeadWrapper();
-
-        lw.FirstName = 'Test';
-        lw.LastName = 'Applicant';
-        lw.Email = 'applicant@test.com';
-        lw.Phone = '+91 9999999999';
-        lw.Programme = 'PGDM';
-
-        LeadPublicAPIService.ReferenceData ref =
-            LeadPublicAPIService.buildTestReferenceData(
-                prog,
-                acc.Id
-            );
-
-        List<Opportunity> oppsToInsert =
-            new List<Opportunity>();
-
-        Map<Integer, Opportunity> indexToOpp =
-            new Map<Integer, Opportunity>();
-
-        Map<Integer, Account> indexToAcc =
-            new Map<Integer, Account>();
-
-        Map<Integer, Id> campaignIndexMap =
-            new Map<Integer, Id>();
-
-        Test.startTest();
-
-        LeadPublicAPIHelper.ResultWrapper result =
-            LeadPublicAPIService.processApplicantPath(
-                lw,
-                0,
-                acc,
-                ref,
-                oppsToInsert,
-                indexToOpp,
-                indexToAcc,
-                campaignIndexMap,
-                new Map<Id, Account>()
-            );
-
-        Test.stopTest();
-
-        System.assertNotEquals(
-            null,
-            result
-        );
-     
-    }
-    
-}
-    @IsTest
+  @IsTest
 static void testInvalidPhoneLength() {
 
     String body =
@@ -351,7 +271,7 @@ static void testAttachApplicationsInOrder() {
         FROM User
         WHERE LastName = 'Admin'
         LIMIT 1
-    ];
+    ]; 
 
     System.runAs(admin) {
 
@@ -392,9 +312,9 @@ static void testAttachApplicationsInOrder() {
         ];
 
         User applicantUser = new User(
-            Username = 'attach' + System.currentTimeMillis() + '@test.com',
+            Username = 'attach123'  + '@test.com',
             Alias = 'attest',
-            Email = 'attach' + System.currentTimeMillis() + '@test.com',
+            Email = 'attach123'  + '@test.com',
             LastName = 'Applicant',
             FirstName = 'Attach',
             CommunityNickname = 'attach' + System.currentTimeMillis(),
@@ -457,5 +377,197 @@ static void testAttachApplicationsInOrder() {
         Test.stopTest();
     }
 }
+      @IsTest
+static void testProcessApplicantPath() {
+
+    User u = [
+        SELECT Id
+        FROM User
+        WHERE LastName = 'Admin'
+        LIMIT 1
+    ];
+
+    System.runAs(u) {
+
+        Account acc = new Account(
+            Id = '001000000000001AAA',
+            FirstName = 'Applicant',
+            LastName = 'Test',
+            PersonEmail = 'applicant@test.com',
+            PersonMobilePhone = '+91 9999999999'
+        );
+
+        Program prog = [
+            SELECT Id, Name, Program_Code__c
+            FROM Program
+            WHERE Program_Code__c = 'PGDM'
+            LIMIT 1
+        ];
+
+        LeadPublicAPI.LeadWrapper lw = new LeadPublicAPI.LeadWrapper();
+        lw.FirstName = 'Test';
+        lw.LastName = 'Applicant';
+        lw.Email = 'applicant@test.com';
+        lw.Phone = '+91 9999999999';
+        lw.Programme = 'PGDM';
+
+        LeadPublicAPIService.ReferenceData ref =
+            LeadPublicAPIService.buildTestReferenceData(prog, acc.Id);
+
+        Test.startTest();
+
+        LeadPublicAPIHelper.ResultWrapper result =
+            LeadPublicAPIService.processApplicantPath(
+                lw,
+                0,
+                acc,
+                ref,
+                new List<Opportunity>(),
+                new Map<Integer, Opportunity>(),
+                new Map<Integer, Account>(),
+                new Map<Integer, Id>(),
+                new Map<Id, Account>(),
+                new Map<Id, Application__c>(),
+                new List<Opportunity>(),
+                new Map<Integer, Id>()
+            );
+
+        Test.stopTest();
+
+        System.assertNotEquals(null, result);
+        // No accepting batch was set on ref, so PGDM correctly blocks here.
+        System.assertEquals(
+            LeadPublicAPIHelper.Scenario.APPLICANT_NOT_ACCEPTING,
+            result.scenario
+        );
+    }
+}
+      
+    @IsTest
+    static void testBatch_ApplicantAccountPath_NoAcceptingBatch_Blocked() {
+
+        Program prog = new Program(
+            Name = 'GMP No Batch', Program_Code__c = 'GMPNB2', Short_Programme_Code__c = 'GN',IsActive=true,
+            StartDate = Date.today(), Programme_Type__c = 'Part-time', Programme_Sub_Type__c = 'Class Room'
+        );
+        insert prog;
+
+        Id applicantRtId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Applicant').getRecordTypeId();
+        Account acc = new Account(
+            RecordTypeId = applicantRtId, FirstName = 'Blocked', LastName = 'Applicant',
+            PersonEmail = 'blockedapplicant@test.com', PersonMobilePhone = '+919777766662'
+        );
+        insert acc;
+
+        Lead_Import__c imp = new Lead_Import__c(
+            Name__c = 'Blocked Applicant',
+            Email__c = 'blockedapplicant@test.com',
+            Phone__c = '+919777766662',
+            Programme__c = 'GMPNB2',
+            Status__c = 'Pending'
+        );
+        insert imp;
+
+        Test.startTest();
+        Database.executeBatch(new B2CImportBatch(), 1);
+        Test.stopTest();
+
+        List<Opportunity> opps = [SELECT Id FROM Opportunity WHERE AccountId = :acc.Id];
+        System.assertEquals(0, opps.size());
+
+        imp = [SELECT Status__c FROM Lead_Import__c WHERE Id = :imp.Id];
+        System.assertEquals('Complete', imp.Status__c);
+    }
+    
+              @IsTest
+    static void testExecute_gmpApplicant_acceptingBatch_createsOpportunityAndApplication() {
+
+        User admin = createSystemAdminUser();
+
+        Program gmp = new Program(
+            Name = 'GMP', Program_Code__c = 'GMP', Short_Programme_Code__c = 'GM', IsActive = true,
+            StartDate = System.Today(), Programme_Type__c = 'Full-time', Programme_Sub_Type__c = 'Class Room'
+        );
+        insert gmp;
+
+        Id applicantRtId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Applicant').getRecordTypeId();
+        Account acc = new Account(
+            RecordTypeId = applicantRtId, OwnerId = admin.Id, FirstName = 'Bulk', LastName = 'Applicant',
+            PersonEmail = 'bulkapplicant@test.com', PersonMobilePhone = '+919888877771'
+        );
+        insert acc;
+
+        acc = [SELECT Id, PersonContactId FROM Account WHERE Id = :acc.Id];
+
+        Profile applicantProfile = [SELECT Id FROM Profile WHERE Name = 'SPJIMR Applicant' LIMIT 1];
+        User applicantUser = new User(
+            Username = 'bulkapplicant@test.com',
+            Alias = 'bulkap',
+            Email = 'bulkapplicant@test.com',
+            LastName = 'Applicant',
+            FirstName = 'Bulk',
+            CommunityNickname = 'bulkap' + System.currentTimeMillis(),
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US',
+            ProfileId = applicantProfile.Id,
+            ContactId = acc.PersonContactId
+        );
+        insert applicantUser;
+
+        insert new ProgramCohort(
+            Name = 'GMP Batch', ProgramId = gmp.Id, Application_Code__c = 'G1',
+            IsAcceptingApplications__c = true, Batch_Code__c = 'GMP Batch', Batch_Sub_Type__c = 'Class Room'
+        );
+
+        String body =
+            '[{' +
+            '"FirstName":"Bulk",' +
+            '"LastName":"Applicant",' +
+            '"Email":"bulkapplicant@test.com",' +
+            '"Phone":"+919888877771",' +
+            '"Programme":"GMP"' +
+            '}]';
+
+        Test.startTest();
+        LeadPublicAPIService.ProcessOutcome result = LeadPublicAPIService.execute(body);
+        Test.stopTest();
+
+        List<Opportunity> opps = [SELECT Id, Application__c FROM Opportunity WHERE AccountId = :acc.Id];
+    }
+    @IsTest
+    static void testExecute_gmpApplicant_noAcceptingBatch_blocked() {
+
+        Program gmp = new Program(
+            Name = 'GMP No Batch', Program_Code__c = 'GMPNB', Short_Programme_Code__c = 'GN',IsActive=true,
+            StartDate = System.Today(), Programme_Type__c = 'Full-time', Programme_Sub_Type__c = 'Class Room'
+        );
+        insert gmp;
+
+        Id applicantRtId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Applicant').getRecordTypeId();
+        Account acc = new Account(
+            RecordTypeId = applicantRtId, FirstName = 'NoBatch', LastName = 'Applicant',
+            PersonEmail = 'nobatchapplicant@test.com', PersonMobilePhone = '+919888877772'
+        );
+        insert acc;
+
+        String body =
+            '[{' +
+            '"FirstName":"NoBatch",' +
+            '"LastName":"Applicant",' +
+            '"Email":"nobatchapplicant@test.com",' +
+            '"Phone":"+919888877772",' +
+            '"Programme":"GMPNB"' +
+            '}]';
+
+        Test.startTest();
+        LeadPublicAPIService.ProcessOutcome result = LeadPublicAPIService.execute(body);
+        Test.stopTest();
+
+        List<Opportunity> opps = [SELECT Id FROM Opportunity WHERE AccountId = :acc.Id];
+        System.assertEquals(0, opps.size());
+        System.assert(result.responseJson.contains('APPLICANT_NOT_ACCEPTING'));
+    }
     
 }

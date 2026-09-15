@@ -478,69 +478,69 @@ public without sharing class LeaveRequestController {
     }
 
     public class LeaveOverlapResult {
-    @AuraEnabled public String status;   // NONE, EXACT, OVERLAP, EXTENSION
-    @AuraEnabled public String message;
-}
+        @AuraEnabled public String status;   // NONE, EXACT, OVERLAP, EXTENSION
+        @AuraEnabled public String message;
+    }
 
-@AuraEnabled
-public static LeaveOverlapResult checkLeaveOverlap(String startDate, String endDate) {
+    @AuraEnabled
+    public static LeaveOverlapResult checkLeaveOverlap(String startDate, String endDate) {
 
-    LeaveOverlapResult result = new LeaveOverlapResult();
-    result.status = 'NONE';
+        LeaveOverlapResult result = new LeaveOverlapResult();
+        result.status = 'NONE';
 
-    if (startDate == null || endDate == null) {
+        if (startDate == null || endDate == null) {
+            return result;
+        }
+
+        String startClean = startDate.replace('T', ' ').left(19);
+        String endClean   = endDate.replace('T', ' ').left(19);
+        Datetime newStart  = Datetime.valueOf(startClean);
+        Datetime newEnd    = Datetime.valueOf(endClean);
+
+        User u = [
+            SELECT ContactId, Contact.AccountId, AccountId
+            FROM User
+            WHERE Id = :UserInfo.getUserId()
+            LIMIT 1
+        ];
+
+        Id studentAccountId = u.ContactId != null ? u.Contact.AccountId : u.AccountId;
+        if (studentAccountId == null) {
+            return result;
+        }
+
+        List<Leave_Application__c> existing = [
+            SELECT Id, Start_Date__c, End_Date__c, Status__c
+            FROM Leave_Application__c
+            WHERE Student__c = :studentAccountId
+            AND (NOT Status__c LIKE 'Rejected%')
+            AND Start_Date__c < :newEnd
+            AND End_Date__c   > :newStart
+            ORDER BY Start_Date__c ASC
+            LIMIT 1
+        ];
+
+        if (existing.isEmpty()) {
+            return result;
+        }
+
+        Leave_Application__c match = existing[0];
+
+        if (match.Start_Date__c == newStart && match.End_Date__c == newEnd) {
+            result.status  = 'EXACT';
+            result.message = 'You have already submitted a leave application for the selected date and time.';
+
+        } else if (newStart == match.Start_Date__c && newEnd > match.End_Date__c) {
+            result.status  = 'EXTENSION';
+            result.message = 'You have already submitted a leave application for the selected duration. Please submit a new leave application for the additional time.';
+
+        } else {
+            result.status  = 'OVERLAP';
+            result.message = 'You have already submitted a leave application for the selected date and time duration.';
+        }
+
         return result;
     }
-
-    String startClean = startDate.replace('T', ' ').left(19);
-    String endClean   = endDate.replace('T', ' ').left(19);
-    Datetime newStart  = Datetime.valueOf(startClean);
-    Datetime newEnd    = Datetime.valueOf(endClean);
-
-    User u = [
-        SELECT ContactId, Contact.AccountId, AccountId
-        FROM User
-        WHERE Id = :UserInfo.getUserId()
-        LIMIT 1
-    ];
-
-    Id studentAccountId = u.ContactId != null ? u.Contact.AccountId : u.AccountId;
-    if (studentAccountId == null) {
-        return result;
-    }
-
-    List<Leave_Application__c> existing = [
-        SELECT Id, Start_Date__c, End_Date__c, Status__c
-        FROM Leave_Application__c
-        WHERE Student__c = :studentAccountId
-        AND (NOT Status__c LIKE 'Rejected%')
-        AND Start_Date__c < :newEnd
-        AND End_Date__c   > :newStart
-        ORDER BY Start_Date__c ASC
-        LIMIT 1
-    ];
-
-    if (existing.isEmpty()) {
-        return result;
-    }
-
-    Leave_Application__c match = existing[0];
-
-    if (match.Start_Date__c == newStart && match.End_Date__c == newEnd) {
-        result.status  = 'EXACT';
-        result.message = 'You have already submitted a leave application for the selected date and time.';
-
-    } else if (newStart == match.Start_Date__c && newEnd > match.End_Date__c) {
-        result.status  = 'EXTENSION';
-        result.message = 'You have already submitted a leave application for the selected duration. Please submit a new leave application for the additional time.';
-
-    } else {
-        result.status  = 'OVERLAP';
-        result.message = 'You have already submitted a leave application for the selected date and time duration.';
-    }
-
-    return result;
-}
 
     /* =========================================================
        GET STUDENT TERM ENROLLMENT IDS

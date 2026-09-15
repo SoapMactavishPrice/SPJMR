@@ -1,4 +1,6 @@
 public without sharing class ConvertB2CLeadController {
+     
+    public static final Set<string> shortCodes = new Set<String>{'PGDM','PGDM-BM','PGDM&PGDM-BM'};
     
     public class ConversionResult { 
         @AuraEnabled public Boolean isSuccess;
@@ -11,6 +13,21 @@ public without sharing class ConvertB2CLeadController {
     }
 
     private static Boolean autoApplicationCreationEnabledCache;
+    
+    public static String getApplicationNumberPrefix(Program programRecord) {
+    if (programRecord == null) {
+        return null;
+    }
+    String programCode = String.isNotBlank(programRecord.Program_Code__c)? programRecord.Program_Code__c.trim(): null;
+	system.debug('Program Code is :'+programCode);
+
+    if (shortCodes.contains(programCode)) {
+        system.debug('Using: '+programRecord.Lead_Verification_Number_Prefix__c );
+        return programRecord.Lead_Verification_Number_Prefix__c ;
+    }
+	system.debug('Using: '+programRecord.Program_Code__c);
+    return programRecord.Program_Code__c;
+}
 
     public static Boolean isAutoApplicationCreationEnabled() {
         if (autoApplicationCreationEnabledCache != null) {
@@ -49,7 +66,41 @@ private static ConversionResult handleLeadConversionFailure(
         Set<String> uniqueProgramCodes = new Set<String>();
         for (String code : programCodesList) {
             if (String.isNotBlank(code)) {
-                uniqueProgramCodes.add(code);
+                uniqueProgramCodes.add(code.trim());
+            }
+        }
+         Map<String, Program> programByCode = new Map<String, Program>();
+         for (Program p : [
+        SELECT Id,
+               Program_Code__c,
+               Lead_Verification_Number_Prefix__c
+        FROM Program
+        WHERE Program_Code__c IN :uniqueProgramCodes
+    ]) {
+        programByCode.put(p.Program_Code__c, p);
+    }
+
+         Map<String, String> applicationPrefixByProgramCode = new Map<String, String>();
+         for (String programCode : uniqueProgramCodes) {
+        Program programRecord = programByCode.get(programCode);
+
+        String applicationPrefix = getApplicationNumberPrefix(programRecord);
+
+        applicationPrefixByProgramCode.put(programCode,String.isNotBlank(applicationPrefix)? applicationPrefix.trim(): programCode);
+    }
+        
+        Set<String> sequenceKeys = new Set<String>();
+
+        for (String code : programCodesList) {
+            if (String.isNotBlank(code)) {
+                String programCode = code.trim();
+        
+                String applicationPrefix =
+                    applicationPrefixByProgramCode.get(programCode);
+        
+                if (String.isNotBlank(applicationPrefix)) {
+                    sequenceKeys.add(applicationPrefix);
+                }
             }
         }
         
@@ -57,7 +108,7 @@ private static ConversionResult handleLeadConversionFailure(
         for (Sequence_Master__c seq : [
             SELECT Id, Last_Used_Number__c, Program_Code__c, Year__c
             FROM Sequence_Master__c
-            WHERE Program_Code__c IN :uniqueProgramCodes
+            WHERE Program_Code__c IN :sequenceKeys
             AND Year__c = :intakeYear
         ]) {
             existingSequences.put(seq.Program_Code__c, seq);
@@ -66,35 +117,37 @@ private static ConversionResult handleLeadConversionFailure(
         List<Sequence_Master__c> sequencesToInsert = new List<Sequence_Master__c>();
         Set<String> processedNewCodes = new Set<String>();
         
-        for (String programCode : programCodesList) {
-            if (String.isBlank(programCode)) {
+        for (String code : programCodesList) {
+            if (String.isBlank(code)) {
                 applicationNumbers.add(null);
                 continue;
             }
-            
+            String programCode = code.trim();
+             String applicationPrefix =
+            applicationPrefixByProgramCode.get(programCode);
             Sequence_Master__c seqRecord;
             
-            if (existingSequences.containsKey(programCode)) {
-                seqRecord = existingSequences.get(programCode);
+            if (existingSequences.containsKey(applicationPrefix)) {
+                seqRecord = existingSequences.get(applicationPrefix);
                 seqRecord.Last_Used_Number__c = seqRecord.Last_Used_Number__c + 1;
             } else {
-                if (!processedNewCodes.contains(programCode)) {
+                if (!processedNewCodes.contains(applicationPrefix)) {
                     seqRecord = new Sequence_Master__c();
-                    seqRecord.Name = programCode + '-' + intakeYear;
-                    seqRecord.Program_Code__c = programCode;
+                    seqRecord.Name = applicationPrefix + '-' + intakeYear;
+                    seqRecord.Program_Code__c = applicationPrefix;
                     seqRecord.Year__c = intakeYear;
                     seqRecord.Last_Used_Number__c = 1;
                     sequencesToInsert.add(seqRecord);
-                    existingSequences.put(programCode, seqRecord);
-                    processedNewCodes.add(programCode);
+                    existingSequences.put(applicationPrefix, seqRecord);
+                    processedNewCodes.add(applicationPrefix);
                 } else {
-                    seqRecord = existingSequences.get(programCode);
+                    seqRecord = existingSequences.get(applicationPrefix);
                     seqRecord.Last_Used_Number__c = seqRecord.Last_Used_Number__c + 1;
                 }
             }
             
             String paddedNum = leftPadNumber(seqRecord.Last_Used_Number__c, 5);
-            applicationNumbers.add(programCode + intakeYear + paddedNum);
+            applicationNumbers.add(applicationPrefix + intakeYear + paddedNum);
         }
         
         if (!sequencesToInsert.isEmpty()) {
@@ -204,7 +257,7 @@ private static ConversionResult handleLeadConversionFailure(
             }
             
             List<Lead_Program__c> leadPrograms = [
-                SELECT Id, Program__c, Program__r.Name, Program__r.Program_Code__c,
+                SELECT Id, Program__c, Program__r.Name, Program__r.Program_Code__c,Program__r.Lead_Verification_Number_Prefix__c ,
                        Program__r.ParentProgramId, Lead_Source__c,OwnerId
                 FROM Lead_Program__c
                 WHERE Lead__c = :leadId
@@ -341,7 +394,7 @@ String formattedProgrammeNames =
             }
             for (Id pid : programIdsForNames) {
                 if (!programById.containsKey(pid)) {
-                    for (Program row : [SELECT Id, Name, Program_Code__c, ParentProgramId FROM Program WHERE Id = :pid
+                    for (Program row : [SELECT Id, Name, Program_Code__c, ParentProgramId,Lead_Verification_Number_Prefix__c  FROM Program WHERE Id = :pid
                         LIMIT 1
                     ]) {
                         programById.put(row.Id, row);
@@ -447,7 +500,7 @@ String formattedProgrammeNames =
                     }
                     Id programIdForApp = B2CProgramParentHelper.opportunityAndApplicationProgramId(members);
                     Program progRow = programById.get(programIdForApp);
-                    programCodesForNumbers.add(progRow != null ? progRow.Program_Code__c : null);
+                    programCodesForNumbers.add(getApplicationNumberPrefix(progRow));
                     programIdForAppList.add(programIdForApp);
 
                     Lead_Program__c sourceLp;
@@ -528,7 +581,7 @@ String formattedProgrammeNames =
 
         try {
             Opportunity opp = [
-                SELECT Id, Name, Program__c, Program__r.Program_Code__c, AccountId, LeadSource, Application__c
+                SELECT Id, Name, Program__c, Program__r.Program_Code__c, Program__r.Lead_Verification_Number_Prefix__c,AccountId, LeadSource, Application__c
                 FROM Opportunity
                 WHERE Id = :opportunityId
                 LIMIT 1
@@ -553,9 +606,11 @@ String formattedProgrammeNames =
             WHERE Id = :opp.AccountId)];
             String UserId = applicantUserList[0].Id;
             String applicationNumber;
-            if (String.isNotBlank(opp.Program__r.Program_Code__c)) {
+            String applicationPrefix = getApplicationNumberPrefix(opp.Program__r);
+
+            if (String.isNotBlank(applicationPrefix)) {
                 List<String> applicationNumbers = generateApplicationNumbersInBulk(
-                    new List<String>{ opp.Program__r.Program_Code__c }
+                    new List<String>{ applicationPrefix }
                 );
                 applicationNumber = !applicationNumbers.isEmpty() ? applicationNumbers[0] : null;
             }
@@ -608,7 +663,7 @@ private static Map<String, Object> handleCreateApplicationException(
             details.put('isConverted', leadRecord.IsConverted);
             
             List<Lead_Program__c> leadPrograms = [
-                SELECT Id, Program__c, Program__r.Name 
+                SELECT Id, Program__c, Program__r.Name ,Program__r.Lead_Verification_Number_Prefix__c 
                 FROM Lead_Program__c 
                 WHERE Lead__c = :leadId
             ];

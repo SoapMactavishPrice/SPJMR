@@ -10,6 +10,9 @@ public class CommunicationProviderFactory {
             when 'ADMISSION_DECISION' {
                 return new AdmissionDecisionProvider();
             }
+            when 'APPLICATION', 'ApplicationProvider' {
+                return new ApplicationProvider();
+            }
             when else {
                 throw new CommunicationException(
                     'Unknown provider type: ' + providerType
@@ -26,6 +29,9 @@ public class CommunicationProviderFactory {
         String trimmedProviderType = providerType.trim();
 
         switch on trimmedProviderType {
+            when 'APPLICATION', 'ApplicationProvider' {
+                return 'APPLICATION';
+            }
             when 'APPLICATION_SLOT_BOOKING', 'ApplicationSlotBookingProvider' {
                 return 'APPLICATION_SLOT_BOOKING';
             }
@@ -104,6 +110,7 @@ public class CommunicationProviderFactory {
                         Id,
                         Name,
                         Application_Number__c,
+                        Application_Status__c,
                         Applicant_State_Management__c,
                         Applicant__r.Name,
                         Applicant__r.PersonEmail,
@@ -156,19 +163,23 @@ public class CommunicationProviderFactory {
                 data.put('AdmissionDecisionId', decision.Id);
                 data.put('AdmissionResult', decision.Result__c);
 
-                Date offerDate = decision.Offer_Letter_Date__c;
-                String offerDateFormatted =
-                    String.valueOf(offerDate.day()).leftPad(2, '0') + '/' +
-                    String.valueOf(offerDate.month()).leftPad(2, '0') + '/' +
-                    String.valueOf(offerDate.year());
-                data.put('offerDateFormatted', offerDateFormatted);
+                Date offerDate = decision?.Offer_Letter_Date__c;
+                if(offerDate != null) {
+                    String offerDateFormatted =
+                        String.valueOf(offerDate.day()).leftPad(2, '0') + '/' +
+                        String.valueOf(offerDate.month()).leftPad(2, '0') + '/' +
+                        String.valueOf(offerDate.year());
+                    data.put('offerDateFormatted', offerDateFormatted);
+                }
 
-                Date offerExpiryDate = decision.LastDateOfAcceptance__c;
-                String offerExpiryDateFormatted =
-                    String.valueOf(offerExpiryDate.day()).leftPad(2, '0') + '/' +
-                    String.valueOf(offerExpiryDate.month()).leftPad(2, '0') + '/' +
-                    String.valueOf(offerExpiryDate.year());
-                data.put('OfferExpiryDate', offerExpiryDateFormatted);
+                Date offerExpiryDate = decision?.LastDateOfAcceptance__c;
+                if(offerExpiryDate != null) {
+                    String offerExpiryDateFormatted =
+                        String.valueOf(offerExpiryDate.day()).leftPad(2, '0') + '/' +
+                        String.valueOf(offerExpiryDate.month()).leftPad(2, '0') + '/' +
+                        String.valueOf(offerExpiryDate.year());
+                    data.put('OfferExpiryDate', offerExpiryDateFormatted);
+                }
 
                 data.put('WaitlistNumber', decision.WaitlistNumber__c);
                 data.put('OfferAccepted', decision.Offer_Accepted__c);
@@ -387,6 +398,7 @@ public class CommunicationProviderFactory {
                         Id,
                         Name,
                         Application_Number__c,
+                        Application_Status__c,
                         Applicant__r.Name,
                         Applicant__r.PersonEmail,
                         Program__r.Id,
@@ -484,6 +496,121 @@ public class CommunicationProviderFactory {
                 booking == null ? null : booking.Application__r,
                 booking
             );
+        }
+    }
+
+    public class ApplicationProvider implements ICommunicationProvider {
+
+        public Map<String, Object> getData(
+            CommunicationsController.CommunicationRequest request
+        ) {
+            validateRequest(request);
+
+            Map<Id, Map<String, Object>> dataByApplicationId =
+                getDataByApplicationIds(
+                    request,
+                    new List<Id>{ request.applicationId }
+                );
+
+            if (!dataByApplicationId.containsKey(request.applicationId)) {
+                throw new CommunicationException(
+                    'No application found.'
+                );
+            }
+
+            return dataByApplicationId.get(request.applicationId);
+        }
+
+        public Map<Id, Map<String, Object>> getDataByApplicationIds(
+            List<Id> applicationIds
+        ) {
+            return getDataByApplicationIds(
+                null,
+                applicationIds
+            );
+        }
+
+        public Map<Id, Map<String, Object>> getDataByApplicationIds(
+            CommunicationsController.CommunicationRequest request,
+            List<Id> applicationIds
+        ) {
+            Map<Id, Map<String, Object>> dataByApplicationId =
+                new Map<Id, Map<String, Object>>();
+
+            if (applicationIds == null || applicationIds.isEmpty()) {
+                return dataByApplicationId;
+            }
+
+            for (
+                Application__c application :
+                [
+                    SELECT
+                        Id,
+                        Name,
+                        Application_Number__c,
+                        Application_Status__c,
+                        Applicant__r.Name,
+                        Applicant__r.PersonEmail,
+                        Program__r.Id,
+                        Program__r.Name,
+                        Program__r.Program_Code__c,
+                        Batch__r.Name
+                    FROM Application__c
+                    WHERE Id IN :applicationIds
+                ]
+            ) {
+                Map<String, Object> data = new Map<String, Object>();
+
+                data.put('ApplicationId', application.Id);
+                data.put('ApplicationNumber', application.Name);
+
+                data.put(
+                    'ApplicantName',
+                    application.Applicant__r?.Name
+                );
+
+                data.put(
+                    'ApplicantEmail',
+                    application.Applicant__r?.PersonEmail
+                );
+
+                data.put(
+                    'ProgramId',
+                    application.Program__r?.Id
+                );
+
+                data.put(
+                    'ProgramName',
+                    application.Program__r?.Name
+                );
+
+                data.put(
+                    'ProgramCode',
+                    application.Program__r?.Program_Code__c
+                );
+
+                data.put(
+                    'BatchName',
+                    application.Batch__r?.Name
+                );
+
+                dataByApplicationId.put(
+                    application.Id,
+                    data
+                );
+            }
+
+            return dataByApplicationId;
+        }
+
+        private void validateRequest(
+            CommunicationsController.CommunicationRequest request
+        ) {
+            if (request == null || request.applicationId == null) {
+                throw new CommunicationException(
+                    'Application Id is required.'
+                );
+            }
         }
     }
 

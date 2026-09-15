@@ -2,7 +2,19 @@ public without sharing class VFC_DomainsController {
 
     public String parentOrigin { get; private set; }
     public String loginLink {get; private set;}
-    public VFC_DomainsController() {
+    public String recaptchaSiteKey { get; private set; }
+    public VFC_DomainsController() { 
+
+          List<GoogleRecaptchaKey__mdt> recaptchaKeys = [
+            SELECT SiteKey__c
+            FROM GoogleRecaptchaKey__mdt
+            LIMIT 1
+        ];
+
+        if (!recaptchaKeys.isEmpty()) {
+            recaptchaSiteKey = recaptchaKeys[0].SiteKey__c;
+        }
+
            List<Network> networks = [
             SELECT Id
             FROM Network

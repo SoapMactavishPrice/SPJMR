@@ -7,8 +7,8 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 const SAMPLE_HEADERS = [
     'Application Number',
-    'Applicant State Management',
     'Application Stage',
+    'Form Section',
     'Application Status'
 ];
 

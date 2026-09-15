@@ -126,8 +126,7 @@ export default class TimetableCalendar extends LightningElement {
     @track selectedBatch;
     @track selectedBatchGroup;
     @track selectedTerm;
-//  @track selectedDivision;
-/*SE-1339*/ @track selectedDivisionIds = [];
+    @track selectedDivision;
     @track modalDivisionId = null; // For creating sessions from All Divisions grids
     @track sessionDuration = null; // Session duration in minutes from selected batch
     @track selectedFilterFacultyIds = []; // Left sidebar: multi-select faculty filter
@@ -760,19 +759,10 @@ export default class TimetableCalendar extends LightningElement {
     lastAutoScrollKey = '';
     
     // Reactive getter for session filter
- /*  get sessionFilter() {
+    get sessionFilter() {
         const isAll = this.isAllDivisionsSelected;
         const divisionId = !isAll ? (this.selectedDivision || null) : null;
         const divisionIds = isAll ? this.allDivisionIds : null;
-        const shouldFilterByDivision = !!divisionId || (divisionIds && divisionIds.length > 0);
-        const { startDate, endDate } = shouldFilterByDivision
-            ? this.getCurrentViewDateRange()
-            : { startDate: null, endDate: null };
-        const filterPayload = { divisionId, divisionIds, startDate, endDate };*/
-    get sessionFilter() {
-        const single = this.isSingleDivisionSelected;
-        const divisionId = single ? this.selectedDivision : null;
-        const divisionIds = !single && this.resolvedDivisionIds.length > 0 ? this.resolvedDivisionIds : null;
         const shouldFilterByDivision = !!divisionId || (divisionIds && divisionIds.length > 0);
         const { startDate, endDate } = shouldFilterByDivision
             ? this.getCurrentViewDateRange()
@@ -801,7 +791,7 @@ export default class TimetableCalendar extends LightningElement {
     renderedCallback() {
         if (!this.pendingAutoScroll) return;
         if (this.currentView === 'month') return;
-        if (this.isDivisionNotSelected) {
+        if (!this.selectedDivision) {
             this.pendingAutoScroll = false;
             return;
         }
@@ -830,7 +820,7 @@ export default class TimetableCalendar extends LightningElement {
         this.wiredSessionsResult = result;
         
         // If no division is selected, clear events
-        if (this.isDivisionNotSelected) {
+        if (!this.selectedDivision) {
             this.events = [];
             this.isLoading = false;
             return;
@@ -874,103 +864,9 @@ export default class TimetableCalendar extends LightningElement {
         return !this.selectedTerm;
     }
 
-    /*  get isDivisionNotSelected() {
+    get isDivisionNotSelected() {
         return !this.selectedDivision || this.isAllDivisionsSelected;
-    }*/
-  /*se-1339*/ // Special "All Divisions" pill is active only when every real division is currently selected —
-// this is what reproduces the old single-select "All Divisions" behavior inside the pill UI.
-    get isAllDivisionsShortcutActive() {
-        const all = this.allDivisionIds;
-        const sel = this.resolvedDivisionIds;
-            return all.length > 0 && sel.length === all.length
-            && all.every(id => sel.some(s => this.idsEqual(s, id)));
     }
-
-    get divisionFilterPills() {
-        if (this.isAllDivisionsShortcutActive) {
-            return [{ value: TimetableCalendar.ALL_DIVISIONS_VALUE, label: 'All Divisions' }];
-    }
-    const selected = this.resolvedDivisionIds;
-    return (this.divisionOptions || [])
-        .filter(o => o.value && o.value !== TimetableCalendar.ALL_DIVISIONS_VALUE
-            && selected.some(id => this.idsEqual(id, o.value)))
-        .map(o => ({ value: o.value, label: o.label }));
-    }
-
-    get hasDivisionPills() {
-        return (this.divisionFilterPills || []).length > 0;
-    }
-
-    get divisionFilterAvailableOptions() {
-        if (this.isAllDivisionsShortcutActive) return []; // nothing left to add
-                const selected = this.resolvedDivisionIds;
-                const specific = (this.divisionOptions || [])
-                    .filter(o => o.value && o.value !== TimetableCalendar.ALL_DIVISIONS_VALUE
-                    && !selected.some(id => this.idsEqual(id, o.value)));
-                const allOption = (this.divisionOptions || [])
-                .find(o => o.value === TimetableCalendar.ALL_DIVISIONS_VALUE);
-        // "All Divisions" stays in the dropdown just like before — picking it is the shortcut.
-        return allOption ? [allOption, ...specific] : specific;
-    }
-
-    handleDivisionFilterAdd(event) {
-        const value = event.detail.value;
-            if (!value) return;
-            if (value === TimetableCalendar.ALL_DIVISIONS_VALUE) {
-        // Same as the old single-select "All Divisions" — select every real division.
-            this.selectedDivisionIds = [...this.allDivisionIds];
-            } else if (!this.resolvedDivisionIds.some(id => this.idsEqual(id, value))) {
-            this.selectedDivisionIds = [...this.resolvedDivisionIds, value];
-            }
-        this.onDivisionSelectionChanged();
-        this.resetDivisionFilterCombobox();   // ✅ add
-    }
-
-    handleDivisionFilterRemove(event) {
-        const id = event.currentTarget.dataset.divisionId;
-            if (id === TimetableCalendar.ALL_DIVISIONS_VALUE) {
-                this.selectedDivisionIds = []; // removing the "All Divisions" pill clears everything
-            } else {
-            this.selectedDivisionIds = this.resolvedDivisionIds.filter(d => !this.idsEqual(d, id));
-            }
-            this.onDivisionSelectionChanged();
-            this.resetDivisionFilterCombobox();   // ✅ add
-    }
-
-/*handleSelectAllDivisions() {
-    this.selectedDivisionIds = [...this.allDivisionIds];
-    this.onDivisionSelectionChanged();
-}*/
-
-    onDivisionSelectionChanged() {
-        this.modalDivisionId = null;
-        this.selectedFilterFacultyIds = [];
-        this.filterFacultyComboboxValue = '';
-        this.loadFacultiesForFilter();
-
-        if (this.isSingleDivisionSelected) {
-            this.isLoading = true;
-            getCoursesForDivision({ divisionId: this.selectedDivision })
-                .then(result => {
-                    this.courseOptions = result.map(o => ({
-                    label: o.label, value: o.value, departmentName: o.departmentName || null
-                }));
-            })
-            .catch(err => { console.error(err); this.courseOptions = []; });
-        } else {
-            this.courseOptions = [];
-                if (this.isDivisionNotSelected) {
-                this.filterFacultyOptions = [];
-                this.events = [];
-            }
-        }
-
-        setTimeout(() => {
-            if (this.wiredSessionsResult) refreshApex(this.wiredSessionsResult);
-        }, 0);
-        this.requestAutoScroll();
-    }
-    /*se-1339*/ 
 
     // In edit modal: enable Course/Department/Course Activity when editing a session that has a division (e.g. opened from "All Divisions" tile)
     get isEditModalCourseFieldsDisabled() {
@@ -984,40 +880,17 @@ export default class TimetableCalendar extends LightningElement {
         return this.isDivisionNotSelected;
     }
 
-   get isFacultyFilterDisabled() {
+    get isFacultyFilterDisabled() {
         if (this.isAllDivisionsSelected) return false;
         return !this.selectedDivision;
-        
-    }
-
-    /*  get isAllDivisionsSelected() {
-        return this.selectedDivision === TimetableCalendar.ALL_DIVISIONS_VALUE;
-    }*/
-    /*SE-1339*/ 
-    get resolvedDivisionIds() {
-        return (this.selectedDivisionIds || []).filter(Boolean);
-    }
-
-    get isDivisionNotSelected() {
-        return this.resolvedDivisionIds.length === 0;
-    }
-
-    get isSingleDivisionSelected() {
-        return this.resolvedDivisionIds.length === 1;
     }
 
     get isAllDivisionsSelected() {
-        return this.resolvedDivisionIds.length > 1;
+        return this.selectedDivision === TimetableCalendar.ALL_DIVISIONS_VALUE;
     }
-
-    // Legacy single-id accessor used everywhere else in this file; getter only, never assign to it.
-    get selectedDivision() {
-        return this.isSingleDivisionSelected ? this.resolvedDivisionIds[0] : null;
-    }
-    /*SE-1339*/ 
 
     get selectedDivisionLabel() {
-        if (!this.selectedDivision || this.isAllDivisionsSelcted) {
+        if (!this.selectedDivision || this.isAllDivisionsSelected) {
             return '';
         }
         const selected = String(this.selectedDivision);
@@ -1080,36 +953,12 @@ export default class TimetableCalendar extends LightningElement {
     }
 
     /** Create Sessions modal: division dropdown options when All Divisions (exclude "All Divisions" option). */
-   /* get createModalDivisionOptions() {
+    get createModalDivisionOptions() {
         if (!this.isAllDivisionsSelected) return [];
         return (this.divisionOptions || [])
             .filter(o => o && o.value && o.value !== TimetableCalendar.ALL_DIVISIONS_VALUE)
             .map(o => ({ label: o.label || String(o.value), value: o.value }));
-    }*/
-    /** 
- * Create Sessions modal:
- * Show only the divisions selected in Academic Scheduler.
- * If all divisions are selected, this naturally returns all divisions.
- */
-/*SE-1339*/
-    get createModalDivisionOptions() {
-        if (!this.isAllDivisionsSelected) return [];
-
-        const selectedIds = this.resolvedDivisionIds || [];
-
-        return (this.divisionOptions || [])
-            .filter(o =>
-                o &&
-                o.value &&
-                o.value !== TimetableCalendar.ALL_DIVISIONS_VALUE &&
-                selectedIds.some(id => this.idsEqual(id, o.value))
-            )
-        .map(o => ({
-            label: o.label || String(o.value),
-            value: o.value
-        }));
     }
-/*SE-1339*/
 
     get createModalProgramLabel() {
         if (!this.modalProgram) return 'All Programs';
@@ -1169,14 +1018,10 @@ export default class TimetableCalendar extends LightningElement {
         return this.selectedDivision && (!this.filterFacultyOptions || this.filterFacultyOptions.length === 0);
     }
 
-
-
     /** Sidebar faculty combobox always shows placeholder (add-only); value kept in sync for re-selection. */
     get filterFacultyComboboxValueDisplay() {
         return '';
     }
-
-
     // SE-502: Returns true when course activity is Make Up Exam
     // and studentNames array has data — controls enrolled students visibility in edit session
     get showEnrolledStudents() {
@@ -1184,19 +1029,6 @@ export default class TimetableCalendar extends LightningElement {
            Array.isArray(this.studentNames) &&
            this.studentNames.length > 0;
     }
-
-    /** Hard reset for sidebar division combobox so it never keeps a selected/removed division as displayed value. */
-/*se-1399*/resetDivisionFilterCombobox() {
-    // eslint-disable-next-line @lwc/lwc/no-async-operation
-    setTimeout(() => {
-        try {
-            const combo = this.template.querySelector('.division-filter-picklist lightning-combobox');
-            if (combo) combo.value = null;
-        } catch (e) {
-            // Non-critical; ignore
-        }
-    }, 0);
-}/*se-1399*/
 
     /** Hard reset for sidebar faculty combobox so removed faculty can be re-selected (single or multiple). */
     resetSidebarFacultyCombobox() {
@@ -1252,8 +1084,7 @@ export default class TimetableCalendar extends LightningElement {
         this.selectedBatch = null;
         this.selectedBatchGroup = null;
         this.selectedTerm = null;
-     // this.selectedDivision = null;
-        this.selectedDivisionIds = [];
+        this.selectedDivision = null;
         this.sessionDuration = null; // Clear session duration when batch is deselected
         this.batchOptions = [];
         this.batchGroupOptions = [];
@@ -1292,8 +1123,7 @@ export default class TimetableCalendar extends LightningElement {
         this.selectedBatch = event.detail.value;
         this.selectedBatchGroup = null;
         this.selectedTerm = null;
-     // this.selectedDivision = null;
-        this.selectedDivisionIds = [];
+        this.selectedDivision = null;
         this.batchGroupOptions = [];
         this.termOptions = [];
         this.divisionOptions = [];
@@ -1322,8 +1152,7 @@ export default class TimetableCalendar extends LightningElement {
     handleBatchGroupChange(event) {
         this.selectedBatchGroup = event.detail.value;
         this.selectedTerm = null;
-     // this.selectedDivision = null;
-        this.selectedDivisionIds = [];
+        this.selectedDivision = null;
         this.termOptions = [];
         this.divisionOptions = [];
         
@@ -1345,10 +1174,8 @@ export default class TimetableCalendar extends LightningElement {
 
     handleTermChange(event) {
         this.selectedTerm = event.detail.value;
-     // this.selectedDivision = null;
-        this.selectedDivisionIds = [];
+        this.selectedDivision = null;
         this.divisionOptions = [];
-    
         this.selectedFilterFacultyIds = [];
         this.filterFacultyComboboxValue = '';
         this.filterFacultyOptions = [];
@@ -1373,7 +1200,7 @@ export default class TimetableCalendar extends LightningElement {
         }
     }
 
-/*   handleDivisionChange(event) {
+    handleDivisionChange(event) {
         this.selectedDivision = event.detail.value; // This is now a division ID
         this.modalDivisionId = null;
         this.selectedFilterFacultyIds = [];
@@ -1412,8 +1239,8 @@ export default class TimetableCalendar extends LightningElement {
         }, 0);
 
         this.requestAutoScroll();
-    }*/
-    
+    }
+
     handleScheduleTypeDraftChange(event) {
         this.filterScheduleTypeDraft = event.target.checked;
         // Bust cached wire results for this schedule-type combination.
@@ -1432,7 +1259,7 @@ export default class TimetableCalendar extends LightningElement {
         }
     }
 
-  /*  loadFacultiesForFilter() {
+    loadFacultiesForFilter() {
         if (!this.selectedDivision) {
             this.filterFacultyOptions = [];
             return;
@@ -1446,23 +1273,8 @@ export default class TimetableCalendar extends LightningElement {
             .catch(() => {
                 this.filterFacultyOptions = [];
             });
-    }*/
- /*se-1339*/   
-      loadFacultiesForFilter() {
-        if (this.isDivisionNotSelected) {          // was: if (!this.selectedDivision) {
-            this.filterFacultyOptions = [];
-            return;
-        }
-         const divisionId = this.isAllDivisionsSelected ? null : this.selectedDivision;
-        const divisionIds = this.isAllDivisionsSelected ? this.resolvedDivisionIds : null;   // was: this.allDivisionIds
-        getFacultiesForFilter({ divisionId, divisionIds })
-            .then(result => {
-                this.filterFacultyOptions = (result || []).map(o => ({ label: o.label, value: o.value }));
-            })
-        .catch(() => { this.filterFacultyOptions = []; });
     }
-    /*se-1339*/ 
- 
+
     handleFacultyFilterChange(event) {
         const value = event.detail.value;
         this.selectedFilterFacultyIds = Array.isArray(value) ? value : (value ? [value] : []);
@@ -2994,12 +2806,12 @@ if (mergedPrograms.length > 0) {
             });
     }
 
-   ensureDivisionSelected() {
-        if (this.isDivisionNotSelected || (this.isAllDivisionsSelected && !this.modalDivisionId)) {
-        this.showToastMessage('Please select a division before scheduling sessions', 'error');
-        return false;
-    }
-    return true;
+    ensureDivisionSelected() {
+        if (!this.selectedDivision || (this.isAllDivisionsSelected && !this.modalDivisionId)) {
+            this.showToastMessage('Please select a division before scheduling sessions', 'error');
+            return false;
+        }
+        return true;
     }
 
     getErrorMessage(error) {
@@ -3277,13 +3089,15 @@ if (mergedPrograms.length > 0) {
         const endTime12 = this.formatTime12(event.endTime);
         const divisionDisplayName = this.getDivisionDisplayName(event);
         const primaryFacultyName = this.getPrimaryFacultyText(event);
-        
+        // Month day cells are always compact: keep time + session readable.
+        const densityClass = 'event-density-short';
+
         const hex = event.eventColorHex;
         const tintStyle = hex ? TimetableCalendar.eventTintInlineStyle(hex) : undefined;
         return {
             ...event,
             timeRange: `${startTime12} - ${endTime12}`,
-            eventClass: hex ? 'month-event event-division-tint' : `month-event event-${event.color || 'blue'}`,
+            eventClass: `${hex ? 'month-event event-division-tint' : `month-event event-${event.color || 'blue'}`} ${densityClass}`.trim(),
             eventTileStyle: tintStyle,
             displayTitle: event.title || '',
             divisionDisplayName: divisionDisplayName,
@@ -3612,17 +3426,19 @@ if (mergedPrograms.length > 0) {
         const startOffset = (startHour - TimetableCalendar.DAY_START_HOUR) * 60 + startMinute;
         const duration = (endHour - startHour) * 60 + (endMinute - startMinute);
         const pxPerMin = TimetableCalendar.DAY_VIEW_HOUR_HEIGHT / 60;
-        // Position events: scale by pxPerMin so rows fit time/title/course/room (4 lines)
+        // Keep short tiles proportional (Google-like) but never below ~2 readable lines.
         const top = startOffset * pxPerMin;
-        const height = Math.max(duration * pxPerMin, 88);
-        
+        const minTilePx = duration <= 45 ? 36 : 56;
+        const height = Math.max(duration * pxPerMin, minTilePx);
+        const densityClass = this.getEventDensityClass(duration);
+
         const startTime12 = this.formatTime12(event.startTime);
         const endTime12 = this.formatTime12(event.endTime);
-        
+
         const isDragged =
             this.draggedEventId === event.id &&
             (!this.draggedEventDivisionId || this.idsEqual(event.divisionId, this.draggedEventDivisionId));
-        
+
         let recurringLabel = '';
         if (event.isRecurring) {
             const typeLabels = {
@@ -3636,13 +3452,13 @@ if (mergedPrograms.length > 0) {
                 recurringLabel = `Every ${event.recurringInterval} ${event.recurringType.replace('ly', 's')}`;
             }
         }
-        
+
         const hx = event.eventColorHex;
         const bg = hx ? TimetableCalendar.eventTintInlineStyle(hx) : '';
         return {
             ...event,
             style: `top: ${top}px; height: ${height}px;${bg ? ` ${bg}` : ''}`,
-            eventClass: `calendar-event ${hx ? 'event-division-tint' : `event-${event.color || 'blue'}`} ${isDragged ? 'dragging' : ''}`,
+            eventClass: `calendar-event ${hx ? 'event-division-tint' : `event-${event.color || 'blue'}`} ${densityClass} ${isDragged ? 'dragging' : ''}`.trim(),
             timeRange: `${startTime12} - ${endTime12}`,
             divisionDisplayName: this.getDivisionDisplayName(event),
             primaryFacultyName: this.getPrimaryFacultyText(event),
@@ -3657,6 +3473,43 @@ if (mergedPrograms.length > 0) {
         const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
         const ampm = hour >= 12 ? 'PM' : 'AM';
         return `${hour12}:${minutes} ${ampm}`;
+    }
+
+    /** Hover / tooltip schedule: "9:00 AM to 1:00 PM". */
+    formatScheduleTimeTo(event) {
+        if (!event || !event.startTime || !event.endTime) {
+            return '—';
+        }
+        return `${this.formatTime12(event.startTime)} to ${this.formatTime12(event.endTime)}`;
+    }
+
+    getSessionDurationMinutes(event) {
+        if (!event || !event.startTime || !event.endTime) {
+            return null;
+        }
+        const startM = this.parseTimeToMinutes(event.startTime);
+        const endM = this.parseTimeToMinutes(event.endTime);
+        if (endM <= startM) {
+            return null;
+        }
+        return endM - startM;
+    }
+
+    /**
+     * Density drives how many tile lines stay visible (short = first two).
+     * short ≤45m, medium ≤90m, tall otherwise.
+     */
+    getEventDensityClass(durationMinutes) {
+        if (durationMinutes == null || Number.isNaN(durationMinutes)) {
+            return 'event-density-medium';
+        }
+        if (durationMinutes <= 45) {
+            return 'event-density-short';
+        }
+        if (durationMinutes <= 90) {
+            return 'event-density-medium';
+        }
+        return 'event-density-tall';
     }
 
     getDivisionDisplayName(event) {
@@ -3678,9 +3531,10 @@ if (mergedPrograms.length > 0) {
         return '—';
     }
 
-    // Session details for hover tooltip: Division first, then Course, Faculty, Support Faculty, Activity Type
+    // Session details for hover tooltip: Time first, then Division, Course, Faculty, Support Faculty, Activity Type
     getEventTooltipText(event) {
         if (!event) return '';
+        const scheduleTime = this.formatScheduleTimeTo(event);
         const division = (event.divisionName && String(event.divisionName).trim()) || '—';
         const course = (event.courseName && String(event.courseName).trim()) || '—';
         const faculty = (event.leadFacultyNames && Array.isArray(event.leadFacultyNames) && event.leadFacultyNames.length > 0)
@@ -3690,7 +3544,7 @@ if (mergedPrograms.length > 0) {
             ? event.supportFacultyNames.join(', ')
             : '—';
         const activity = (event.courseActivity && String(event.courseActivity).trim()) || '—';
-        let text = `Division: ${division}\nCourse: ${course}\nFaculty: ${faculty}\nSupport Faculty: ${supportFaculty}\nActivity Type: ${activity}`;
+        let text = `Time: ${scheduleTime}\nDivision: ${division}\nCourse: ${course}\nFaculty: ${faculty}\nSupport Faculty: ${supportFaculty}\nActivity Type: ${activity}`;
         // RSVP read-back (Target 1): show attendee responses for sessions pushed to Google.
         if (event.hasGoogleEvent) {
             text += `\nResponses: ${event.attendeesAccepted || 0} yes, ${event.attendeesDeclined || 0} no, ${event.attendeesTentative || 0} maybe, ${event.attendeesAwaiting || 0} awaiting`;
@@ -3899,7 +3753,7 @@ if (mergedPrograms.length > 0) {
         return days;
     }
 
-  /*  get divisionsForMatrix() {
+    get divisionsForMatrix() {
         const opts = (this.divisionOptions || [])
             .filter(o => o && o.value && o.value !== TimetableCalendar.ALL_DIVISIONS_VALUE)
             .map(o => ({
@@ -3920,23 +3774,7 @@ if (mergedPrograms.length > 0) {
 
         // Term has no divisions (or options not loaded): return empty so we don't show batch-level divisions A–H.
         return [];
-    }*/
-  /*se-1339*/  
-    get divisionsForMatrix() {
-        const opts = (this.divisionOptions || [])
-            .filter(o => o && o.value && o.value !== TimetableCalendar.ALL_DIVISIONS_VALUE)
-            .map(o => ({
-                value: String(o.value),
-                label: o.label ? String(o.label) : String(o.value),
-                divisionColor: (o.divisionColor && String(o.divisionColor).trim()) ? String(o.divisionColor).trim().toLowerCase() : null
-            }));
-        const selected = this.resolvedDivisionIds;
-            if (selected.length === 0) return [];
-                return opts
-                .filter(o => selected.some(id => this.idsEqual(id, o.value)))
-                .sort((a, b) => (a.label || '').localeCompare(b.label || ''));
     }
-    /*Se-1339*/
 
     /** Hour slots for week view left column: 9 AM to 10 PM (22:00). Label in 24h (09:00, 10:00, ...). */
     get weekViewHourSlots() {
@@ -4131,7 +3969,12 @@ if (mergedPrograms.length > 0) {
         const hex = TimetableCalendar.divisionPicklistToHex(division && division.divisionColor)
             || event.eventColorHex;
         const { spanRows = 1, laneIndex = 0, numLanes = 1, rowHeightPx = 50, topOffsetPx = 0, explicitHeightPx = null } = opts;
-        const heightPx = explicitHeightPx != null ? explicitHeightPx : (spanRows * rowHeightPx);
+        const durationMinutes = this.getSessionDurationMinutes(event);
+        const densityClass = this.getEventDensityClass(durationMinutes);
+        // Short sessions need a floor height so the first two lines stay readable.
+        const rawHeightPx = explicitHeightPx != null ? explicitHeightPx : (spanRows * rowHeightPx);
+        const minHeightPx = (durationMinutes != null && durationMinutes <= 45) ? 36 : 24;
+        const heightPx = Math.max(rawHeightPx, minHeightPx);
         const widthPct = numLanes > 0 ? (100 / numLanes) : 100;
         const leftPct = numLanes > 0 ? (laneIndex * (100 / numLanes)) : 0;
         const bg = hex ? TimetableCalendar.eventTintInlineStyle(hex) : '';
@@ -4148,7 +3991,7 @@ if (mergedPrograms.length > 0) {
             courseName: event.courseName || '',
             primaryFacultyName: primaryFacultyName,
             timeLabel: startTime12,
-            eventClass: `division-cell-event ${hex ? 'event-division-tint' : `event-${safeToken}`}`,
+            eventClass: `division-cell-event ${hex ? 'event-division-tint' : `event-${safeToken}`} ${densityClass}`.trim(),
             eventStyle: eventStyle,
             tooltipText: this.getEventTooltipText(event)
         };
@@ -4325,6 +4168,7 @@ if (mergedPrograms.length > 0) {
             const tok = String(e.color || 'blue').toLowerCase();
             const safeTok = tok === 'gray' ? 'grey' : tok;
             const bg = hex ? TimetableCalendar.eventTintInlineStyle(hex) : '';
+            const densityClass = this.getEventDensityClass(durationMinutes);
             return {
                 key: e.rowKey || `${e.id}-${e.divisionId}`,
                 id: e.id,
@@ -4334,7 +4178,7 @@ if (mergedPrograms.length > 0) {
                 courseName: e.courseName || '',
                 primaryFacultyName: primaryFacultyName,
                 timeLabel: `${this.formatTime12(e.startTime)} – ${this.formatTime12(e.endTime)}`,
-                eventClass: `division-timeline-event ${hex ? 'event-division-tint' : `event-${safeTok}`}`,
+                eventClass: `division-timeline-event ${hex ? 'event-division-tint' : `event-${safeTok}`} ${densityClass}`.trim(),
                 style: `left:${leftPercent}%; width:${widthPercent}%; top:${topPx}px; height:${cfg.eventHeight}px;${bg ? ` ${bg}` : ''}`,
                 tooltipText: this.getEventTooltipText(e)
             };
@@ -4488,20 +4332,12 @@ if (mergedPrograms.length > 0) {
         this.pendingAutoScroll = true;
     }
 
- /*   getAutoScrollKey() {
+    getAutoScrollKey() {
         const dateStr = this.formatDateLocal(this.currentDate);
         const div = this.selectedDivision ? String(this.selectedDivision) : '';
         const view = this.currentView ? String(this.currentView) : '';
         return `${div}::${view}::${dateStr}`;
-    }*/
-  /*se-1339*/  
-     getAutoScrollKey() {
-        const dateStr = this.formatDateLocal(this.currentDate);
-        const div = this.resolvedDivisionIds.join(',');   // was: this.selectedDivision ? String(this.selectedDivision) : '';
-        const view = this.currentView ? String(this.currentView) : '';
-        return `${div}::${view}::${dateStr}`;
     }
-    /*se-1339*/
 
     getAutoScrollTop(gridContainer) {
         const hourHeight = TimetableCalendar.DAY_VIEW_HOUR_HEIGHT;
@@ -4628,7 +4464,7 @@ if (mergedPrograms.length > 0) {
             this.showToastMessage('From Date cannot be after To Date.', 'error');
             return;
         }
-        if (this.isDivisionNotSelected) {
+        if (!this.selectedDivision) {
             this.showToastMessage('Please select a division before publishing sessions', 'error');
             return;
         }
@@ -4989,7 +4825,16 @@ if (mergedPrograms.length > 0) {
                     : '—';
                 const activity = (ev.courseActivity && String(ev.courseActivity).trim()) || '—';
                 const classRoom = (ev.classRoom && String(ev.classRoom).trim()) || '—';
-                this.hoveredEventTooltip = { divisionName, courseName: course, facultyStr, supportFacultyStr, courseActivity: activity, classRoom };
+                const scheduleTime = this.formatScheduleTimeTo(ev);
+                this.hoveredEventTooltip = {
+                    scheduleTime,
+                    divisionName,
+                    courseName: course,
+                    facultyStr,
+                    supportFacultyStr,
+                    courseActivity: activity,
+                    classRoom
+                };
                 this.tooltipPosition = { x: event.clientX, y: event.clientY + 14 };
             }
         }

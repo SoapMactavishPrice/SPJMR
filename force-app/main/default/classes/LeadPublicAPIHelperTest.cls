@@ -1,6 +1,6 @@
 @IsTest
 private class LeadPublicAPIHelperTest {
-    
+     
      @TestSetup
     static void setupData() {
 		User admin =  createSystemAdminUser();
@@ -469,5 +469,17 @@ static void testFormatAlternatePhone() {
         );
     Test.stopTest();
 }
+    
+        @IsTest
+    static void testApplicantNotAcceptingScenario() {
+        System.assertEquals(
+            'APPLICANT_NOT_ACCEPTING',
+            LeadPublicAPIHelper.scenarioApiName(LeadPublicAPIHelper.Scenario.APPLICANT_NOT_ACCEPTING)
+        );
+        System.assertEquals(
+            'This programme is not currently accepting applications.',
+            LeadPublicAPIHelper.messageForScenario(LeadPublicAPIHelper.Scenario.APPLICANT_NOT_ACCEPTING)
+        );
+    }
     
 }

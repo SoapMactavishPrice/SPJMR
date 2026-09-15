@@ -1,5 +1,58 @@
 @IsTest
 private class CommunicationServiceTest {
+
+    @testSetup
+    static void setup() {
+        Profile sysAdminProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'System Administrator'
+            LIMIT 1
+        ];
+
+        UserRole studentCounsellorRole = new UserRole(
+            Name = 'Student_Counsellor',
+            DeveloperName = 'StudentCounsellor'
+        );
+        insert studentCounsellorRole;
+
+        User testUser = new User(
+            FirstName = 'Test',
+            LastName = 'Admin',
+            Alias = 'tadmin',
+            Email = 'testadmin@example.com',
+            Username = 'testadmin.@987example.com',
+            ProfileId = sysAdminProfile.Id,
+            UserRoleId = studentCounsellorRole.Id,
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_IN',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert testUser;
+
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team', 'EducationCloudAccess')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('Admissions_Team')
+            ),
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('EducationCloudAccess')
+            )
+        };
+    }
+
     private static Integer sequence = 0;
 
     private static CommunicationConfiguration__mdt getConfig(String developerName) {
@@ -171,104 +224,154 @@ private class CommunicationServiceTest {
 
     @IsTest
     static void communicateInlineThrowsWhenProgramIdMissing() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c application = createApplication(programRecord.Id, 'a@example.com');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(null, configuration, application.Id);
 
-        Boolean threw = false;
-        try {
-            CommunicationService.communicateInline(request);
-        } catch (CommunicationService.CommunicationServiceException e) {
-            threw = true;
-            System.assert(e.getMessage().contains('Program Id is required.'));
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c application = createApplication(programRecord.Id, 'a@example.com');
+
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(null, configuration, application.Id);
+
+            Boolean threw = false;
+            try {
+                CommunicationService.communicateInline(request);
+            } catch (CommunicationService.CommunicationServiceException e) {
+                threw = true;
+                System.assert(e.getMessage().contains('Program Id is required.'));
+            }
+            System.assert(threw);
         }
-        System.assert(threw);
     }
 
     @IsTest
     static void communicateInlineThrowsWhenScenarioMissing() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c application = createApplication(programRecord.Id, 'a@example.com');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            new CommunicationsController.CommunicationRequest();
-        request.programId = programRecord.Id;
-        request.applicationId = application.Id;
-        // scenario intentionally left null
 
-        Boolean threw = false;
-        try {
-            CommunicationService.communicateInline(request);
-        } catch (CommunicationService.CommunicationServiceException e) {
-            threw = true;
-            System.assert(e.getMessage().contains('Communication Scenario is required.'));
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c application = createApplication(programRecord.Id, 'a@example.com');
+
+            CommunicationsController.CommunicationRequest request =
+                new CommunicationsController.CommunicationRequest();
+            request.programId = programRecord.Id;
+            request.applicationId = application.Id;
+            // scenario intentionally left null
+
+            Boolean threw = false;
+            try {
+                CommunicationService.communicateInline(request);
+            } catch (CommunicationService.CommunicationServiceException e) {
+                threw = true;
+                System.assert(e.getMessage().contains('Communication Scenario is required.'));
+            }
+            System.assert(threw);
         }
-        System.assert(threw);
     }
 
     @IsTest
     static void communicateInlineThrowsWhenApplicationNotFound() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c application = createApplication(programRecord.Id, 'a@example.com');
-        Id deletedApplicationId = application.Id;
-        delete application;
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(programRecord.Id, configuration, deletedApplicationId);
 
-        Boolean threw = false;
-        try {
-            CommunicationService.communicateInline(request);
-        } catch (CommunicationService.CommunicationServiceException e) {
-            threw = true;
-            System.assert(e.getMessage().contains('Application not found for Id'));
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c application = createApplication(programRecord.Id, 'a@example.com');
+            Id deletedApplicationId = application.Id;
+            delete application;
+
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(programRecord.Id, configuration, deletedApplicationId);
+
+            Boolean threw = false;
+            try {
+                CommunicationService.communicateInline(request);
+            } catch (CommunicationService.CommunicationServiceException e) {
+                threw = true;
+                System.assert(e.getMessage().contains('Application not found for Id'));
+            }
+            System.assert(threw);
         }
-        System.assert(threw);
     }
 
     @IsTest
     static void communicateInlineThrowsWhenApplicationBelongsToDifferentProgram() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
-        Program actualProgram = createProgram(configuration.ProgramCode__c);
-        Program differentProgram = createProgram('DIFFPGPM' + sequence);
-        Application__c application = createApplication(actualProgram.Id, 'a@example.com');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(differentProgram.Id, configuration, application.Id);
 
-        Boolean threw = false;
-        try {
-            CommunicationService.communicateInline(request);
-        } catch (CommunicationService.CommunicationServiceException e) {
-            threw = true;
-            System.assert(e.getMessage().contains('must belong to Program Id'));
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
+            Program actualProgram = createProgram(configuration.ProgramCode__c);
+            Program differentProgram = createProgram('DIFFPGPM' + sequence);
+            Application__c application = createApplication(actualProgram.Id, 'a@example.com');
+
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(differentProgram.Id, configuration, application.Id);
+
+            Boolean threw = false;
+            try {
+                CommunicationService.communicateInline(request);
+            } catch (CommunicationService.CommunicationServiceException e) {
+                threw = true;
+                System.assert(e.getMessage().contains('must belong to Program Id'));
+            }
+            System.assert(threw);
         }
-        System.assert(threw);
     }
 
     @IsTest
     static void communicateInlineThrowsForUnknownProviderType() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_PAID_AND_UNTOUCHED');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c application = createApplication(programRecord.Id, 'a@example.com');
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(programRecord.Id, configuration, application.Id);
 
-        Boolean threw = false;
-        Test.startTest();
-        try {
-            CommunicationService.communicateInline(request);
-        } catch (CommunicationProviderFactory.CommunicationException e) {
-            threw = true;
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_PAID_AND_UNTOUCHED');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c application = createApplication(programRecord.Id, 'a@example.com');
+
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(programRecord.Id, configuration, application.Id);
+
+            Boolean threw = false;
+            Test.startTest();
+            try {
+                CommunicationService.communicateInline(request);
+            } catch (CommunicationProviderFactory.CommunicationException e) {
+                threw = true;
+            }
+            Test.stopTest();
+            // System.assert(threw);
         }
-        Test.stopTest();
-        // System.assert(threw);
     }
 
     // ---------------------------------------------------------------
@@ -277,33 +380,43 @@ private class CommunicationServiceTest {
 
     @IsTest
     static void communicateInlineInsertsNotificationWhenSendNotificationEnabledAndSendEmailDisabled() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_OFFER_NOT_ACCEPTED');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c application = createApplication(
-            programRecord.Id,
-            'offer.declined@example.com'
-        );
-        insertAdmissionDecision(application.Id);
-
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(programRecord.Id, configuration, application.Id);
-        // options left null so config defaults apply: sendEmail=false, sendNotification=true
-
-        Test.startTest();
-        CommunicationService.communicateInline(request);
-        Test.stopTest();
-
-        List<CustomNotification__c> notifications = [
-            SELECT Title__c, Message__c, Recipient_Email__c, IsRead__c
-            FROM CustomNotification__c
-            WHERE Recipient_Email__c = 'offer.declined@example.com'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
-        // System.assertEquals(1, notifications.size());
-        // System.assertEquals('Offer Not Accepted', notifications[0].Title__c);
-        // System.assertEquals(false, notifications[0].IsRead__c);
-        // System.assert(
-        //     notifications[0].Message__c.contains('no longer valid')
-        // );
+
+
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_OFFER_NOT_ACCEPTED');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c application = createApplication(
+                programRecord.Id,
+                'offer.declined@example.com'
+            );
+            insertAdmissionDecision(application.Id);
+
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(programRecord.Id, configuration, application.Id);
+            // options left null so config defaults apply: sendEmail=false, sendNotification=true
+
+            Test.startTest();
+            CommunicationService.communicateInline(request);
+            Test.stopTest();
+
+            List<CustomNotification__c> notifications = [
+                SELECT Title__c, Message__c, Recipient_Email__c, IsRead__c
+                FROM CustomNotification__c
+                WHERE Recipient_Email__c = 'offer.declined@example.com'
+            ];
+            // System.assertEquals(1, notifications.size());
+            // System.assertEquals('Offer Not Accepted', notifications[0].Title__c);
+            // System.assertEquals(false, notifications[0].IsRead__c);
+            // System.assert(
+            //     notifications[0].Message__c.contains('no longer valid')
+            // );
+        }
     }
 
     @IsTest
@@ -311,24 +424,34 @@ private class CommunicationServiceTest {
         // No Admission_Decision__c inserted, so AdmissionDecisionProvider
         // returns no data for this application and processScope should
         // skip it silently without inserting a notification or throwing.
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_OFFER_NOT_ACCEPTED');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c application = createApplication(
-            programRecord.Id,
-            'no.decision@example.com'
-        );
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(programRecord.Id, configuration, application.Id);
 
-        Test.startTest();
-        CommunicationService.communicateInline(request);
-        Test.stopTest();
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_OFFER_NOT_ACCEPTED');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c application = createApplication(
+                programRecord.Id,
+                'no.decision@example.com'
+            );
 
-        System.assertEquals(
-            0,
-            [SELECT COUNT() FROM CustomNotification__c WHERE Recipient_Email__c = 'no.decision@example.com']
-        );
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(programRecord.Id, configuration, application.Id);
+
+            Test.startTest();
+            CommunicationService.communicateInline(request);
+            Test.stopTest();
+
+            System.assertEquals(
+                0,
+                [SELECT COUNT() FROM CustomNotification__c WHERE Recipient_Email__c = 'no.decision@example.com']
+            );
+        }
     }
 
     // ---------------------------------------------------------------
@@ -337,64 +460,84 @@ private class CommunicationServiceTest {
 
     @IsTest
     static void communicateInlineThrowsWhenSendEmailRequestedButEmailFlowNameBlank() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c application = createApplication(
-            programRecord.Id,
-            'blank.flow@example.com'
-        );
-        insertAdmissionDecision(application.Id);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(programRecord.Id, configuration, application.Id);
 
-        CommunicationsController.CommunicationOptions options =
-            new CommunicationsController.CommunicationOptions();
-        options.sendEmail = true;
-        options.sendNotification = false;
-        request.options = options;
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c application = createApplication(
+                programRecord.Id,
+                'blank.flow@example.com'
+            );
+            insertAdmissionDecision(application.Id);
 
-        Boolean threw = false;
-        Test.startTest();
-        try {
-            CommunicationService.communicateInline(request);
-        } catch (CommunicationService.CommunicationServiceException e) {
-            threw = true;
-            System.assert(e.getMessage().contains('Email flow is not configured for scenario'));
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(programRecord.Id, configuration, application.Id);
+
+            CommunicationsController.CommunicationOptions options =
+                new CommunicationsController.CommunicationOptions();
+            options.sendEmail = true;
+            options.sendNotification = false;
+            request.options = options;
+
+            Boolean threw = false;
+            Test.startTest();
+            try {
+                CommunicationService.communicateInline(request);
+            } catch (CommunicationService.CommunicationServiceException e) {
+                threw = true;
+                System.assert(e.getMessage().contains('Email flow is not configured for scenario'));
+            }
+            Test.stopTest();
+            System.assert(threw);
         }
-        Test.stopTest();
-        System.assert(threw);
     }
 
     @IsTest
     static void communicateInlineThrowsWhenSendNotificationRequestedButTemplateBlank() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c application = createApplication(
-            programRecord.Id,
-            'blank.template@example.com'
-        );
-        insertAdmissionDecision(application.Id);
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(programRecord.Id, configuration, application.Id);
 
-        CommunicationsController.CommunicationOptions options =
-            new CommunicationsController.CommunicationOptions();
-        options.sendEmail = false;
-        options.sendNotification = true;
-        request.options = options;
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c application = createApplication(
+                programRecord.Id,
+                'blank.template@example.com'
+            );
+            insertAdmissionDecision(application.Id);
 
-        Boolean threw = false;
-        Test.startTest();
-        try {
-            CommunicationService.communicateInline(request);
-        } catch (CommunicationService.CommunicationServiceException e) {
-            threw = true;
-            System.assert(e.getMessage().contains('Notification template is not configured for scenario'));
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(programRecord.Id, configuration, application.Id);
+
+            CommunicationsController.CommunicationOptions options =
+                new CommunicationsController.CommunicationOptions();
+            options.sendEmail = false;
+            options.sendNotification = true;
+            request.options = options;
+
+            Boolean threw = false;
+            Test.startTest();
+            try {
+                CommunicationService.communicateInline(request);
+            } catch (CommunicationService.CommunicationServiceException e) {
+                threw = true;
+                System.assert(e.getMessage().contains('Notification template is not configured for scenario'));
+            }
+            Test.stopTest();
+            System.assert(threw);
         }
-        Test.stopTest();
-        System.assert(threw);
     }
 
 
@@ -406,27 +549,38 @@ private class CommunicationServiceTest {
 
     @IsTest
     static void communicateAsyncListDedupesAndEnqueuesDispatchQueueable() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c application = createApplication(
-            programRecord.Id,
-            'dedup@example.com'
-        );
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(programRecord.Id, configuration, application.Id);
-        request.applicationIds = new List<Id>{ application.Id };
-        request.applicationIdToReferenceRecordId = new Map<Id, Id>{
-            application.Id => application.Id
-        };
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        Id jobId = CommunicationService.communicateAsync(
-            new List<CommunicationsController.CommunicationRequest>{ request }
-        );
-        Test.stopTest();
 
-        System.assertNotEquals(null, jobId);
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c application = createApplication(
+                programRecord.Id,
+                'dedup@example.com'
+            );
+
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(programRecord.Id, configuration, application.Id);
+            request.applicationIds = new List<Id>{ application.Id };
+            request.applicationIdToReferenceRecordId = new Map<Id, Id>{
+                application.Id => application.Id
+            };
+
+            Test.startTest();
+            Id jobId = CommunicationService.communicateAsync(
+                new List<CommunicationsController.CommunicationRequest>{ request }
+            );
+            Test.stopTest();
+
+            System.assertNotEquals(null, jobId);
+        }
     }
 
     // ---------------------------------------------------------------
@@ -439,26 +593,36 @@ private class CommunicationServiceTest {
 
     @IsTest
     static void communicateRoutesMultipleApplicationIdsToAsyncSingleRequestOverload_OPTIONAL() {
-        CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
-        Program programRecord = createProgram(configuration.ProgramCode__c);
-        Application__c firstApplication = createApplication(
-            programRecord.Id,
-            'multi1@example.com'
-        );
-        Application__c secondApplication = createApplication(
-            programRecord.Id,
-            'multi2@example.com'
-        );
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        CommunicationsController.CommunicationRequest request =
-            buildRequest(programRecord.Id, configuration, null);
-        request.applicationIds = new List<Id>{
-            firstApplication.Id,
-            secondApplication.Id
-        };
 
-        Test.startTest();
-        CommunicationService.communicate(request);
-        Test.stopTest();
+        System.runAs(testUser) {
+            CommunicationConfiguration__mdt configuration = getConfig('PGPM_REJECT_ROUND_1');
+            Program programRecord = createProgram(configuration.ProgramCode__c);
+            Application__c firstApplication = createApplication(
+                programRecord.Id,
+                'multi1@example.com'
+            );
+            Application__c secondApplication = createApplication(
+                programRecord.Id,
+                'multi2@example.com'
+            );
+
+            CommunicationsController.CommunicationRequest request =
+                buildRequest(programRecord.Id, configuration, null);
+            request.applicationIds = new List<Id>{
+                firstApplication.Id,
+                secondApplication.Id
+            };
+
+            Test.startTest();
+            CommunicationService.communicate(request);
+            Test.stopTest();
+        }
     }
 }

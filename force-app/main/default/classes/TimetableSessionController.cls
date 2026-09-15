@@ -1061,9 +1061,7 @@ dto.selectedStudentIds =
         List<SessionConflictValidator.StudentSessionConflictDetail> studentConflictWarningDetails = null;
         try {
 
-            Boolean skipHardConflicts = request.ignoreConflicts == true;
-
-            if (!skipHardConflicts) {
+            
                 List<SessionConflictValidator.DivisionSessionConflictDetail> divisionConflictDetails = SessionConflictValidator.getDivisionSessionConflictDetails(
                     new Set<Id>(divisionIdsToProcess),
                     request.sessionDate,
@@ -1076,12 +1074,14 @@ dto.selectedStudentIds =
                 if (!divisionConflictDetails.isEmpty()) {
                     Map<String, Object> errPayload = new Map<String, Object>{
                         'type' => 'DIVISION_SESSION_CONFLICT',
-                        'message' => 'Conflicting session for this division. View details for more information.',
+                        'message' =>'The selected division already has a session scheduled during the selected time.',
                         'details' => divisionConflictDetails
                     };
                     throw new AuraHandledException(JSON.serialize(errPayload));
                 }
+             Boolean skipHardConflicts = request.ignoreConflicts == true;
 
+            if (!skipHardConflicts) {
                 List<SessionConflictValidator.FacultyConflictDetail> facultyConflictDetails = SessionConflictValidator.getFacultySessionConflictDetails(
                     facultyIds,
                     request.sessionDate,
@@ -1546,8 +1546,7 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
             if (sd.Division__c != null) divisionIdsForValidation.add(sd.Division__c);
         }
 
-        Boolean skipHardConflicts = request.ignoreConflicts == true;
-        if (!skipHardConflicts) {
+        
             List<SessionConflictValidator.DivisionSessionConflictDetail> divisionConflictDetails = SessionConflictValidator.getDivisionSessionConflictDetails(
                 divisionIdsForValidation,
                 request.sessionDate,
@@ -1560,11 +1559,13 @@ String divisionAutoNameText = String.join(divisionAutoCode, ', ');
             if (!divisionConflictDetails.isEmpty()) {
                 Map<String, Object> errPayload = new Map<String, Object>{
                     'type' => 'DIVISION_SESSION_CONFLICT',
-                    'message' => 'Conflicting session for this division. View details for more information.',
+                    'message' => 'The selected division already has a session scheduled during the selected time.',
                     'details' => divisionConflictDetails
                 };
                 throw new AuraHandledException(JSON.serialize(errPayload));
             }
+        Boolean skipHardConflicts = request.ignoreConflicts == true;
+        if (!skipHardConflicts) {
             List<SessionConflictValidator.FacultyConflictDetail> facultyConflictDetails = SessionConflictValidator.getFacultySessionConflictDetails(
                 facultyIds,
                 request.sessionDate,

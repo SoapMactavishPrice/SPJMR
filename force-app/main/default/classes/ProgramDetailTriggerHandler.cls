@@ -17,10 +17,10 @@ public class ProgramDetailTriggerHandler {
         List<Program_Detail__c> newList,
         Map<Id, Program_Detail__c> newMap
     ) {
-        SharingOrchestrator.handleRecords(
-            'Program_Detail__c',
-            newMap.keySet()
-        );
+      //  SharingOrchestrator.handleRecords(
+       //     'Program_Detail__c',
+       //     newMap.keySet()
+       // );
     }
 
     public void afterUpdate(

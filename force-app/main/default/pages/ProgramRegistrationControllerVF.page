@@ -101,7 +101,7 @@
        onclick="sendLoginEvent();">
         ALREADY REGISTERED? LOGIN
     </a>
-</div>
+</div> 
 
 </div>
     
@@ -180,8 +180,8 @@ function postToParent(message) {
          if (recaptchaWidgetId === null) {
          recaptchaWidgetId = grecaptcha.render(
                 'recaptcha-container',
-                {
-                    sitekey: '6LdCQ2ktAAAAAID_bM0EuhE16wmPFyFcZ0oKRpAo',
+                { 
+                    sitekey: '{!JSENCODE(recaptchaSiteKey)}',
                     callback: onCaptchaSuccess
                 }
             );

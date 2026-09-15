@@ -1,6 +1,50 @@
 @isTest
 private class CommunicationConfigurationServiceTest {
 
+    @testSetup
+    static void setup() {
+
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+
+        User adminUser = [
+            SELECT Id
+            FROM User
+            WHERE Email = 'ramakrishnan@finessedirect.com'
+            AND Profile.Name = 'System Administrator'
+            LIMIT 1
+        ];
+
+        Id admissionsTeamPsId = [
+            SELECT Id
+            FROM PermissionSet
+            WHERE Name = 'Admissions_Team'
+            LIMIT 1
+        ].Id;
+
+        List<PermissionSetAssignment> existingAssignments = [
+            SELECT Id
+            FROM PermissionSetAssignment
+            WHERE AssigneeId = :adminUser.Id
+            AND PermissionSetId = :admissionsTeamPsId
+            LIMIT 1
+        ];
+
+        if (existingAssignments.isEmpty()) {
+            insert new PermissionSetAssignment(
+                AssigneeId = adminUser.Id,
+                PermissionSetId = admissionsTeamPsId
+            );
+        }
+    }
+
     @isTest
     static void testGetConfigurationReturnsMatchingRecordForKnownProgramAndScenario() {
         CommunicationConfiguration__mdt configuration =
@@ -22,7 +66,7 @@ private class CommunicationConfigurationServiceTest {
     static void testGetConfigurationReturnsMatchingRecordForDifferentProgramAndScenario() {
         CommunicationConfiguration__mdt configuration =
             CommunicationConfigurationService.getConfiguration(
-                'GMP',
+                'PGPM',
                 CommunicationsController.CommunicationScenario.INTERVIEW_SCHEDULED
             );
 
@@ -31,7 +75,7 @@ private class CommunicationConfigurationServiceTest {
             configuration,
             'Expected a configuration record to be returned.'
         );
-        System.assertEquals('GMP', configuration.ProgramCode__c);
+        System.assertEquals('PGPM', configuration.ProgramCode__c);
         System.assertEquals('INTERVIEW_SCHEDULED', configuration.Scenario__c);
     }
 
@@ -67,21 +111,21 @@ private class CommunicationConfigurationServiceTest {
 
     @isTest
     static void testGetConfigurationThrowsWhenScenarioHasNoConfigurationForProgram() {
-        // GMP only has configuration records for INTERVIEW_SCHEDULED and
-        // OFFER_AVAILABLE, so GMP + OFFER_ACCEPTED is a valid enum value
+        // PGPM only has configuration records for INTERVIEW_SCHEDULED and
+        // OFFER_AVAILABLE, so GMPM + OFFER_ACCEPTED is a valid enum value
         // with no matching CMDT record - a genuine "found program, wrong
         // scenario" case, as opposed to an entirely unknown program code.
         Boolean exceptionThrown = false;
 
         try {
             CommunicationConfigurationService.getConfiguration(
-                'GMP',
+                'GMPM',
                 CommunicationsController.CommunicationScenario.OFFER_ACCEPTED
             );
         } catch (CommunicationConfigurationService.CommunicationConfigurationException e) {
             exceptionThrown = true;
             System.assert(
-                e.getMessage().contains('GMP'),
+                e.getMessage().contains('GMPM'),
                 'Expected the exception message to reference the Program ' +
                 'Code, got: ' + e.getMessage()
             );

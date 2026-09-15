@@ -1,16 +1,17 @@
 /** 
  * Builds Lead / Lead_Program__c rows from API payload and classifies the business scenario.
-  */
+  */ 
 public without sharing class LeadPublicAPIHelper {
     public enum Scenario {
-        LEAD_CREATED,
-        LEAD_EXISTING_NEW_PROGRAM,
-        LEAD_EXISTING_ALTERNATE_PHONE_UPDATED,
-        LEAD_EXISTING_PROGRAM_ALREADY_LINKED,
-        APPLICANT_NEW_OPPORTUNITY,
-        APPLICANT_OPPORTUNITY_ALREADY_EXISTS,
-        APPLICANT_ALTERNATE_PHONE_UPDATED
-    }
+    LEAD_CREATED,
+    LEAD_EXISTING_NEW_PROGRAM,
+    LEAD_EXISTING_ALTERNATE_PHONE_UPDATED,
+    LEAD_EXISTING_PROGRAM_ALREADY_LINKED,
+    APPLICANT_NEW_OPPORTUNITY,
+    APPLICANT_OPPORTUNITY_ALREADY_EXISTS,
+    APPLICANT_ALTERNATE_PHONE_UPDATED,
+    APPLICANT_NOT_ACCEPTING   // NEW
+}
 
     public class ResultWrapper {
         public Id leadId;
@@ -45,6 +46,9 @@ public without sharing class LeadPublicAPIHelper {
         if (s == Scenario.APPLICANT_ALTERNATE_PHONE_UPDATED) {
             return LeadPublicAPIMessages.APPLICANT_ALTERNATE_PHONE_UPDATED;
         }
+        if (s == Scenario.APPLICANT_NOT_ACCEPTING) {
+    return 'This programme is not currently accepting applications.';
+}
         return '';
     }
 

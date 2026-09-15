@@ -3,7 +3,7 @@ public with sharing class Batch_ApplicationStatusUpdate
 
     public List<String> errorMessages = new List<String>();
     public List<String> resultRows = new List<String>();
-    private final String RESULT_HEADER ='Application Number,Applicant State Management,Application Stage,Application Status,Status,Message';
+    private final String RESULT_HEADER ='Application Number,Application Stage,Form Section,Application Status,Status,Message';
 
     private Integer MAX_ERROR_LOGS = 5000;
 
@@ -86,8 +86,8 @@ public with sharing class Batch_ApplicationStatusUpdate
                 }
 
                 Integer numberCol = header.indexOf('Application Number');
-                Integer statusCol = header.indexOf('Applicant State Management');
-                Integer stageCol = header.indexOf('Application Stage');
+                Integer statusCol = header.indexOf('Application Stage');
+                Integer stageCol = header.indexOf('Form Section');
                 Integer applicationStatusCol = header.indexOf('Application Status');
 
                 if (numberCol < 0) {
@@ -192,15 +192,15 @@ public with sharing class Batch_ApplicationStatusUpdate
                     }
 
                     if(statusCol >= 0 && !String.isBlank(status) && !validStatusValues.contains(status)) {
-                        logError('Row ' + rowIdx + ': Invalid Applicant State Management value → "' + status + '"');
-                        resultRows.add( appNumber + ',' + status + ',' + stage + ',' + applicationStatus + ',Failed,' +'Invalid Applicant State Management');
+                        logError('Row ' + rowIdx + ': Invalid Application Stage value → "' + status + '"');
+                        resultRows.add( appNumber + ',' + status + ',' + stage + ',' + applicationStatus + ',Failed,' +'Invalid Application Stage');
                         failedCount++;
                         continue;
                     }
 
                     if(stageCol >= 0 && !String.isBlank(stage) && !validStageValues.contains(stage)){
-                        logError('Row ' + rowIdx + ': Invalid Application Stage value → "' + stage + '"');
-                        resultRows.add( appNumber + ',' + status + ',' + stage + ',' + applicationStatus + ',Failed,' +'Invalid Application Stage');
+                        logError('Row ' + rowIdx + ': Invalid Form Section value → "' + stage + '"');
+                        resultRows.add( appNumber + ',' + status + ',' + stage + ',' + applicationStatus + ',Failed,' +'Invalid ');
                         failedCount++;
                         continue;
                     }

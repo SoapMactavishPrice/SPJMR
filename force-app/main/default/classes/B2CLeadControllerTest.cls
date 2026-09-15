@@ -43,7 +43,8 @@ private class B2CLeadControllerTest {
             Programme_Type__c ='Modular',
             Programme_Sub_Type__c = 'Blended',
             StartDate=System.Today(),
-            EndDate = System.Today().AddDays(3)
+            EndDate = System.Today().AddDays(3),
+            IsActive=true
         );
         insert parentProgram;
 
@@ -56,7 +57,8 @@ private class B2CLeadControllerTest {
             Programme_Type__c ='Modular',
             Programme_Sub_Type__c = 'Blended',
             StartDate=System.Today(),
-            EndDate = System.Today().AddDays(3)
+            EndDate = System.Today().AddDays(3),
+            IsActive=true
         );
         insert childProgram;
 
@@ -337,4 +339,62 @@ Lead l = [SELECT Id FROM Lead LIMIT 1];
             result.get('hasUnconvertedLead')
         );
     }
+
+    @IsTest
+    static void test_createB2CLead_existingApplicant_noAcceptingBatch_blockedMessage() {
+
+        Account acc = [SELECT Id FROM Account LIMIT 1];
+        Program childProgram = [SELECT Id FROM Program WHERE Name = 'PGDM BM' LIMIT 1];
+
+        Test.startTest();
+        Map<String, Object> result = B2CLeadController.createB2CLead(
+            'John', 'Doe', 's@m.com', '9876540123', 'Test Street',
+            (String)[SELECT Id FROM Country_Master__c LIMIT 1].Id,
+            (String)[SELECT Id FROM State__c LIMIT 1].Id,
+            (String)[SELECT Id FROM City__c LIMIT 1].Id,
+            '682001', Date.newInstance(1998, 1, 1), '27',
+            false, '3', false, 'CAT', 'College', 'Test Organization',
+            new List<String>{ childProgram.Id }, 'Website', false, '', 'null', 'Google',
+            '', '', (String)acc.Id, 'Male', 'null', 'null', 'null'
+        );
+        Test.stopTest();
+
+        System.assertEquals(null, result.get('recordId'));
+    }
+
+    @IsTest
+    static void test_createB2CLead_newLead_withCampaign_createsCampaignMember() {
+
+        Campaign camp = getCampaign();
+
+        Test.startTest();
+        Map<String, Object> result = B2CLeadController.createB2CLead(
+            'Camp', 'Applicant', 'campapplicant@test.com', '9876540999', 'Test Street',
+            (String)getCountry().Id,
+            (String)getState().Id,
+            (String)getCity().Id,
+            '682001', Date.newInstance(1998, 1, 1), '27',
+            false, '3', false, 'CAT', 'College', 'Test Organization',
+            new List<String>{ (String) getProgram().Id }, 'Website', false, '', 'null', 'Google',
+            (String)camp.Id, '', '', 'Male', 'null', 'null', 'null'
+        );
+        Test.stopTest();
+
+        Lead createdLead = [
+            SELECT Id
+            FROM Lead
+            WHERE Email = 'campapplicant@test.com'
+            LIMIT 1
+        ];
+
+        List<CampaignMember> cms = [
+            SELECT Id, CampaignId, LeadId
+            FROM CampaignMember
+            WHERE CampaignId = :camp.Id
+            AND LeadId = :createdLead.Id
+        ];
+
+        System.assertEquals(1, cms.size());
+    }
+
 }

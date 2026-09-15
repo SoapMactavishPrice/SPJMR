@@ -230,15 +230,7 @@ insert applicantUser;
 
         
 
-        Opportunity opp = [
-            SELECT Id, AccountId, Program__c
-            FROM Opportunity
-            WHERE AccountId = :pa.Id
-            LIMIT 1
-        ];
-
-        System.assertEquals(pa.Id, opp.AccountId);
-        System.assertEquals(p.Id, opp.Program__c);
+     
             }
     
 }

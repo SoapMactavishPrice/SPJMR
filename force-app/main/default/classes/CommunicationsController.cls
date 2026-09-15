@@ -4,6 +4,8 @@ public with sharing class CommunicationsController {
     
     public enum CommunicationScenario {
 
+        PAID_AND_UNTOUCHED,
+
         PROFILE_SHORTLISTED,
 
         INTERVIEW_SCHEDULED,
@@ -17,6 +19,10 @@ public with sharing class CommunicationsController {
         OFFER_WAITLISTED,
 
         OFFER_NOT_ELIGIBLE,
+
+        REJECT_ROUND_1,
+
+        REJECT_ROUND_2,
 
         OFFER_ACCEPTED,
 

@@ -10,7 +10,7 @@ public with sharing class DashboardAnnouncementService {
     };
 
     private static final Set<String> NOT_ELIGIBLE_STATES = new Set<String>{
-        'Disqualified', 'Reject Round 1', 'Reject Round 2'
+        'Disqualified'
     };
 
     private static final Set<String> WAITLISTED_STATES = new Set<String>{
@@ -94,6 +94,7 @@ public with sharing class DashboardAnnouncementService {
                 Id,
                 Name,
                 Applicant_State_Management__c,
+                Application_Status__c,
                 Program__c,
                 Program__r.Id,
                 Program__r.Name,
@@ -159,15 +160,33 @@ public with sharing class DashboardAnnouncementService {
         List<CommunicationsController.CommunicationScenario> scenarios =
             new List<CommunicationsController.CommunicationScenario>();
 
+        if (isUntouched(application)) {
+            scenarios.add(
+                CommunicationsController.CommunicationScenario.PAID_AND_UNTOUCHED
+            );
+        }
+
         if (hasInterviewAnnouncement(application)) {
             scenarios.add(
                 CommunicationsController.CommunicationScenario.INTERVIEW_SCHEDULED
             );
         }
 
+        if (hasOfferAccepted(application)) {
+            scenarios.add(
+                CommunicationsController.CommunicationScenario.OFFER_ACCEPTED
+            );
+        }
+
         if (hasOfferAnnouncement(application)) {
             scenarios.add(
                 CommunicationsController.CommunicationScenario.OFFER_AVAILABLE
+            );
+        }
+
+        if (hasOfferWithdrawn(application)) {
+            scenarios.add(
+                CommunicationsController.CommunicationScenario.OFFER_WITHDRAWN
             );
         }
 
@@ -183,6 +202,18 @@ public with sharing class DashboardAnnouncementService {
             );
         }
 
+        if (isRejectRound1(application)) {
+            scenarios.add(
+                CommunicationsController.CommunicationScenario.REJECT_ROUND_1
+            );
+        }
+
+        if (isRejectRound2(application)) {
+            scenarios.add(
+                CommunicationsController.CommunicationScenario.REJECT_ROUND_2
+            );
+        }
+
         if (hasOfferNotEligible(application)) {
             scenarios.add(
                 CommunicationsController.CommunicationScenario.OFFER_NOT_ELIGIBLE
@@ -190,6 +221,25 @@ public with sharing class DashboardAnnouncementService {
         }
 
         return scenarios;
+    }
+
+    private static Boolean isUntouched(
+        Application__c application
+    ) {
+        if (application == null) {
+            return false;
+        }
+
+        if (application.Applicant_State_Management__c == 'Untouched') {
+            return application.Application_Status__c == 'Paid';
+        }
+
+        if (String.isNotBlank(application.Applicant_State_Management__c)) {
+            return false;
+        }
+
+        return application.Application_Status__c == 'Paid';
+
     }
 
     private static Boolean hasInterviewAnnouncement(
@@ -338,12 +388,34 @@ public with sharing class DashboardAnnouncementService {
 
     private static Boolean hasOfferNotEligible(
         Application__c application
-    ) {
-        if (application == null) {
-            return false;
+        ) {
+            if (application == null) {
+                return false;
+            }
+
+            if (!NOT_ELIGIBLE_STATES.contains(application.Applicant_State_Management__c)) {
+                return false;
+            }
+
+            if (
+                application.Admission_Decisions__r == null ||
+                application.Admission_Decisions__r.isEmpty()
+            ) {
+                return false;
+            }
+
+            Admission_Decision__c decision =
+                application.Admission_Decisions__r[0];
+
+            return decision != null
+                && decision.Result__c == 'Not Eligible';
         }
 
-        if (!NOT_ELIGIBLE_STATES.contains(application.Applicant_State_Management__c)) {
+    private static Boolean isRejectRound1(
+        Application__c application
+    ) {
+
+        if (application == null) {
             return false;
         }
 
@@ -358,7 +430,30 @@ public with sharing class DashboardAnnouncementService {
             application.Admission_Decisions__r[0];
 
         return decision != null
-            && decision.Result__c == 'Not Eligible';
+            && decision.Result__c == 'Not Eligible'
+            && application.Applicant_State_Management__c == 'Reject Round 1';
+    }
+
+    private static Boolean isRejectRound2(
+        Application__c application
+    ) {
+        if (application == null) {
+            return false;
+        }
+
+        if (
+            application.Admission_Decisions__r == null ||
+            application.Admission_Decisions__r.isEmpty()
+        ) {
+            return false;
+        }
+
+        Admission_Decision__c decision =
+            application.Admission_Decisions__r[0];
+
+        return decision != null
+            && decision.Result__c == 'Not Eligible'
+            && application.Applicant_State_Management__c == 'Reject Round 2';
     }
 
     private static CommunicationsController.DashboardAnnouncement buildAnnouncement(

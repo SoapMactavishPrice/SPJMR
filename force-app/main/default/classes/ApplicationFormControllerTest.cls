@@ -17,13 +17,71 @@
 @IsTest
 private class ApplicationFormControllerTest {
 
+    @testSetup
+    static void setup() {
+        Profile sysAdminProfile = [
+            SELECT Id
+            FROM Profile
+            WHERE Name = 'System Administrator'
+            LIMIT 1
+        ];
+
+        UserRole studentCounsellorRole = new UserRole(
+            Name = 'Student_Counsellor',
+            DeveloperName = 'StudentCounsellor'
+        );
+        insert studentCounsellorRole;
+
+        User testUser = new User(
+            FirstName = 'Test',
+            LastName = 'Admin',
+            Alias = 'tadmin',
+            Email = 'testadmin@example.com',
+            Username = 'testadmin.@987example.com',
+            ProfileId = sysAdminProfile.Id,
+            UserRoleId = studentCounsellorRole.Id,
+            TimeZoneSidKey = 'Asia/Kolkata',
+            LocaleSidKey = 'en_IN',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert testUser;
+
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team', 'EducationCloudAccess')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('Admissions_Team')
+            ),
+            new PermissionSetAssignment(
+                AssigneeId = testUser.Id,
+                PermissionSetId = permissionSetIds.get('EducationCloudAccess')
+            )
+        };
+
+    }
+
     // -----------------------------------------------------------------
     // Test data helpers
     // -----------------------------------------------------------------
 
     private static Id getPersonAccountRecordTypeId() {
         List<RecordType> rts = [
-            SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND IsPersonType = true LIMIT 1
+            SELECT Id
+            FROM RecordType
+            WHERE SObjectType = 'Account'
+            AND IsPersonType = true
+            AND Name = 'Applicant'
+            LIMIT 1
         ];
         return rts.isEmpty() ? null : rts[0].Id;
     }
@@ -126,15 +184,25 @@ private class ApplicationFormControllerTest {
 
     @IsTest
     static void testCheckUserValidity_ReturnsTrue_WhenAccountAndApplicationMatch() {
-        String runningUserEmail = UserInfo.getUserEmail();
-        Account acc = createPersonAccount('Val', 'Idity', runningUserEmail);
-        Application__c app = createApplicationForAccount('APP-VALIDITY-1', acc.Id);
+         User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        Boolean isValid = ApplicationFormController.checkUserValidity(app.Id);
-        Test.stopTest();
 
-        System.assertEquals(true, isValid);
+        System.runAs(testUser) {
+            String runningUserEmail = UserInfo.getUserEmail();
+            Account acc = createPersonAccount('Val', 'Idity', runningUserEmail);
+            Application__c app = createApplicationForAccount('APP-VALIDITY-1', acc.Id);
+
+            Test.startTest();
+            Boolean isValid = ApplicationFormController.checkUserValidity(app.Id);
+            Test.stopTest();
+
+            System.assertEquals(true, isValid);
+        }
     }
 
     @IsTest
@@ -153,18 +221,29 @@ private class ApplicationFormControllerTest {
 
     @IsTest
     static void testGetApplicationStage_ReturnsLabelForCurrentStage() {
-        Schema.PicklistEntry stageEntry =
-            getFirstActivePicklistEntry(Application__c.SObjectType, 'Application_Stage__c');
-        System.assertNotEquals(null, stageEntry, 'Application_Stage__c must have at least one active picklist value.');
 
-        Program program = getOrCreateProgramByCode('PRG-STAGE-TEST');
-        Application__c app = createApplicationWithStage(program.Id, stageEntry.getValue());
+         User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        String label = ApplicationFormController.getApplicationStage(app.Id);
-        Test.stopTest();
 
-        System.assertEquals(stageEntry.getLabel(), label);
+        System.runAs(testUser) {
+            Schema.PicklistEntry stageEntry =
+                getFirstActivePicklistEntry(Application__c.SObjectType, 'Application_Stage__c');
+            System.assertNotEquals(null, stageEntry, 'Application_Stage__c must have at least one active picklist value.');
+
+            Program program = getOrCreateProgramByCode('PRG-STAGE-TEST');
+            Application__c app = createApplicationWithStage(program.Id, stageEntry.getValue());
+
+            Test.startTest();
+            String label = ApplicationFormController.getApplicationStage(app.Id);
+            Test.stopTest();
+
+            System.assertEquals(stageEntry.getLabel(), label);
+        }
     }
 
     // =================================================================
@@ -182,15 +261,25 @@ private class ApplicationFormControllerTest {
 
     @IsTest
     static void testUpdateStage_BlankNewStage_NoOp() {
-        Program program = getOrCreateProgramByCode('PRG-BLANKSTAGE-TEST');
-        Application__c app = createApplicationWithStage(program.Id, null);
+         User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Test.startTest();
-        ApplicationFormController.updateStage(app.Id, '   ');
-        Test.stopTest();
 
-        Application__c unchanged = [SELECT Application_Stage__c FROM Application__c WHERE Id = :app.Id];
-        System.assertEquals(null, unchanged.Application_Stage__c);
+        System.runAs(testUser) {
+            Program program = getOrCreateProgramByCode('PRG-BLANKSTAGE-TEST');
+            Application__c app = createApplicationWithStage(program.Id, null);
+
+            Test.startTest();
+            ApplicationFormController.updateStage(app.Id, '   ');
+            Test.stopTest();
+
+            Application__c unchanged = [SELECT Application_Stage__c FROM Application__c WHERE Id = :app.Id];
+            System.assertEquals(null, unchanged.Application_Stage__c);
+        }
     }
 
     @IsTest
@@ -204,17 +293,28 @@ private class ApplicationFormControllerTest {
 
     @IsTest
     static void testUpdateStage_NoMatchingFormDefinition_NoOp() {
-        // A program code guaranteed not to match any real Application_Form_Definition__mdt
-        String uniqueCode = 'NO_MATCHING_DEFINITION_' + String.valueOf(Crypto.getRandomLong()).replace('-', '');
-        Program program = getOrCreateProgramByCode(uniqueCode);
-        Application__c app = createApplicationWithStage(program.Id, null); // current stage blank -> rank 0
 
-        Test.startTest();
-        ApplicationFormController.updateStage(app.Id, 'SomeStageNotInAnyMap');
-        Test.stopTest();
+         User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
+        ];
 
-        Application__c unchanged = [SELECT Application_Stage__c FROM Application__c WHERE Id = :app.Id];
-        System.assertEquals(null, unchanged.Application_Stage__c, 'Stage should be unchanged when newStage is unrecognized');
+
+        System.runAs(testUser) {
+            // A program code guaranteed not to match any real Application_Form_Definition__mdt
+            String uniqueCode = 'NO_MATCHING_DEFINITION_' + String.valueOf(Crypto.getRandomLong()).replace('-', '');
+            Program program = getOrCreateProgramByCode(uniqueCode);
+            Application__c app = createApplicationWithStage(program.Id, null); // current stage blank -> rank 0
+
+            Test.startTest();
+            ApplicationFormController.updateStage(app.Id, 'SomeStageNotInAnyMap');
+            Test.stopTest();
+
+            Application__c unchanged = [SELECT Application_Stage__c FROM Application__c WHERE Id = :app.Id];
+            System.assertEquals(null, unchanged.Application_Stage__c, 'Stage should be unchanged when newStage is unrecognized');
+        }
     }
 
     // =================================================================
@@ -224,135 +324,210 @@ private class ApplicationFormControllerTest {
 
     @IsTest
     static void testUpdateStage_ForwardTransition_WhenActiveFormDefinitionExists() {
-        List<Application_Form_Definition__mdt> definitions = [
-            SELECT Program_Code__c, Form_Key__c, Is_Default__c, Needs_Payment__c,
-                (
-                    SELECT Stage_Value__c, Sequence__c
-                    FROM ApplicationFormSteps__r
-                    WHERE Is_Active__c = true
-                    ORDER BY Sequence__c ASC, DeveloperName ASC
-                )
-            FROM Application_Form_Definition__mdt
-            WHERE Is_Active__c = true AND Form_Key__c = 'A'
+        User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
 
-        Application_Form_Definition__mdt usable;
-        for (Application_Form_Definition__mdt def : definitions) {
-            if (def.ApplicationFormSteps__r != null && def.ApplicationFormSteps__r.size() >= 2) {
-                usable = def;
-                break;
-            }
-        }
+        System.runAs(testUser) {
 
-        if (usable == null) {
-            System.debug(
-                'SKIPPED testUpdateStage_ForwardTransition_WhenActiveFormDefinitionExists: ' +
-                'no active Application_Form_Definition__mdt (Form_Key__c = "A") with 2+ active steps found in this org.'
+            Program programIns = new Program(
+                Name = 'Test Program GMP',
+                Program_Code__c = 'GMP',
+                Programme_Type__c = 'Full-time',
+                Programme_Sub_Type__c = 'Class Room',
+                Short_Programme_Code__c = 'GMP'
             );
-            return;
+            insert programIns;
+
+            List<Application_Form_Definition__mdt> definitions = [
+                SELECT Program_Code__c, Form_Key__c, Is_Default__c, Needs_Payment__c,
+                    (
+                        SELECT Stage_Value__c, Sequence__c
+                        FROM ApplicationFormSteps__r
+                        WHERE Is_Active__c = true
+                        ORDER BY Sequence__c ASC, DeveloperName ASC
+                    )
+                FROM Application_Form_Definition__mdt
+                WHERE Is_Active__c = true
+                AND Form_Key__c = 'A'
+                AND Program_Code__c = 'GMP'
+            ];
+
+            Application_Form_Definition__mdt usable;
+            for (Application_Form_Definition__mdt def : definitions) {
+                if (def.ApplicationFormSteps__r != null &&
+                    def.ApplicationFormSteps__r.size() >= 2) {
+                    usable = def;
+                    break;
+                }
+            }
+
+            if (usable == null) {
+                return;
+            }
+
+            Application_Form_Step__mdt currentStep;
+            Application_Form_Step__mdt targetStep;
+
+            for (Application_Form_Step__mdt step : usable.ApplicationFormSteps__r) {
+                Integer sequence = Integer.valueOf(step.Sequence__c);
+
+                if (sequence == 1) {
+                    currentStep = step;
+                } else if (sequence == 2) {
+                    targetStep = step;
+                }
+            }
+
+            System.assertNotEquals(null, currentStep);
+            System.assertNotEquals(null, targetStep);
+
+            System.assertEquals('Programme Details', currentStep.Stage_Value__c);
+            System.assertEquals('Basic Details', targetStep.Stage_Value__c);
+
+            Program program = getOrCreateProgramByCode(usable.Program_Code__c);
+
+            Application__c app = createApplicationWithStage(
+                program.Id,
+                currentStep.Stage_Value__c
+            );
+
+            Test.startTest();
+
+            ApplicationFormController.updateStage(
+                app.Id,
+                targetStep.Stage_Value__c
+            );
+
+            Test.stopTest();
+
+            Application__c updated = [
+                SELECT Application_Stage__c
+                FROM Application__c
+                WHERE Id = :app.Id
+            ];
+
+            System.assertEquals(
+                targetStep.Stage_Value__c,
+                updated.Application_Stage__c,
+                'Expected the stage to advance forward'
+            );
         }
-
-        Program program = getOrCreateProgramByCode(usable.Program_Code__c);
-        Application__c app = createApplicationWithStage(program.Id, usable.ApplicationFormSteps__r[0].Stage_Value__c);
-
-        String targetStage = usable.ApplicationFormSteps__r[1].Stage_Value__c;
-
-        Test.startTest();
-        ApplicationFormController.updateStage(app.Id, targetStage);
-        Test.stopTest();
-
-        Application__c updated = [SELECT Application_Stage__c FROM Application__c WHERE Id = :app.Id];
-        System.assertEquals(targetStage, updated.Application_Stage__c, 'Expected the stage to advance forward');
     }
 
     @IsTest
     static void testUpdateStage_BackwardTransition_IsBlocked_WhenActiveFormDefinitionExists() {
-        List<Application_Form_Definition__mdt> definitions = [
-            SELECT Program_Code__c, Form_Key__c, Is_Default__c, Needs_Payment__c,
-                (
-                    SELECT Stage_Value__c, Sequence__c
-                    FROM ApplicationFormSteps__r
-                    WHERE Is_Active__c = true
-                    ORDER BY Sequence__c ASC, DeveloperName ASC
-                )
-            FROM Application_Form_Definition__mdt
-            WHERE Is_Active__c = true AND Form_Key__c = 'A'
+
+         User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
 
-        Application_Form_Definition__mdt usable;
-        for (Application_Form_Definition__mdt def : definitions) {
-            if (def.ApplicationFormSteps__r != null && def.ApplicationFormSteps__r.size() >= 2) {
-                usable = def;
-                break;
+
+        System.runAs(testUser) {
+            List<Application_Form_Definition__mdt> definitions = [
+                SELECT Program_Code__c, Form_Key__c, Is_Default__c, Needs_Payment__c,
+                    (
+                        SELECT Stage_Value__c, Sequence__c
+                        FROM ApplicationFormSteps__r
+                        WHERE Is_Active__c = true
+                        ORDER BY Sequence__c ASC, DeveloperName ASC
+                    )
+                FROM Application_Form_Definition__mdt
+                WHERE Is_Active__c = true AND Form_Key__c = 'A'
+            ];
+
+            Application_Form_Definition__mdt usable;
+            for (Application_Form_Definition__mdt def : definitions) {
+                if (def.ApplicationFormSteps__r != null && def.ApplicationFormSteps__r.size() >= 2) {
+                    usable = def;
+                    break;
+                }
             }
-        }
 
-        if (usable == null) {
-            System.debug(
-                'SKIPPED testUpdateStage_BackwardTransition_IsBlocked_WhenActiveFormDefinitionExists: ' +
-                'no active Application_Form_Definition__mdt (Form_Key__c = "A") with 2+ active steps found in this org.'
+            if (usable == null) {
+                System.debug(
+                    'SKIPPED testUpdateStage_BackwardTransition_IsBlocked_WhenActiveFormDefinitionExists: ' +
+                    'no active Application_Form_Definition__mdt (Form_Key__c = "A") with 2+ active steps found in this org.'
+                );
+                return;
+            }
+
+            Program program = getOrCreateProgramByCode(usable.Program_Code__c);
+            // Start at the SECOND step (higher rank)...
+            Application__c app = createApplicationWithStage(program.Id, usable.ApplicationFormSteps__r[1].Stage_Value__c);
+            // ...and attempt to move back to the FIRST step (lower rank).
+            String targetStage = usable.ApplicationFormSteps__r[0].Stage_Value__c;
+
+            Test.startTest();
+            ApplicationFormController.updateStage(app.Id, targetStage);
+            Test.stopTest();
+
+            Application__c unchanged = [SELECT Application_Stage__c FROM Application__c WHERE Id = :app.Id];
+            System.assertEquals(
+                usable.ApplicationFormSteps__r[1].Stage_Value__c,
+                unchanged.Application_Stage__c,
+                'Backward stage transitions should be blocked'
             );
-            return;
         }
-
-        Program program = getOrCreateProgramByCode(usable.Program_Code__c);
-        // Start at the SECOND step (higher rank)...
-        Application__c app = createApplicationWithStage(program.Id, usable.ApplicationFormSteps__r[1].Stage_Value__c);
-        // ...and attempt to move back to the FIRST step (lower rank).
-        String targetStage = usable.ApplicationFormSteps__r[0].Stage_Value__c;
-
-        Test.startTest();
-        ApplicationFormController.updateStage(app.Id, targetStage);
-        Test.stopTest();
-
-        Application__c unchanged = [SELECT Application_Stage__c FROM Application__c WHERE Id = :app.Id];
-        System.assertEquals(
-            usable.ApplicationFormSteps__r[1].Stage_Value__c,
-            unchanged.Application_Stage__c,
-            'Backward stage transitions should be blocked'
-        );
     }
 
     @IsTest
     static void testUpdateStage_PaymentStage_WhenDefinitionNeedsPayment() {
-        List<Application_Form_Definition__mdt> definitions = [
-            SELECT Program_Code__c, Form_Key__c, Needs_Payment__c,
-                (
-                    SELECT Stage_Value__c, Sequence__c
-                    FROM ApplicationFormSteps__r
-                    WHERE Is_Active__c = true
-                    ORDER BY Sequence__c ASC, DeveloperName ASC
-                )
-            FROM Application_Form_Definition__mdt
-            WHERE Is_Active__c = true AND Form_Key__c = 'A' AND Needs_Payment__c = true
+
+         User testUser = [
+            SELECT Id
+            FROM User
+            WHERE Username LIKE 'testadmin.@987example.com'
+            LIMIT 1
         ];
 
-        Application_Form_Definition__mdt usable;
-        for (Application_Form_Definition__mdt def : definitions) {
-            if (def.ApplicationFormSteps__r != null && !def.ApplicationFormSteps__r.isEmpty()) {
-                usable = def;
-                break;
+
+        System.runAs(testUser) {
+            List<Application_Form_Definition__mdt> definitions = [
+                SELECT Program_Code__c, Form_Key__c, Needs_Payment__c,
+                    (
+                        SELECT Stage_Value__c, Sequence__c
+                        FROM ApplicationFormSteps__r
+                        WHERE Is_Active__c = true
+                        ORDER BY Sequence__c ASC, DeveloperName ASC
+                    )
+                FROM Application_Form_Definition__mdt
+                WHERE Is_Active__c = true AND Form_Key__c = 'A' AND Needs_Payment__c = true
+            ];
+
+            Application_Form_Definition__mdt usable;
+            for (Application_Form_Definition__mdt def : definitions) {
+                if (def.ApplicationFormSteps__r != null && !def.ApplicationFormSteps__r.isEmpty()) {
+                    usable = def;
+                    break;
+                }
             }
+
+            if (usable == null) {
+                System.debug(
+                    'SKIPPED testUpdateStage_PaymentStage_WhenDefinitionNeedsPayment: ' +
+                    'no active Needs_Payment__c Application_Form_Definition__mdt with active steps found in this org.'
+                );
+                return;
+            }
+
+            Program program = getOrCreateProgramByCode(usable.Program_Code__c);
+            Integer lastIndex = usable.ApplicationFormSteps__r.size() - 1;
+            Application__c app = createApplicationWithStage(program.Id, usable.ApplicationFormSteps__r[lastIndex].Stage_Value__c);
+
+            Test.startTest();
+            ApplicationFormController.updateStage(app.Id, 'Payment');
+            Test.stopTest();
+
+            Application__c updated = [SELECT Application_Stage__c FROM Application__c WHERE Id = :app.Id];
+            // System.assertEquals('Payment', updated.Application_Stage__c, 'Expected transition to the synthetic Payment stage');
         }
-
-        if (usable == null) {
-            System.debug(
-                'SKIPPED testUpdateStage_PaymentStage_WhenDefinitionNeedsPayment: ' +
-                'no active Needs_Payment__c Application_Form_Definition__mdt with active steps found in this org.'
-            );
-            return;
-        }
-
-        Program program = getOrCreateProgramByCode(usable.Program_Code__c);
-        Integer lastIndex = usable.ApplicationFormSteps__r.size() - 1;
-        Application__c app = createApplicationWithStage(program.Id, usable.ApplicationFormSteps__r[lastIndex].Stage_Value__c);
-
-        Test.startTest();
-        ApplicationFormController.updateStage(app.Id, 'Payment');
-        Test.stopTest();
-
-        Application__c updated = [SELECT Application_Stage__c FROM Application__c WHERE Id = :app.Id];
-        // System.assertEquals('Payment', updated.Application_Stage__c, 'Expected transition to the synthetic Payment stage');
     }
 
     // =================================================================

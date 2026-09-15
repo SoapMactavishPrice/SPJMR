@@ -2,10 +2,10 @@ public with sharing class GeneratePGPMOfferLetterController {
     public String applicationNumber { get; private set; }
     public String applicantName { get; private set; }
     public String firstName { get; private set; }
-    public String correspondenceAddressLine1 { get; private set; }
-    public String correspondenceAddressLine2 { get; private set; }
-    public String correspondenceAddressLine3 { get; private set; }
-    public String correspondenceAddressLine4 { get; private set; }
+    public String permanentAddressLine1 { get; private set; }
+    public String permanentAddressLine2 { get; private set; }
+    public String permanentAddressLine3 { get; private set; }
+    public String permanentAddressLine4 { get; private set; }
     public String batchName { get; private set; }
     public String letterDate { get; private set; }
     public String offerDeadline { get; private set; }
@@ -93,16 +93,16 @@ public with sharing class GeneratePGPMOfferLetterController {
         List<Personal_Detail__c> personalDetails = [
             SELECT
                 First_Name__c,
-                Corr_Address1__c,
-                Corr_Address2__c,
-                Corr_Country__r.Name,
-                Corr_Ind_City__r.Name,
-                Other_Corr_Ind_City__c,
-                Corr_City__r.Name,
-                Other_Corr_City__c,
-                Corr_State__r.Name,
-                Corr_Ind_Pincode__r.Name,
-                Corr_Pincode__c
+                Perm_Address1__c,
+                Perm_Address2__c,
+                Perm_Country__r.Name,
+                Perm_Ind_City__r.Name,
+                Other_Perm_Ind_City__c,
+                Perm_City__r.Name,
+                Other_Perm_City__c,
+                Perm_State__r.Name,
+                Perm_Ind_Pincode__r.Name,
+                Perm_Pincode__c
             FROM Personal_Detail__c
             WHERE Application__c = :applicationId
             ORDER BY LastModifiedDate DESC
@@ -114,27 +114,37 @@ public with sharing class GeneratePGPMOfferLetterController {
 
         Personal_Detail__c personalDetail = personalDetails[0];
         firstName = clean(personalDetail.First_Name__c);
-        correspondenceAddressLine1 = joinNonBlank(
+        permanentAddressLine1 = joinNonBlank(
             new List<String>{
-                clean(personalDetail.Corr_Address1__c),
-                clean(personalDetail.Corr_Address2__c)
+                clean(personalDetail.Perm_Address1__c),
+                clean(personalDetail.Perm_Address2__c)
             },
             ' '
         );
 
-        String country = relatedName(personalDetail.Corr_Country__r);
+        String country = relatedName(personalDetail.Perm_Country__r);
         String townOrCity = resolveTownOrCity(personalDetail, country);
         String district = resolveDistrict(personalDetail, country);
-        String state = relatedName(personalDetail.Corr_State__r);
+        String state = relatedName(personalDetail.Perm_State__r);
         String pinCode = resolvePinCode(personalDetail, country);
 
         if (country == 'India') {
-            correspondenceAddressLine2 = townOrCity;
-            correspondenceAddressLine3 = appendPinCode(district, pinCode);
-            correspondenceAddressLine4 = state;
+            permanentAddressLine1 = joinNonBlank(
+                new List<String>{
+                    clean(personalDetail.Perm_Address1__c),
+                    clean(personalDetail.Perm_Address2__c)
+                },
+                ' '
+            );
+
+            if (!String.isBlank(state)) {
+                permanentAddressLine1 += ', ' + state;
+            }
+
+            permanentAddressLine2 = appendPinCode(townOrCity, pinCode);
         } else {
-            correspondenceAddressLine2 = appendPinCode(townOrCity, pinCode);
-            correspondenceAddressLine3 = joinUniqueNonBlank(
+            permanentAddressLine2 = appendPinCode(townOrCity, pinCode);
+            permanentAddressLine3 = joinUniqueNonBlank(
                 new List<String>{ state, country },
                 ', '
             );
@@ -146,15 +156,15 @@ public with sharing class GeneratePGPMOfferLetterController {
         String country
     ) {
         if (country == 'India') {
-            String indianCity = relatedName(personalDetail.Corr_Ind_City__r);
+            String indianCity = relatedName(personalDetail.Perm_Ind_City__r);
             return String.isBlank(indianCity) || indianCity == 'Other'
-                ? clean(personalDetail.Other_Corr_Ind_City__c)
+                ? clean(personalDetail.Other_Perm_Ind_City__c)
                 : indianCity;
         }
 
-        String internationalCity = relatedName(personalDetail.Corr_City__r);
+        String internationalCity = relatedName(personalDetail.Perm_City__r);
         return String.isBlank(internationalCity) || internationalCity == 'Other'
-            ? clean(personalDetail.Other_Corr_City__c)
+            ? clean(personalDetail.Other_Perm_City__c)
             : internationalCity;
     }
 
@@ -166,9 +176,9 @@ public with sharing class GeneratePGPMOfferLetterController {
             return null;
         }
 
-        String district = relatedName(personalDetail.Corr_City__r);
+        String district = relatedName(personalDetail.Perm_City__r);
         return district == 'Other'
-            ? clean(personalDetail.Other_Corr_City__c)
+            ? clean(personalDetail.Other_Perm_City__c)
             : district;
     }
 
@@ -176,13 +186,13 @@ public with sharing class GeneratePGPMOfferLetterController {
         Personal_Detail__c personalDetail,
         String country
     ) {
-        String indianPinCode = relatedName(personalDetail.Corr_Ind_Pincode__r);
+        String indianPinCode = relatedName(personalDetail.Perm_Ind_Pincode__r);
         if (
             country != 'India' ||
             String.isBlank(indianPinCode) ||
             indianPinCode == 'Other'
         ) {
-            return clean(personalDetail.Corr_Pincode__c);
+            return clean(personalDetail.Perm_Pincode__c);
         }
         return indianPinCode;
     }

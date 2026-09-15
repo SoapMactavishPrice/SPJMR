@@ -7,71 +7,77 @@ private class ApAccountProgramControllerTest {
     @testSetup
     static void setupData() {
 
-        String email = 'testuser@example.com';
+        User u = createUser();
+        System.runAs(u) {
+            Test.startTest();
 
-        RecordType rt = [
-            SELECT Id
-            FROM RecordType
-            WHERE SObjectType = 'Account'
-            AND IsPersonType = true
-            AND Name = 'Applicant'
-            LIMIT 1
-        ];
+            String email = 'testuser@example.com';
 
-        Account acc = new Account(
-            RecordTypeId = rt.Id,
-            FirstName = 'Test',
-            LastName = 'User',
-            PersonEmail = email
-        );
-        insert acc;
+            RecordType rt = [
+                SELECT Id
+                FROM RecordType
+                WHERE SObjectType = 'Account'
+                AND IsPersonType = true
+                AND Name = 'Applicant'
+                LIMIT 1
+            ];
 
-        Program prog = new Program(
-            Name = 'Test Program',
-            Program_Code__c = 'PGPM',
-            StartDate = Date.today().addDays(8).addDays(8).addDays(-5),
-            EndDate = Date.today().addDays(8).addDays(8).addDays(5),
-            Programme_Type__c = 'Full-time',
-            Programme_Sub_Type__c = 'Class Room',
-            Short_Programme_Code__c = 'PPD'
-        );
-        insert prog;
+            Account acc = new Account(
+                RecordTypeId = rt.Id,
+                FirstName = 'Test',
+                LastName = 'User',
+                PersonEmail = email
+            );
+            insert acc;
 
-        Application__c app = new Application__c(
-            Name = 'Test Application',
-            Applicant__c = acc.Id,
-            Program__c = prog.Id,
-            Applicant_State_Management__c = 'Offer Issued',
-            Application_Status__c = 'Paid',
-            Application_Stage__c = 'Application Submitted',
-            AllowSelfSchedule__c = true
-        );
-        insert app;
+            Program prog = new Program(
+                Name = 'Test Program',
+                Program_Code__c = 'PGPM',
+                StartDate = Date.today().addDays(8).addDays(8).addDays(-5),
+                EndDate = Date.today().addDays(8).addDays(8).addDays(5),
+                Programme_Type__c = 'Full-time',
+                Programme_Sub_Type__c = 'Class Room',
+                Short_Programme_Code__c = 'PPD'
+            );
+            insert prog;
 
-        Admission_Decision__c adm = new Admission_Decision__c(
-            Application__c = app.Id,
-            Result__c = 'Eligible for Admission',
-            Offer_Letter_Date__c = Date.today().addDays(8).addDays(8),
-            LastDateOfAcceptance__c = Date.today().addDays(8).addDays(8),
-            SignedLetterOfAcceptanceEta__c = Date.today().addDays(8).addDays(8),
-            PaymentOfTheAcceptanceFeeEta__c = Date.today().addDays(8).addDays(8),
-            PaymentOfTheFirstInstallmentEta__c = Date.today().addDays(8).addDays(8),
-            BalanceFeePaymentETA__c = Date.today().addDays(8).addDays(8)
-        );
-        insert adm;
+            Application__c app = new Application__c(
+                Name = 'Test Application',
+                Applicant__c = acc.Id,
+                Program__c = prog.Id,
+                Applicant_State_Management__c = 'Offer Issued',
+                Application_Status__c = 'Paid',
+                Application_Stage__c = 'Payment',
+                AllowSelfSchedule__c = true
+            );
+            insert app;
 
-        ContentVersion cv = new ContentVersion(
-            Title = 'Signed Offer Letter',
-            PathOnClient = 'offer.pdf',
-            VersionData = Blob.valueOf('Test Data'),
-            FirstPublishLocationId = adm.Id
-        );
-        insert cv;
+            Admission_Decision__c adm = new Admission_Decision__c(
+                Application__c = app.Id,
+                Result__c = 'Eligible for Admission',
+                Offer_Letter_Date__c = Date.today().addDays(8).addDays(8),
+                LastDateOfAcceptance__c = Date.today().addDays(8).addDays(8),
+                SignedLetterOfAcceptanceEta__c = Date.today().addDays(8).addDays(8),
+                PaymentOfTheAcceptanceFeeEta__c = Date.today().addDays(8).addDays(8),
+                PaymentOfTheFirstInstallmentEta__c = Date.today().addDays(8).addDays(8),
+                BalanceFeePaymentETA__c = Date.today().addDays(8).addDays(8)
+            );
+            insert adm;
 
-        insert new ContentDistribution(
-            Name = 'Offer',
-            ContentVersionId = cv.Id
-        );
+            ContentVersion cv = new ContentVersion(
+                Title = 'Signed Offer Letter',
+                PathOnClient = 'offer.pdf',
+                VersionData = Blob.valueOf('Test Data'),
+                FirstPublishLocationId = adm.Id
+            );
+            insert cv;
+
+            insert new ContentDistribution(
+                Name = 'Offer',
+                ContentVersionId = cv.Id
+            );
+            Test.stopTest();
+        }
     }
 
     // ============================================
@@ -88,13 +94,13 @@ private class ApAccountProgramControllerTest {
 
         User u = new User(
             Alias = 'testu',
-            Email = 'testuser@example.com',
+            Email = 'testuser987@test.com',
             EmailEncodingKey = 'UTF-8',
             LastName = 'User',
             LanguageLocaleKey = 'en_US',
             LocaleSidKey = 'en_US',
             TimeZoneSidKey = 'Asia/Kolkata',
-            Username = 'testuser' + System.currentTimeMillis() + '@test.com',
+            Username = 'testuser987@test.com',
             ProfileId = p.Id
         );
         insert u;
@@ -112,6 +118,27 @@ private class ApAccountProgramControllerTest {
             update personAccs[0];
         }
 
+        Map<String, Id> permissionSetIds = new Map<String, Id>();
+
+        for (PermissionSet ps : [
+            SELECT Id, Name
+            FROM PermissionSet
+            WHERE Name IN ('Admissions_Team', 'EducationCloudAccess')
+        ]) {
+            permissionSetIds.put(ps.Name, ps.Id);
+        }
+
+        insert new List<PermissionSetAssignment>{
+            new PermissionSetAssignment(
+                AssigneeId = u.Id,
+                PermissionSetId = permissionSetIds.get('Admissions_Team')
+            ),
+            new PermissionSetAssignment(
+                AssigneeId = u.Id,
+                PermissionSetId = permissionSetIds.get('EducationCloudAccess')
+            )
+        };
+
         return u;
     }
 
@@ -120,7 +147,7 @@ private class ApAccountProgramControllerTest {
     // ============================================
     @IsTest
     static void testGetProgramsForLoggedInUser() {
-        User u = createUser();
+        User u = [Select Id from User where email = 'testuser987@test.com'];
         System.runAs(u) {
             Test.startTest();
             List<ApAccountProgramController.AccountProgramApplicationWrapper> result =
@@ -161,7 +188,7 @@ private class ApAccountProgramControllerTest {
     // ============================================
     @IsTest
     static void testCheckUserValidity() {
-        User u = createUser();
+        User u = [Select Id from User where email = 'testuser987@test.com'];
         System.runAs(u) {
             List<String> result = ApAccountProgramController.checkUserValidity();
             System.assertNotEquals(null, result);
@@ -173,7 +200,7 @@ private class ApAccountProgramControllerTest {
     // ============================================
     @IsTest
     static void testIsDecisionPresent() {
-        User u = createUser();
+        User u = [Select Id from User where email = 'testuser987@test.com'];
         System.runAs(u) {
             String result = ApAccountProgramController.isDecisionPresent();
         }
@@ -186,7 +213,7 @@ private class ApAccountProgramControllerTest {
     static void testGetApplicationStage() {
         Application__c app = [SELECT Id FROM Application__c LIMIT 1];
         String stage = ApAccountProgramController.getApplicationStage(app.Id);
-        System.assertEquals('Application Submitted', stage);
+        System.assertEquals('Payment', stage);
     }
 
     // ============================================
@@ -212,9 +239,14 @@ private class ApAccountProgramControllerTest {
     // ============================================
     @IsTest
     static void testDeleteDocument() {
-        ContentDocument doc = [SELECT Id FROM ContentDocument LIMIT 1];
-        String result = ApAccountProgramController.deleteDocument(doc.Id, 'Offer');
-        System.assertEquals('Offer', result);
+        User u = [Select Id from User where Email = 'testuser987@test.com'];
+        System.runAs(u) {
+            Test.startTest();
+            ContentDocument doc = [SELECT Id FROM ContentDocument LIMIT 1];
+            String result = ApAccountProgramController.deleteDocument(doc.Id, 'Offer');
+            System.assertEquals('Offer', result);
+            Test.stopTest();
+        }
     }
 
     @IsTest
@@ -245,7 +277,7 @@ private class ApAccountProgramControllerTest {
     // ============================================
     @IsTest
     static void testGetCurrentUserInfo() {
-        User u = createUser();
+        User u = [Select Id from User where email = 'testuser987@test.com'];
         System.runAs(u) {
             Map<String, Object> result = ApAccountProgramController.getCurrentUserPersonAccountInfo();
             System.assertNotEquals(null, result);
@@ -854,7 +886,7 @@ private class ApAccountProgramControllerTest {
         );
         insert booking;
 
-        User u = createUser();
+        User u = [Select Id from User where email = 'testuser987@test.com'];
         System.runAs(u) {
             Test.startTest();
             List<ApAccountProgramController.AccountProgramApplicationWrapper> result =
@@ -1246,7 +1278,7 @@ private class ApAccountProgramControllerTest {
         );
         insert a4;
 
-        User u = createUser();
+        User u = [Select Id from User where email = 'testuser987@test.com'];
         System.runAs(u) {
             Test.startTest();
             List<ApAccountProgramController.AccountProgramApplicationWrapper> result =
@@ -1258,35 +1290,36 @@ private class ApAccountProgramControllerTest {
 
     @IsTest
     static void testGetApplicationApbsList_AdmissionResultBranches() {
-        Account personAcc = [SELECT Id FROM Account WHERE IsPersonAccount = true LIMIT 1];
-        Program prog = [SELECT Id FROM Program WHERE Program_Code__c = 'PGPM' LIMIT 1];
 
-        // Not Eligible -> Rejected
-        Application__c appReject = new Application__c(
-            Name = 'App NotEligible', Applicant__c = personAcc.Id, Program__c = prog.Id,
-            Applicant_State_Management__c = 'Offer Issued',
-            Application_Status__c = 'Initiated'
-        );
-        insert appReject;
-        insert new Admission_Decision__c(
-            Application__c = appReject.Id,
-            Result__c = 'Not Eligible'
-        );
-
-        // Waitlisted
-        Application__c appWait = new Application__c(
-            Name = 'App Waitlisted', Applicant__c = personAcc.Id, Program__c = prog.Id,
-            Applicant_State_Management__c = 'Offer Issued',
-            Application_Status__c = 'Initiated'
-        );
-        insert appWait;
-        insert new Admission_Decision__c(
-            Application__c = appWait.Id,
-            Result__c = 'Waitlisted'
-        );
-
-        User u = createUser();
+        User u = [Select Id from User where email = 'testuser987@test.com'];
         System.runAs(u) {
+            Account personAcc = [SELECT Id FROM Account WHERE IsPersonAccount = true LIMIT 1];
+            Program prog = [SELECT Id FROM Program WHERE Program_Code__c = 'PGPM' LIMIT 1];
+
+            // Not Eligible -> Rejected
+            Application__c appReject = new Application__c(
+                Name = 'App NotEligible', Applicant__c = personAcc.Id, Program__c = prog.Id,
+                Applicant_State_Management__c = 'Offer Issued',
+                Application_Status__c = 'Initiated'
+            );
+            insert appReject;
+            insert new Admission_Decision__c(
+                Application__c = appReject.Id,
+                Result__c = 'Not Eligible'
+            );
+
+            // Waitlisted
+            Application__c appWait = new Application__c(
+                Name = 'App Waitlisted', Applicant__c = personAcc.Id, Program__c = prog.Id,
+                Applicant_State_Management__c = 'Offer Issued',
+                Application_Status__c = 'Initiated'
+            );
+            insert appWait;
+            insert new Admission_Decision__c(
+                Application__c = appWait.Id,
+                Result__c = 'Waitlisted'
+            );
+
             Test.startTest();
             List<ApAccountProgramController.AccountProgramApplicationWrapper> result =
                 ApAccountProgramController.getProgramsForLoggedInUser();

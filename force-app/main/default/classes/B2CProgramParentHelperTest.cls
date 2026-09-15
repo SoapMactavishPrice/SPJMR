@@ -180,4 +180,81 @@ private class B2CProgramParentHelperTest {
         String suffix = String.valueOf(n).leftPad(12, '0');
         return Id.valueOf(prefix + suffix);
     }
+    
+    @IsTest
+static void getCurrentlyAcceptingBatch_returnsAcceptingBatch() {
+    Program prog = new Program(
+        Name = 'PGDM',
+        Program_Code__c = 'PGDM',
+        Programme_Type__c = 'Full-time',
+        Short_Programme_Code__c = 'PDM',
+        StartDate = System.Today(),
+        Programme_Sub_Type__c = 'Class Room',
+        IsActive = true
+    );
+    insert prog;
+
+    ProgramCohort cohort = new ProgramCohort(
+        Name = 'PGDM Test Batch',
+        ProgramId = prog.Id,
+        IsAcceptingApplications__c = true,
+        Application_Code__c = 'PDM2027',
+        Batch_Code__c = 'P02',
+        Batch_Sub_Type__c='Class Room'
+    );
+    insert cohort;
+
+    Test.startTest();
+    ProgramCohort currentBatch =
+        B2CProgramParentHelper.getCurrentlyAcceptingBatch(prog.Id);
+    Test.stopTest();
+
+    
+}
+    
+    @IsTest
+static void getApplicationReuseResult_reachesCurrentBatch() {
+    Program prog = new Program(
+        Name = 'PGDM',
+        Program_Code__c = 'PGDM',
+        Programme_Type__c = 'Full-time',
+        Short_Programme_Code__c = 'PDM',
+        StartDate = System.Today(),
+        Programme_Sub_Type__c = 'Class Room',
+        IsActive = true
+    );
+    insert prog;
+
+    ProgramCohort cohort = new ProgramCohort(
+        Name = 'PGDM Test Batch',
+        ProgramId = prog.Id,
+        IsAcceptingApplications__c = true,
+        Application_Code__c = 'PDM2027',
+        Batch_Code__c = 'P01',
+        Batch_Sub_Type__c='Class Room'
+    );
+    insert cohort;
+
+    Account account = new Account(
+        Name = 'Test Reuse Account'
+    );
+    insert account;
+    Application__c app= new Application__c(Name='Name-PDM2027',Applicant__c=account.Id,Batch__c=cohort.Id,Application_Status__c='Paid',
+                             Program__c=prog.Id);
+    insert app;
+    
+Opportunity opp = new Opportunity(Program__c=prog.Id,Application__c=app.Id,Name='S',
+                                  CloseDate=System.Today().addDays(90),StageName='Email Verified');
+    insert opp;
+
+    Test.startTest();
+
+    B2CProgramParentHelper.ApplicationReuseResult result =
+        B2CProgramParentHelper.getApplicationReuseResult(
+            account.Id,
+            prog.Id
+        );
+
+    Test.stopTest();
+}
 }

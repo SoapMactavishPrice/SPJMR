@@ -1,6 +1,6 @@
 public without sharing class LeadMappingAndTouchService {
     private static Boolean picklistsLoaded = false;
-    
+     
     private static Map<String, String> leadSourceValues =
         new Map<String, String>();
     
@@ -620,7 +620,7 @@ public static void migrateLeadTouchesToApplicant(
         SELECT Id, Lead__c, Applicant__c
         FROM Lead_Touch__c
         WHERE Lead__c = :leadId
-    ];
+    ]; 
 
     if (touches.isEmpty()) {
         return;
