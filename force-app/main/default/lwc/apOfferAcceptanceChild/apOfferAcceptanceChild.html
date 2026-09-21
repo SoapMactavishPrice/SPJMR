@@ -177,6 +177,204 @@
             </div>
 
             <!-- ═══════════════════════════════════════════════════════════════
+                 PAYMENT DETAILS
+            ════════════════════════════════════════════════════════════════ -->
+            <template lwc:if={showPaymentSection}>
+                <div class="card payment-card">
+                    <h2 class="label">Enter Payment Details</h2>
+
+                    <template lwc:if={isPaymentSectionLocked}>
+                        <div class="locked-message">
+                            <lightning-icon icon-name="utility:lock" size="small" class="locked-icon"></lightning-icon>
+                            <span>This section has been locked after final submission. No further changes can be made.</span>
+                        </div>
+                    </template>
+
+                    <div class="payment-table-wrap">
+                        <table class="payment-table">
+                            <thead>
+                                <tr>
+                                    <th class="payment-th serial-col">#</th>
+                                    <th class="payment-th">Application ID</th>
+                                    <th class="payment-th">Date</th>
+                                    <th class="payment-th">Amount</th>
+                                    <th class="payment-th">Transaction ID</th>
+                                    <th class="payment-th">Account Holder Name</th>
+                                    <th class="payment-th">Account Number</th>
+                                    <th class="payment-th">IFSC Code</th>
+                                    <th class="payment-th">Name of the Bank</th>
+                                    <th class="payment-th">Bank Branch</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={paymentRows} for:item="row">
+                                    <tr key={row.rowId} class={row.rowClass}>
+                                        <td class="payment-td serial-col">{row.displayIndex}</td>
+                                        <td class="payment-td app-id-col">
+                                            {row.applicationIdText}
+                                        </td>
+                                        <td class="payment-td">
+                                            <lightning-input
+                                                type="date"
+                                                variant="label-hidden"
+                                                label="Date"
+                                                value={row.date}
+                                                data-rowid={row.rowId}
+                                                data-field="date"
+                                                onchange={handlePaymentFieldChange}
+                                                disabled={isPaymentSectionLocked}
+                                                required>
+                                            </lightning-input>
+                                        </td>
+                                        <td class="payment-td">
+                                            <lightning-input
+                                                type="number"
+                                                variant="label-hidden"
+                                                label="Amount"
+                                                value={row.amount}
+                                                formatter="currency"
+                                                data-rowid={row.rowId}
+                                                data-field="amount"
+                                                onchange={handlePaymentFieldChange}
+                                                max="9999999999999.99"
+                                                step="0.01"
+                                                disabled={isPaymentSectionLocked}
+                                                required>
+                                            </lightning-input>
+                                        </td>
+                                        <td class="payment-td">
+                                            <lightning-input
+                                                type="text"
+                                                variant="label-hidden"
+                                                label="Transaction ID"
+                                                value={row.transactionId}
+                                                data-rowid={row.rowId}
+                                                data-field="transactionId"
+                                                onchange={handlePaymentFieldChange}
+                                                maxlength="255"
+                                                disabled={isPaymentSectionLocked}
+                                                required>
+                                            </lightning-input>
+                                        </td>
+                                        <td class="payment-td">
+                                            <lightning-input
+                                                type="text"
+                                                variant="label-hidden"
+                                                label="Account Holder Name"
+                                                value={row.accountHolderName}
+                                                data-rowid={row.rowId}
+                                                data-field="accountHolderName"
+                                                onchange={handlePaymentFieldChange}
+                                                maxlength="255"
+                                                disabled={isPaymentSectionLocked}
+                                                required>
+                                            </lightning-input>
+                                        </td>
+                                        <td class="payment-td">
+                                            <lightning-input
+                                                type="text"
+                                                variant="label-hidden"
+                                                label="Account Number"
+                                                value={row.accountNumber}
+                                                data-rowid={row.rowId}
+                                                data-field="accountNumber"
+                                                onchange={handlePaymentFieldChange}
+                                                maxlength="255"
+                                                disabled={isPaymentSectionLocked}
+                                                required>
+                                            </lightning-input>
+                                        </td>
+                                        <td class="payment-td">
+                                            <lightning-input
+                                                type="text"
+                                                variant="label-hidden"
+                                                label="IFSC Code"
+                                                value={row.ifscCode}
+                                                data-rowid={row.rowId}
+                                                data-field="ifscCode"
+                                                onchange={handlePaymentFieldChange}
+                                                maxlength="255"
+                                                disabled={isPaymentSectionLocked}
+                                                required>
+                                            </lightning-input>
+                                        </td>
+                                        <td class="payment-td">
+                                            <lightning-input
+                                                type="text"
+                                                variant="label-hidden"
+                                                label="Name of the Bank"
+                                                value={row.nameOfTheBank}
+                                                data-rowid={row.rowId}
+                                                data-field="nameOfTheBank"
+                                                onchange={handlePaymentFieldChange}
+                                                maxlength="255"
+                                                disabled={isPaymentSectionLocked}
+                                                required>
+                                            </lightning-input>
+                                        </td>
+                                        <td class="payment-td">
+                                            <lightning-input
+                                                type="text"
+                                                variant="label-hidden"
+                                                label="Bank Branch"
+                                                value={row.bankBranch}
+                                                data-rowid={row.rowId}
+                                                data-field="bankBranch"
+                                                onchange={handlePaymentFieldChange}
+                                                maxlength="255"
+                                                disabled={isPaymentSectionLocked}
+                                                required>
+                                            </lightning-input>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Row controls + Save + Final Submit -->
+                    <div class="payment-actions">
+                        <lightning-button
+                            label="LESS"
+                            icon-name="utility:dash"
+                            variant="neutral"
+                            class="payment-less-btn"
+                            disabled={isLessDisabled}
+                            onclick={handleRemovePaymentRow}>
+                        </lightning-button>
+
+                        <lightning-button
+                            label="MORE"
+                            icon-name="utility:add"
+                            icon-position="right"
+                            variant="neutral"
+                            class="payment-more-btn"
+                            disabled={isMoreDisabled}
+                            onclick={handleAddPaymentRow}>
+                        </lightning-button>
+                    </div>
+
+                    <div class="payment-submit-row">
+                        <lightning-button
+                            label="SAVE"
+                            variant="neutral"
+                            class="payment-save-btn"
+                            disabled={isSaveDisabled}
+                            onclick={handlePaymentSave}>
+                        </lightning-button>
+                        
+                        <lightning-button
+                            label="FINAL SUBMIT"
+                            variant="brand"
+                            class="payment-final-submit-btn"
+                            disabled={isFinalSubmitDisabled}
+                            onclick={handlePaymentFinalSubmit}>
+                        </lightning-button>
+                    </div>
+                </div>
+            </template>
+
+            <!-- ═══════════════════════════════════════════════════════════════
                  T-SHIRT SIZE
             ════════════════════════════════════════════════════════════════ -->
             <template lwc:if={shouldShowTShirtSection}>

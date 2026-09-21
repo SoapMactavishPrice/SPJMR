@@ -294,3 +294,139 @@
     padding-top: 0.85rem;
     border-top: 1px solid var(--spjimr-border);
 }
+
+/* ──────────────────────────────────────────────
+   PAYMENT DETAILS SECTION
+────────────────────────────────────────────── */
+.payment-card {
+    overflow: hidden;
+}
+
+.payment-instruction {
+    font-size: 13px;
+    color: var(--spjimr-text-muted);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.locked-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #F8F9FA;
+    border: 1px solid #C9CDD1;
+    border-left: 3px solid #6B7280;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 14px;
+    margin-bottom: 1rem;
+}
+
+.locked-message span {
+    font-size: 13px;
+    color: #4B5563;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.locked-message .locked-icon {
+    --sds-c-icon-color-foreground-default: #6B7280;
+    flex-shrink: 0;
+}
+
+.payment-table-wrap {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.payment-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 900px;
+}
+
+.payment-th {
+    padding: 8px 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+    background: #f7f7f7;
+    font-weight: 600;
+    color: #3D3450;
+    white-space: nowrap;
+    font-size: 12.5px;
+}
+
+.payment-td {
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    vertical-align: top;
+    min-width: 120px;
+}
+
+.serial-col {
+    min-width: 32px;
+    width: 32px;
+    text-align: center;
+    font-weight: 600;
+    color: #555;
+    vertical-align: middle;
+}
+
+.app-id-col {
+    vertical-align: middle;
+    font-weight: 600;
+    color: #3D3450;
+    padding: 8px 10px;
+    white-space: nowrap;
+}
+
+.payment-row-readonly {
+    background-color: #fbfbfb;
+}
+
+.payment-row-readonly .payment-td {
+    background-color: #fbfbfb;
+}
+
+/* Action row: LESS on left, MORE on right */
+.payment-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.payment-less-btn {
+    --sds-c-button-color-background: #555;
+    --sds-c-button-text-color: #ff7b00;
+    --sds-c-button-color-background-hover: #333;
+    --sds-c-button-color-border: #555;
+}
+
+.payment-more-btn {
+    --sds-c-button-color-background: #555;
+    --sds-c-button-text-color: #ff7b00;
+    --sds-c-button-color-background-hover: #333;
+    --sds-c-button-color-border: #555;
+}
+
+.payment-submit-row {
+    display: flex;
+    justify-content: center;
+}
+
+.payment-save-btn {
+    --sds-c-button-color-background: #555;
+    --sds-c-button-text-color: #ff7b00;
+    --sds-c-button-color-background-hover: #333;
+    --sds-c-button-color-border: #555;
+    min-width: 120px;
+}
+
+.payment-final-submit-btn {
+    --sds-c-button-color-background: #2E6B2E;
+    --sds-c-button-color-background-hover: #245424;
+    --sds-c-button-color-border: #2E6B2E;
+    --sds-c-button-text-color: #fff;
+    min-width: 160px;
+}

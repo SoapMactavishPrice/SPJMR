@@ -8,6 +8,10 @@ import getTShirtSizeConfig from '@salesforce/apex/ApAccountProgramController.get
 import linkDocumentDetails from '@salesforce/apex/ApAccountProgramController.linkDocumentDetails';
 import getPersonalDetailTShirtSize from '@salesforce/apex/ApAccountProgramController.getPersonalDetailTShirtSize';
 import savePersonalDetailTShirtSize from '@salesforce/apex/ApAccountProgramController.savePersonalDetailTShirtSize';
+import saveAdmissionPaymentDetails from '@salesforce/apex/ApAccountProgramController.saveAdmissionPaymentDetails';
+import getAdmissionPaymentDetails from '@salesforce/apex/ApAccountProgramController.getAdmissionPaymentDetails';
+import getPaymentSectionFinalSubmitted from '@salesforce/apex/ApAccountProgramController.getPaymentSectionFinalSubmitted';
+import setPaymentSectionFinalSubmitted from '@salesforce/apex/ApAccountProgramController.setPaymentSectionFinalSubmitted';
 import { NavigationMixin } from 'lightning/navigation';
 import getDistributionUrl from '@salesforce/apex/ApAccountProgramController.getDistributionUrl';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
@@ -15,6 +19,7 @@ import LightningConfirm from 'lightning/confirm';
 import CUSTOM_TITLE from '@salesforce/schema/ContentVersion.Custom_Title_fileupload__c';
 import PROGRAM_CODE from '@salesforce/schema/Application__c.Program_Code__c';
 import APPLICANT_STATE_FIELD from '@salesforce/schema/Application__c.Applicant_State_Management__c';
+import APP_NAME from '@salesforce/schema/Application__c.Name';
 import { getRecord } from 'lightning/uiRecordApi';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 import PERSONAL_DETAIL_OBJECT from '@salesforce/schema/Personal_Detail__c';
@@ -57,6 +62,16 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     personalDetailId = null;
     pgmCode = '';
     applicantState = '';
+
+    // Payment section — _nextRowId MUST be declared before _paymentRows
+    // so it is initialized (= 1) before _emptyPaymentRow() is called
+    _nextRowId = 1;
+    _applicationName = '';
+    _paymentRows = [this._emptyPaymentRow()];
+    _existingPaymentRecordCount = 0; // Track count of records from backend
+    isSavingPayment = false;
+    isPaymentSectionLocked = false;
+    isFinalSubmitting = false;
 
     // Offer letter state
     offerLetterLink = '';
@@ -210,25 +225,80 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         return this.showTShirtSize && this.offerAccepted && !isWithdrawn;
     }
 
+    /**
+     * Payment section is visible only when ALL documents that have
+     * IsMandatoryToShowPaymentSection__c = true have been uploaded.
+     * If no such documents exist, the section is NOT shown.
+     */
+    get showPaymentSection() {
+        if (!this.offerAccepted) return false;
+        const mandatoryDocs = this._importantDocs.filter(d => d.isMandatoryToShowPaymentSection);
+        if (mandatoryDocs.length === 0) return false;
+        return mandatoryDocs.every(d => d.uploaded);
+    }
+
+    get paymentRows() {
+        // Inject a fresh 1-based display index on every render so that after
+        // adding / removing rows the # column always shows the correct number.
+        return this._paymentRows.map((row, idx) => ({
+            ...row,
+            displayIndex: idx + 1,
+            applicationIdText: row.applicationIdText || this._applicationName || '',
+            rowClass: this.isPaymentSectionLocked ? 'payment-row-readonly' : 'payment-row'
+        }));
+    }
+
+    get isLessDisabled() {
+        if (this.isPaymentSectionLocked || this.isSavingPayment) return true;
+        // Only allow removal of rows beyond the existing record count
+        return this._paymentRows.length <= this._existingPaymentRecordCount;
+    }
+
+    get isSaveDisabled() {
+        return this.isPaymentSectionLocked || this.isSavingPayment || this._paymentRows.length === 0;
+    }
+
+    get isFinalSubmitDisabled() {
+        return this.isPaymentSectionLocked || this.isFinalSubmitting || this._paymentRows.length === 0;
+    }
+
+    get isMoreDisabled() {
+        return this.isPaymentSectionLocked || this.isSavingPayment;
+    }
+
     // ── Wire: application fields ─────────────────────────────────────────────
 
     @wire(getRecord, {
         recordId: '$applicationId',
-        fields: [PROGRAM_CODE, APPLICANT_STATE_FIELD]
+        fields: [PROGRAM_CODE, APPLICANT_STATE_FIELD, APP_NAME]
     })
     wiredApplication({ error, data }) {
         if (error) {
             console.error('Error fetching Application fields', JSON.stringify(error));
             this._markInitialLoadComplete('uploadConfig');
         } else if (data) {
-            this.pgmCode       = data.fields.Program_Code__c.value;
+            this.pgmCode        = data.fields.Program_Code__c.value;
             this.applicantState = data.fields.Applicant_State_Management__c.value;
+            const appName       = (data.fields.Name && data.fields.Name.value) || '';
+            if (appName) {
+                this._setApplicationName(appName);
+            }
             if (this.pgmCode) {
                 this._loadUploadConfig();
             } else {
                 this._markInitialLoadComplete('uploadConfig');
             }
         }
+    }
+
+    _setApplicationName(name) {
+        if (!name || this._applicationName === name) return;
+        this._applicationName = name;
+        this._paymentRows = this._paymentRows.map(row =>
+            (!row.applicationIdText || row.applicationIdText === '')
+                ? { ...row, applicationIdText: name }
+                : row
+        );
     }
 
     // ── Wire: Payment related list ───────────────────────────────────────────
@@ -286,6 +356,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         }
 
         this._fetchSignedDocStatus(isCurrentFetch);
+        this._fetchAdmissionPaymentDetails(isCurrentFetch);
 
         getProgramSpecificDocuments({
             admissionId: this._admissionId,
@@ -299,6 +370,10 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                     this._importantDocs = [];
                     this._annexures = [];
                     return Promise.resolve();
+                }
+
+                if (result.applicationName) {
+                    this._setApplicationName(result.applicationName);
                 }
 
                 const all = (result.annexures || []);
@@ -328,6 +403,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                     url:              a.annexureUrl,
                     docCode:          a.docCode,
                     isUploadRequired: a.isUploadSectionRequired,
+                    isMandatoryToShowPaymentSection: a.isMandatoryToShowPaymentSection === true,
                     uploaded:         false,
                     uploadedUrl:      null,
                     uploadedContentDocumentId: null
@@ -505,6 +581,10 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                     return Promise.resolve();
                 }
 
+                if (result.applicationName) {
+                    this._setApplicationName(result.applicationName);
+                }
+
                  const all = (result.annexures || []);
                  const passedFilter = all.filter(a => a.filterCondition !== 'FILTERED_OUT');
                  
@@ -532,6 +612,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                      url:              a.annexureUrl,
                      docCode:          a.docCode,
                      isUploadRequired: a.isUploadSectionRequired,
+                     isMandatoryToShowPaymentSection: a.isMandatoryToShowPaymentSection === true,
                      uploaded:         false,
                      uploadedUrl:      null,
                      uploadedContentDocumentId: null
@@ -795,6 +876,186 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
             type: 'standard__webPage',
             attributes: { url }
         }).then(generated => openInNewTab(generated));
+    }
+
+    // ── Payment section handlers ──────────────────────────────────────────────
+
+    _emptyPaymentRow() {
+        return {
+            rowId:             this._nextRowId++,
+            applicationIdText: this._applicationName || '',
+            date:              '',
+            amount:            '',
+            transactionId:     '',
+            accountHolderName: '',
+            accountNumber:     '',
+            ifscCode:          '',
+            nameOfTheBank:     '',
+            bankBranch:        ''
+        };
+    }
+
+    _fetchAdmissionPaymentDetails(isCurrentFetch = () => true) {
+        if (!this._applicationId) return;
+        
+        // Fetch payment section lock status
+        getPaymentSectionFinalSubmitted({ applicationId: this._applicationId })
+            .then(isLocked => {
+                if (!isCurrentFetch()) return;
+                this.isPaymentSectionLocked = isLocked === true;
+            })
+            .catch(err => {
+                console.error('Error fetching payment section lock status', JSON.stringify(err));
+            });
+
+        getAdmissionPaymentDetails({ applicationId: this._applicationId })
+            .then(records => {
+                if (!isCurrentFetch()) return;
+                if (records && records.length > 0) {
+                    this._existingPaymentRecordCount = records.length; // Store the count
+                    this._paymentRows = records.map(rec => ({
+                        rowId:             this._nextRowId++,
+                        recordId:          rec.Id,
+                        applicationIdText: rec.Application__r?.Name || this._applicationName || '',
+                        date:              rec.Date__c || '',
+                        amount:            rec.Amount__c != null ? rec.Amount__c : '',
+                        transactionId:     rec.TransactionId__c || '',
+                        accountHolderName: rec.AccountHolderName__c || '',
+                        accountNumber:     rec.AccountNumber__c || '',
+                        ifscCode:          rec.IfscCode__c || '',
+                        nameOfTheBank:     rec.NameOfTheBank__c || '',
+                        bankBranch:        rec.BankBranch__c || ''
+                    }));
+                } else {
+                    this._existingPaymentRecordCount = 0;
+                    this._paymentRows = [this._emptyPaymentRow()];
+                }
+            })
+            .catch(err => {
+                console.error('Error fetching admission payment details', JSON.stringify(err));
+            });
+    }
+
+    handlePaymentFieldChange(event) {
+        if (this.isPaymentSectionLocked) return;
+
+        const rowId  = parseInt(event.currentTarget.dataset.rowid, 10);
+        const field  = event.currentTarget.dataset.field;
+        const value  = event.detail.value;
+        this._paymentRows = this._paymentRows.map(row =>
+            row.rowId === rowId ? { ...row, [field]: value } : row
+        );
+    }
+
+    handleAddPaymentRow() {
+        this._paymentRows = [...this._paymentRows, this._emptyPaymentRow()];
+    }
+
+    handleRemovePaymentRow() {
+        if (this.isPaymentSectionLocked || this._paymentRows.length <= 1) return;
+        this._paymentRows = this._paymentRows.slice(0, -1);
+    }
+
+    async handlePaymentSave() {
+        const rowsToSave = this._paymentRows.map(row => ({
+            ...row,
+            applicationIdText: row.applicationIdText || this._applicationName || ''
+        }));
+
+        if (rowsToSave.length === 0) {
+            return;
+        }
+
+        // Basic validation – every required field must have a value
+        const requiredFields = ['applicationIdText','date','amount','transactionId',
+                                'accountHolderName','accountNumber','ifscCode',
+                                'nameOfTheBank','bankBranch'];
+
+        for (const row of rowsToSave) {
+            for (const f of requiredFields) {
+                if (!row[f] || String(row[f]).trim() === '') {
+                    this.showErrorToast('Validation Error', 'Please fill in all required fields in the payment table before saving.');
+                    return;
+                }
+            }
+        }
+
+        this.isSavingPayment = true;
+        try {
+            const allRecords = await saveAdmissionPaymentDetails({
+                applicationId: this._applicationId,
+                paymentRows: rowsToSave
+            });
+            this.showSuccessToast('Payment details saved successfully!', '');
+            if (allRecords && allRecords.length > 0) {
+                this._existingPaymentRecordCount = allRecords.length; // Update the count after save
+                this._paymentRows = allRecords.map(rec => ({
+                    rowId:             this._nextRowId++,
+                    recordId:          rec.Id,
+                    applicationIdText: rec.Application__r?.Name || this._applicationName || '',
+                    date:              rec.Date__c || '',
+                    amount:            rec.Amount__c != null ? rec.Amount__c : '',
+                    transactionId:     rec.TransactionId__c || '',
+                    accountHolderName: rec.AccountHolderName__c || '',
+                    accountNumber:     rec.AccountNumber__c || '',
+                    ifscCode:          rec.IfscCode__c || '',
+                    nameOfTheBank:     rec.NameOfTheBank__c || '',
+                    bankBranch:        rec.BankBranch__c || ''
+                }));
+            } else {
+                this._existingPaymentRecordCount = 0;
+                this._paymentRows = [this._emptyPaymentRow()];
+            }
+        } catch (err) {
+            this.showErrorToast('Could not save payment details', this._getErrorMessage(err));
+        } finally {
+            this.isSavingPayment = false;
+        }
+    }
+
+    async handlePaymentFinalSubmit() {
+        if (this._paymentRows.length === 0) {
+            this.showErrorToast('No Data', 'Please add at least one payment record before final submission.');
+            return;
+        }
+
+        // Validate all rows have data
+        const requiredFields = ['applicationIdText','date','amount','transactionId',
+                                'accountHolderName','accountNumber','ifscCode',
+                                'nameOfTheBank','bankBranch'];
+
+        for (const row of this._paymentRows) {
+            for (const f of requiredFields) {
+                if (!row[f] || String(row[f]).trim() === '') {
+                    this.showErrorToast('Validation Error', 'Please ensure all payment records have complete data before final submission.');
+                    return;
+                }
+            }
+        }
+
+        const confirmed = await LightningConfirm.open({
+            message: 'Once final submitted, the payment section will be locked and no further changes can be made. Are you sure you want to proceed?',
+            variant: 'header',
+            label: 'Confirm Final Submission',
+            theme: 'warning'
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        this.isFinalSubmitting = true;
+        try {
+            await setPaymentSectionFinalSubmitted({
+                applicationId: this._applicationId
+            });
+            this.isPaymentSectionLocked = true;
+            this.showSuccessToast('Payment section finalized', 'The payment section has been locked.');
+        } catch (err) {
+            this.showErrorToast('Could not finalize payment section', this._getErrorMessage(err));
+        } finally {
+            this.isFinalSubmitting = false;
+        }
     }
 
     // ── Toast helpers ────────────────────────────────────────────────────────

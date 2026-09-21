@@ -610,7 +610,7 @@ public static String getApplicationStage(Id applicationId) {
     public static ProgramDocumentWrapper getProgramSpecificDocuments(String admissionId, String applicationId) {
         try {
             List<Admission_Decision__c> admList = [
-                SELECT Id, Application__r.Program__r.Program_Code__c
+                SELECT Id, Application__r.Program__r.Program_Code__c, Application__r.Name
                 FROM Admission_Decision__c
                 WHERE Id = :admissionId
                 LIMIT 1
@@ -626,7 +626,8 @@ public static String getApplicationStage(Id applicationId) {
                 SELECT Id, Program_Code__c,
                        (SELECT Id, AnnexureName__c, AnnexureURL__c, DisplayOrder__c,
                                DisplayAsImportantDocument__c, IsUploadSectionRequired__c, FilterCondition__c,
-                               ShowDocumentsBeforeAccept__c, ShowDocumentsAfterWithdrawal__c
+                               ShowDocumentsBeforeAccept__c, ShowDocumentsAfterWithdrawal__c,
+                               IsMandatoryToShowPaymentSection__c
                         FROM Program_Annexures__r
                         ORDER BY DisplayOrder__c ASC)
                 FROM Program_Document__mdt
@@ -670,6 +671,7 @@ public static String getApplicationStage(Id applicationId) {
             Program_Document__mdt pgmMetadata = pgmMetadataList[0];
 
             ProgramDocumentWrapper result = new ProgramDocumentWrapper();
+            result.applicationName = admList[0].Application__r.Name;
             result.programCode = pgmMetadata.Program_Code__c;
             result.annexures = new List<AnnexureWrapper>();
 
@@ -684,6 +686,7 @@ public static String getApplicationStage(Id applicationId) {
                 aw.docCode = buildDocCode(ann.AnnexureName__c);
                 aw.showDocumentsBeforeAccept = ann.ShowDocumentsBeforeAccept__c == true;
                 aw.showDocumentsAfterWithdrawal = ann.ShowDocumentsAfterWithdrawal__c == true;
+                aw.isMandatoryToShowPaymentSection = ann.IsMandatoryToShowPaymentSection__c == true;
                 aw.filterCondition = evaluateFilterCondition(ann.FilterCondition__c, admRecord)
                     ? null
                     : 'FILTERED_OUT';
@@ -1203,12 +1206,102 @@ public static String getApplicationStage(Id applicationId) {
         @AuraEnabled public String docCode;
         @AuraEnabled public Boolean showDocumentsBeforeAccept;
         @AuraEnabled public Boolean showDocumentsAfterWithdrawal;
+        @AuraEnabled public Boolean isMandatoryToShowPaymentSection;
     }
 
     public class ProgramDocumentWrapper {
+        @AuraEnabled public String applicationName;
         @AuraEnabled public String programCode;
         @AuraEnabled public String acceptanceLetterUrl;
         @AuraEnabled public List<AnnexureWrapper> annexures;
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static List<AdmissionPaymentDetail__c> getAdmissionPaymentDetails(Id applicationId) {
+        try {
+            if (applicationId == null) {
+                return new List<AdmissionPaymentDetail__c>();
+            }
+            return [
+                SELECT Id, Name, Application__c, Application__r.Name, Date__c, Amount__c,
+                       TransactionId__c, AccountHolderName__c, AccountNumber__c,
+                       IfscCode__c, NameOfTheBank__c, BankBranch__c, CreatedDate
+                FROM AdmissionPaymentDetail__c
+                WHERE Application__c = :applicationId
+                ORDER BY CreatedDate ASC
+            ];
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static List<AdmissionPaymentDetail__c> saveAdmissionPaymentDetails(String applicationId, List<Map<String, Object>> paymentRows) {
+        try {
+            if (String.isBlank(applicationId) || paymentRows == null || paymentRows.isEmpty()) {
+                throw new AuraHandledException('Missing required parameters.');
+            }
+
+            // Fetch existing records
+            List<AdmissionPaymentDetail__c> existingRecords = [
+                SELECT Id, Date__c, Amount__c, TransactionId__c, AccountHolderName__c,
+                       AccountNumber__c, IfscCode__c, NameOfTheBank__c, BankBranch__c
+                FROM AdmissionPaymentDetail__c
+                WHERE Application__c = :applicationId
+                ORDER BY CreatedDate ASC
+            ];
+
+            List<AdmissionPaymentDetail__c> toUpsert = new List<AdmissionPaymentDetail__c>();
+
+            for (Integer i = 0; i < paymentRows.size(); i++) {
+                Map<String, Object> row = paymentRows[i];
+                AdmissionPaymentDetail__c rec;
+
+                // If we have an existing record at this index, update it; otherwise create new
+                if (i < existingRecords.size()) {
+                    rec = existingRecords[i];
+                } else {
+                    rec = new AdmissionPaymentDetail__c();
+                    rec.Application__c = (Id) applicationId;
+                }
+
+                // Update/Set all fields
+                if (row.containsKey('date') && row.get('date') != null && String.isNotBlank(String.valueOf(row.get('date')))) {
+                    rec.Date__c = Date.valueOf(String.valueOf(row.get('date')));
+                }
+                if (row.containsKey('amount') && row.get('amount') != null && String.isNotBlank(String.valueOf(row.get('amount')))) {
+                    rec.Amount__c = Decimal.valueOf(String.valueOf(row.get('amount')));
+                }
+                if (row.containsKey('transactionId') && row.get('transactionId') != null) {
+                    rec.TransactionId__c = String.valueOf(row.get('transactionId'));
+                }
+                if (row.containsKey('accountHolderName') && row.get('accountHolderName') != null) {
+                    rec.AccountHolderName__c = String.valueOf(row.get('accountHolderName'));
+                }
+                if (row.containsKey('accountNumber') && row.get('accountNumber') != null) {
+                    rec.AccountNumber__c = String.valueOf(row.get('accountNumber'));
+                }
+                if (row.containsKey('ifscCode') && row.get('ifscCode') != null) {
+                    rec.IfscCode__c = String.valueOf(row.get('ifscCode'));
+                }
+                if (row.containsKey('nameOfTheBank') && row.get('nameOfTheBank') != null) {
+                    rec.NameOfTheBank__c = String.valueOf(row.get('nameOfTheBank'));
+                }
+                if (row.containsKey('bankBranch') && row.get('bankBranch') != null) {
+                    rec.BankBranch__c = String.valueOf(row.get('bankBranch'));
+                }
+
+                toUpsert.add(rec);
+            }
+
+            if (!toUpsert.isEmpty()) {
+                upsert toUpsert;
+            }
+
+            return getAdmissionPaymentDetails((Id) applicationId);
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
     }
 
     @TestVisible
@@ -1392,6 +1485,53 @@ public static String getApplicationStage(Id applicationId) {
         // } catch (Exception e) {
         //     throw new AuraHandledException(e.getMessage());
         // }
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static Boolean getPaymentSectionFinalSubmitted(Id applicationId) {
+        try {
+            if (applicationId == null) {
+                return false;
+            }
+            List<Admission_Decision__c> decisions = [
+                SELECT Id, PaymentSectionFinalSubmitted__c
+                FROM Admission_Decision__c
+                WHERE Application__c = :applicationId
+                  AND Result__c = 'Eligible for Admission'
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+            if (decisions.isEmpty()) {
+                return false;
+            }
+            return decisions[0].PaymentSectionFinalSubmitted__c == true;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
+    public static void setPaymentSectionFinalSubmitted(Id applicationId) {
+        try {
+            if (applicationId == null) {
+                throw new AuraHandledException('Missing applicationId');
+            }
+            List<Admission_Decision__c> decisions = [
+                SELECT Id, PaymentSectionFinalSubmitted__c
+                FROM Admission_Decision__c
+                WHERE Application__c = :applicationId
+                  AND Result__c = 'Eligible for Admission'
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+            if (decisions.isEmpty()) {
+                throw new AuraHandledException('No admission decision found for this application');
+            }
+            decisions[0].PaymentSectionFinalSubmitted__c = true;
+            update decisions[0];
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
     }
     
 }
