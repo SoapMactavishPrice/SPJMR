@@ -255,11 +255,17 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
     }
 
     get isSaveDisabled() {
-        return this.isPaymentSectionLocked || this.isSavingPayment || this._paymentRows.length === 0;
+        return this.isPaymentSectionLocked
+            || this.isSavingPayment
+            || this.isFinalSubmitting
+            || this._paymentRows.length === 0;
     }
 
     get isFinalSubmitDisabled() {
-        return this.isPaymentSectionLocked || this.isFinalSubmitting || this._paymentRows.length === 0;
+        return this.isPaymentSectionLocked
+            || this.isFinalSubmitting
+            || this.isSavingPayment
+            || this._paymentRows.length === 0;
     }
 
     get isMoreDisabled() {
@@ -956,17 +962,38 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         this._paymentRows = this._paymentRows.slice(0, -1);
     }
 
-    async handlePaymentSave() {
+    /** Maps Apex records to the row shape used by the table */
+    _mapPaymentRecords(records) {
+        return records.map(rec => ({
+            rowId:             this._nextRowId++,
+            recordId:          rec.Id,
+            applicationIdText: rec.Application__r?.Name || this._applicationName || '',
+            date:              rec.Date__c || '',
+            amount:            rec.Amount__c != null ? rec.Amount__c : '',
+            transactionId:     rec.TransactionId__c || '',
+            accountHolderName: rec.AccountHolderName__c || '',
+            accountNumber:     rec.AccountNumber__c || '',
+            ifscCode:          rec.IfscCode__c || '',
+            nameOfTheBank:     rec.NameOfTheBank__c || '',
+            bankBranch:        rec.BankBranch__c || ''
+        }));
+    }
+
+    /**
+     * Validates and saves the current rows.
+     * Returns true on success, false on validation failure or save error.
+     * Does NOT show a success toast, so callers decide what to show.
+     */
+    async _persistPaymentRows() {
         const rowsToSave = this._paymentRows.map(row => ({
             ...row,
             applicationIdText: row.applicationIdText || this._applicationName || ''
         }));
 
         if (rowsToSave.length === 0) {
-            return;
+            return false;
         }
 
-        // Basic validation – every required field must have a value
         const requiredFields = ['applicationIdText','date','amount','transactionId',
                                 'accountHolderName','accountNumber','ifscCode',
                                 'nameOfTheBank','bankBranch'];
@@ -975,7 +1002,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
             for (const f of requiredFields) {
                 if (!row[f] || String(row[f]).trim() === '') {
                     this.showErrorToast('Validation Error', 'Please fill in all required fields in the payment table before saving.');
-                    return;
+                    return false;
                 }
             }
         }
@@ -986,30 +1013,26 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                 applicationId: this._applicationId,
                 paymentRows: rowsToSave
             });
-            this.showSuccessToast('Payment details saved successfully!', '');
             if (allRecords && allRecords.length > 0) {
-                this._existingPaymentRecordCount = allRecords.length; // Update the count after save
-                this._paymentRows = allRecords.map(rec => ({
-                    rowId:             this._nextRowId++,
-                    recordId:          rec.Id,
-                    applicationIdText: rec.Application__r?.Name || this._applicationName || '',
-                    date:              rec.Date__c || '',
-                    amount:            rec.Amount__c != null ? rec.Amount__c : '',
-                    transactionId:     rec.TransactionId__c || '',
-                    accountHolderName: rec.AccountHolderName__c || '',
-                    accountNumber:     rec.AccountNumber__c || '',
-                    ifscCode:          rec.IfscCode__c || '',
-                    nameOfTheBank:     rec.NameOfTheBank__c || '',
-                    bankBranch:        rec.BankBranch__c || ''
-                }));
+                this._existingPaymentRecordCount = allRecords.length;
+                this._paymentRows = this._mapPaymentRecords(allRecords);
             } else {
                 this._existingPaymentRecordCount = 0;
                 this._paymentRows = [this._emptyPaymentRow()];
             }
+            return true;
         } catch (err) {
             this.showErrorToast('Could not save payment details', this._getErrorMessage(err));
+            return false;
         } finally {
             this.isSavingPayment = false;
+        }
+    }
+
+    async handlePaymentSave() {
+        const saved = await this._persistPaymentRows();
+        if (saved) {
+            this.showSuccessToast('Payment details saved successfully!', '');
         }
     }
 
@@ -1034,7 +1057,7 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         }
 
         const confirmed = await LightningConfirm.open({
-            message: 'Once final submitted, the payment section will be locked and no further changes can be made. Are you sure you want to proceed?',
+            message: 'Any unsaved changes will be saved when you proceed. Once final submitted, the payment section will be locked and no further changes can be made. Are you sure you want to proceed?',
             variant: 'header',
             label: 'Confirm Final Submission',
             theme: 'warning'
@@ -1046,6 +1069,12 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
 
         this.isFinalSubmitting = true;
         try {
+            // Persist the rows first. If the save fails, abort so we never lock unsaved data.
+            const saved = await this._persistPaymentRows();
+            if (!saved) {
+                return;
+            }
+
             await setPaymentSectionFinalSubmitted({
                 applicationId: this._applicationId
             });
