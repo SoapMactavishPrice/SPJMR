@@ -1,6 +1,6 @@
 public without sharing class ApplicationNumberController {
-    public static final Set<String> hierarchyProgramCodes = new Set<String>{'PGDM','PGDM-BM','PGDM&PGDM-BM'};
-    public static final Set<String> paidStatuses = new Set<String>{'Paid','Paid For PGDM','Paid For PGDM-BM'};
+    public static final Set<String> hierarchyProgramCodes = ConvertB2CLeadController.getAllProgramCodes();
+    public static final Set<String> paidStatuses = ConvertB2CLeadController.getAllPaidStatuses();
     
         public static void updateNonPaidOpportunities(List<ProgramCohort> newList, Map<Id,ProgramCohort> oldMap){
             Set<Id> applicationClosedBatchesId = new Set<Id>();
@@ -96,7 +96,7 @@ public without sharing class ApplicationNumberController {
                 updateApplications.add(updateApp);
             }
         }
-        
+         
         if(!updateApplications.isEmpty()){
             try{
                 update updateApplications;

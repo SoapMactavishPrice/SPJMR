@@ -1,3 +1,26 @@
-.page { max-width:1200px; margin:auto; padding:16px; font-family:Arial, sans-serif; }
+/*.page { max-width:1200px; margin:auto; padding:16px; font-family:Arial, sans-serif; }*/
 .note-box { background:#f4f7fb; padding:12px; border-left:4px solid #1976d2; margin-bottom:12px; border-radius:4px; }
 .actions { margin-top:12px; display:flex; gap:10px; }
+
+.page {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+/* Tablet */
+@media screen and (max-width: 900px) {
+    .page {
+        padding: 14px;
+    }
+}
+
+/* Mobile */
+@media screen and (max-width: 600px) {
+    .page {
+        padding: 10px;
+    }
+}

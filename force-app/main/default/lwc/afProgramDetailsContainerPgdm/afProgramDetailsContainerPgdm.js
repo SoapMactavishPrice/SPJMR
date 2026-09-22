@@ -343,7 +343,7 @@ export default class AfProgramDetailsContainerPgdm extends LightningElement {
          ***********************************/
         this.metadata.programDetail = {
             key: "programDetail",
-            title: "Programme Detail",
+            title: "Programme Details",
             columnSystem: 12,
                 note: {
                     api: "SECTION_NOTE",
@@ -463,9 +463,9 @@ Choose the programme you wish to apply for
                 },
                 { 
                     api:'PrimaryProgramPreference__c', 
-                    span: 4, 
+                    span: 12, 
                     type:'picklist', 
-                    label:'Please select your preference 1',
+                    label:'Please select your 1st preffered programme',
                     shortLabel: 'Preference 1',
                     required: true,
                     visibleWhen: {
@@ -477,9 +477,9 @@ Choose the programme you wish to apply for
                 },
                 { 
                     api:'SecondaryProgramPreference__c', 
-                    span: 4, 
+                    span: 12, 
                     type:'picklist', 
-                    label:'Preference 2',
+                    label:'Please select your 2nd preffered programme',
                     shortLabel: 'Preference 2',
                     required: true,
                     readOnly: true,

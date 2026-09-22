@@ -272,7 +272,13 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         return this.isPaymentSectionLocked || this.isSavingPayment;
     }
 
-    // ── Wire: application fields ─────────────────────────────────────────────
+    get maxPaymentDate() {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
 
     @wire(getRecord, {
         recordId: '$applicationId',
@@ -948,6 +954,16 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
         const rowId  = parseInt(event.currentTarget.dataset.rowid, 10);
         const field  = event.currentTarget.dataset.field;
         const value  = event.detail.value;
+
+        if (field === 'date' && value && value > this.maxPaymentDate) {
+            this.showErrorToast('Invalid Date', 'Payment date cannot be in the future.');
+            event.currentTarget.value = this.maxPaymentDate;
+            this._paymentRows = this._paymentRows.map(row =>
+                row.rowId === rowId ? { ...row, date: this.maxPaymentDate } : row
+            );
+            return;
+        }
+
         this._paymentRows = this._paymentRows.map(row =>
             row.rowId === rowId ? { ...row, [field]: value } : row
         );
@@ -1004,6 +1020,10 @@ export default class ApOfferAcceptanceChild extends NavigationMixin(LightningEle
                     this.showErrorToast('Validation Error', 'Please fill in all required fields in the payment table before saving.');
                     return false;
                 }
+            }
+            if (row.date > this.maxPaymentDate) {
+                this.showErrorToast('Invalid Date', 'Payment date cannot be in the future.');
+                return false;
             }
         }
 

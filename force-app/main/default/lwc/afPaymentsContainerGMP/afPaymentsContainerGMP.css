@@ -46,10 +46,12 @@
 
 .left-section {
     flex: 2;
+    min-width: 0; /* prevents flex children from overflowing on small screens */
 }
 
 .right-section {
     flex: 1.2;
+    min-width: 0;
 }
 
 .card {
@@ -69,6 +71,7 @@
 .row {
     display: flex;
     margin-bottom: 8px;
+    flex-wrap: wrap; /* lets label/value wrap instead of overflow on narrow screens */
 }
 
 .label {
@@ -78,11 +81,13 @@
 
 .value {
     color: #444;
+    word-break: break-word;
 }
 
 .space-between {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
 }
 
 .total-row {
@@ -100,4 +105,76 @@
     border-radius: 4px;
     font-size: 15px;
     cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+
+    .title {
+        font-size: 17px;
+    }
+
+    .content {
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .left-section,
+    .right-section {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .card {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .section-title {
+        font-size: 15px;
+        margin-bottom: 10px;
+    }
+
+    .row {
+        flex-direction: column;
+        margin-bottom: 10px;
+    }
+
+    .label {
+        width: auto;
+        margin-bottom: 2px;
+    }
+
+    .space-between {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .total-row {
+        font-size: 15px;
+    }
+
+    c-razorpay-payment-button,
+    lightning-button {
+        display: block;
+        width: 100%;
+    }
+
+    .pay-btn {
+        font-size: 16px;
+        padding: 14px;
+    }
+}
+
+@media (max-width: 400px) {
+    .title {
+        font-size: 15px;
+    }
+
+    .section-title {
+        font-size: 14px;
+    }
 }

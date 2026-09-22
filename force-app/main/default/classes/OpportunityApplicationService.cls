@@ -11,7 +11,7 @@ public without sharing class OpportunityApplicationService {
         }
     }
 
-    public static Set<String> paidStatus = new Set<String>{'Paid','Paid For PGDM','Paid For PGDM-BM'};
+    public static Set<String> paidStatus = ConvertB2CLeadController.getAllPaidStatuses();
 
     public static Boolean isIndividualSiblingProgrammeOpportunityEnabled() {
         Map<String, SPJIMR_Feature_Flag__mdt> featureFlags = SPJIMR_Feature_Flag__mdt.getAll();
@@ -77,7 +77,7 @@ public without sharing class OpportunityApplicationService {
             // ASSUMPTION: when multiple ProgramCohorts are simultaneously accepting for
             // this program, the earliest-created one is used.
             Id defaultBatchId = acceptingBatches[0].Id;
-
+            Set<String> pgdmCodes = ConvertB2CLeadController.getAllProgramCodes();
             List<Opportunity> existingFamilyOpportunities = [
                 SELECT Id, Program__c, Program__r.Program_Code__c, Application__c,
                        Application__r.Id, Application__r.Name, Application__r.Application_Status__c,
@@ -433,7 +433,7 @@ public without sharing class OpportunityApplicationService {
     ) {
         List<Account> accList = [
             SELECT Id, FirstName, LastName, PersonEmail, PersonMobilePhone, Phone
-            FROM Account WHERE Id = :accountRecordId LIMIT 1
+            FROM Account WHERE Id = :accountRecordId LIMIT 1 
         ];
         Account accountRecord = accList[0];
         List<Personal_Detail__c> personalDetails = new List<Personal_Detail__c>();

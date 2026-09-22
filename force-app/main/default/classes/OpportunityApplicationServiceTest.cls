@@ -7,6 +7,12 @@ private class OpportunityApplicationServiceTest {
     static void setup() {
         User u = createSystemAdminUser();
         System.RunAs(u) {
+            insert new Hierarchy_Programme__c(
+    Name = 'Hierarchy Programme (Test)',
+    Name__c = 'Parent Program PGDM',
+    All_Programme_Codes__c = 'PGDM,PGDM-BM,PGDM&PGDM-BM',
+    All_Paid_Statuses__c = 'Paid,Paid For PGDM,Paid For PGDM-BM'
+);
             insert new Program(
                 Name = 'GMP', Program_Code__c = 'GMP', Short_Programme_Code__c = 'GMP',
                 StartDate = Date.today(), EndDate = Date.today().addDays(10),

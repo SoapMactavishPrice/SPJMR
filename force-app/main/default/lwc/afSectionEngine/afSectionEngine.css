@@ -12,3 +12,85 @@
     font-size: 1em;
     font-weight: bold;
 }
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+@media screen and (max-width: 900px) {
+
+    .row {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+
+    .col {
+        grid-column: span 1 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .field-cell {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+@media screen and (max-width: 600px) {
+
+    .section {
+        margin-bottom: 12px;
+    }
+
+    .section-title {
+        font-size: 15px;
+        margin-bottom: 6px;
+    }
+
+    .row {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 10px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .col {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+    }
+
+    .field-cell {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .sectionHeader {
+        font-size: 15px;
+        padding: 9px;
+        margin-bottom: 12px;
+    }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+@media screen and (max-width: 400px) {
+
+    .section-title {
+        font-size: 14px;
+    }
+
+    .sectionHeader {
+        font-size: 14px;
+        padding: 8px;
+    }
+
+    .row {
+        gap: 8px !important;
+    }
+
+    .field-cell {
+        margin-bottom: 6px;
+    }
+}

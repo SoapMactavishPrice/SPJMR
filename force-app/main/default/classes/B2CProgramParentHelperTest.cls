@@ -214,6 +214,12 @@ static void getCurrentlyAcceptingBatch_returnsAcceptingBatch() {
     
     @IsTest
 static void getApplicationReuseResult_reachesCurrentBatch() {
+    insert new Hierarchy_Programme__c(
+        Name = 'Hierarchy Programme (Test)',
+        Name__c = 'Parent Program PGDM',
+        All_Programme_Codes__c = 'PGDM,PGDM-BM,PGDM&PGDM-BM',
+        All_Paid_Statuses__c = 'Paid,Paid For PGDM,Paid For PGDM-BM'
+    );
     Program prog = new Program(
         Name = 'PGDM',
         Program_Code__c = 'PGDM',
@@ -256,5 +262,48 @@ Opportunity opp = new Opportunity(Program__c=prog.Id,Application__c=app.Id,Name=
         );
 
     Test.stopTest();
+}
+    private static Program makeProgram(String programCode) {
+    return (Program) JSON.deserialize(
+        '{"attributes":{"type":"Program"},"Program_Code__c":"' +
+        programCode +
+        '"}',
+        Program.class
+    );
+}
+    @IsTest
+static void isPGDMFamily_usesConfiguredHierarchy() {
+
+    insert new Hierarchy_Programme__c(
+        Name = 'Hierarchy Programme (Test)',
+        Name__c = 'Parent Program PGDM',
+        All_Programme_Codes__c = 'PGDM,PGDM-BM,PGDM&PGDM-BM',
+        All_Paid_Statuses__c = 'Paid,Paid For PGDM,Paid For PGDM-BM'
+    );
+
+    Program pgdm = makeProgram('PGDM');
+    Program pgdmBm = makeProgram('PGDM-BM');
+    Program mixed = makeProgram('PGDM&PGDM-BM');
+    Program gmp = makeProgram('GMP');
+
+    System.assertEquals(
+        true,
+        B2CProgramParentHelper.isPGDMFamily(pgdm)
+    );
+
+    System.assertEquals(
+        true,
+        B2CProgramParentHelper.isPGDMFamily(pgdmBm)
+    );
+
+    System.assertEquals(
+        true,
+        B2CProgramParentHelper.isPGDMFamily(mixed)
+    );
+
+    System.assertEquals(
+        false,
+        B2CProgramParentHelper.isPGDMFamily(gmp)
+    );
 }
 }

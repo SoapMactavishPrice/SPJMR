@@ -572,6 +572,11 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
             key: 'semester',
             title: 'Semester Wise Details',
             columnSystem: 30,
+            responsive: {
+                tablet: 'grouped',
+                mobile: 'grouped',
+                sequenceLabel: 'Semester'
+            },
             rows: [
                 {
                     columns: Array.from({ length: 10 }, () => ({
@@ -610,6 +615,11 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
             key: 'year',
             title: 'Year Wise Details',
             columnSystem: 30,
+            responsive: {
+                tablet: 'grouped',
+                mobile: 'grouped',
+                sequenceLabel: 'Year'
+            },
             rows: [
                 {
                     columns: Array.from({ length: 5 }, () => ({
@@ -853,6 +863,12 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
             columnSystem: 12,
             layout: 'fluid',
             rows: pqRows,
+            showSequenceLabel: true,
+            responsive: {
+                tablet: 'sequential-tablet',
+                tabletColumns: 14,
+                mobile: 'default'
+            },
             fields: [
                 ...Array.from({ length: 3 }, (_, i) => ({
                     api: 'Name_of_Qualification_Picklist__c',
@@ -960,10 +976,10 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
             rows: [
                 {
                     columns: [
-                        { width: 8, fields: [] },
                         { width: 2, fields: ['AddMore'] },
                         { width: 2, fields: ['Remove'] }
-                    ]
+                    ],
+                    align: 'right'
                 }
             ],
             fields: [
@@ -1716,6 +1732,21 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
             rows: []
         };
 
+        const responsiveRowMode = this._getResponsiveRowMode(meta);
+
+        if (responsiveRowMode === 'grouped') {
+            section.rows.push(
+                ...this._buildMatrixResponsiveRows(
+                    sectionKey,
+                    meta,
+                    sectionData,
+                    groupFilter
+                )
+            );
+
+            return section;
+        }
+
         if (meta.note && !meta.noteInline) {
             section.title = meta.title || '';
             section.rows.push({
@@ -1738,6 +1769,15 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
             !['semester', 'year'].includes(sectionKey);
 
         if (useSequentialRenderer) {
+
+            if (responsiveRowMode === 'sequential-tablet') {
+                section.rows.push(
+                    ...this._buildSequentialTabletRows(sectionKey,meta,sectionData,groupFilter)
+                );
+
+                return section;
+            }
+
             section.rows.push(
                 ...(meta?.layout === 'fluid'
                     ? this._buildSequentialFluidRows(sectionKey, meta, sectionData, groupFilter)
@@ -1776,82 +1816,33 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
         //     });
         // }
 
-
-        // ------------------------------------------------------------
-        // SPECIAL: PROFESSIONAL QUALIFICATION (3 rows max)
-        // ------------------------------------------------------------
-        const edSec = this.education[sectionKey];
-        if (edSec && typeof edSec === 'object' && edSec.isSequential === false) {
-
-            const section = {
-                key: meta.key || sectionKey,
-                title: meta.title || sectionKey,
-                rows: []
-            };
-
-            const rowStyle =
-                `display:grid;grid-template-columns:repeat(${cs},1fr);` +
-                `gap:8px;margin-bottom:12px;`;
-
-            // Only sequence 1..3
-            [1,2,3].forEach(seq => {
-                const rec = edSec[seq] || {};
-
-                // Use only FIRST metadata row for PQ
-                const metaRow = meta.rows[0];
-
-                const renderRow = {
-                    key: `${sectionKey}-row-${seq}`,
-                    style: rowStyle,
-                    columns: []
-                };
-
-                metaRow.columns.forEach((col, cIdx) => {
-                    const span = col.width ? Number(col.width) : cs;
-
-                    const renderCol = {
-                        key: `${sectionKey}-col-${seq}-${cIdx}`,
-                        widthStyle: `grid-column: span ${span};`,
-                        fields: []
-                    };
-
-                    col.fields.forEach(api => {
-                        const fieldMeta =
-                            meta.fields.find(f => f.api === api && f.sequence === seq) ||
-                            meta.fields.find(f => f.api === api) ||
-                            { api, label: api, type: 'text' };
-
-                        let val = null;
-
-                        // For normal fields → from data model
-                        if (fieldMeta.type !== "note") {
-                            val = rec[api] || null;
-                        }
-                        // For note fields → take text from metadata
-                        else {
-                            val = fieldMeta.text || "";
-                        }
-
-                        renderCol.fields.push({
-                            key: `${sectionKey}-${api}-${seq}`,
-                            meta: { ...fieldMeta, sequence: seq },
-                            value: val
-                        });
-                    });
-
-                    renderRow.columns.push(renderCol);
-                });
-
-                section.rows.push(renderRow);
-            });
-
-            return section;
-        }
         
         // compute style for rows: use CSS grid template columns based on column system
-        const rowStyle = `display: grid; grid-template-columns: repeat(${cs}, 1fr); gap:8px; margin-bottom:8px;`;
+        //const rowStyle = `display: grid; grid-template-columns: repeat(${cs}, 1fr); gap:8px; margin-bottom:8px;`;
+
         // for each meta row, create render row
         (meta.rows || []).forEach((r, rIdx) => {
+
+            const columns = r.columns || [];
+
+            const totalSpan = columns.reduce((sum, col) => {
+                const span =
+                    col.width && Number(col.width) >= 1
+                        ? Number(col.width)
+                        : cs;
+
+                return sum + span;
+            }, 0);
+
+            let currentStart =
+                r.align === 'right'
+                    ? cs - totalSpan + 1
+                    : null;
+
+            const rowStyle =
+                r.align === 'right'
+                    ? 'display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px;'
+                    : `display:grid;grid-template-columns:repeat(${cs},1fr);gap:8px;margin-bottom:8px;`;
 
             if (r?.fluid === true) {
                 section.rows.push(
@@ -1864,34 +1855,60 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
                 );
                 return;
             }
-            const renderRow = { key: `${section.key}-row-${rIdx}`, style: rowStyle, columns: [] };
-            (r.columns || []).forEach((col, cIdx) => {
-                // compute widthStyle based on span value relative to cs
-                const span = col.width && Number(col.width) >= 1 ? Number(col.width) : cs;
-                const widthStyle = `grid-column: span ${span};`;
-                const renderCol = { key: `${section.key}-col-${rIdx}-${cIdx}`, header: col.header || null, widthStyle, fields: [] };
-                // Track global sequence at section level
+
+            const renderRow = {
+                key: `${section.key}-row-${rIdx}`,
+                style: rowStyle,
+                columns: []
+            };
+
+            columns.forEach((col, cIdx) => {
+
+                const span =
+                    col.width && Number(col.width) >= 1
+                        ? Number(col.width)
+                        : cs;
+
+                const widthStyle =
+                    r.align === 'right'
+                        ? ''
+                        : `grid-column:span ${span};`;
+
+                const renderCol = {
+                    key: `${section.key}-col-${rIdx}-${cIdx}`,
+                    header: col.header || null,
+                    widthStyle,
+                    fields: []
+                };
+
                 section._apiCounts = section._apiCounts || {};
 
                 (col.fields || []).forEach(fieldApi => {
 
-                    // Increment occurrence count for this API
-                    section._apiCounts[fieldApi] = (section._apiCounts[fieldApi] || 0) + 1;
+                    section._apiCounts[fieldApi] =
+                        (section._apiCounts[fieldApi] || 0) + 1;
+
                     const seq = section._apiCounts[fieldApi];
 
-                    // Try matching correct meta (API + sequence)
                     let fieldMeta = (meta.fields || []).find(
-                        f => f.api === fieldApi && Number(f.sequence) === Number(seq)
+                        f =>
+                            f.api === fieldApi &&
+                            Number(f.sequence) === Number(seq)
                     );
 
-                    // If not found, fallback to FIRST meta with same API (preserves real type)
                     if (!fieldMeta) {
-                        fieldMeta = (meta.fields || []).find(f => f.api === fieldApi);
+                        fieldMeta = (meta.fields || []).find(
+                            f => f.api === fieldApi
+                        );
                     }
 
-                    // If still not found, final fallback
                     if (!fieldMeta) {
-                        fieldMeta = { api: fieldApi, sequence: seq, label: fieldApi, type: 'text' };
+                        fieldMeta = {
+                            api: fieldApi,
+                            sequence: seq,
+                            label: fieldApi,
+                            type: 'text'
+                        };
                     }
 
                     const fieldGroup = fieldMeta?.group || 'default';
@@ -1902,14 +1919,22 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
 
                     const metaForRender = this._resolveFieldMeta(
                         sectionKey,
-                        { ...fieldMeta, sequence: seq }
+                        {
+                            ...fieldMeta,
+                            sequence: seq
+                        }
                     );
 
-                    if (!this._isFieldVisible(metaForRender)) return;
+                    if (!this._isFieldVisible(metaForRender)) {
+                        return;
+                    }
 
-                    const value = this._getValueForField(sectionKey, fieldApi, seq);
+                    const value = this._getValueForField(
+                        sectionKey,
+                        fieldApi,
+                        seq
+                    );
 
-                    // ⭐ inject lookup display
                     const display =
                         this.education[sectionKey]?.Display?.[fieldApi];
 
@@ -1917,7 +1942,6 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
                         metaForRender.displayValue = display;
                     }
 
-                    // ⭐ APPLY DYNAMIC FILTER HERE
                     this._applyDynamicFilter(metaForRender);
 
                     renderCol.fields.push({
@@ -1925,12 +1949,15 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
                         meta: metaForRender,
                         value
                     });
-
                 });
 
-
                 renderRow.columns.push(renderCol);
+
+                if (r.align === 'right') {
+                    currentStart += span;
+                }
             });
+
             section.rows.push(renderRow);
         });
         return section;
@@ -2226,95 +2253,490 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
         const cs = meta.columnSystem || 12;
         const sequences = this._getSequenceList(sectionKey, sectionData);
         const rows = [];
+
         let fluidRowIdx = 0;
 
         sequences.forEach((seq, seqIdx) => {
-            
-            let row = { columns: [], used: 0 };
+            let row = {
+                columns: [],
+                used: 0
+            };
 
-            if (sectionKey === 'professionalQualification') {
+            const addSequenceLabel = (label) => {
                 row.columns.push({
-                    key: `${meta.key}-seq-${seq}`,
-                    widthStyle: 'grid-column: span 1;',
+                    key: `${meta.key}-seq-${seq}-${fluidRowIdx}`,
+                    widthStyle: 'grid-column:span 1;',
                     fields: [{
-                        key: `${meta.key}-seq-${seq}`,
+                        key: `${meta.key}-seq-${seq}-${fluidRowIdx}`,
                         meta: {
                             type: 'label',
-                            label: `${seq}`
+                            label
                         },
                         value: null
                     }]
                 });
 
                 row.used += 1;
+            };
+
+            if (meta.showSequenceLabel === true) {
+                addSequenceLabel(`${seq}`);
             }
 
-            (meta.fields || [])
-                .filter(f => f.type !== 'note' && Number(f.sequence) === Number(seq))
-                .forEach(f => {
-                    const fieldGroup = f.group || 'default';
-                    if (groupFilter && fieldGroup !== groupFilter) return;
+            const fields = this._buildSequentialFieldItems(
+                sectionKey,
+                meta,
+                seq,
+                groupFilter
+            );
 
-                    const metaForRender = this._resolveFieldMeta(sectionKey, {
-                        ...f,
-                        sectionKey,
-                        sequence: seq
-                    });
+            fields.forEach(field => {
+                console.log(
+                    field.api,
+                    'span =',
+                    field.span,
+                    'used =',
+                    row.used,
+                    'next =',
+                    row.used + field.span
+                );
+                if (row.used + field.span > cs) {
 
-                    if (metaForRender.visible === false) return;
-
-                    const span = metaForRender.span || 3;
-
-                    if (row.used + span > cs) {
+                    if (row.columns.length) {
                         rows.push({
-                            key: `${meta.key}-fluid-${seqIdx}-${fluidRowIdx++}`,
-                            style: `display:grid;grid-template-columns:repeat(${cs},1fr);gap:8px;margin-bottom:12px;`,
+                            key:
+                                `${meta.key}-fluid-${seqIdx}-${fluidRowIdx++}`,
+                            style:
+                                `display:grid;` +
+                                `grid-template-columns:repeat(${cs},1fr);` +
+                                `gap:8px;margin-bottom:12px;`,
                             columns: row.columns
                         });
-                        row = { columns: [], used: 0 };
-
-                        if (sectionKey === 'professionalQualification') {
-                            row.columns.push({
-                                key: `${meta.key}-seq-${seq}-cont-${fluidRowIdx}`,
-                                widthStyle: 'grid-column: span 1;',
-                                fields: [{
-                                    key: `${meta.key}-seq-${seq}-cont-${fluidRowIdx}`,
-                                    meta: {
-                                        type: 'label',
-                                        label: ''
-                                    },
-                                    value: null
-                                }]
-                            });
-
-                            row.used += 1;
-                        }
-
                     }
 
-                    this._applyDynamicFilter(metaForRender);
+                    row = {
+                        columns: [],
+                        used: 0
+                    };
 
-                    row.columns.push({
-                        key: `${meta.key}-${f.api}-${seq}`,
-                        widthStyle: `grid-column: span ${span};`,
-                        fields: [{
-                            key: `${meta.key}-${f.api}-${seq}`,
-                            meta: metaForRender,
-                            value: this._getValueForField(sectionKey, f.api, seq)
-                        }]
-                    });
+                    /*
+                    * Preserve the sequence marker on continuation rows,
+                    * exactly like the current Professional Qualification behavior.
+                    */
+                    if (meta.showSequenceLabel === true) {
+                        addSequenceLabel('');
+                    }
+                }
 
-                    row.used += span;
+                row.columns.push({
+                    key: field.key,
+                    widthStyle: `grid-column:span ${field.span};`,
+                    fields: [{
+                        key: field.key,
+                        meta: field.meta,
+                        value: field.value
+                    }]
                 });
+
+                row.used += field.span;
+            });
 
             if (row.columns.length) {
                 rows.push({
-                    key: `${meta.key}-fluid-${seqIdx}-${fluidRowIdx++}`,
-                    style: `display:grid;grid-template-columns:repeat(${cs},1fr);gap:8px;margin-bottom:12px;`,
+                    key:
+                        `${meta.key}-fluid-${seqIdx}-${fluidRowIdx++}`,
+                    style:
+                        `display:grid;` +
+                        `grid-template-columns:repeat(${cs},1fr);` +
+                        `gap:8px;margin-bottom:12px;`,
                     columns: row.columns
                 });
             }
         });
+
+        return rows;
+    }
+
+    _resizeObserver;
+    _resizeObserverInitialized = false;
+    _lastResponsiveWidth = null;
+
+    renderedCallback() {
+        if (this._resizeObserverInitialized) {
+            return;
+        }
+
+        const container = this.template.querySelector('.page');
+
+        if (!container) {
+            return;
+        }
+
+        this._resizeObserverInitialized = true;
+
+        this._resizeObserver = new ResizeObserver(entries => {
+            const width = entries[0]?.contentRect?.width;
+
+            if (width) {
+                this.handleContainerResize(width);
+            }
+        });
+
+        this._resizeObserver.observe(container);
+    }
+
+    handleContainerResize(width) {
+        const mode =
+            width <= 600
+                ? 'mobile'
+                : width <= 900
+                    ? 'tablet'
+                    : 'desktop';
+
+        if (mode === this._responsiveMode) {
+            return;
+        }
+
+        this._responsiveMode = mode;
+
+        this._buildRenderModelAll();
+    }
+
+    disconnectedCallback() {
+        if (this._resizeObserver) {
+            this._resizeObserver.disconnect();
+            this._resizeObserver = null;
+        }
+
+        this._resizeObserverInitialized = false;
+        this._lastResponsiveWidth = null;
+    }
+
+    _getResponsiveRowMode(meta) {
+        const responsive = meta?.responsive;
+
+        if (!responsive || typeof window === 'undefined') {
+            return 'default';
+        }
+
+        const width = window.innerWidth;
+        console.log('width '+width);
+
+        if (width <= 600) {
+            return responsive.mobile || 'default';
+        }
+
+        if (width <= 900) {
+            return responsive.tablet || 'default';
+        }
+
+        return 'default';
+    }
+
+    _buildSequentialFieldItem(sectionKey, fieldMeta, seq, groupFilter) {
+        const fieldGroup = fieldMeta?.group || 'default';
+
+        if (groupFilter && fieldGroup !== groupFilter) {
+            return null;
+        }
+
+        const metaForRender = this._resolveFieldMeta(
+            sectionKey,
+            {
+                ...fieldMeta,
+                sectionKey,
+                sequence: seq
+            }
+        );
+
+        if (metaForRender.visible === false) {
+            return null;
+        }
+
+        this._applyDynamicFilter(metaForRender);
+
+        return {
+            key: `${this.metadata[sectionKey].key}-${fieldMeta.api}-${seq}`,
+            api: fieldMeta.api,
+            span: metaForRender.span || 3,
+            meta: metaForRender,
+            value: this._getValueForField(
+                sectionKey,
+                fieldMeta.api,
+                seq
+            )
+        };
+    }
+
+    _buildSequentialFieldItems(sectionKey, meta, seq, groupFilter) {
+        return (meta.fields || [])
+            .filter(
+                f =>
+                    f.type !== 'note' &&
+                    Number(f.sequence) === Number(seq)
+            )
+            .map(f =>
+                this._buildSequentialFieldItem(
+                    sectionKey,
+                    f,
+                    seq,
+                    groupFilter
+                )
+            )
+            .filter(Boolean);
+    }
+
+    _buildSequentialTabletRows(sectionKey, meta, sectionData, groupFilter) {
+        const cs = meta.responsive?.tabletColumns || meta.columnSystem || 12;
+        const sequences = this._getSequenceList(sectionKey, sectionData);
+        const rows = [];
+
+        sequences.forEach((seq, seqIdx) => {
+            const fields = this._buildSequentialFieldItems(
+                sectionKey,
+                meta,
+                seq,
+                groupFilter
+            );
+
+            if (!fields.length) {
+                return;
+            }
+
+            // Sequence number / label gets its own full-width row.
+            if (meta.showSequenceLabel === true) {
+                rows.push({
+                    key: `${meta.key}-tablet-sequence-${seq}`,
+                    style:
+                        `display:grid;` +
+                        `grid-template-columns:repeat(${cs},1fr);` +
+                        `gap:8px;margin-bottom:4px;`,
+                    columns: [{
+                        key: `${meta.key}-tablet-sequence-label-${seq}`,
+                        widthStyle: 'grid-column:1 / -1 !important;',
+                        fields: [{
+                            key: `${meta.key}-tablet-sequence-label-field-${seq}`,
+                            meta: {
+                                type: 'label',
+                                label: `${seq}`
+                            },
+                            value: null
+                        }]
+                    }]
+                });
+            }
+
+            let row = {
+                columns: [],
+                used: 0
+            };
+
+            const pushRow = () => {
+                if (!row.columns.length) {
+                    return;
+                }
+
+                rows.push({
+                    key:
+                        `${meta.key}-tablet-${seqIdx}-${rows.length}`,
+                    style:
+                        `display:grid;` +
+                        `grid-template-columns:repeat(${cs},1fr);` +
+                        `gap:8px;margin-bottom:12px;`,
+                    columns: row.columns
+                });
+
+                row = {
+                    columns: [],
+                    used: 0
+                };
+            };
+
+            fields.forEach(field => {
+                console.log(
+                    field.api,
+                    'span =',
+                    field.span,
+                    'used =',
+                    row.used,
+                    'next =',
+                    row.used + field.span
+                );
+                if (row.used + field.span > cs) {
+                    pushRow();
+                }
+
+                row.columns.push({
+                    key: field.key,
+                    widthStyle: `grid-column:span ${field.span};`,
+                    fields: [{
+                        key: field.key,
+                        meta: field.meta,
+                        value: field.value
+                    }]
+                });
+
+                row.used += field.span;
+            });
+
+            pushRow();
+        });
+
+        return rows;
+    }
+
+    _buildMatrixResponsiveRows(sectionKey, meta, sectionData, groupFilter) {
+        const rows = [];
+
+        const templateRows = meta.rows || [];
+
+        if (!templateRows.length) {
+            return rows;
+        }
+
+        /*
+        * Dynamic metadata has already been sliced to the required
+        * number of semesters/years in _buildRenderModelAll().
+        */
+        const sequenceCount = Math.max(
+            ...templateRows.map(
+                row => (row.columns || []).length
+            )
+        );
+
+        const labelPrefix =
+            meta.responsive?.sequenceLabel || '';
+
+        for (let seq = 1; seq <= sequenceCount; seq++) {
+
+            const fieldColumns = [];
+
+            templateRows.forEach((templateRow, rowIndex) => {
+                const templateColumn =
+                    templateRow.columns?.[seq - 1];
+
+                if (!templateColumn) {
+                    return;
+                }
+
+                (templateColumn.fields || []).forEach(
+                    (fieldApi, fieldIndex) => {
+
+                        let fieldMeta =
+                            (meta.fields || []).find(
+                                f =>
+                                    f.api === fieldApi &&
+                                    Number(f.sequence) === Number(seq)
+                            );
+
+                        if (!fieldMeta) {
+                            fieldMeta =
+                                (meta.fields || []).find(
+                                    f => f.api === fieldApi
+                                );
+                        }
+
+                        if (!fieldMeta) {
+                            return;
+                        }
+
+                        const fieldGroup =
+                            fieldMeta.group || 'default';
+
+                        if (
+                            groupFilter &&
+                            fieldGroup !== groupFilter
+                        ) {
+                            return;
+                        }
+
+                        const metaForRender =
+                            this._resolveFieldMeta(
+                                sectionKey,
+                                {
+                                    ...fieldMeta,
+                                    sectionKey,
+                                    sequence: seq
+                                }
+                            );
+
+                        if (!this._isFieldVisible(metaForRender)) {
+                            return;
+                        }
+
+                        this._applyDynamicFilter(
+                            metaForRender
+                        );
+
+                        const span =
+                            metaForRender.span ||
+                            Number(templateColumn.width) ||
+                            3;
+
+                        fieldColumns.push({
+                            key:
+                                `${meta.key}-responsive-${seq}-${rowIndex}-${fieldIndex}`,
+                            widthStyle:
+                                `grid-column:span ${span};`,
+                            fields: [{
+                                key:
+                                    `${meta.key}-${fieldApi}-${seq}`,
+                                meta: metaForRender,
+                                value:
+                                    this._getValueForField(
+                                        sectionKey,
+                                        fieldApi,
+                                        seq
+                                    )
+                            }]
+                        });
+                    }
+                );
+            });
+
+            if (!fieldColumns.length) {
+                continue;
+            }
+
+            const sequenceLabel =
+                labelPrefix
+                    ? `${labelPrefix} ${seq}`
+                    : `${seq}`;
+
+            // Sequence heading
+            rows.push({
+                key: `${meta.key}-responsive-sequence-${seq}`,
+                style:
+                    'display:grid;' +
+                    'grid-template-columns:1fr;' +
+                    'gap:8px;margin-bottom:4px;',
+                columns: [{
+                    key:
+                        `${meta.key}-responsive-sequence-label-${seq}`,
+                    widthStyle:
+                        'grid-column:1 / -1 !important;',
+                    fields: [{
+                        key:
+                            `${meta.key}-responsive-sequence-label-field-${seq}`,
+                        meta: {
+                            type: 'label',
+                            label: sequenceLabel
+                        },
+                        value: null
+                    }]
+                }]
+            });
+
+            // Fields belonging to this sequence
+            rows.push({
+                key: `${meta.key}-responsive-fields-${seq}`,
+                style:
+                    `display:grid;` +
+                    `grid-template-columns:repeat(${meta.columnSystem || 12},1fr);` +
+                    `gap:8px;margin-bottom:12px;`,
+                columns: fieldColumns
+            });
+        }
 
         return rows;
     }

@@ -1,5 +1,20 @@
-.phone-wrapper {
+/*.phone-wrapper {
     display: grid;
     grid-template-columns: 35% 60%;
     gap: 8px;
+}*/
+
+.phone-wrapper {
+    display: grid;
+    grid-template-columns: minmax(110px, 35%) minmax(0, 1fr);
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media screen and (max-width: 600px) {
+    .phone-wrapper {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
 }

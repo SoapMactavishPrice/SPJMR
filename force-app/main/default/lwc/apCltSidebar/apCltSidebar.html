@@ -8,14 +8,19 @@
             data-page={item.page}
             class={item.class}
             onclick={handleMenuClick}>
-                <lightning-icon icon-name={item.icon}
-                                size="small"
-                                class="slds-m-right_small icon-white">
+
+                <lightning-icon
+                    icon-name={item.icon}
+                    size="small"
+                    class="slds-m-right_small icon-white">
                 </lightning-icon>
-                {item.label}
+
+                <span title={item.label} class="menu-label">{item.label}</span>
+
                 <template lwc:if={item.badgeCount}>
                     <span class="badge">{item.badgeCount}</span>
                 </template>
+
             </a>
             </template>
         </template>

@@ -5,6 +5,9 @@ private class LeadPublicAPIServiceTest {
     static void setupData() {
 		User u=createSystemAdminUser();
         System.RunAs(u){
+            Insert new Hierarchy_Programme__c(All_Programme_Codes__c='PGDM,PGDM-BM,PGDM&PGDM-BM',
+                                             All_Paid_Statuses__c='Paid For PGDM,Paid For PGDM-BM,Paid'
+                                              ,Name__c='Parent Program PGDM');
         Country_Master__c india = new Country_Master__c(
     Name = 'India',
     Country_Code__c = '+91',
@@ -483,8 +486,8 @@ static void testProcessApplicantPath() {
     static void testExecute_gmpApplicant_acceptingBatch_createsOpportunityAndApplication() {
 
         User admin = createSystemAdminUser();
-
-        Program gmp = new Program(
+        system.runAs(admin){
+            Program gmp = new Program(
             Name = 'GMP', Program_Code__c = 'GMP', Short_Programme_Code__c = 'GM', IsActive = true,
             StartDate = System.Today(), Programme_Type__c = 'Full-time', Programme_Sub_Type__c = 'Class Room'
         );
@@ -529,12 +532,14 @@ static void testProcessApplicantPath() {
             '"Phone":"+919888877771",' +
             '"Programme":"GMP"' +
             '}]';
-
-        Test.startTest();
+            
+            Test.startTest();
         LeadPublicAPIService.ProcessOutcome result = LeadPublicAPIService.execute(body);
         Test.stopTest();
+        }
+        
 
-        List<Opportunity> opps = [SELECT Id, Application__c FROM Opportunity WHERE AccountId = :acc.Id];
+        
     }
     @IsTest
     static void testExecute_gmpApplicant_noAcceptingBatch_blocked() {
@@ -570,4 +575,154 @@ static void testProcessApplicantPath() {
         System.assert(result.responseJson.contains('APPLICANT_NOT_ACCEPTING'));
     }
     
+     @IsTest
+    static void testExecute_gmpApplicant_inProgressApplication_blocked() {
+ 
+        Program gmp = new Program(
+            Name = 'GMP In Progress', Program_Code__c = 'GMPIP', Short_Programme_Code__c = 'GI', IsActive = true,
+            StartDate = System.Today(), Programme_Type__c = 'Full-time', Programme_Sub_Type__c = 'Class Room'
+        );
+        insert gmp;
+ 
+        Id applicantRtId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Applicant').getRecordTypeId();
+        Account acc = new Account(
+            RecordTypeId = applicantRtId, FirstName = 'InProgress', LastName = 'Applicant',
+            PersonEmail = 'inprogressapplicant@test.com', PersonMobilePhone = '+919888800001'
+        );
+        insert acc;
+ 
+        insert new ProgramCohort(
+            Name = 'GMP IP Batch', ProgramId = gmp.Id, Application_Code__c = 'GIP1',
+            IsAcceptingApplications__c = true, Batch_Code__c = 'GIP1', Batch_Sub_Type__c = 'Class Room'
+        );
+ 
+        insert new Application__c(
+            Applicant__c = acc.Id,
+            Program__c = gmp.Id,
+            Application_Status__c = 'Initiated'
+        );
+ 
+        String body =
+            '[{' +
+            '"FirstName":"InProgress",' +
+            '"LastName":"Applicant",' +
+            '"Email":"inprogressapplicant@test.com",' +
+            '"Phone":"+919888800001",' +
+            '"Programme":"GMPIP"' +
+            '}]';
+ 
+        Test.startTest();
+        LeadPublicAPIService.ProcessOutcome result = LeadPublicAPIService.execute(body);
+        Test.stopTest();
+ 
+        List<Opportunity> opps = [SELECT Id FROM Opportunity WHERE AccountId = :acc.Id];
+        System.assertEquals(0, opps.size());
+        System.assert(result.responseJson.contains('APPLICANT_OPPORTUNITY_ALREADY_EXISTS'));
+    }
+ 
+    // ------------------------------------------------------------
+    // NEW: existing applicant submits a different phone number than what's
+    // on file, with PersonOtherPhone blank. Covers the alternate-phone-update
+    // branch of processApplicantPath (APPLICANT_ALTERNATE_PHONE_UPDATED),
+    // which no existing test reached.
+    // ------------------------------------------------------------
+    @IsTest
+    static void testExecute_gmpApplicant_alternatePhoneUpdated() {
+ 
+        User admin = createSystemAdminUser();
+ 
+        System.runAs(admin) {
+ 
+            Program gmp = new Program(
+                Name = 'GMP Alt Phone', Program_Code__c = 'GMPALT', Short_Programme_Code__c = 'GA', IsActive = true,
+                StartDate = System.Today(), Programme_Type__c = 'Full-time', Programme_Sub_Type__c = 'Class Room'
+            );
+            insert gmp;
+ 
+            // The system looks up the applicant's own portal user (via
+            // Contact.AccountId) to own the Application/Personal_Detail__c it
+            // creates, so every Account that's expected to reach that path
+            // needs both an admin owner and a matching portal user.
+            Id applicantRtId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName().get('Applicant').getRecordTypeId();
+            Account acc = new Account(
+                RecordTypeId = applicantRtId, OwnerId = admin.Id, FirstName = 'Alt', LastName = 'Phone',
+                PersonEmail = 'altphoneapplicant@test.com', PersonMobilePhone = '+919888800002'
+            );
+            insert acc;
+ 
+            acc = [SELECT Id, PersonContactId FROM Account WHERE Id = :acc.Id];
+ 
+            Profile applicantProfile = [SELECT Id FROM Profile WHERE Name = 'SPJIMR Applicant' LIMIT 1];
+            User applicantUser = new User(
+                // Email and Username are the same, as the customer-portal
+                // user record for this account.
+                Username = 'altphoneapplicant@test.com',
+                Alias = 'altph',
+                Email = 'altphoneapplicant@test.com',
+                LastName = 'Phone',
+                FirstName = 'Alt',
+                CommunityNickname = 'altph' + System.currentTimeMillis(),
+                TimeZoneSidKey = 'Asia/Kolkata',
+                LocaleSidKey = 'en_US',
+                EmailEncodingKey = 'UTF-8',
+                LanguageLocaleKey = 'en_US',
+                ProfileId = applicantProfile.Id,
+                ContactId = acc.PersonContactId
+            );
+            insert applicantUser;
+ 
+            insert new ProgramCohort(
+                Name = 'GMP Alt Batch', ProgramId = gmp.Id, Application_Code__c = 'GA1',
+                IsAcceptingApplications__c = true, Batch_Code__c = 'GA1', Batch_Sub_Type__c = 'Class Room'
+            );
+ 
+            // Same email as the existing account, but a different phone number --
+            // exercises the alternate-phone-update branch of processApplicantPath.
+            String body =
+                '[{' +
+                '"FirstName":"Alt",' +
+                '"LastName":"Phone",' +
+                '"Email":"altphoneapplicant@test.com",' +
+                '"Phone":"+919888800003",' +
+                '"Programme":"GMPALT"' +
+                '}]';
+ 
+            Test.startTest();
+            LeadPublicAPIService.ProcessOutcome result = LeadPublicAPIService.execute(body);
+            Test.stopTest();
+ 
+            Account updatedAcc = [SELECT Id, PersonOtherPhone FROM Account WHERE Id = :acc.Id];
+            System.assert(result.responseJson.contains('APPLICANT_ALTERNATE_PHONE_UPDATED'));
+            System.assertNotEquals(null, updatedAcc.PersonOtherPhone);
+        }
+    }
+ 
+    
+    // ------------------------------------------------------------
+    // NEW: phone number missing the leading "+". Covers the isValidPhone()
+    // "false" branch and its row-error message in execute(), which no
+    // existing test reached (testMissingRequiredFields short-circuits on
+    // the blank-phone check before ever calling isValidPhone).
+    // ------------------------------------------------------------
+    @IsTest
+    static void testInvalidPhoneFormat_missingPlusSign() {
+ 
+        String body =
+            '[{' +
+            '"FirstName":"NoPlus",' +
+            '"LastName":"Phone",' +
+            '"Email":"noplusphone@test.com",' +
+            '"Phone":"919999999999",' +
+            '"Programme":"PGDM"' +
+            '}]';
+ 
+        Test.startTest();
+        LeadPublicAPIService.ProcessOutcome result = LeadPublicAPIService.execute(body);
+        Test.stopTest();
+ 
+        System.assertEquals(400, result.statusCode);
+        System.assert(
+            result.responseJson.contains('must include the country code 91 and start with +')
+        );
+    }
 }

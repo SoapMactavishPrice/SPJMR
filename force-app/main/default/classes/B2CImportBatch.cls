@@ -1,6 +1,6 @@
 global class B2CImportBatch implements Database.Batchable<sObject> {
 
-    global Database.QueryLocator start(Database.BatchableContext BC) {
+    global Database.QueryLocator start(Database.BatchableContext BC) { 
         String query = 'SELECT Id, Name, CreatedDate, Name__c, Email__c,'+
             'Phone__c, Country__c, State__c, City__c, Years_of_Work_Experience__c,'+
             'Do_you_have_Entrance_Exam_Scores__c, Entrance_Exam_Name__c, SPJIMR_Partner_Company__c,'+
@@ -132,6 +132,20 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
         for (Program p : programCodeToProgram.values()) {
             programIds.add(p.Id);
         }
+        Set<Id> parentProgramIds = new Set<Id>();
+        for (Program p : programCodeToProgram.values()) {
+            if (p.ParentProgramId != null) {
+                parentProgramIds.add(p.ParentProgramId);
+            }
+        }
+        Map<Id, Program> parentProgramById = new Map<Id, Program>();
+        if (!parentProgramIds.isEmpty()) {
+            for (Program parentProg : [SELECT Id, Name, Program_Code__c FROM Program
+                WHERE Id IN :parentProgramIds
+            ]) {
+                parentProgramById.put(parentProg.Id, parentProg);
+            }
+        }
 
         Set<Id> accountIds = new Set<Id>();
         for (Account acc : mapEmailToAccount.values()) accountIds.add(acc.Id);
@@ -189,7 +203,7 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
                 }
                 applicationsByAccountProgramKey.get(key).add(app);
             }
-
+            Set<String> hierarchyProgramCodes = ConvertB2CLeadController.getAllProgramCodes();
             for (Opportunity o : [
                 SELECT Id, AccountId, Program__c, Program__r.Program_Code__c, Program__r.ParentProgramId,
                        Application__c, Application__r.Id, Application__r.Application_Status__c,
@@ -198,7 +212,7 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
                 FROM Opportunity
                 WHERE AccountId IN :accountIds
                 AND Application__c != null
-                AND Program__r.Program_Code__c IN ('PGDM', 'PGDM-BM', 'PGDM&PGDM-BM')
+                AND Program__r.Program_Code__c IN :hierarchyProgramCodes
                 ORDER BY CreatedDate DESC
             ]) {
                 if (!pgdmFamilyOpportunitiesByAccountId.containsKey(o.AccountId)) {
@@ -253,12 +267,7 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
                 Program prog = programCodeToProgram.get(programCode);
                 if (prog == null) continue;
 
-                // ------------------------------------------------------------
-                // Account path -- this import row's email/phone already
-                // belongs to an Applicant Account. Route through the same
-                // decision rules OpportunityApplicationService uses, without
-                // per-row SOQL (everything read from the prefetched maps above).
-                // ------------------------------------------------------------
+           
                 Account existingAccount = null;
                 if (email != null && mapEmailToAccount.containsKey(email)) {
                     existingAccount = mapEmailToAccount.get(email);
@@ -271,7 +280,7 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
                         ld, existingAccount, prog, isSiblingOppEnabled,
                         acceptingApplicationCodesByProgramId, acceptingBatchIdsByProgramId,
                         acceptingShortBatchCodesByProgramId,
-                        applicationsByAccountProgramKey, pgdmFamilyOpportunitiesByAccountId,
+                        applicationsByAccountProgramKey, pgdmFamilyOpportunitiesByAccountId,parentProgramById,
                         oppsToInsert, oppIndexToImportRow, oppIndexToAccount,
                         applicationsToUpdate, existingOppsToUpdate
                     );
@@ -496,6 +505,7 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
         Map<Id, Set<String>> acceptingShortBatchCodesByProgramId,
         Map<String, List<Application__c>> applicationsByAccountProgramKey,
         Map<Id, List<Opportunity>> pgdmFamilyOpportunitiesByAccountId,
+        Map<Id, Program> parentProgramById,
         List<Opportunity> oppsToInsert,
         Map<Integer, Lead_Import__c> oppIndexToImportRow,
         Map<Integer, Account> oppIndexToAccount,
@@ -584,7 +594,7 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
                         if (prog.ParentProgramId != null) {
                             oppUpdate.Program__c = prog.ParentProgramId;
                         }
-                        String parentName = getParentProgramDisplayName(prog);
+                        String parentName = getParentProgramDisplayName(prog, parentProgramById);
                         String fn = String.isNotBlank(firstName) ? firstName.trim() : 'Applicant';
                         oppUpdate.Name = (fn + ' ' + lastName).trim() + ' - ' + parentName;
                         oppUpdate.StageName = isPaid ? 'Payment' : 'Email Verified';
@@ -682,15 +692,13 @@ global class B2CImportBatch implements Database.Batchable<sObject> {
     }
 
     @TestVisible
-    private static String getParentProgramDisplayName(Program selectedProgram) {
+    private static String getParentProgramDisplayName(Program selectedProgram, Map<Id, Program> parentProgramById) {
         if (selectedProgram.ParentProgramId == null) {
             return String.isNotBlank(selectedProgram.Name) ? selectedProgram.Name : 'Program';
         }
-        List<Program> parentRows = [
-            SELECT Id, Name FROM Program WHERE Id = :selectedProgram.ParentProgramId LIMIT 1
-        ];
-        if (!parentRows.isEmpty() && String.isNotBlank(parentRows[0].Name)) {
-            return parentRows[0].Name;
+        Program parentProgram = parentProgramById != null ? parentProgramById.get(selectedProgram.ParentProgramId) : null;
+        if (parentProgram != null && String.isNotBlank(parentProgram.Name)) {
+            return parentProgram.Name;
         }
         return String.isNotBlank(selectedProgram.Name) ? selectedProgram.Name : 'Program';
     }

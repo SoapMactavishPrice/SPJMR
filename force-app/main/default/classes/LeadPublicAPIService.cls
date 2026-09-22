@@ -1,6 +1,7 @@
 public without sharing class LeadPublicAPIService {
-    @TestVisible
+    @TestVisible 
     public class ReferenceData {
+        Map<Id, Program> parentProgramById = new Map<Id, Program>();
         Map<String, Program> programByCode = new Map<String, Program>();
         Map<Id, Campaign> campaignById = new Map<Id, Campaign>();
         Id indiaCountryId;
@@ -434,6 +435,19 @@ public without sharing class LeadPublicAPIService {
         for (Program p : ref.programByCode.values()) {
             programIdsInBatch.add(p.Id);
         }
+        Set<Id> parentProgramIds= new Set<Id>();
+            for (Program p : ref.programByCode.values()) {
+                if (p.ParentProgramId!=null) {
+                    parentProgramIds.add(p.ParentProgramId);
+                }
+            }
+            if (!parentProgramIds.isEmpty()) {
+            for (Program parentProg : [SELECT Id, Name, Program_Code__c FROM Program 
+            WHERE Id IN :parentProgramIds
+            ]) {
+                ref.parentProgramById.put(parentProg.Id, parentProg);
+            }
+        }
 
         if (!programIdsInBatch.isEmpty()) {
             for (ProgramCohort pc : [
@@ -476,7 +490,7 @@ public without sharing class LeadPublicAPIService {
                 }
                 ref.applicationsByAccountProgramKey.get(key).add(app);
             }
-
+            Set<String> pgdmCodes = ConvertB2CLeadController.getAllProgramCodes();
             for (Opportunity o : [
                 SELECT Id, AccountId, Program__c, Program__r.Program_Code__c, Program__r.ParentProgramId,
                        Application__c, Application__r.Id, Application__r.Application_Status__c,
@@ -485,7 +499,7 @@ public without sharing class LeadPublicAPIService {
                 FROM Opportunity
                 WHERE AccountId IN :accountIds
                 AND Application__c != null
-                AND Program__r.Program_Code__c IN ('PGDM', 'PGDM-BM', 'PGDM&PGDM-BM')
+                AND Program__r.Program_Code__c IN :pgdmCodes
                 ORDER BY CreatedDate DESC
             ]) {
                 if (!ref.pgdmFamilyOpportunitiesByAccountId.containsKey(o.AccountId)) {
@@ -551,7 +565,7 @@ public without sharing class LeadPublicAPIService {
         if (prog == null) {
             throw new LeadPublicAPIException(LeadPublicAPIMessages.INVALID_PROGRAMME);
         }
-
+	system.debug('Prog is '+prog);
         LeadPublicAPIHelper.ResultWrapper rw = new LeadPublicAPIHelper.ResultWrapper();
         rw.leadId = acc.Id;
 
@@ -609,7 +623,7 @@ public without sharing class LeadPublicAPIService {
                     }
                                         if (OpportunityApplicationService.isIndividualSiblingProgrammeOpportunityEnabled()) {
                         Program parentProgram = prog.ParentProgramId != null
-                            ? getParentProgramRow(prog.ParentProgramId)
+                            ? ref.parentProgramById.get(prog.ParentProgramId)
                             : null;
 
                         Opportunity oppUpdate = new Opportunity(Id = existingOpp.Id);
@@ -717,8 +731,7 @@ public without sharing class LeadPublicAPIService {
         indexToOpp.put(rowIndex, opp);
         indexToAcc.put(rowIndex, acc);
 
-        rw.scenario = phoneUpdated
-            ? LeadPublicAPIHelper.Scenario.APPLICANT_ALTERNATE_PHONE_UPDATED
+        rw.scenario = phoneUpdated? LeadPublicAPIHelper.Scenario.APPLICANT_ALTERNATE_PHONE_UPDATED
             : LeadPublicAPIHelper.Scenario.APPLICANT_NEW_OPPORTUNITY;
 
         if (String.isNotBlank(lw.CampaignId) && ref.campaignById.containsKey((Id) lw.CampaignId)) {
@@ -973,15 +986,16 @@ public without sharing class LeadPublicAPIService {
         }
         return responses;
     }
-        private static Program getParentProgramRow(Id parentProgramId) {
-        List<Program> rows = [
-            SELECT Id, Name, Program_Code__c
-            FROM Program
-            WHERE Id = :parentProgramId
-            LIMIT 1
-        ];
-        return rows.isEmpty() ? null : rows[0];
-    }
+    /*Replaced by a map */
+    //     private static Program getParentProgramRow(Id parentProgramId) {
+    //     List<Program> rows = [
+    //         SELECT Id, Name, Program_Code__c
+    //         FROM Program
+    //         WHERE Id = :parentProgramId
+    //         LIMIT 1
+    //     ];
+    //     return rows.isEmpty() ? null : rows[0];
+    // }
     private static Boolean isValidPhone(String phone) {
         if (String.isBlank(phone)) {
             return false;

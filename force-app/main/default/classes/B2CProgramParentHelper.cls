@@ -1,5 +1,19 @@
 public without sharing class B2CProgramParentHelper {
 
+    private static Hierarchy_Programme__c getPGDMHierarchySetting() {
+    List<Hierarchy_Programme__c> settings = [
+        SELECT Id,
+               Name__c,
+               All_Programme_Codes__c,
+               All_Paid_Statuses__c
+        FROM Hierarchy_Programme__c
+        WHERE Name__c = 'Parent Program PGDM'
+        LIMIT 1
+    ];
+
+    return settings.isEmpty() ? null : settings[0];
+}
+
     /* 
      * PGDM family programs share the same Application Number
      * sequence and Application record across cycles.
@@ -13,15 +27,24 @@ public without sharing class B2CProgramParentHelper {
             return false;
         }
 
-        Set<String> pgdmCodes = new Set<String>{
-            'PGDM',
-            'PGDM-BM',
-            'PGDM&PGDM-BM'
-        };
+        Hierarchy_Programme__c setting = getPGDMHierarchySetting();
 
-        return pgdmCodes.contains(
-            programRecord.Program_Code__c.trim()
-        );
+    if (setting == null ||
+        String.isBlank(setting.All_Programme_Codes__c)) {
+        return false;
+    }
+
+    Set<String> pgdmCodes = new Set<String>();
+
+    for (String code : setting.All_Programme_Codes__c.split(',')) {
+        if (String.isNotBlank(code)) {
+            pgdmCodes.add(code.trim());
+        }
+    }
+system.debug('Codes are  '+pgdmCodes + ' '+pgdmCodes.contains(programRecord.Program_Code__c.trim()));
+    return pgdmCodes.contains(
+        programRecord.Program_Code__c.trim()
+    );
     }
 
 
@@ -174,8 +197,7 @@ public without sharing class B2CProgramParentHelper {
             LIMIT 1
         ];
 
-        return batches.isEmpty()
-            ? null
+        return batches.isEmpty()? null
             : batches[0];
     }
 
@@ -304,15 +326,13 @@ public without sharing class B2CProgramParentHelper {
          * PGDM-family programs can have different cohort records
          * for the same application cycle.
          */
-        ProgramCohort currentBatch =
-            getCurrentlyAcceptingBatch(programId);
+        ProgramCohort currentBatch = getCurrentlyAcceptingBatch(programId);
 
         if (currentBatch == null) {
             return result;
         }
 
-        String currentApplicationCode =
-            currentBatch.Application_Code__c;
+        String currentApplicationCode = currentBatch.Application_Code__c;
 
 
         /*
@@ -385,8 +405,7 @@ public without sharing class B2CProgramParentHelper {
             }
 
 
-            result.applicationId =
-        opportunityRecord.Application__c;
+            result.applicationId =opportunityRecord.Application__c;
 
     result.canReuse = true;
     result.alreadyRegistered = false;

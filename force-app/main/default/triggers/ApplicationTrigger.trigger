@@ -8,16 +8,16 @@ trigger ApplicationTrigger on Application__c (after insert, after update, before
     if(Trigger.isAfter) {
         if(Trigger.isInsert) {
             SharingOrchestrator.handleRecords('Application__c', Trigger.newMap.Keyset());
-            ApplicationTriggerHandler.handleGMPEmail(
-                Trigger.new, null
-            );
+            // ApplicationTriggerHandler.handleGMPEmail(
+            //     Trigger.new, null
+            // );
             ApplicationTriggerHandler.handleAfterInsertPgdmSync(Trigger.new);
         }
         if(Trigger.isUpdate) {
             SharingOrchestrator.processRecordsToUpdate(Trigger.new,Trigger.oldMap);
-            ApplicationTriggerHandler.handleGMPEmail(
-                Trigger.new, Trigger.oldMap
-            );
+            // ApplicationTriggerHandler.handleGMPEmail(
+            //     Trigger.new, Trigger.oldMap
+            // );
             ApplicationTriggerHandler.handleApplicationStatusChangeScenarios(Trigger.new, Trigger.oldMap);
             ApplicationTriggerHandler.handleDeclineWithdrawalQuestionnaireCleanup(Trigger.new, Trigger.oldMap);
             ApplicationTriggerHandler.handleAdmissionDecisionOfferStatusUpdate(Trigger.new, Trigger.oldMap);

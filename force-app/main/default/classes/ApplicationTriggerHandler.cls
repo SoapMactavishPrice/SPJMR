@@ -12,18 +12,46 @@ public without sharing class ApplicationTriggerHandler {
 
     private static final Set<String> DECLINE_WITHDRAWAL_STATUSES = new Set<String>{ 'Withdrawn', 'Offer Not Accepted' };
 
+    private static final Set<String> PAID_STATUSES = new Set<String>();
+    private static final Set<String> INITIATED_STATUSES = new Set<String>();
+    private static final Boolean STATUSES_LOADED = loadStatuses();
+
     private static final Map<String, CommunicationsController.CommunicationScenario> STATUS_TO_SCENARIO = new Map<String, CommunicationsController.CommunicationScenario>{
         'Offer Accepted' => CommunicationsController.CommunicationScenario.OFFER_ACCEPTED,
         'Withdrawn'       => CommunicationsController.CommunicationScenario.OFFER_WITHDRAWN,
         'Offer Not Accepted' => CommunicationsController.CommunicationScenario.OFFER_NOT_ACCEPTED
     };
 
+    private static Boolean loadStatuses() {
+        for (Hierarchy_Programme__c hp : [SELECT All_Paid_Statuses__c, All_Initiated_Statuses__c FROM Hierarchy_Programme__c]) {
+            if (String.isNotBlank(hp.All_Paid_Statuses__c)) {
+                for (String status : hp.All_Paid_Statuses__c.split(',')) {
+                    if (String.isNotBlank(status)) {
+                        PAID_STATUSES.add(status.trim());
+                    }
+                }
+            }
+            if (String.isNotBlank(hp.All_Initiated_Statuses__c)) {
+                for (String status : hp.All_Initiated_Statuses__c.split(',')) {
+                    if (String.isNotBlank(status)) {
+                        INITIATED_STATUSES.add(status.trim());
+                    }
+                }
+            }
+        }
+        if (PAID_STATUSES.isEmpty()) {
+            PAID_STATUSES.add(STAGE_PAID);
+        }
+        if (INITIATED_STATUSES.isEmpty()) {
+            INITIATED_STATUSES.add(STAGE_INITIATED);
+        }
+        return true;
+    }
     /**
      * Application_Stage__c value (label or common API value) → Opportunity StageName to set.
      */
     private static final Map<String, String> APP_STAGE_TO_OPP_STAGE = buildApplicationStageToOpportunityStageMap();
 
-    
     private static Map<String, String> buildApplicationStageToOpportunityStageMap() {
         Map<String, String> m = new Map<String, String>();
         m.put('Academic Details', 'Academic Details');
@@ -100,7 +128,6 @@ public without sharing class ApplicationTriggerHandler {
             SELECT Id, StageName, Application__c, Stage_Initiated_Date__c
             FROM Opportunity
             WHERE Application__c IN :applicationIds
-            AND StageName !=:STAGE_PAID
         ]) {
             Application__c app = findApplicationForOpp(newList, opp.Application__c);
             Application__c oldApp = oldMap.get(opp.Application__c);
@@ -130,13 +157,11 @@ public without sharing class ApplicationTriggerHandler {
      * @param oldApp Old Application version.
      * @return Whether opportunity sync should run for this row.
      */
-    
     private static Boolean hasRelevantChange(Application__c app, Application__c oldApp) {
         return app.Application_Status__c != oldApp.Application_Status__c
             || app.Application_Stage__c != oldApp.Application_Stage__c;
     }
 
-    
     private static Application__c findApplicationForOpp(List<Application__c> newList, Id applicationId) {
         for (Application__c a : newList) {
             if (a.Id == applicationId) {
@@ -153,14 +178,27 @@ public without sharing class ApplicationTriggerHandler {
      * @param oldApp Old Application version.
      * @return Opportunity StageName to apply, or null to leave unchanged.
      */
-    
     private static String resolveOpportunityStage(Application__c app, Application__c oldApp) {
-        if (changedTo(app.Application_Status__c, oldApp.Application_Status__c, STAGE_INITIATED)) {
+        Boolean isInitiated = 
+        app.Application_Status__c != null && INITIATED_STATUSES.contains(app.Application_Status__c)
+        && oldApp.Application_Status__c != app.Application_Status__c;
+
+        if(isInitiated ){
             return STAGE_INITIATED;
         }
-        if (changedTo(app.Application_Status__c, oldApp.Application_Status__c, STAGE_PAID)) {
+        Boolean isPaid = 
+        app.Application_Status__c != null && PAID_STATUSES.contains(app.Application_Status__c)
+        && oldApp.Application_Status__c != app.Application_Status__c;
+        if(isPaid){
             return STAGE_PAID;
         }
+
+        // if (changedTo(app.Application_Status__c, oldApp.Application_Status__c, STAGE_INITIATED)) {
+        //     return STAGE_INITIATED;
+        // }
+        // if (changedTo(app.Application_Status__c, oldApp.Application_Status__c, STAGE_PAID)) {
+        //     return STAGE_PAID;
+        // }
         if (app.Application_Stage__c != oldApp.Application_Stage__c) {
             String mapped = mapApplicationStageToOpportunityStage(app.Application_Stage__c);
             if (String.isNotBlank(mapped)) {
@@ -176,7 +214,6 @@ public without sharing class ApplicationTriggerHandler {
      * @param applicationStageRaw Current Application_Stage__c value.
      * @return Opportunity stage string, or null if not in the configured set.
      */
-    
     private static String mapApplicationStageToOpportunityStage(String applicationStageRaw) {
         if (String.isBlank(applicationStageRaw)) {
             return null;
@@ -194,7 +231,6 @@ public without sharing class ApplicationTriggerHandler {
         return null;
     }
 
-    
     private static Boolean changedTo(String newVal, String oldVal, String target) {
         return newVal == target && oldVal != target;
     }
@@ -205,16 +241,16 @@ public without sharing class ApplicationTriggerHandler {
      * @param newList Trigger.new Application rows.
      * @param oldMap Trigger.oldMap, or null on insert (not used on after update only trigger).
      */
-    public static void handleGMPEmail(List<Application__c> newList, Map<Id, Application__c> oldMap) {
-        // for (Application__c app : newList) {
-        //     Application__c oldApp = oldMap != null ? oldMap.get(app.Id) : null;
+    // public static void handleGMPEmail(List<Application__c> newList, Map<Id, Application__c> oldMap) {
+    //     for (Application__c app : newList) {
+    //         Application__c oldApp = oldMap != null ? oldMap.get(app.Id) : null;
 
-        //     Boolean statusChanged =
-        //         oldApp == null || oldApp.Application_Status__c != app.Application_Status__c;
+    //         Boolean statusChanged =
+    //             oldApp == null || oldApp.Application_Status__c != app.Application_Status__c;
 
-        //     if (statusChanged && app.Application_Status__c == 'Submitted') {
-        //         Map<String, Object> flowInputs = new Map<String, Object>();
-        //         flowInputs.put('recordId', app.Id);
+    //         if (statusChanged && app.Application_Status__c == 'Submitted') {
+    //             Map<String, Object> flowInputs = new Map<String, Object>();
+    //             flowInputs.put('recordId', app.Id);
 
         //         Flow.Interview.GMP_Application_Submitted_Email_Notification myFlow = new Flow.Interview.GMP_Application_Submitted_Email_Notification(
         //             flowInputs
@@ -223,7 +259,7 @@ public without sharing class ApplicationTriggerHandler {
         //         myFlow.start();
         //     }
         // }
-    }
+    //}
 
     public static void handleApplicationStatusChangeScenarios(List<Application__c> newList, Map<Id, Application__c> oldMap) {
 

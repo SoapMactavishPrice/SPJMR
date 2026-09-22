@@ -2,12 +2,16 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    width: 100vw;
+    width: 100%;
     position: fixed;
     top: 0;
     left: 0;
     z-index: 1;
 }
+
+/* =========================
+   HEADER
+   ========================= */
 
 .THIS .headerContainer {
     height: 60px;
@@ -15,54 +19,194 @@
     top: 0;
     left: 0;
     right: 0;
-    z-index: 10;
+    z-index: 1000;
     background: #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+
+/* =========================
+   BODY
+   ========================= */
+
 .THIS .bodyContainer {
     display: flex;
     flex: 1;
-    margin-top: 60px; /* leave room for header */
+    margin-top: 60px;
     min-height: calc(100vh - 60px);
     overflow: hidden;
+    position: relative;
 }
 
-/* Sidebar column */
+
+/* =========================
+   SIDEBAR - DESKTOP
+   ========================= */
+
 .THIS .sidebarContainer {
     display: flex;
     flex-direction: column;
+
     width: 250px;
+    min-width: 250px;
+
     height: 100%;
-    transition: width 0.3s ease;
+
     background: #f8f8f8;
     border-right: 1px solid #e5e5e5;
+
     overflow: hidden;
+
+    transition:
+        width 0.3s ease,
+        min-width 0.3s ease;
+
+    z-index: 900;
 }
 
 .THIS .sidebarContainer.closed {
     width: 0;
+    min-width: 0;
+    border-right: none;
 }
 
-/* Make any child inside sidebar stretch */
+
+/* Keep sidebar component stretched */
+
 .THIS .sidebarContainer > * {
     flex: 1;
     height: 100%;
     width: 100%;
-}
-
-/* Main content area */
-.THIS .contentContainer {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.3s ease;
-    overflow-y: auto;
-    background: #fff;
     min-width: 0;
 }
 
-/* Override Salesforce theme layout default max-width/padding constraints */
+
+/* =========================
+   MAIN CONTENT
+   ========================= */
+
+.THIS .contentContainer {
+    flex: 1;
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow-y: auto;
+    overflow-x: auto;
+
+    background: #fff;
+
+    transition: width 0.3s ease;
+}
+
+
+/* =========================
+   TABLET
+   ========================= */
+
+@media screen and (max-width: 900px) {
+
+    .THIS .sidebarContainer {
+        width: 220px;
+        min-width: 220px;
+    }
+
+    .THIS .sidebarContainer.closed {
+        width: 0;
+        min-width: 0;
+    }
+
+    .THIS .contentContainer {
+        min-width: 0;
+    }
+}
+
+
+/* =========================
+   MOBILE
+   ========================= */
+
+@media screen and (max-width: 600px) {
+
+    .THIS .bodyContainer {
+        position: relative;
+    }
+
+    /*
+     * Sidebar becomes an overlay.
+     * It no longer occupies layout width.
+     */
+    .THIS .sidebarContainer {
+        position: absolute;
+
+        top: 0;
+        left: 0;
+
+        width: 260px;
+        min-width: 260px;
+
+        height: 100%;
+
+        border-right: none;
+
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.25);
+
+        transform: translateX(0);
+
+        transition:
+            transform 0.3s ease;
+    }
+
+    /*
+     * Closed = slide completely outside viewport
+     */
+    .THIS .sidebarContainer.closed {
+        width: 260px;
+        min-width: 260px;
+
+        transform: translateX(-100%);
+    }
+
+    /*
+     * Content ALWAYS gets full width on mobile
+     */
+    .THIS .contentContainer {
+        width: 100%;
+        margin-left: 0;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}
+
+
+/* =========================
+   SMALL PHONES
+   ========================= */
+
+@media screen and (max-width: 400px) {
+
+    .THIS .sidebarContainer {
+        width: 85vw;
+        min-width: 85vw;
+    }
+
+    .THIS .sidebarContainer.closed {
+        width: 85vw;
+        min-width: 85vw;
+    }
+
+    .THIS .contentContainer {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}
+
+
+/* =========================
+   SALESFORCE THEME OVERRIDE
+   ========================= */
+
 .themeLayoutInner,
 .forceCommunityThemeLayout,
 .siteforceThemeLayout,
@@ -73,4 +217,66 @@
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+}
+
+/* =========================================================
+   MOBILE SIDEBAR
+   ========================================================= */
+
+@media screen and (max-width: 600px) {
+
+    /* Keep the content at full width */
+    .THIS .bodyContainer {
+        position: relative;
+    }
+
+    .THIS .contentContainer {
+        width: 100%;
+        min-width: 0;
+    }
+
+    /*
+     * Sidebar becomes an overlay drawer on mobile.
+     * It does NOT consume space from the form.
+     */
+    .THIS .sidebarContainer {
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        width: 260px;
+        min-width: 260px;
+        height: 100%;
+
+        z-index: 900;
+
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.25);
+
+        transform: translateX(0);
+        transition: transform 0.3s ease;
+    }
+
+    /*
+     * Closed = slide completely off screen
+     */
+    .THIS .sidebarContainer.closed {
+        width: 260px;
+        min-width: 260px;
+
+        transform: translateX(-100%);
+    }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media screen and (max-width: 400px) {
+
+    .THIS .sidebarContainer,
+    .THIS .sidebarContainer.closed {
+        width: 85vw;
+        min-width: 85vw;
+    }
 }

@@ -214,6 +214,38 @@ private class ApplicationTriggerHandlerTest {
 
         System.assertEquals('Prospecting', updatedOpp.StageName);
     }
+        @IsTest
+    static void testPGDMPaidStatusVariantUpdatesOpportunity() {
+
+        insert new Hierarchy_Programme__c(
+            Name__c = 'Parent Program PGDM',
+            All_Paid_Statuses__c = 'Paid,Paid For PGDM,Paid For PGDM-BM',
+            All_Programme_Codes__c = 'PGDM,PGDM-BM,PGDM&PGDM-BM',
+            All_Initiated_Statuses__c = 'Initiated'
+        );
+
+        Application__c app = createApplication();
+        Opportunity opp = createOpportunity(app.Id);
+
+        Application__c oldApp = app.clone(false, true, false, false);
+
+        app.Application_Status__c = 'Paid For PGDM';
+
+        Test.startTest();
+        ApplicationTriggerHandler.handleAfterUpdate(
+            new List<Application__c>{app},
+            new Map<Id, Application__c>{app.Id => oldApp}
+        );
+        Test.stopTest();
+
+        Opportunity updatedOpp = [
+            SELECT StageName
+            FROM Opportunity
+            WHERE Id = :opp.Id
+        ];
+
+        System.assertEquals('Paid', updatedOpp.StageName);
+    }
 
     // ===== handleApplicationStatusChangeScenarios / communicateTheDecision =====
 
@@ -575,7 +607,7 @@ private class ApplicationTriggerHandlerTest {
         // System.assertEquals(null, ApplicationTriggerHandler.getProgrammesInterestedIn(null));
 
         // System.assertEquals(true, ApplicationTriggerHandler.isPaymentLocked(new Application__c(Application_Status__c = 'Paid')));
-        // System.assertEquals(true, ApplicationTriggerHandler.isPaymentLocked(new Application__c(Application_Stage__c = 'Payment')));
+        // System.assertEquals(true, ApplicationTriggerHatestPGDMPaidStatusVariantUpdatesOpportunityndler.isPaymentLocked(new Application__c(Application_Stage__c = 'Payment')));
         // System.assertEquals(false, ApplicationTriggerHandler.isPaymentLocked(new Application__c(Application_Status__c = 'Paid')));
 
         // System.assertEquals('', ApplicationTriggerHandler.normalizeMultiPicklist(null));

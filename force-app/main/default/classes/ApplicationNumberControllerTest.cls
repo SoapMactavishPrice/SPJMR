@@ -1,5 +1,14 @@
 @IsTest
 private class ApplicationNumberControllerTest {
+    @TestSetup
+static void setupData() {
+    insert new Hierarchy_Programme__c(
+        Name = 'Hierarchy Programme (Test)',
+        Name__c = 'Parent Program PGDM',
+        All_Programme_Codes__c = 'PGDM,PGDM-BM,PGDM&PGDM-BM',
+        All_Paid_Statuses__c = 'Paid,Paid For PGDM,Paid For PGDM-BM'
+    );
+}
 
     private static Id b2cOppRtId;
 

@@ -35,6 +35,14 @@ private class ConvertB2CLeadControllerTest {
             EndDate = System.Today().AddDays(3)
         );
         insert Program;
+            Hierarchy_Programme__c hierarchySetting = new Hierarchy_Programme__c(
+    Name = 'Hierarchy Programme (Profile)',
+    Name__c = 'Parent Program PGDM',
+    All_Programme_Codes__c = 'PGDM,PGDM-BM,PGDM&PGDM-BM',
+    All_Paid_Statuses__c = 'Paid,Paid For PGDM,Paid For PGDM-BM',
+    SetupOwnerId = admin.ProfileId
+);
+insert hierarchySetting;
         
         Lead lead = new Lead(
             RecordTypeId = Schema.SObjectType.Lead.getRecordTypeInfosByDeveloperName().get('B2C').getRecordTypeId(),

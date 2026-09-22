@@ -141,7 +141,7 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
                    Course_Activity__c, Session_Type__c, Remark__c,
                    Course__r.Name, Course__r.Course_Department__r.Name,
                    Program__r.Name, Program__r.Program_Code__c, Batch__r.Name,
-                   Academic_Year__r.Name, Term__r.Name
+                   Academic_Year__r.Name, Term__r.Name, Term__r.Programme_Email__c
             FROM   Session__c
             WHERE  Id IN :allSessionIds
         ]);
@@ -149,6 +149,7 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
         Map<Id, Set<String>> facultyBySession   = resolveFacultyEmails(allSessionIds);
         Map<Id, Set<String>> studentsBySession  = resolveStudentEmails(bothAudienceIds);
         Map<Id, Set<String>> divisionsBySession = resolveDivisionNames(allSessionIds);
+        Map<Id, Set<String>> progEmailsBySession = resolveProgrammeEmails(allSessionIds);
 
         for (Id sessionId : sessions.keySet()) {
             Session__c s = sessions.get(sessionId);
@@ -163,7 +164,24 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
             }
 
             AudienceEmails audience = new AudienceEmails();
-            audience.faculty   = facultyBySession.get(sessionId);
+            audience.faculty = facultyBySession.containsKey(sessionId)
+                ? new Set<String>(facultyBySession.get(sessionId))
+                : new Set<String>();
+            // Term-level Programme Email rides along on the FACULTY copy only — students are
+            // never meant to see it, and it must not create a separate calendar event.
+            // A shared session reaches several terms through its divisions, so every one of those
+            // programme offices is copied on the SAME faculty event.
+            // The header-term address is added unconditionally, exactly as it always has been —
+            // this line is untouched so single-term behaviour cannot regress.
+            if (s.Term__r != null && String.isNotBlank(s.Term__r.Programme_Email__c)) {
+                audience.faculty.add(s.Term__r.Programme_Email__c);
+            }
+            // The division walk is NEW, so it is guarded on a non-empty faculty set: it may only
+            // ever ADD offices to an event that already has a guest, never be the sole reason an
+            // event gets created for a session nobody is teaching.
+            if (!audience.faculty.isEmpty() && progEmailsBySession.containsKey(sessionId)) {
+                audience.faculty.addAll(progEmailsBySession.get(sessionId));
+            }
             audience.students  = studentsBySession.get(sessionId);
             audience.divisions = divisionsBySession.get(sessionId);
 
@@ -490,6 +508,39 @@ public class SessionCalendarInviteQueueable implements Queueable, Database.Allow
                 bySession.put(sd.Session__c, new Set<String>());
             }
             bySession.get(sd.Session__c).add(name);
+        }
+        return bySession;
+    }
+
+    /**
+     * @description Collects the Programme Email configured on EVERY term a session reaches through
+     *          its divisions. A session shared across programmes carries one Session_Division__c
+     *          row per division, and each division's term owns its own programme office address,
+     *          so this is what lets all of those offices ride the one existing faculty event.
+     * @param sessionIds The sessions to resolve programme emails for.
+     * @return Session id -> the distinct programme emails owed by that session's division terms.
+     */
+    private Map<Id, Set<String>> resolveProgrammeEmails(Set<Id> sessionIds) {
+        Map<Id, Set<String>> bySession = new Map<Id, Set<String>>();
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return bySession;
+        }
+        for (Session_Division__c sd : [
+            SELECT Session__c, Division__r.Term__r.Programme_Email__c
+            FROM   Session_Division__c
+            WHERE  Session__c IN :sessionIds
+              AND  Division__r.Term__r.Programme_Email__c != NULL
+        ]) {
+            String email = (sd.Division__r != null && sd.Division__r.Term__r != null)
+                ? sd.Division__r.Term__r.Programme_Email__c
+                : null;
+            if (String.isBlank(email)) {
+                continue;
+            }
+            if (!bySession.containsKey(sd.Session__c)) {
+                bySession.put(sd.Session__c, new Set<String>());
+            }
+            bySession.get(sd.Session__c).add(email);
         }
         return bySession;
     }
