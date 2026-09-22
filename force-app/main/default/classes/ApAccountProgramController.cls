@@ -22,14 +22,14 @@ public with sharing class ApAccountProgramController {
     }
 
     @AuraEnabled(cacheable=true)
-public static String getApplicationStage(Id applicationId) {
-    return [
-        SELECT ToLabel(Application_Stage__c)
-        FROM Application__c
-        WHERE Id = :applicationId
-        LIMIT 1
-    ].Application_Stage__c;
-}
+    public static String getApplicationStage(Id applicationId) {
+        return [
+            SELECT ToLabel(Application_Stage__c)
+            FROM Application__c
+            WHERE Id = :applicationId
+            LIMIT 1
+        ].Application_Stage__c;
+    }
 
 
     @AuraEnabled
@@ -829,9 +829,7 @@ public static String getApplicationStage(Id applicationId) {
     }
 
     @AuraEnabled(cacheable=true)
-    public static Object getDashboardAnnouncementsForApplication(
-        Id applicationId
-    ) {
+    public static Object getDashboardAnnouncementsForApplication(Id applicationId) {
         try {
             List<CommunicationsController.DashboardAnnouncement> announcements =
                 DashboardAnnouncementService.getAnnouncements(applicationId);
@@ -841,56 +839,6 @@ public static String getApplicationStage(Id applicationId) {
             );
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
-        }
-    }
-    
-    public class AccountProgramApplicationWrapper {
-        @AuraEnabled public Id applicationId;
-        @AuraEnabled public Id programId;
-        @AuraEnabled public String programName;
-        @AuraEnabled public String programCode;
-        @AuraEnabled public String applicationStatus;
-        @AuraEnabled public String applicationStage;
-        @AuraEnabled public String applicationName;
-        @AuraEnabled public String applicationAcceptanceStatus = 'Open';
-        @AuraEnabled public Boolean allowSchedule;
-        @AuraEnabled public Map<String,Object> bookingInfo;
-        @AuraEnabled public Boolean isScheduled;
-        @AuraEnabled public Boolean isRound1;
-        @AuraEnabled public Boolean isDecisionPresent;
-        @AuraEnabled public String applicantName;
-        @AuraEnabled public Integer countBookings;
-        @AuraEnabled public Boolean isRejected;
-        @AuraEnabled public String applyString;
-        @AuraEnabled public String assignmentStatus;
-        public AccountProgramApplicationWrapper(Id id, String name, String code) {
-            programId = id;
-            programName = name;
-            programCode = code;
-        }
-        
-        public AccountProgramApplicationWrapper(Id id, String name, String code, 
-        String status, String stage, String appName, Boolean allowSchedule, 
-        Map<String,Object> bookingInfo,Boolean isScheduled,
-        Boolean isRound1,Boolean isDecision,String applicantName,Integer countBookings,
-        String appId,Boolean isRejected,String applyString,String assignmentStatus) {
-            programId = id;
-            programName = name;
-            programCode = code;
-            applicationStatus = status;
-            applicationStage = stage;
-            applicationName = appName;
-            this.allowSchedule = allowSchedule;
-            this.bookingInfo = bookingInfo;
-            this.isScheduled = isScheduled;
-            this.isRound1 = isRound1;
-            this.isDecisionPresent = isDecision;
-            this.applicantName=applicantName;
-            this.countBookings = countBookings;
-            this.applicationId = appId;
-            this.isRejected = isRejected;
-            this.applyString = applyString;
-            this.assignmentStatus = assignmentStatus;
         }
     }
     
@@ -1196,26 +1144,6 @@ public static String getApplicationStage(Id applicationId) {
         return recordId.getSObjectType().getDescribe().getName();
     }
 
-    public class AnnexureWrapper {
-        @AuraEnabled public String annexureName;
-        @AuraEnabled public String annexureUrl;
-        @AuraEnabled public Decimal displayOrder;
-        @AuraEnabled public Boolean displayAsImportantDocument;
-        @AuraEnabled public Boolean isUploadSectionRequired;
-        @AuraEnabled public String filterCondition;
-        @AuraEnabled public String docCode;
-        @AuraEnabled public Boolean showDocumentsBeforeAccept;
-        @AuraEnabled public Boolean showDocumentsAfterWithdrawal;
-        @AuraEnabled public Boolean isMandatoryToShowPaymentSection;
-    }
-
-    public class ProgramDocumentWrapper {
-        @AuraEnabled public String applicationName;
-        @AuraEnabled public String programCode;
-        @AuraEnabled public String acceptanceLetterUrl;
-        @AuraEnabled public List<AnnexureWrapper> annexures;
-    }
-
     @AuraEnabled(cacheable=false)
     public static List<AdmissionPaymentDetail__c> getAdmissionPaymentDetails(Id applicationId) {
         try {
@@ -1413,19 +1341,6 @@ public static String getApplicationStage(Id applicationId) {
         }
         return Site.getBaseCustomUrl() + '/sfc/servlet.shepherd/version/download/' + versions[0].Id;
     }
-
-    public class admissionDecision{
-        @AuraEnabled public string ProgramName;
-        @AuraEnabled public string offerLetterLink;
-        @AuraEnabled public string admissionDecisionId;
-        @AuraEnabled public string contentDocId;
-        @AuraEnabled public string applicationId;
-        @AuraEnabled public string offerAccepted;
-        @AuraEnabled public string offerDeclined;
-        @AuraEnabled public string isOfferWithdrawn;
-        @AuraEnabled public Boolean hasPendingDocuments;
-        @AuraEnabled public string applicantStateManagement;
-    }
     
     @AuraEnabled(cacheable=false)
     public static Map<String, String> getApplicationDetailsForQuestionnaire(Id applicationId) {
@@ -1532,6 +1447,89 @@ public static String getApplicationStage(Id applicationId) {
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
+    }
+
+    public class AccountProgramApplicationWrapper {
+        @AuraEnabled public Id applicationId;
+        @AuraEnabled public Id programId;
+        @AuraEnabled public String programName;
+        @AuraEnabled public String programCode;
+        @AuraEnabled public String applicationStatus;
+        @AuraEnabled public String applicationStage;
+        @AuraEnabled public String applicationName;
+        @AuraEnabled public String applicationAcceptanceStatus = 'Open';
+        @AuraEnabled public Boolean allowSchedule;
+        @AuraEnabled public Map<String,Object> bookingInfo;
+        @AuraEnabled public Boolean isScheduled;
+        @AuraEnabled public Boolean isRound1;
+        @AuraEnabled public Boolean isDecisionPresent;
+        @AuraEnabled public String applicantName;
+        @AuraEnabled public Integer countBookings;
+        @AuraEnabled public Boolean isRejected;
+        @AuraEnabled public String applyString;
+        @AuraEnabled public String assignmentStatus;
+        public AccountProgramApplicationWrapper(Id id, String name, String code) {
+            programId = id;
+            programName = name;
+            programCode = code;
+        }
+        
+        public AccountProgramApplicationWrapper(Id id, String name, String code, 
+        String status, String stage, String appName, Boolean allowSchedule, 
+        Map<String,Object> bookingInfo,Boolean isScheduled,
+        Boolean isRound1,Boolean isDecision,String applicantName,Integer countBookings,
+        String appId,Boolean isRejected,String applyString,String assignmentStatus) {
+            programId = id;
+            programName = name;
+            programCode = code;
+            applicationStatus = status;
+            applicationStage = stage;
+            applicationName = appName;
+            this.allowSchedule = allowSchedule;
+            this.bookingInfo = bookingInfo;
+            this.isScheduled = isScheduled;
+            this.isRound1 = isRound1;
+            this.isDecisionPresent = isDecision;
+            this.applicantName=applicantName;
+            this.countBookings = countBookings;
+            this.applicationId = appId;
+            this.isRejected = isRejected;
+            this.applyString = applyString;
+            this.assignmentStatus = assignmentStatus;
+        }
+    }
+
+    public class AnnexureWrapper {
+        @AuraEnabled public String annexureName;
+        @AuraEnabled public String annexureUrl;
+        @AuraEnabled public Decimal displayOrder;
+        @AuraEnabled public Boolean displayAsImportantDocument;
+        @AuraEnabled public Boolean isUploadSectionRequired;
+        @AuraEnabled public String filterCondition;
+        @AuraEnabled public String docCode;
+        @AuraEnabled public Boolean showDocumentsBeforeAccept;
+        @AuraEnabled public Boolean showDocumentsAfterWithdrawal;
+        @AuraEnabled public Boolean isMandatoryToShowPaymentSection;
+    }
+
+    public class ProgramDocumentWrapper {
+        @AuraEnabled public String applicationName;
+        @AuraEnabled public String programCode;
+        @AuraEnabled public String acceptanceLetterUrl;
+        @AuraEnabled public List<AnnexureWrapper> annexures;
+    }
+
+    public class admissionDecision{
+        @AuraEnabled public string ProgramName;
+        @AuraEnabled public string offerLetterLink;
+        @AuraEnabled public string admissionDecisionId;
+        @AuraEnabled public string contentDocId;
+        @AuraEnabled public string applicationId;
+        @AuraEnabled public string offerAccepted;
+        @AuraEnabled public string offerDeclined;
+        @AuraEnabled public string isOfferWithdrawn;
+        @AuraEnabled public Boolean hasPendingDocuments;
+        @AuraEnabled public string applicantStateManagement;
     }
     
 }
