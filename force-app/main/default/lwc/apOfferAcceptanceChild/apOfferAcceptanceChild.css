@@ -430,3 +430,8 @@
     --sds-c-button-text-color: #fff;
     min-width: 160px;
 }
+
+.required-asterisk {
+    color: #c23934;
+    margin-right: 2px;
+}
