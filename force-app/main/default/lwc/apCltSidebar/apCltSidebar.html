@@ -17,6 +17,10 @@
 
                 <span title={item.label} class="menu-label">{item.label}</span>
 
+                <template lwc:if={item.showLabel}>
+                    <span class="mobile-tooltip">{item.label}</span>
+                </template>
+
                 <template lwc:if={item.badgeCount}>
                     <span class="badge">{item.badgeCount}</span>
                 </template>

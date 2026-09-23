@@ -138,29 +138,59 @@ export default class ApCltSidebar extends NavigationMixin(LightningElement) {
         this.setActiveMenu(this.selectedMenu);
     }
 
-    /* -------------------------
-       Menu Click Handler
-    -------------------------- */
+    toggletipTimeout;
+
+    showLabelToggletip(name) {
+        this.menuItems = this.menuItems.map(item => ({
+            ...item,
+            showLabel: item.name === name
+        }));
+
+        clearTimeout(this.toggletipTimeout);
+        this.toggletipTimeout = setTimeout(() => {
+            this.menuItems = this.menuItems.map(item => ({
+                ...item,
+                showLabel: false
+            }));
+        }, 1500);
+    }
+
+    disconnectedCallback() {
+        clearTimeout(this.toggletipTimeout);
+    }
+
     handleMenuClick(event) {
         const selected = event.currentTarget.dataset.name;
         const selectedItem = this.menuItems.find(item => item.name === selected);
 
+        const labelEl = event.currentTarget.querySelector('.menu-label');
+        const isEllipsed = labelEl && labelEl.scrollWidth > labelEl.clientWidth;
+
         if (selectedItem) {
-            
-            if (selected !== 'logout' && selected !== 'profile') {
-                this.setActiveMenu(selected);
-                this.navigateToPage(event.currentTarget.dataset.page, {});
-            } else if(selected === 'profile') {
-                this.setActiveMenu(selected);
-                this.navigateToRecordPage(USER_ID, 'User');
-            
-            } else if(selected == 'application-form'){
-                return;
-            } 
-            else {
-                this.logoutUser();
+            const page = event.currentTarget.dataset.page;
+
+            const navigate = () => {
+                if (selected !== 'logout' && selected !== 'profile') {
+                    this.setActiveMenu(selected);
+                    this.navigateToPage(page, {});
+                } else if (selected === 'profile') {
+                    this.setActiveMenu(selected);
+                    this.navigateToRecordPage(USER_ID, 'User');
+
+                } else if (selected == 'application-form') {
+                    return;
+                }
+                else {
+                    this.logoutUser();
+                }
+            };
+
+            if (isEllipsed) {
+                this.showLabelToggletip(selected);
+                navigate();
+            } else {
+                navigate();
             }
-            
         }
     }
 
