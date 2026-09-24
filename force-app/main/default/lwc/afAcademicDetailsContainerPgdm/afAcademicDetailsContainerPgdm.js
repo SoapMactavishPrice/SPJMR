@@ -1871,7 +1871,7 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
 
                 const widthStyle =
                     r.align === 'right'
-                        ? ''
+                        ? 'width:auto !important;flex:0 0 auto;grid-column:auto !important;'
                         : `grid-column:span ${span};`;
 
                 const renderCol = {

@@ -109,6 +109,28 @@
                 </c-phone-input>
             </template>
 
+            <!-- CHECKBOX -->
+            <template lwc:elseif={isCheckbox}>
+                <div class="checkbox-field">
+                    <lightning-input
+                        class="fine-inputs"
+                        data-api={field.api}
+                        type="checkbox"
+                        checked={normalizedValue}
+                        onchange={handleChange}
+                        disabled={isDisabled}
+                        variant="label-hidden">
+                    </lightning-input>
+
+                    <label class="checkbox-label">
+                        <span>{field.label}</span>
+                        <template if:true={field.required}>
+                            <span class="req">*</span>
+                        </template>
+                    </label>
+                </div>
+            </template>
+
 
             <!-- INPUT (text, number, date) -->
             <template lwc:elseif={isInput}>

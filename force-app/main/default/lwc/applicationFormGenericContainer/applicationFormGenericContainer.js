@@ -31,6 +31,7 @@ export default class ApplicationFormGenericContainer extends NavigationMixin(Lig
     isPreviousDisabled = false;
     strNextLabel = '';
     currentStep = '';
+    _centerSelectedStepPending = false;
     progress = 0;
     applicationStatus;
     maxAllowedIndex = 0;
@@ -239,10 +240,29 @@ export default class ApplicationFormGenericContainer extends NavigationMixin(Lig
         this.progress = ((activeIndex + 1) / this.steps.length) * 100;
         this.isPreviousDisabled = activeIndex === 0;
         this.updateNextLabel(activeIndex);
+        this._centerSelectedStepPending = true;
     }
 
     updateNextLabel(index) {
         this.strNextLabel = index === this.steps.length - 1 ? 'Go to Dashboard' : 'Next';
+    }
+
+    scrollSelectedStepIntoView() {
+        requestAnimationFrame(() => {
+            const selected = this.template.querySelector(
+                `.icon-wrapper[data-name="${this.currentStep}"]`
+            );
+
+            if (!selected) {
+                return;
+            }
+
+            selected.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        });
     }
 
     get currentStepConfig() {
@@ -274,6 +294,11 @@ export default class ApplicationFormGenericContainer extends NavigationMixin(Lig
 
         const selectedIndex = this.steps.findIndex((step) => step.isSelected);
         this.isPreviousDisabled = selectedIndex === 0;
+
+        if (this._centerSelectedStepPending) {
+            this._centerSelectedStepPending = false;
+            this.scrollSelectedStepIntoView();
+        }
     }
 
     previousStage() {
@@ -329,6 +354,7 @@ export default class ApplicationFormGenericContainer extends NavigationMixin(Lig
         this.progress = ((targetIndex + 1) / this.steps.length) * 100;
         this.isPreviousDisabled = targetIndex === 0;
         this.updateNextLabel(targetIndex);
+        this._centerSelectedStepPending = true;
     }
 
     get currentStepIndex() {
@@ -400,6 +426,8 @@ export default class ApplicationFormGenericContainer extends NavigationMixin(Lig
             this.currentStep = nextStep.name;
             this.progress = ((selectedIndex + 2) / this.steps.length) * 100;
             this.updateNextLabel(selectedIndex + 1);
+
+            this._centerSelectedStepPending = true;
 
             this.isPreviousDisabled = false;
             this.isNextDisabled = cacheNext;

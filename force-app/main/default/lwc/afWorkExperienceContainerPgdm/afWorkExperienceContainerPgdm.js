@@ -296,6 +296,12 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             title: 'Work Experience Details',
             columnSystem: 10,
             layout: 'fluid',
+            showSequenceLabel: true,
+            responsive: {
+                tablet: 'sequential-tablet',
+                tabletColumns: 12,
+                mobile: 'stacked'
+            },
             note: {
                 api: 'WORK_EXPERIENCE_SECTION_NOTE',
                 type: 'note',
@@ -396,8 +402,9 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             rows: [
                 {
                     columns: [
-                        { width: 8, fields: [] }, { width: 2, fields: ['AddMore'] }, { width: 2, fields: ['Remove'] }
-                    ]
+                        { width: 2, fields: ['AddMore'] }, { width: 2, fields: ['Remove'] }
+                    ],
+                    align: 'right'
                 },
             ],
             fields: [
@@ -469,6 +476,12 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             title: 'Academic Achievements',
             columnSystem: 10,
             layout: 'fluid',
+            showSequenceLabel: true,
+            responsive: {
+                tablet: 'sequential-tablet',
+                tabletColumns: 12,
+                mobile: 'stacked'
+            },
             note: {
                 api: 'ACHIEVEMENTS_SECTION_NOTE',
                 type: 'note',
@@ -531,10 +544,10 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             rows: [
                 {
                     columns: [
-                        { width: 8, fields: [] },
                         { width: 2, fields: ['AddMore'] },
                         { width: 2, fields: ['Remove'] }
-                    ]
+                    ],
+                    align: 'right'
                 }
             ],
             fields: [
@@ -566,6 +579,12 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             title: 'Versatility',
             columnSystem: 10,
             layout: 'fluid',
+            showSequenceLabel: true,
+            responsive: {
+                tablet: 'sequential-tablet',
+                tabletColumns: 12,
+                mobile: 'stacked'
+            },
             note: {
                 api: 'VERSATILITY_SECTION_NOTE',
                 type: 'note',
@@ -627,10 +646,10 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             rows: [
                 {
                     columns: [
-                        { width: 8, fields: [] },
                         { width: 2, fields: ['AddMore'] },
                         { width: 2, fields: ['Remove'] }
-                    ]
+                    ],
+                    align: 'right'
                 }
             ],
             fields: [
@@ -685,6 +704,11 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         this.metadata.responsibilitiesShouldered = {
             key: 'responsibilitiesShouldered',
             title: 'Responsibilities Shouldered',
+            responsive: {
+                tablet: 'grouped',
+                mobile: 'grouped',
+                groupedFields: true
+            },
             columnSystem: 12,
             note: {
                 api: 'RESPONSIBILITIES_SECTION_NOTE',
@@ -960,6 +984,91 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         this.work.versatilityVisibleRows = 1;
     }
 
+    _responsiveMode = 'desktop';
+    _resizeObserver;
+    _resizeObserverInitialized = false;
+
+    renderedCallback() {
+        if (this._resizeObserverInitialized) {
+            return;
+        }
+
+        const container = this.template.querySelector('.page');
+
+        if (!container || typeof ResizeObserver === 'undefined') {
+            return;
+        }
+
+        this._resizeObserverInitialized = true;
+
+        this._resizeObserver = new ResizeObserver(entries => {
+            const width = entries[0]?.contentRect?.width;
+
+            if (width) {
+                this.handleContainerResize(width);
+            }
+        });
+
+        this._resizeObserver.observe(container);
+
+        // Initial measurement
+        this.handleContainerResize(
+            container.getBoundingClientRect().width
+        );
+    }
+
+    disconnectedCallback() {
+        if (this._resizeObserver) {
+            this._resizeObserver.disconnect();
+            this._resizeObserver = null;
+        }
+
+        this._resizeObserverInitialized = false;
+    }
+
+    handleContainerResize(width) {
+        const nextMode =
+            width <= 600
+                ? 'mobile'
+                : width <= 900
+                    ? 'tablet'
+                    : 'desktop';
+
+        console.log(
+            'RESPONSIVE:',
+            'page width =', width,
+            'mode =', nextMode
+        );
+
+        if (nextMode === this._responsiveMode) {
+            return;
+        }
+
+        this._responsiveMode = nextMode;
+
+        this._buildRenderModelAll();
+    }
+
+    _getResponsiveRowMode(meta) {
+        const responsive = meta?.responsive;
+
+        if (!responsive || typeof window === 'undefined') {
+            return 'default';
+        }
+
+        const width = window.innerWidth;
+
+        if (width <= 600) {
+            return responsive.mobile || 'default';
+        }
+
+        if (width <= 900) {
+            return responsive.tablet || 'default';
+        }
+
+        return 'default';
+    }
+
 
     _buildSectionRenderModel(sectionKey) {
         const meta = this.metadata[sectionKey];
@@ -976,11 +1085,10 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
 
                 // read the correct section data
         const secData = this.work[sectionKey] || {};
+        const responsiveRowMode = this._getResponsiveRowMode(meta);
 
-        if (meta.layout === 'fluid') {
+        if (responsiveRowMode === 'grouped') {
 
-            section.rows = [];
-            // Section-level note before the sequential rows
             if (meta.note) {
                 section.rows.push({
                     key: `${sectionKey}-note-row`,
@@ -998,6 +1106,61 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             }
 
             section.rows.push(
+                ...this._buildMatrixResponsiveRows(
+                    sectionKey,
+                    meta,
+                    secData
+                )
+            );
+
+            return section;
+        }
+
+        if (meta.layout === 'fluid') {
+
+            section.rows = [];
+
+             if (meta.note) {
+                section.rows.push({
+                    key: `${sectionKey}-note-row`,
+                    style: 'margin-bottom: 10px;',
+                    columns: [{
+                        key: `${sectionKey}-note-col`,
+                        widthStyle: 'grid-column: span 12;',
+                        fields: [{
+                            key: `${sectionKey}-NOTE`,
+                            meta: { ...meta.note, sectionKey },
+                            value: meta.note.text
+                        }]
+                    }]
+                });
+            }
+
+            if (responsiveRowMode === 'sequential-tablet') {
+                section.rows.push(
+                    ...this._buildSequentialTabletRows(
+                        sectionKey,
+                        meta,
+                        secData
+                    )
+                );
+
+                return section;
+            }
+
+            if (responsiveRowMode === 'stacked') {
+                section.rows.push(
+                    ...this._buildSequentialStackedRows(
+                        sectionKey,
+                        meta,
+                        secData
+                    )
+                );
+
+                return section;
+            }
+
+            section.rows.push(
                 ...this._buildSequentialFluidRows(
                     sectionKey,
                     meta,
@@ -1006,7 +1169,6 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             );
 
             return section;
-
         }
 
         // SPECIAL: single-row sections (radio, totals)
@@ -1029,9 +1191,13 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             }
             
             (meta.rows || []).forEach((metaRow, rIdx) => {
+
+                const isRightAligned = metaRow.align === 'right';
+
                 const rowStyle =
-                    `display:grid;grid-template-columns:repeat(${cs},1fr);` +
-                    `gap:8px;margin-bottom:12px;`;
+                    isRightAligned
+                        ? 'display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:12px;'
+                        : `display:grid;grid-template-columns:repeat(${cs},1fr);gap:8px;margin-bottom:12px;`;
 
                 const renderRow = {
                     key: `${sectionKey}-row-${rIdx}`,
@@ -1043,7 +1209,9 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                     const span = col.width || cs;
                     const renderCol = {
                         key: `${sectionKey}-col-${rIdx}-${cIdx}`,
-                        widthStyle: `grid-column: span ${span};`,
+                        widthStyle: isRightAligned
+                            ? 'width:auto !important;flex:0 0 auto;grid-column:auto !important;'
+                            : `grid-column: span ${span};`,
                         fields: []
                     };
 
@@ -1206,6 +1374,565 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         });
 
         return section;
+    }
+
+    _buildSequentialFieldItem(sectionKey, fieldMeta, seq, groupFilter) {
+
+        const fieldGroup = fieldMeta?.group || 'default';
+
+        if (groupFilter && fieldGroup !== groupFilter) {
+            return null;
+        }
+
+        const metaForRender = this._resolveFieldMeta(
+            sectionKey,
+            {
+                ...fieldMeta,
+                sectionKey,
+                sequence: seq
+            }
+        );
+
+        if (metaForRender.visible === false) {
+            return null;
+        }
+
+        this._applyDynamicFilter(metaForRender);
+
+        return {
+            key: `${this.metadata[sectionKey].key}-${fieldMeta.api}-${seq}`,
+            api: fieldMeta.api,
+            span: metaForRender.span || 3,
+            meta: metaForRender,
+            value: this._getValueForField(
+                sectionKey,
+                fieldMeta.api,
+                seq
+            )
+        };
+    }
+
+    _buildSequentialFieldItems(sectionKey, meta, seq, groupFilter) {
+
+        return (meta.fields || [])
+            .filter(f => {
+                if (f.type === 'note') {
+                    return false;
+                }
+
+                // Academic-style sequence metadata
+                if (
+                    f.sequence !== undefined &&
+                    f.sequence !== null &&
+                    f.sequence !== ''
+                ) {
+                    return Number(f.sequence) === Number(seq);
+                }
+
+                // Work Experience / Achievements / Versatility:
+                // same metadata fields are reused for every sequence
+                return true;
+            })
+            .map(f =>
+                this._buildSequentialFieldItem(
+                    sectionKey,
+                    f,
+                    seq,
+                    groupFilter
+                )
+            )
+            .filter(Boolean);
+    }
+
+    _buildSequentialTabletRows(sectionKey, meta, sectionData, groupFilter) {
+
+        const cs =
+            meta.responsive?.tabletColumns ||
+            meta.columnSystem ||
+            12;
+
+        const sequences = this._getSequenceList(
+            sectionKey,
+            sectionData
+        );
+
+        const rows = [];
+
+        sequences.forEach((seq, seqIdx) => {
+
+            const fields = this._buildSequentialFieldItems(
+                sectionKey,
+                meta,
+                seq,
+                groupFilter
+            );
+
+            if (!fields.length) {
+                return;
+            }
+
+            if (meta.showSequenceLabel === true) {
+                rows.push({
+                    key: `${meta.key}-tablet-sequence-${seq}`,
+                    style:
+                        `display:grid;` +
+                        `grid-template-columns:repeat(${cs},1fr);` +
+                        `gap:8px;margin-bottom:4px;`,
+                    columns: [{
+                        key:
+                            `${meta.key}-tablet-sequence-label-${seq}`,
+                        widthStyle:
+                            'grid-column:1 / -1 !important;',
+                        fields: [{
+                            key:
+                                `${meta.key}-tablet-sequence-label-field-${seq}`,
+                            meta: {
+                                type: 'label',
+                                label: `${seq}`
+                            },
+                            value: null
+                        }]
+                    }]
+                });
+            }
+
+            let row = {
+                columns: [],
+                used: 0
+            };
+
+            const pushRow = () => {
+
+                if (!row.columns.length) {
+                    return;
+                }
+
+                rows.push({
+                    key:
+                        `${meta.key}-tablet-${seqIdx}-${rows.length}`,
+                    style:
+                        `display:grid;` +
+                        `grid-template-columns:repeat(${cs},1fr);` +
+                        `gap:8px;margin-bottom:12px;`,
+                    columns: row.columns
+                });
+
+                row = {
+                    columns: [],
+                    used: 0
+                };
+            };
+
+            fields.forEach(field => {
+
+                if (row.used + field.span > cs) {
+                    pushRow();
+                }
+
+                row.columns.push({
+                    key: field.key,
+                    widthStyle:
+                        `grid-column:span ${field.span};`,
+                    fields: [{
+                        key: field.key,
+                        meta: field.meta,
+                        value: field.value
+                    }]
+                });
+
+                row.used += field.span;
+            });
+
+            pushRow();
+        });
+
+        return rows;
+    }
+
+    _buildSequentialStackedRows(sectionKey, meta, sectionData, groupFilter) {
+
+        const sequences = this._getSequenceList(
+            sectionKey,
+            sectionData
+        );
+
+        const rows = [];
+
+        sequences.forEach(seq => {
+
+            const fields = this._buildSequentialFieldItems(
+                sectionKey,
+                meta,
+                seq,
+                groupFilter
+            );
+
+            if (!fields.length) {
+                return;
+            }
+
+            if (meta.showSequenceLabel === true) {
+                rows.push({
+                    key: `${meta.key}-mobile-sequence-${seq}`,
+                    style:
+                        'display:grid;' +
+                        'grid-template-columns:1fr;' +
+                        'gap:8px;margin-bottom:4px;',
+                    columns: [{
+                        key:
+                            `${meta.key}-mobile-sequence-label-${seq}`,
+                        widthStyle:
+                            'grid-column:1 / -1;',
+                        fields: [{
+                            key:
+                                `${meta.key}-mobile-sequence-label-field-${seq}`,
+                            meta: {
+                                type: 'label',
+                                label: `${seq}`
+                            },
+                            value: null
+                        }]
+                    }]
+                });
+            }
+
+            fields.forEach(field => {
+                rows.push({
+                    key: `${meta.key}-mobile-${seq}-${field.api}`,
+                    style:
+                        'display:grid;' +
+                        'grid-template-columns:1fr;' +
+                        'gap:8px;margin-bottom:12px;',
+                    columns: [{
+                        key: field.key,
+                        widthStyle: 'grid-column:1 / -1;',
+                        fields: [{
+                            key: field.key,
+                            meta: field.meta,
+                            value: field.value
+                        }]
+                    }]
+                });
+            });
+        });
+
+        return rows;
+    }
+
+    _buildMatrixResponsiveRows(sectionKey, meta, sectionData, groupFilter) {
+
+        const rows = [];
+        const templateRows = meta.rows || [];
+
+        if (!templateRows.length) {
+            return rows;
+        }
+
+        const sequenceCount = Math.max(
+            ...templateRows.map(
+                row => (row.columns || []).length
+            )
+        );
+
+        const isGroupedFields =
+            meta.responsive?.groupedFields === true;
+
+        /*
+        * ------------------------------------------------------------
+        * GROUPED-FIELDS MODE
+        * Used by sections such as Responsibilities:
+        *
+        * Personal      Professional
+        * Title         Title
+        * Level         Level
+        * Description   Description
+        *
+        * Each matrix column becomes one group, and the fields
+        * belonging to that column stay together.
+        * ------------------------------------------------------------
+        */
+        if (isGroupedFields) {
+
+            const groupColumns = [];
+
+            for (let groupIndex = 0; groupIndex < sequenceCount; groupIndex++) {
+
+                const groupFields = [];
+
+                templateRows.forEach((templateRow, rowIndex) => {
+
+                    const templateColumn =
+                        templateRow.columns?.[groupIndex];
+
+                    if (!templateColumn) {
+                        return;
+                    }
+
+                    (templateColumn.fields || []).forEach(
+                        (fieldApi, fieldIndex) => {
+
+                            const fieldMeta =
+                                (meta.fields || []).find(
+                                    f => f.api === fieldApi
+                                );
+
+                            if (!fieldMeta) {
+                                return;
+                            }
+
+                            const fieldGroup =
+                                fieldMeta.group || 'default';
+
+                            if (
+                                groupFilter &&
+                                fieldGroup !== groupFilter
+                            ) {
+                                return;
+                            }
+
+                            const metaForRender =
+                                this._resolveFieldMeta(
+                                    sectionKey,
+                                    {
+                                        ...fieldMeta,
+                                        sectionKey
+                                    }
+                                );
+
+                            if (!this._isFieldVisible(metaForRender)) {
+                                return;
+                            }
+
+                            this._applyDynamicFilter(metaForRender);
+
+                            groupFields.push({
+                                key:
+                                    `${meta.key}-group-${groupIndex}-${rowIndex}-${fieldIndex}`,
+                                meta: metaForRender,
+                                value:
+                                    this._getValueForField(
+                                        sectionKey,
+                                        fieldApi
+                                    )
+                            });
+                        }
+                    );
+                });
+
+                if (!groupFields.length) {
+                    continue;
+                }
+
+                const templateColumn =
+                    templateRows[0]?.columns?.[groupIndex];
+
+                const span =
+                    Number(templateColumn?.width) ||
+                    Math.floor(
+                        (meta.columnSystem || 12) /
+                        sequenceCount
+                    );
+
+                groupColumns.push({
+                    key:
+                        `${meta.key}-responsive-group-col-${groupIndex}`,
+                    widthStyle:
+                        `grid-column:span ${span};`,
+                    fields: groupFields
+                });
+            }
+
+            if (!groupColumns.length) {
+                return rows;
+            }
+
+            /*
+            * Tablet:
+            * Personal | Professional
+            */
+            if (this._responsiveMode === 'tablet') {
+
+                rows.push({
+                    key:
+                        `${meta.key}-responsive-groups`,
+                    style:
+                        `display:grid;` +
+                        `grid-template-columns:repeat(${meta.columnSystem || 12},1fr);` +
+                        `gap:8px;margin-bottom:12px;`,
+                    columns: groupColumns
+                });
+
+            } else {
+
+                /*
+                * Mobile:
+                * Personal
+                * ----------
+                * Professional
+                */
+                groupColumns.forEach((groupColumn, groupIndex) => {
+
+                    rows.push({
+                        key:
+                            `${meta.key}-responsive-group-${groupIndex}`,
+                        style:
+                            'display:grid;' +
+                            'grid-template-columns:1fr;' +
+                            'gap:8px;margin-bottom:12px;',
+                        columns: [{
+                            ...groupColumn,
+                            widthStyle:
+                                'grid-column:1 / -1;'
+                        }]
+                    });
+                });
+            }
+
+            return rows;
+        }
+
+        /*
+        * ------------------------------------------------------------
+        * NORMAL MATRIX MODE
+        * Existing Semester / Year behaviour
+        * ------------------------------------------------------------
+        */
+
+        const labelPrefix =
+            meta.responsive?.sequenceLabel || '';
+
+        for (let seq = 1; seq <= sequenceCount; seq++) {
+
+            const fieldColumns = [];
+
+            templateRows.forEach((templateRow, rowIndex) => {
+
+                const templateColumn =
+                    templateRow.columns?.[seq - 1];
+
+                if (!templateColumn) {
+                    return;
+                }
+
+                (templateColumn.fields || []).forEach(
+                    (fieldApi, fieldIndex) => {
+
+                        let fieldMeta =
+                            (meta.fields || []).find(
+                                f =>
+                                    f.api === fieldApi &&
+                                    Number(f.sequence) === Number(seq)
+                            );
+
+                        if (!fieldMeta) {
+                            fieldMeta =
+                                (meta.fields || []).find(
+                                    f => f.api === fieldApi
+                                );
+                        }
+
+                        if (!fieldMeta) {
+                            return;
+                        }
+
+                        const fieldGroup =
+                            fieldMeta.group || 'default';
+
+                        if (
+                            groupFilter &&
+                            fieldGroup !== groupFilter
+                        ) {
+                            return;
+                        }
+
+                        const metaForRender =
+                            this._resolveFieldMeta(
+                                sectionKey,
+                                {
+                                    ...fieldMeta,
+                                    sectionKey,
+                                    sequence: seq
+                                }
+                            );
+
+                        if (!this._isFieldVisible(metaForRender)) {
+                            return;
+                        }
+
+                        this._applyDynamicFilter(metaForRender);
+
+                        const span =
+                            metaForRender.span ||
+                            Number(templateColumn.width) ||
+                            3;
+
+                        fieldColumns.push({
+                            key:
+                                `${meta.key}-responsive-${seq}-${rowIndex}-${fieldIndex}`,
+                            widthStyle:
+                                `grid-column:span ${span};`,
+                            fields: [{
+                                key:
+                                    `${meta.key}-${fieldApi}-${seq}`,
+                                meta: metaForRender,
+                                value:
+                                    this._getValueForField(
+                                        sectionKey,
+                                        fieldApi,
+                                        seq
+                                    )
+                            }]
+                        });
+                    }
+                );
+            });
+
+            if (!fieldColumns.length) {
+                continue;
+            }
+
+            const sequenceLabel =
+                labelPrefix
+                    ? `${labelPrefix} ${seq}`
+                    : `${seq}`;
+
+            // Sequence heading
+            rows.push({
+                key:
+                    `${meta.key}-responsive-sequence-${seq}`,
+                style:
+                    'display:grid;' +
+                    'grid-template-columns:1fr;' +
+                    'gap:8px;margin-bottom:4px;',
+                columns: [{
+                    key:
+                        `${meta.key}-responsive-sequence-label-${seq}`,
+                    widthStyle:
+                        'grid-column:1 / -1 !important;',
+                    fields: [{
+                        key:
+                            `${meta.key}-responsive-sequence-label-field-${seq}`,
+                        meta: {
+                            type: 'label',
+                            label: sequenceLabel
+                        },
+                        value: null
+                    }]
+                }]
+            });
+
+            rows.push({
+                key:
+                    `${meta.key}-responsive-fields-${seq}`,
+                style:
+                    `display:grid;` +
+                    `grid-template-columns:repeat(${meta.columnSystem || 12},1fr);` +
+                    `gap:8px;margin-bottom:12px;`,
+                columns: fieldColumns
+            });
+        }
+
+        return rows;
     }
 
     _buildFluidRows(meta, sectionData, groupFilter) {
@@ -1466,16 +2193,20 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
     }
 
     _getValueForField(sectionKey, api, sequence) {
-        // work experience (non-sequential numeric keys)
+
         if (
             sectionKey === 'workExperience' ||
             sectionKey === 'achievements' ||
             sectionKey === 'versatility'
         ) {
-            if (!sequence) return null;
+            if (!sequence) {
+                return null;
+            }
 
             return this.work?.[sectionKey]?.[sequence]?.[api] ?? null;
         }
+
+        return this.work?.[sectionKey]?.[api] ?? null;
     }
 
     _resolveFieldMeta(sectionKey, fieldMeta) {

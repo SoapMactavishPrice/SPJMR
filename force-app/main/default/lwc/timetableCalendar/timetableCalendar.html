@@ -1596,13 +1596,23 @@
                             </template>
                         </lightning-accordion>
                     </div>
-                    <div class="conflicts-modal-footer conflicts-modal-footer-submit">
-                        <p class="conflicts-submit-message">Click Submit if you still want to proceed with the session creation?</p>
-                        <div class="conflicts-modal-footer-actions">
-                            <button type="button" class="btn-cancel btn-conflicts-close" onclick={handleCloseConflictsModal}>Close</button>
-                            <button type="button" class="btn-save btn-conflicts-submit" onclick={handleConflictSubmitAnyway}>Submit</button>
-                        </div>
-                    </div>
+                    <template if:true={hasBlockingDivisionConflict}>
+    <div class="conflicts-modal-footer">
+        <p class="conflicts-submit-message">{divisionConflictBlockedMessage}</p>
+        <div class="conflicts-modal-footer-actions">
+            <button type="button" class="btn-cancel btn-conflicts-close" onclick={handleCloseConflictsModal}>OK</button>
+        </div>
+    </div>
+</template>
+<template if:false={hasBlockingDivisionConflict}>
+    <div class="conflicts-modal-footer conflicts-modal-footer-submit">
+        <p class="conflicts-submit-message">Click Submit if you still want to proceed with the session creation?</p>
+        <div class="conflicts-modal-footer-actions">
+            <button type="button" class="btn-cancel btn-conflicts-close" onclick={handleCloseConflictsModal}>Close</button>
+            <button type="button" class="btn-save btn-conflicts-submit" onclick={handleConflictSubmitAnyway}>Submit</button>
+        </div>
+    </div>
+</template>
                 </div>
             </div>
         </template>

@@ -294,7 +294,7 @@ private static ConversionResult handleLeadConversionFailure(
                        XS_HowDidYouFindOutAboutUs__c, Street, City, State, PostalCode, Country,
                        Country_Master_backend__c, Country_Master_backend__r.Name,
                        State_Master__c, State_Master__r.Name,
-                       District_City__c, District_City__r.Name
+                       District_City__c, District_City__r.Name,Other__c
                 FROM Lead 
                 WHERE Id = :leadId 
                 LIMIT 1
@@ -384,7 +384,8 @@ private static ConversionResult handleLeadConversionFailure(
                 Entrance_Exam_Name__c = leadRecord.XS_EntranceExamName__c,
                 Has_Entrance_Exam_Score__c = leadRecord.XS_DoYouHaveEntranceExamScore__c,
                 Publisher_Name__c = leadRecord.Publisher_Name__c,
-                PersonOtherPhone = leadRecord.AlternateContactNumber__c
+                PersonOtherPhone = leadRecord.AlternateContactNumber__c,
+                Other_Source__c = leadRecord.Other__c
                 // Years_Of_Work_Experience__c = String.isNotBlank(leadRecord.XS_YearsOfWorkExperience__c) 
                 //     ? Decimal.valueOf(leadRecord.XS_YearsOfWorkExperience__c) 
                 //     : null

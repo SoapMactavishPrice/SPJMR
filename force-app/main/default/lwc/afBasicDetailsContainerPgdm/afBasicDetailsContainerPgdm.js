@@ -164,7 +164,7 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
 
                     { api: "Marital_Status__c", span:3, type: "picklist", label: "Marital Status", required: true },
                     { api: "Name_Of_Spouse__c", span:3, type: "text", label: "Name of Spouse", maxlength: '255', visibleWhen: { "otherResources.showSpouseDetails": true }, },
-                    { api: "Contact_No_of_Spouse__c", span:6, type: "tel", label: "Contact No. of Spouse", visibleWhen: { "otherResources.showSpouseDetails": true }, },
+                    { api: "Contact_No_of_Spouse__c", span:6, type: "tel", skipOnChangeValidation:true, label: "Contact No. of Spouse", visibleWhen: { "otherResources.showSpouseDetails": true }, },
 
                     { api: "Category__c", type: "picklist", span:3, label: "Category", required: true },
                     { api: "OtherCategory__c", type: "text", span:3, label: "Enter the category", maxlength: '50', visibleWhen: { "otherResources.showOtherCategory": true }, },
@@ -256,9 +256,9 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
                 fields: [
                     { api: "Primary_E_mail__c", type: "email", label: "Primary E-mail", required: true, readOnly:true, maxlength: '80' },
                     { api: "Alternate_E_mail__c", type: "email", label: "Alternate E-mail", required: true, maxlength: '80' },
-                    { api: "Parent_s_Mobile_Number__c", type: "tel", label: "Parent's Mobile Number", required: true },
-                    { api: "Mobile_Number__c", type: "tel", label: "Mobile Number", required: true },
-                    { api: "Alternate_Mobile_Number__c", type: "tel", label: "Alternate Mobile Number", required: true },
+                    { api: "Parent_s_Mobile_Number__c", type: "tel", skipOnChangeValidation:true, label: "Parent's Mobile Number", required: true },
+                    { api: "Mobile_Number__c", type: "tel", skipOnChangeValidation:true, label: "Mobile Number", required: true },
+                    { api: "Alternate_Mobile_Number__c", type: "tel", skipOnChangeValidation:true, label: "Alternate Mobile Number", required: true },
                 ]
             },
 

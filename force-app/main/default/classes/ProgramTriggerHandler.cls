@@ -158,4 +158,27 @@ public class ProgramTriggerHandler {
         }
     }
     /*975 End*/
+
+ public static void handleAfterInsert(List<Program> newPrograms) {
+
+        if (newPrograms == null || newPrograms.isEmpty()) {
+            return;
+        }
+
+        Set<Id> programIds = new Set<Id>();
+
+        for (Program programRecord : newPrograms) {
+            if (programRecord.Id != null &&
+                String.isNotBlank(programRecord.Program_Code__c)) {
+
+                programIds.add(programRecord.Id);
+            }
+        }
+
+        if (!programIds.isEmpty()) {
+            System.enqueueJob(
+                new ProgramGroupQueueable(programIds)
+            );
+        }
+    }
 }

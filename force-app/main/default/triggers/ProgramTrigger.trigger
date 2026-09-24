@@ -1,5 +1,7 @@
-trigger ProgramTrigger on Program (before insert, before update ,after update){
-    
+trigger ProgramTrigger on Program (before insert, before update ,after update,after Insert){
+     if (Trigger.isAfter && Trigger.isInsert) {
+        ProgramTriggerHandler.handleAfterInsert(Trigger.new);
+    }
     if (Trigger.isBefore) {
         if (Trigger.isInsert || Trigger.isUpdate) {
             ProgramTriggerHandler.preventDuplicateShortProgrammeCode(

@@ -37,4 +37,31 @@ public with sharing class ProgramTeamMemberTriggerHandler {
     public void afterUndelete(List<Program_Team_Members__c> newList, Map<Id, Program_Team_Members__c> newMap) {
     
     }
+ public static void handleAfterInsert(
+        List<Program_Team_Members__c> newMembers
+    ) {
+
+        if (newMembers == null || newMembers.isEmpty()) {
+            return;
+        }
+
+        Set<Id> memberIds = new Set<Id>();
+
+        for (Program_Team_Members__c member : newMembers) {
+
+            if (member.Id != null &&
+                member.User__c != null &&
+                member.Program_Team__c != null) {
+
+                memberIds.add(member.Id);
+            }
+        }
+
+        if (!memberIds.isEmpty()) {
+
+            System.enqueueJob(
+                new ProgramGroupMemberQueueable(memberIds)
+            );
+        }
+    }
 }

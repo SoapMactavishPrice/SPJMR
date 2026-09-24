@@ -45,7 +45,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0;
+
+    padding-top: 16px;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px));
 }
 
 .left-actions {
@@ -80,16 +84,43 @@
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
-    padding: 1rem 0;
+
+    padding: 1rem 0 2rem;
+
     background: #ffffff;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+}
+
+.icon-row::-webkit-scrollbar {
+    display: none;
 }
 
 .icon-wrapper {
     width: 80px;
-    height: 80px;
+    min-height: 104px;
+    height: auto;
+    flex: 0 0 80px;
+
     cursor: pointer;
     transition: transform 0.2s ease, opacity 0.2s ease;
     position: relative;
+
+    scroll-snap-align: center;
+}
+
+.icon-slot {
+    width: 80px;
+    height: 80px;
 }
 
 /* ----------------------------------
@@ -132,7 +163,7 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 80px;
     z-index: 10;
     background: transparent;
     border: none;
@@ -161,18 +192,38 @@
     }
 
     .icon-row {
-        justify-content: center;
+        justify-content: safe center;
         gap: 1.25rem;
+        padding: 12px 0 28px;
+
+        touch-action: pan-x;
     }
 
     .icon-wrapper {
         width: 70px;
-        height: 70px;
+        height: 96px;
         flex: 0 0 70px;
     }
 
+    .icon-slot {
+        width: 70px;
+        height: 70px;
+    }
+
+    .step-btn {
+        height: 70px;
+    }
+
+    .step-label {
+        font-size: 12px;
+        line-height: 1.2;
+        margin-top: 4px;
+    }
+
+
     .navigate-form {
         gap: 12px;
+        padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px));
     }
 }
 
@@ -186,46 +237,57 @@
     }
 
     .icon-row {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px 8px;
-        padding: 10px 0;
+        justify-content: safe center;
+        gap: 16px;
+        padding: 10px 0 32px;
+        touch-action: pan-x;
     }
 
     .icon-wrapper {
         width: 60px;
+        min-height: 88px;
+        height: auto;
+        flex: 0 0 60px;
+    }
+
+    .icon-slot {
+        width: 60px;
         height: 60px;
-        justify-self: center;
-        flex: none;
+    }
+
+    .step-btn {
+        height: 60px;
     }
 
     .step-label {
         font-size: 11px;
         line-height: 1.2;
         margin-top: 4px;
-        word-break: break-word;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        padding: 0 2px 4px;
     }
 
     .navigate-form {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-        padding: 12px 0;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: center;
+        gap: 8px;
+
+        padding-top: 12px;
+        padding-left: 0;
+        padding-right: 0;
+        padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px));
     }
 
     .left-actions {
-        display: flex;
-        width: 100%;
-        gap: 8px;
+        display: contents;
     }
 
-    .left-actions lightning-button {
-        flex: 1;
-    }
-
+    .left-actions lightning-button,
     .next-btn {
         width: 100%;
+        min-width: 0;
     }
 }
 
@@ -234,17 +296,25 @@
    ========================================================= */
 @media screen and (max-width: 400px) {
 
-    .icon-row {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .icon-wrapper {
         width: 55px;
+         min-height: 88px;
+        flex-basis: 55px;
+    }
+
+    .icon-slot {
+        width: 55px;
+        height: 55px;
+    }
+
+    .step-btn {
         height: 55px;
     }
 
     .step-label {
         font-size: 10px;
+        line-height: 1.2;
+        padding-bottom: 6px;
     }
 
     .current-section {

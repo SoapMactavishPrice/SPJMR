@@ -58,7 +58,7 @@ export default class AfFieldRenderer extends LightningElement {
     }
 
     get showNormalLabel() {
-        return !this.isLabel && !this.isNote && !this.isFile;
+        return !this.isLabel && !this.isNote && !this.isFile && !this.isCheckbox;
     }
 
     get isNote() {
@@ -78,6 +78,10 @@ export default class AfFieldRenderer extends LightningElement {
 
     get isCheckboxGroup() {
         return this.field.type === 'multipicklist';
+    }
+
+    get isCheckbox() {
+        return this.field.type === 'checkbox';
     }
 
     get valueList() {

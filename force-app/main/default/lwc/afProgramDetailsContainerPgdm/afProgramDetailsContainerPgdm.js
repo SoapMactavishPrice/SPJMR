@@ -247,86 +247,84 @@ export default class AfProgramDetailsContainerPgdm extends LightningElement {
                 api: "SECTION_NOTE",
                 type: "note",
                 text: `
-                    <div style="
-                        padding: 14px 18px;
-                        background: #f3f3f3;
-                        border: 1px solid #d8d8d8;
-                        border-radius: 4px;
-                        font-size: 14px;
-                        line-height: 1.45;
-                    ">
+                    <div style="font-size:14px; line-height:1.5;">
 
-                        <p style="margin: 0 0 12px 0;">
-                            This application form is organised into six sections.
+                        <p style="margin:0 0 10px 0;">
+                            <b>This application form is organised into seven sections.
                             Click the relevant section to fill in details.
                             This application form is common for both programmes
-                            PGDM and PGDM (BM).
+                            PGDM and PGDM (BM).</b>
                         </p>
 
-                        <ol style="margin: 0; padding-left: 20px;">
-                            <li style="margin-bottom: 8px;">
-                                Every mandatory field is marked with a
-                                <span style="color: red; font-weight: 700;">red asterisk (*)</span>.
+                        <ol style="list-style-type:decimal; list-style-position:outside; margin:0; padding-left:24px;">
+                            <li style="margin-bottom:6px;">
+                                Every mandatory field is marked with a red asterisk(
+                                <span style="color:red; font-weight:700;">*</span> ).
                                 They must be filled accurately for your application
                                 to be considered valid.
                             </li>
 
-                            <li style="margin-bottom: 8px;">
+                            <li style="margin-bottom:6px;">
                                 The final submission of your application form is allowed
                                 only after the acceptance of declaration.
-                                <ul style="margin-top: 6px; padding-left: 20px;">
-                                    <li>
+                                <ul style="list-style-type:square; margin-top:6px; padding-left:24px;">
+                                    <li style="margin-bottom:4px;">
                                         The changes made are auto-saved once all mandatory
                                         fields are filled for that particular section.
                                     </li>
                                     <li>
-                                        Please note that your form will be
-                                        <b>Read Only</b> and closed for editing once you make the payment.
+                                        Please note that your form will be 'Read Only'
+                                        and closed for editing once you make the payment.
                                     </li>
                                 </ul>
                             </li>
 
-                            <li style="margin-bottom: 8px;">
-                                <b>Application fees payment:</b>
-                                <ul style="margin-top: 6px; padding-left: 20px;">
-                                    <li>
+                            <li style="margin-bottom:6px;">
+                                Application fees payment:
+                                <ul style="list-style-type:square; margin-top:6px; padding-left:24px;">
+                                    <li style="margin-bottom:4px;">
                                         <b>Application fees payment if applied separately to each programme:</b>
-                                        <ul style="margin-top: 4px; padding-left: 20px;">
-                                            <li>PGDM application fee is INR 2000/-.</li>
-                                            <li>PGDM (BM) application fee is INR 2000/-.</li>
-                                        </ul>
-                                    </li>
-
-                                    <li style="margin-top: 6px;">
-                                        <b>Application fees payment if applied to both programmes together:</b>
-                                        <ul style="margin-top: 4px; padding-left: 20px;">
+                                        <ul style="list-style-type:square; margin-top:4px; padding-left:24px;">
+                                            <li>PGDM application fee for domestic applicants is INR 2500/-</li>
+                                            <li>PGDM application fee for International applicants is INR 5000/-</li>
                                             <li>
-                                                The application fees for PGDM &amp; PGDM (BM)
-                                                when applied together is INR 3000/-.
+                                                PGDM (BM) application fee is INR 2500/-
+                                                (Only Domestic applicants are eligible to apply
+                                                to the PGDM (BM) programme.)
                                             </li>
                                         </ul>
                                     </li>
 
-                                    <li style="margin-top: 6px;">
-                                        Once you have completed filling the form, you should
-                                        proceed for making the payment by clicking
-                                        <b>Pay application fees</b>.
+                                    <li style="margin-bottom:4px;">
+                                        <b>Application fees payment if applied to both programmes together:</b>
+                                        <ul style="list-style-type:square; margin-top:4px; padding-left:24px;">
+                                            <li>
+                                                The application fees for PGDM &amp; PGDM (BM)
+                                                when applied together is INR 4000/-
+                                            </li>
+                                        </ul>
                                     </li>
 
-                                    <li style="margin-top: 6px;">
+                                    <li style="margin-bottom:4px;">
+                                        Once you have completed filling the form, you should
+                                        proceed for making the payment by clicking
+                                        'Pay application fees'.
+                                    </li>
+
+                                    <li>
                                         You can pay your application fee through
                                         Credit/Debit card, Net banking online.
-                                        The process for payment is described in each option.
+                                        The process for payment is described in each option
                                     </li>
                                 </ul>
                             </li>
 
                             <li>
-                                If at any stage of the admission process, it is found that
+                                <b>If at any stage of the admission process, it is found that
                                 the applicant does not satisfy the eligibility criteria or
                                 the information furnished by them is incorrect, their
                                 application towards the Programme will stand cancelled
-                                and fees will be forfeited.
+                                and fees will be forfeited.</b>
                             </li>
                         </ol>
                     </div>

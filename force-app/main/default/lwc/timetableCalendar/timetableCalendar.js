@@ -617,6 +617,15 @@ export default class TimetableCalendar extends LightningElement {
     get hasSessionConflictsToShow() {
         return this.sessionConflictsWithDisplay.length > 0;
     }
+    /** Division-level conflict (same division, overlapping time) — this is never overridable via Submit. */
+    get hasBlockingDivisionConflict() {
+    return this.hasSessionConflictsToShow;
+    }
+
+   /** Message shown when the division conflict blocks session creation. */
+    get divisionConflictBlockedMessage() {
+    return 'The selected division already has a session scheduled during the selected time. Please choose a different time slot.';
+    }
 
     get hasAnyBlockingConflicts() {
         return this.hasFacultySessionConflictsToShow

@@ -183,10 +183,10 @@
                 <div class="card payment-card">
                     <h2 class="label">Enter Payment Details</h2>
 
-                    <template lwc:if={isPaymentSectionLocked}>
+                    <template lwc:if={hasLockedPaymentRows}>
                         <div class="locked-message">
                             <lightning-icon icon-name="utility:lock" size="small" class="locked-icon"></lightning-icon>
-                            <span>This section has been locked after final submission. No further changes can be made.</span>
+                            <span>Submitted payment rows are locked and cannot be edited. You can still add new transactions using MORE.</span>
                         </div>
                     </template>
 
@@ -223,7 +223,7 @@
                                                 data-rowid={row.rowId}
                                                 data-field="date"
                                                 onchange={handlePaymentFieldChange}
-                                                disabled={isPaymentSectionLocked}
+                                                disabled={row.isLocked}
                                                 required>
                                             </lightning-input>
                                         </td>
@@ -239,7 +239,7 @@
                                                 onchange={handlePaymentFieldChange}
                                                 max="9999999999999.99"
                                                 step="0.01"
-                                                disabled={isPaymentSectionLocked}
+                                                disabled={row.isLocked}
                                                 required>
                                             </lightning-input>
                                         </td>
@@ -253,7 +253,7 @@
                                                 data-field="transactionId"
                                                 onchange={handlePaymentFieldChange}
                                                 maxlength="255"
-                                                disabled={isPaymentSectionLocked}
+                                                disabled={row.isLocked}
                                                 required>
                                             </lightning-input>
                                         </td>
@@ -267,7 +267,7 @@
                                                 data-field="accountHolderName"
                                                 onchange={handlePaymentFieldChange}
                                                 maxlength="255"
-                                                disabled={isPaymentSectionLocked}
+                                                disabled={row.isLocked}
                                                 required>
                                             </lightning-input>
                                         </td>
@@ -281,7 +281,7 @@
                                                 data-field="accountNumber"
                                                 onchange={handlePaymentFieldChange}
                                                 maxlength="255"
-                                                disabled={isPaymentSectionLocked}
+                                                disabled={row.isLocked}
                                                 required>
                                             </lightning-input>
                                         </td>
@@ -295,7 +295,7 @@
                                                 data-field="ifscCode"
                                                 onchange={handlePaymentFieldChange}
                                                 maxlength="255"
-                                                disabled={isPaymentSectionLocked}
+                                                disabled={row.isLocked}
                                                 required>
                                             </lightning-input>
                                         </td>
@@ -309,7 +309,7 @@
                                                 data-field="nameOfTheBank"
                                                 onchange={handlePaymentFieldChange}
                                                 maxlength="255"
-                                                disabled={isPaymentSectionLocked}
+                                                disabled={row.isLocked}
                                                 required>
                                             </lightning-input>
                                         </td>
@@ -323,7 +323,7 @@
                                                 data-field="bankBranch"
                                                 onchange={handlePaymentFieldChange}
                                                 maxlength="255"
-                                                disabled={isPaymentSectionLocked}
+                                                disabled={row.isLocked}
                                                 required>
                                             </lightning-input>
                                         </td>
@@ -333,7 +333,7 @@
                         </table>
                     </div>
 
-                    <!-- Row controls + Save + Final Submit -->
+                    <!-- Row controls + Save + Submit -->
                     <div class="payment-actions">
                         <lightning-button
                             label="LESS"
@@ -365,11 +365,11 @@
                         </lightning-button>
                         
                         <lightning-button
-                            label="FINAL SUBMIT"
+                            label="SUBMIT"
                             variant="brand"
                             class="payment-final-submit-btn"
-                            disabled={isFinalSubmitDisabled}
-                            onclick={handlePaymentFinalSubmit}>
+                            disabled={isSubmitDisabled}
+                            onclick={handlePaymentSubmit}>
                         </lightning-button>
                     </div>
                 </div>

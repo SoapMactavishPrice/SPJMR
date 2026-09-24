@@ -197,7 +197,7 @@ export default class PhoneInput extends LightningElement {
         this.phone = raw;
 
         const inputEl = this.template.querySelector('lightning-input');
-        this._validate(inputEl);
+        this._validate(inputEl, 'change');
 
         this._dispatch();
     }
@@ -228,36 +228,62 @@ export default class PhoneInput extends LightningElement {
         this.maxLength = arr.length ? Math.max(...arr) : 10;
     }
 
-    _validate(inputEl, setError=true) {
+    _validate(inputEl, mode = 'change') {
         if (!inputEl) return;
 
+        const isChange = mode === 'change';
+        const isSave = mode === 'save';
+
+        // Required
         if (this.required && !this.phone) {
-            this.errorMessage = 'Phone number is required';
-            inputEl.setCustomValidity('Phone number is required');
-            inputEl.reportValidity();
+            const message = 'Phone number is required';
+
+            if (isChange) {
+                // Show native lightning-input validation
+                this.errorMessage = '';
+                inputEl.setCustomValidity(message);
+                inputEl.reportValidity();
+            } else if (isSave) {
+                // Let parent renderer show the error
+                this.errorMessage = message;
+                inputEl.setCustomValidity('');
+                inputEl.reportValidity();
+            }
+
             return;
         }
 
+        // Invalid length
         if (
             this.phone.length > 0 &&
             this.acceptedLengthsSet.size &&
             !this.acceptedLengthsSet.has(this.phone.length)
-        )
-        {
-            this.errorMessage = `Phone number must be ${[...this.acceptedLengthsSet].join(', ')} digits`;
-            if (setError) {
-                inputEl.setCustomValidity(
-                    `Phone number must be ${[...this.acceptedLengthsSet].join(', ')} digits`
-                );
-            } else {
+        ) {
+            const message =
+                `Phone number must be ${[...this.acceptedLengthsSet].join(', ')} digits`;
+
+            if (isChange) {
+                // Show native validation immediately
+                this.errorMessage = '';
+                inputEl.setCustomValidity(message);
+                inputEl.reportValidity();
+            } else if (isSave) {
+                // Parent renderer shows the error
+                this.errorMessage = message;
                 inputEl.setCustomValidity('');
+                inputEl.reportValidity();
             }
-        } else {
-            this.errorMessage = '';
-            inputEl.setCustomValidity('');
+
+            return;
         }
 
-        inputEl.reportValidity();
+        // Valid
+        this.errorMessage = '';
+        inputEl.setCustomValidity('');
+
+        if (isChange) {
+            inputEl.reportValidity();
+        }
     }
 
     errorMessage = '';
@@ -270,7 +296,11 @@ export default class PhoneInput extends LightningElement {
         const input = this.template.querySelector('lightning-input');
         if (!input) return null;
 
-        this._validate(input, false);
+        this._validate(input, 'save');
+
+        if (!this.errorMessage) {
+            return null;
+        }
 
         return {
             message: this.errorMessage

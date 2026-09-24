@@ -1153,7 +1153,7 @@ public with sharing class ApAccountProgramController {
             return [
                 SELECT Id, Name, Application__c, Application__r.Name, Date__c, Amount__c,
                        TransactionId__c, AccountHolderName__c, AccountNumber__c,
-                       IfscCode__c, NameOfTheBank__c, BankBranch__c, CreatedDate
+                       IfscCode__c, NameOfTheBank__c, BankBranch__c, FinalSubmitted__c, CreatedDate
                 FROM AdmissionPaymentDetail__c
                 WHERE Application__c = :applicationId
                 ORDER BY CreatedDate ASC
@@ -1173,7 +1173,8 @@ public with sharing class ApAccountProgramController {
             // Fetch existing records
             List<AdmissionPaymentDetail__c> existingRecords = [
                 SELECT Id, Date__c, Amount__c, TransactionId__c, AccountHolderName__c,
-                       AccountNumber__c, IfscCode__c, NameOfTheBank__c, BankBranch__c
+                       AccountNumber__c, IfscCode__c, NameOfTheBank__c, BankBranch__c,
+                       FinalSubmitted__c
                 FROM AdmissionPaymentDetail__c
                 WHERE Application__c = :applicationId
                 ORDER BY CreatedDate ASC
@@ -1188,6 +1189,10 @@ public with sharing class ApAccountProgramController {
                 // If we have an existing record at this index, update it; otherwise create new
                 if (i < existingRecords.size()) {
                     rec = existingRecords[i];
+                    // Submitted rows stay locked — skip field updates
+                    if (rec.FinalSubmitted__c == true) {
+                        continue;
+                    }
                 } else {
                     rec = new AdmissionPaymentDetail__c();
                     rec.Application__c = (Id) applicationId;
@@ -1402,48 +1407,25 @@ public with sharing class ApAccountProgramController {
         // }
     }
 
-    @AuraEnabled(cacheable=false)
-    public static Boolean getPaymentSectionFinalSubmitted(Id applicationId) {
-        try {
-            if (applicationId == null) {
-                return false;
-            }
-            List<Admission_Decision__c> decisions = [
-                SELECT Id, PaymentSectionFinalSubmitted__c
-                FROM Admission_Decision__c
-                WHERE Application__c = :applicationId
-                  AND Result__c = 'Eligible for Admission'
-                ORDER BY CreatedDate DESC
-                LIMIT 1
-            ];
-            if (decisions.isEmpty()) {
-                return false;
-            }
-            return decisions[0].PaymentSectionFinalSubmitted__c == true;
-        } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
-        }
-    }
-
     @AuraEnabled
-    public static void setPaymentSectionFinalSubmitted(Id applicationId) {
+    public static List<AdmissionPaymentDetail__c> submitAdmissionPaymentDetails(Id applicationId) {
         try {
             if (applicationId == null) {
                 throw new AuraHandledException('Missing applicationId');
             }
-            List<Admission_Decision__c> decisions = [
-                SELECT Id, PaymentSectionFinalSubmitted__c
-                FROM Admission_Decision__c
+            List<AdmissionPaymentDetail__c> records = [
+                SELECT Id, FinalSubmitted__c
+                FROM AdmissionPaymentDetail__c
                 WHERE Application__c = :applicationId
-                  AND Result__c = 'Eligible for Admission'
-                ORDER BY CreatedDate DESC
-                LIMIT 1
+                  AND FinalSubmitted__c = false
             ];
-            if (decisions.isEmpty()) {
-                throw new AuraHandledException('No admission decision found for this application');
+            for (AdmissionPaymentDetail__c rec : records) {
+                rec.FinalSubmitted__c = true;
             }
-            decisions[0].PaymentSectionFinalSubmitted__c = true;
-            update decisions[0];
+            if (!records.isEmpty()) {
+                update records;
+            }
+            return getAdmissionPaymentDetails(applicationId);
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }
