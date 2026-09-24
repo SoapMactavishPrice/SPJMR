@@ -1,5 +1,6 @@
 import { LightningElement, track, wire, api } from 'lwc';
 import getProgramsForLoggedInUser from '@salesforce/apex/ApAccountProgramController.getProgramsForLoggedInUser';
+import getFaqItems from '@salesforce/apex/ApAccountProgramController.getFaqItems';
 import { NavigationMixin } from 'lightning/navigation';
 import { CurrentPageReference } from 'lightning/navigation';
 import { refreshApex } from '@salesforce/apex';
@@ -61,6 +62,7 @@ const ACTION_CONFIG = {
 export default class ApAccountPrograms extends NavigationMixin(LightningElement) {
     @track data = [];
     @track error;
+    @track faqItems = [];
     notificationCount = 0;
     showCustomMessage = false;
     showApplication = false;
@@ -69,6 +71,10 @@ export default class ApAccountPrograms extends NavigationMixin(LightningElement)
     isValidApplicant = true;
 
     metadataPromise;
+
+    get hasFaqs() {
+        return this.faqItems.length > 0;
+    }
 
     async doShowApplication(event) {
         this.programCode = event.detail;
@@ -103,6 +109,7 @@ export default class ApAccountPrograms extends NavigationMixin(LightningElement)
             if (!result.data.length > 0) {
                 this.error = 'No data found';
                 this.data = [];
+                this.faqItems = [];
                 return;
             }
 
@@ -132,11 +139,13 @@ export default class ApAccountPrograms extends NavigationMixin(LightningElement)
 
             this.error = undefined;
             console.log('ApAccountPrograms', JSON.stringify(this.data));
+            this.loadFaqItems(this.data);
 
         } else if (result.error) {
             this.error = result.error.body.message;
             console.log('error', JSON.stringify(this.error));
             this.data = [];
+            this.faqItems = [];
         }
     }
 
@@ -204,6 +213,33 @@ export default class ApAccountPrograms extends NavigationMixin(LightningElement)
         }
 
         return await this.metadataPromise;
+    }
+
+    async loadFaqItems(applications) {
+        const programCodes = [
+            ...new Set(
+                (applications || [])
+                    .map((item) => item?.programCode?.trim())
+                    .filter(Boolean)
+            )
+        ];
+
+        if (!programCodes.length) {
+            this.faqItems = [];
+            return;
+        }
+
+        getFaqItems({ programCodes }).then((items) => {
+            console.log('Fetched FAQ items:', items);
+            this.faqItems = (items || []).map((item) => ({
+                id: item.label,
+                label: item.label,
+                url: item.url
+            }));
+        }).catch((error) => {
+            console.error('Error fetching FAQ items:', error);
+            this.faqItems = [];
+        });
     }
 
     buildActionModel(item) {

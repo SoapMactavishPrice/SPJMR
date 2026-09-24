@@ -3,6 +3,25 @@
     <template lwc:if={showApplist}>        
         <template if:true={data}> 
             <c-all-applications-grid table-label={cmpLabel} table-data={data} onshowaplication={doShowApplication} onslotscheduled={slotScheduled}></c-all-applications-grid>
+            <template lwc:if={hasFaqs}>
+                <div class="faq-section">
+                    <label class="faq-heading">FAQ</label>
+                    <ul class="faq-list">
+                        <template for:each={faqItems} for:item="faq">
+                            <li key={faq.id} class="faq-item">
+                                <a
+                                    class="faq-link"
+                                    href={faq.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={faq.label}>
+                                    {faq.label}
+                                </a>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
             <c-applicant-dashboard-message-parent data={data}></c-applicant-dashboard-message-parent>
             <!-- <c-applicant-dashboard-message-gmp prgm-data={data}></c-applicant-dashboard-message-gmp> -->
 

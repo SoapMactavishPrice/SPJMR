@@ -104,6 +104,74 @@ public with sharing class ApAccountProgramController {
         return false;
     }
 
+    @AuraEnabled(cacheable=true)
+    public static List<FaqItem> getFaqItems(List<String> programCodes) {
+        List<FaqItem> faqItems = new List<FaqItem>();
+        if (programCodes == null || programCodes.isEmpty()) {
+            return faqItems;
+        }
+
+        Set<String> codes = new Set<String>();
+        for (String code : programCodes) {
+            if (String.isNotBlank(code)) {
+                codes.add(code.trim());
+            }
+        }
+        if (codes.isEmpty()) {
+            return faqItems;
+        }
+
+        List<ApplicationProgramBasedConfig__mdt> records = [
+            SELECT ProgramCode__c, Type__c, ConfigValue__c
+            FROM ApplicationProgramBasedConfig__mdt
+            WHERE Intent__c = 'FAQ'
+              AND Active__c = true
+              AND ProgramCode__c IN :codes
+        ];
+
+        Set<String> seenProgramNames = new Set<String>();
+        for (ApplicationProgramBasedConfig__mdt rec : records) {
+            if (rec.Type__c == null || !rec.Type__c.trim().equalsIgnoreCase('Json')) {
+                continue;
+            }
+            if (String.isBlank(rec.ConfigValue__c)) {
+                continue;
+            }
+
+            Object parsed;
+            try {
+                parsed = JSON.deserializeUntyped(rec.ConfigValue__c);
+            } catch (Exception e) {
+                System.debug('Parsing Error occured'+ e);
+                continue;
+            }
+            if (!(parsed instanceof Map<String, Object>)) {
+                continue;
+            }
+
+            Map<String, Object> configMap = (Map<String, Object>) parsed;
+            for (String programName : configMap.keySet()) {
+                String label = programName == null ? null : programName.trim();
+                if (String.isBlank(label) || seenProgramNames.contains(label)) {
+                    continue;
+                }
+
+                Object urlValue = configMap.get(programName);
+                String url = urlValue == null ? null : String.valueOf(urlValue).trim();
+                if (String.isBlank(url)) {
+                    continue;
+                }
+
+                seenProgramNames.add(label);
+                FaqItem item = new FaqItem();
+                item.label = label;
+                item.url = url;
+                faqItems.add(item);
+            }
+        }
+        return faqItems;
+    }
+
     @AuraEnabled
     public static Map<String,String> checkUploadedDocuments(String applicationId){
         Map<String,String> resultMap = new Map<String,String>();
@@ -1499,6 +1567,11 @@ public with sharing class ApAccountProgramController {
         @AuraEnabled public String programCode;
         @AuraEnabled public String acceptanceLetterUrl;
         @AuraEnabled public List<AnnexureWrapper> annexures;
+    }
+
+    public class FaqItem {
+        @AuraEnabled public String label;
+        @AuraEnabled public String url;
     }
 
     public class admissionDecision{

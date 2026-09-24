@@ -815,6 +815,41 @@ private class ApAccountProgramControllerTest {
     // getTShirtSizeConfig
     // ============================================
     @IsTest
+    static void testGetFaqItems_NullAndBlankProgramCodes() {
+        Test.startTest();
+        List<ApAccountProgramController.FaqItem> nullResult =
+            ApAccountProgramController.getFaqItems(null);
+        List<ApAccountProgramController.FaqItem> blankResult =
+            ApAccountProgramController.getFaqItems(new List<String>{ '', '  ' });
+        Test.stopTest();
+
+        System.assertEquals(0, nullResult.size());
+        System.assertEquals(0, blankResult.size());
+    }
+
+    @IsTest
+    static void testGetFaqItems_DedupesByProgramName() {
+        Test.startTest();
+        List<ApAccountProgramController.FaqItem> result =
+            ApAccountProgramController.getFaqItems(
+                new List<String>{ 'PGDM', 'PGDM&PGDM-BM', 'PGDM' }
+            );
+        Test.stopTest();
+
+        System.assertNotEquals(null, result);
+        Set<String> labels = new Set<String>();
+        for (ApAccountProgramController.FaqItem item : result) {
+            System.assert(String.isNotBlank(item.label));
+            System.assert(String.isNotBlank(item.url));
+            System.assert(
+                !labels.contains(item.label),
+                'FAQ program names must be unique'
+            );
+            labels.add(item.label);
+        }
+    }
+
+    @IsTest
     static void testGetTShirtSizeConfig() {
         Boolean result = ApAccountProgramController.getTShirtSizeConfig('TP01');
         System.assertEquals(true, result);

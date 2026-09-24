@@ -623,7 +623,7 @@ Choose the programme you wish to apply for
                     visibleWhen: {
                         'otherResources.requireAreaOfFocus': true
                     },
-                    helpText:"For PGDM(BM) programme",
+                    helpText:"For PGDM (BM) programme",
                     requiredWhen: {
                         'otherResources.requireAreaOfFocus': true
                     }

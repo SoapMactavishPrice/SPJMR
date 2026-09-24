@@ -1,0 +1,34 @@
+.faq-section {
+    padding: 18px 1.5rem 1.5rem;
+}
+
+.faq-heading {
+    display: block;
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: black;
+    margin-bottom: 0.75rem;
+}
+
+.faq-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.faq-item {
+    padding: 0.35rem 0;
+}
+
+.faq-link {
+    color: #006dcc;
+    text-decoration: none;
+    font-size: 1rem;
+}
+
+.faq-link:hover,
+.faq-link:focus {
+    text-decoration: underline;
+    color: #531f75;
+}
