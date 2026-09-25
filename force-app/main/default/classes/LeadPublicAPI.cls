@@ -1,7 +1,7 @@
 @RestResource(urlMapping='/createLead')
 global class LeadPublicAPI {
     @HttpPost
-    global static void createLead() {
+    global static void createLead() { 
         RestRequest req = RestContext.request;
         RestResponse res = RestContext.response;
         res.addHeader('Content-Type', 'application/json');

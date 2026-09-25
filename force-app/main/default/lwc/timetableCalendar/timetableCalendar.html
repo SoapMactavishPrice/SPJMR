@@ -354,7 +354,10 @@
                                 </template>
                             </div>
                             <div class="divisions-week-body">
-                                <div class="divisions-week-grid-inner" style={divisionsWeekGridBodyStyle}>
+                                <div class="divisions-week-grid-inner"
+                                     style={divisionsWeekGridBodyStyle}
+                                     onmousemove={handleBusyGridHoverMove}
+                                     onmouseleave={handleBusyHoverLeave}>
                                     <template for:each={divisionWeekRows} for:item="row">
                                         <div key={row.key} class="division-time-cell" style={row.timeGridStyle}>{row.timeLabel}</div>
                                         <template for:each={row.cells} for:item="cell">
@@ -364,6 +367,16 @@
                                                  data-day={cell.dateStr}
                                                  data-hour={row.hour}
                                                  onclick={handleAllDivisionsWeekCellClick}>
+                                                <!-- Faculty busy overlay: inert wash, clipped to this hour cell; hover handled by the grid -->
+                                                <template for:each={cell.busyBlocks} for:item="busy">
+                                                    <div key={busy.key}
+                                                         class={busy.blockClass}
+                                                         style={busy.style}
+                                                         aria-hidden="true">
+                                                        <span class="faculty-busy-swatch" style={busy.swatchStyle}></span>
+                                                        <span class="faculty-busy-label">{busy.label}</span>
+                                                    </div>
+                                                </template>
                                                 <template for:each={cell.events} for:item="event">
                                                     <div key={event.key}
                                                          class={event.eventClass}
@@ -473,7 +486,9 @@
                                      data-day={day.key}
                                      ondragover={handleDragOver}
                                      ondrop={handleDrop}
-                                     ondragleave={handleDragLeave}>
+                                     ondragleave={handleDragLeave}
+                                     onmousemove={handleBusyHoverMove}
+                                     onmouseleave={handleBusyHoverLeave}>
                                     <!-- Hour Lines -->
                                     <template for:each={timeSlots} for:item="slot">
                                         <div key={slot.key} 
@@ -483,6 +498,16 @@
                                              onclick={handleCellClick}
                                              ondragover={handleCellDragOver}
                                              ondrop={handleCellDrop}></div>
+                                    </template>
+                                    <!-- Faculty busy overlay: inert wash (pointer-events:none); the column's onmousemove drives the tooltip -->
+                                    <template for:each={day.busyBlocks} for:item="busy">
+                                        <div key={busy.key}
+                                             class={busy.blockClass}
+                                             style={busy.style}
+                                             aria-hidden="true">
+                                            <span class="faculty-busy-swatch" style={busy.swatchStyle}></span>
+                                            <span class="faculty-busy-label">{busy.label}</span>
+                                        </div>
                                     </template>
                                     <!-- Events for this day -->
                                             <template for:each={day.events} for:item="event">
@@ -1896,6 +1921,30 @@
                 <div class="session-tooltip-line"><span class="session-tooltip-label">Faculty:</span> {hoveredEventTooltip.facultyStr}</div>
                 <div class="session-tooltip-line"><span class="session-tooltip-label">Support Faculty:</span> {hoveredEventTooltip.supportFacultyStr}</div>
                 <div class="session-tooltip-line"><span class="session-tooltip-label">Class Room:</span> {hoveredEventTooltip.classRoom}</div>
+            </div>
+        </template>
+        <!-- Faculty busy hover tooltip: name/count, date and clock times only - no event detail exists to show -->
+        <template if:true={showFacultyBusyTooltip}>
+            <div class="session-hover-tooltip faculty-busy-tooltip"
+                 style={sessionHoverTooltipStyle}
+                 role="tooltip">
+                <div class="session-tooltip-line faculty-busy-tooltip-title">{hoveredBusyTooltip.heading}</div>
+                <template if:false={hoveredBusyTooltip.isConsolidated}>
+                    <div class="session-tooltip-line"><span class="session-tooltip-label">Status:</span> Busy</div>
+                </template>
+                <div class="session-tooltip-line"><span class="session-tooltip-label">Date:</span> {hoveredBusyTooltip.dateLabel}</div>
+                <template if:false={hoveredBusyTooltip.isConsolidated}>
+                    <div class="session-tooltip-line"><span class="session-tooltip-label">Time:</span> {hoveredBusyTooltip.timeLabel}</div>
+                </template>
+                <template if:true={hoveredBusyTooltip.isConsolidated}>
+                    <template for:each={hoveredBusyTooltip.members} for:item="member">
+                        <div key={member.key} class="session-tooltip-line faculty-busy-tooltip-member">
+                            <span class="faculty-busy-tooltip-dot" style={member.dotStyle}></span>
+                            <span class="faculty-busy-tooltip-name">{member.name}</span>
+                            <span class="faculty-busy-tooltip-time">{member.timeLabel}</span>
+                        </div>
+                    </template>
+                </template>
             </div>
         </template>
         <!-- Toast Notification -->

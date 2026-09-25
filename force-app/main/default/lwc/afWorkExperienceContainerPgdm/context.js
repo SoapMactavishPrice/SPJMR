@@ -61,6 +61,8 @@ export const context = {
                 "Employment_Type__c",
                 "Industry__c",
                 "Function__c",
+                "City__c",
+                "OtherCity__c",
                 "IsCurrentJob__c",
 
                 "OtherOrganizationName__c",

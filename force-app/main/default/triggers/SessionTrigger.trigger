@@ -40,13 +40,27 @@ trigger SessionTrigger on Session__c (before insert, before update, after update
             (Map<Id, Session__c>) Trigger.oldMap
         );
     }
+    
     if (Trigger.isAfter && Trigger.isInsert) {
         // A session created directly as Draft → faculty invite
         SessionCalendarInviteHandler.handleSessionCalendarInvites(
             (Map<Id, Session__c>) Trigger.newMap,
             null
         );
+    Map<Id, String> sessionCodes = new Map<Id, String>();
+
+    for (Session__c sessionRecord : Trigger.new) {
+        sessionCodes.put(
+            sessionRecord.Id,
+            sessionRecord.Program_Code__c
+        );
     }
+
+    ProgrammeSharingService.shareRecords(
+        'Session__c',sessionCodes
+    );    
+   }
+   
     if (Trigger.isAfter && Trigger.isDelete) {
         // SE-1047 D3: cancel the Google event for any deleted Session that had one.
         SessionCalendarInviteHandler.handleSessionDeletes(

@@ -2,42 +2,70 @@ public without sharing class ProgrammeSharingService {
 
     private static final String ACCESS_LEVEL = 'Read';
 
-    public static void sharePrograms(
-        List<Program> programs
+    /*
+     * Generic sharing method.
+     *
+     * objectApiName:
+     * Program
+     * Session__c
+     * Campus__c
+     * AcademicTerm
+     * Program_Courses__c
+     * Leave_Application__c
+     * Withdrawal_Request__c
+     * Deferment_Request__c
+     * Account
+     *
+     * recordIdToProgrammeCode:
+     * Record Id -> Programme Code
+     */
+    public static void shareRecords(
+        String objectApiName,
+        Map<Id, String> recordIdToProgrammeCode
     ) {
 
-        if (programs == null || programs.isEmpty()) {
+        if (
+            String.isBlank(objectApiName) ||
+            recordIdToProgrammeCode == null ||
+            recordIdToProgrammeCode.isEmpty()
+        ) {
             return;
         }
 
         /*
-         * Program Id -> Programme Code
+         * Clean Programme Codes and remove invalid records.
          */
-        Map<Id, String> programCodeById =
+        Map<Id, String> validRecordCodes =
             new Map<Id, String>();
 
-        Set<String> programCodes =
+        Set<String> programmeCodes =
             new Set<String>();
 
-        for (Program programRecord : programs) {
+        for (Id recordId : recordIdToProgrammeCode.keySet()) {
 
-            if (programRecord.Id == null ||
-                String.isBlank(programRecord.Program_Code__c)) {
+            String programmeCode =
+                recordIdToProgrammeCode.get(recordId);
+
+            if (
+                recordId == null ||
+                String.isBlank(programmeCode)
+            ) {
                 continue;
             }
 
-            String programCode =
-                programRecord.Program_Code__c.trim();
+            programmeCode = programmeCode.trim();
 
-            programCodeById.put(
-                programRecord.Id,
-                programCode
+            validRecordCodes.put(
+                recordId,
+                programmeCode
             );
 
-            programCodes.add(programCode);
+            programmeCodes.add(
+                programmeCode
+            );
         }
 
-        if (programCodeById.isEmpty()) {
+        if (validRecordCodes.isEmpty()) {
             return;
         }
 
@@ -46,7 +74,7 @@ public without sharing class ProgrammeSharingService {
          */
         Map<String, Group> groupsByDeveloperName =
             ProgrammeGroupService.getProgrammeGroups(
-                programCodes
+                programmeCodes
             );
 
         if (groupsByDeveloperName.isEmpty()) {
@@ -54,107 +82,178 @@ public without sharing class ProgrammeSharingService {
         }
 
         /*
-         * Collect relevant Group Ids.
+         * Record Id -> Programme Group Id
          */
-        Set<Id> groupIds = new Set<Id>();
+        Map<Id, Id> groupIdByRecordId =
+            new Map<Id, Id>();
 
-        for (String programCode : programCodes) {
+        Set<Id> groupIds =
+            new Set<Id>();
+
+        for (Id recordId : validRecordCodes.keySet()) {
+
+            String programmeCode =
+                validRecordCodes.get(recordId);
 
             String developerName =
                 ProgrammeGroupService.buildDeveloperName(
-                    programCode
+                    programmeCode
                 );
 
             Group programmeGroup =
-                groupsByDeveloperName.get(developerName);
-
-            if (programmeGroup != null) {
-                groupIds.add(programmeGroup.Id);
-            }
-        }
-
-        if (groupIds.isEmpty()) {
-            return;
-        }
-
-        /*
-         * Check existing shares.
-         */
-        Map<String, ProgramShare> existingShares =
-            new Map<String, ProgramShare>();
-
-        for (ProgramShare existingShare : [
-            SELECT Id,
-                   ParentId,
-                   UserOrGroupId,
-                   AccessLevel,
-                   RowCause
-            FROM ProgramShare
-            WHERE ParentId IN :programCodeById.keySet()
-            AND UserOrGroupId IN :groupIds
-        ]) {
-
-            String key =
-                String.valueOf(existingShare.ParentId)
-                + ':'
-                + String.valueOf(
-                    existingShare.UserOrGroupId
+                groupsByDeveloperName.get(
+                    developerName
                 );
-
-            existingShares.put(key, existingShare);
-        }
-
-        /*
-         * Create missing shares.
-         */
-        List<ProgramShare> sharesToInsert =
-            new List<ProgramShare>();
-
-        for (Id programId : programCodeById.keySet()) {
-
-            String programCode =
-                programCodeById.get(programId);
-
-            String developerName =
-                ProgrammeGroupService.buildDeveloperName(
-                    programCode
-                );
-
-            Group programmeGroup =
-                groupsByDeveloperName.get(developerName);
 
             if (programmeGroup == null) {
                 continue;
             }
 
-            String key =
-                String.valueOf(programId)
-                + ':'
-                + String.valueOf(programmeGroup.Id);
+            groupIdByRecordId.put(
+                recordId,
+                programmeGroup.Id
+            );
 
-            if (existingShares.containsKey(key)) {
+            groupIds.add(
+                programmeGroup.Id
+            );
+        }
+
+        if (groupIdByRecordId.isEmpty()) {
+            return;
+        }
+
+        /*
+         * Get the appropriate Share object dynamically.
+         *
+         * Example:
+         * Program       -> ProgramShare
+         * Session__c    -> Session__Share
+         * Campus__c     -> Campus__Share
+         * Account       -> AccountShare
+         */
+        String shareObjectApiName =
+            objectApiName + 'Share';
+
+        Schema.SObjectType shareObjectType =
+            Schema.getGlobalDescribe().get(
+                shareObjectApiName
+            );
+
+        if (shareObjectType == null) {
+            return;
+        }
+
+        /*
+         * Record Ids used for existing-share query.
+         */
+        Set<Id> recordIds =
+            validRecordCodes.keySet();
+
+        /*
+         * Check existing shares to prevent duplicates.
+         */
+        String query =
+            'SELECT Id, ParentId, UserOrGroupId, ' +
+            'AccessLevel, RowCause ' +
+            'FROM ' + shareObjectApiName +
+            ' WHERE ParentId IN :recordIds ' +
+            ' AND UserOrGroupId IN :groupIds';
+
+        Map<String, Object> bindVariables =
+            new Map<String, Object>{
+                'recordIds' => recordIds,
+                'groupIds' => groupIds
+            };
+
+        List<SObject> existingShares =
+            Database.queryWithBinds(
+                query,
+                bindVariables,
+                AccessLevel.SYSTEM_MODE
+            );
+
+        Set<String> existingShareKeys =
+            new Set<String>();
+
+        for (SObject existingShare : existingShares) {
+
+            Id parentId =
+                (Id) existingShare.get(
+                    'ParentId'
+                );
+
+            Id userOrGroupId =
+                (Id) existingShare.get(
+                    'UserOrGroupId'
+                );
+
+            String key =
+                String.valueOf(parentId) +
+                ':' +
+                String.valueOf(userOrGroupId);
+
+            existingShareKeys.add(key);
+        }
+
+        /*
+         * Create missing shares.
+         */
+        List<SObject> sharesToInsert =
+            new List<SObject>();
+
+        for (Id recordId : groupIdByRecordId.keySet()) {
+
+            Id groupId =
+                groupIdByRecordId.get(
+                    recordId
+                );
+
+            String key =
+                String.valueOf(recordId) +
+                ':' +
+                String.valueOf(groupId);
+
+            if (existingShareKeys.contains(key)) {
                 continue;
             }
 
-            ProgramShare programShare =
-                new ProgramShare();
+            SObject shareRecord =
+                shareObjectType.newSObject();
 
-            programShare.ParentId = programId;
-            programShare.UserOrGroupId =
-                programmeGroup.Id;
-            programShare.AccessLevel =
-                ACCESS_LEVEL;
+            shareRecord.put(
+                'ParentId',
+                recordId
+            );
+
+            shareRecord.put(
+                'UserOrGroupId',
+                groupId
+            );
+
+            shareRecord.put(
+                'AccessLevel',
+                ACCESS_LEVEL
+            );
 
             /*
              * TEMPORARY:
              * Replace Manual with the agreed
              * Apex Sharing Reason.
              */
-            programShare.RowCause = 'Manual';
+            shareRecord.put(
+                'RowCause',
+                'Manual'
+            );
 
-            sharesToInsert.add(programShare);
+            sharesToInsert.add(
+                shareRecord
+            );
         }
 
+        /*
+         * Insert all shares in bulk.
+         */
         if (!sharesToInsert.isEmpty()) {
 
             Database.insert(

@@ -405,7 +405,7 @@ export default class AfAcademicDetailsContainerPgdm  extends LightningElement {
                         { label: 'Yes', value: 'Yes' },
                         { label: 'No', value: 'No' }
                     ],
-                    helpText:"The question is pertaining to a break in between 10th grade and graduation. You can choose \"No\" if you have completed your graduation without a break in between.",
+                    helpText:"The question is pertaining to a break in between 10th grade and graduation. You may use this field to provide important details regarding any academic break. You can choose a \"No\" if you have completed your academics (from 10th to graduation) without a break in between.",
                     required: true
                 },
                 {

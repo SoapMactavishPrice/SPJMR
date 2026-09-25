@@ -23,6 +23,7 @@ import getFacultyCalendarConflictsForSessions from '@salesforce/apex/TimetableSe
 import getSessionDivisions from '@salesforce/apex/TimetableWizardController.getSessionDivisions';
 import getEligibleMakeupStudents from '@salesforce/apex/TimetableSessionController.getEligibleMakeupStudents';
 import refreshAttendees from '@salesforce/apex/TimetableSessionController.refreshAttendees';
+import getAvailability from '@salesforce/apex/FacultyAvailabilityService.getAvailability';
 
 
 export default class TimetableCalendar extends LightningElement {
@@ -67,6 +68,32 @@ export default class TimetableCalendar extends LightningElement {
     static facultyColorForIndex(i) {
         const palette = TimetableCalendar.FACULTY_COLOR_PALETTE;
         return palette[i % palette.length];
+    }
+
+    /** Availability overlay: neutral slate for a block that covers more than one faculty. */
+    static BUSY_CONSOLIDATED_HEX = '#6B7280';
+    /** Availability overlay: shortest block we will draw, so a 10-minute busy period stays visible. */
+    static BUSY_MIN_BLOCK_PX = 16;
+    /** Availability overlay: same floor for the All Divisions grid, whose rows are far shorter. */
+    static BUSY_MIN_SEGMENT_PX = 6;
+    /** All Divisions week grid row height; must stay in step with divisionsWeekGridBodyStyle. */
+    static DIVISIONS_WEEK_ROW_HEIGHT = 50;
+    /** Availability overlay: week-paging changes the range on every click and each load is two live Google callouts. */
+    static AVAILABILITY_DEBOUNCE_MS = 350;
+
+    /**
+     * Busy blocks read as background information, not as a booking: a pale wash of the faculty
+     * colour with a dashed edge (the border colour is set here, the dash in CSS). The fill is kept
+     * at 10% so it can sit over a session tile without washing the tile's own colour out.
+     */
+    static busyTintInlineStyle(hex) {
+        if (!hex || !/^#[0-9A-Fa-f]{6}$/i.test(hex)) return '';
+        const n = parseInt(hex.slice(1), 16);
+        const r = (n >> 16) & 255;
+        const g = (n >> 8) & 255;
+        const b = n & 255;
+        const fg = TimetableCalendar.hexLuminance(hex) > 0.55 ? '#3f3f46' : hex;
+        return `background-color: rgba(${r}, ${g}, ${b}, 0.10); border-color: rgba(${r}, ${g}, ${b}, 0.6); color: ${fg};`;
     }
 
     static normalizeDivisionColorKey(picklistValue) {
@@ -149,6 +176,20 @@ export default class TimetableCalendar extends LightningElement {
     @track facultyPillsExpanded = false; // "+N more" chip expands the chip box
     /** De-dupe key for the availability overlay load (selected faculty + current view range). */
     lastAvailabilityKey = '';
+    /** Availability overlay: busy clusters keyed by 'YYYY-MM-DD', built once per response. */
+    @track facultyBusyByDate = {};
+    /** Availability overlay: tooltip payload by cluster key, so hover stays an O(1) lookup. */
+    busyTooltipByKey = {};
+    /** Availability overlay: hovered busy block's tooltip payload (name/count, date, times only). */
+    @track hoveredBusyTooltip = null;
+    /** Availability overlay: request stamp; a response that is no longer the newest is dropped. */
+    availabilityRequestSeq = 0;
+    /** Availability overlay: pending debounce timer id (cleared on disconnect). */
+    availabilityDebounceId = null;
+    /** Availability overlay: latest un-resolved hover, read once per animation frame. */
+    pendingBusyHover = null;
+    /** Availability overlay: pending requestAnimationFrame id for the hover resolve. */
+    busyHoverFrameId = null;
     /** Bound document listener that closes the faculty menu on an outside click (removed on disconnect). */
     boundFacultyOutsideClick = null;
     @track filterScheduleTypeDraft = false;
@@ -1414,6 +1455,7 @@ export default class TimetableCalendar extends LightningElement {
         this.selectedFilterFacultyIds = [];
         this.closeFacultyMenu();
         this.filterFacultyOptions = [];
+        this.scheduleFacultyAvailabilityLoad();
         
         if (this.selectedTerm) {
             getDivisionsForTerms({ termIds: [this.selectedTerm] })
@@ -1629,13 +1671,431 @@ export default class TimetableCalendar extends LightningElement {
         if (key === this.lastAvailabilityKey) return;
         this.lastAvailabilityKey = key;
         // Nothing to look up while no faculty is selected; the key is still stored so the next
-        // real selection is not mistaken for a repeat.
-        if (ids.length === 0) return;
-        this.loadFacultyAvailability();
+        // real selection is not mistaken for a repeat. Deselecting the last faculty must also drop
+        // the painted blocks, so clear here instead of just returning.
+        if (ids.length === 0) {
+            this.cancelPendingAvailabilityLoad();
+            this.availabilityRequestSeq += 1; // any response still in flight is now stale
+            this.clearFacultyAvailability();
+            return;
+        }
+        // Paging a week at a time changes the key on every click and each load is two live Google
+        // callouts with no platform caching, so let the navigation settle first.
+        this.cancelPendingAvailabilityLoad();
+        // Stamp now, not in the loader: an older response must not be allowed to paint during the
+        // debounce window.
+        this.availabilityRequestSeq += 1;
+        this.availabilityDebounceId = setTimeout(() => {
+            this.availabilityDebounceId = null;
+            this.loadFacultyAvailability();
+        }, TimetableCalendar.AVAILABILITY_DEBOUNCE_MS);
+    }
+
+    cancelPendingAvailabilityLoad() {
+        if (this.availabilityDebounceId) {
+            clearTimeout(this.availabilityDebounceId);
+            this.availabilityDebounceId = null;
+        }
     }
 
     loadFacultyAvailability() {
-        // Part 2/3 calls the faculty availability service here and paints the overlay on the grid.
+        const facultyIds = [...(this.selectedFilterFacultyIds || [])];
+        // Month view has no time grid to paint, so a month-wide freeBusy call would be wasted.
+        if (facultyIds.length === 0 || this.currentView === 'month') {
+            this.availabilityRequestSeq += 1;
+            this.clearFacultyAvailability();
+            return;
+        }
+        const { startDate, endDate } = this.getCurrentViewDateRange();
+        const requestId = ++this.availabilityRequestSeq;
+        getAvailability({ facultyIds, rangeStart: startDate, rangeEnd: endDate })
+            .then(result => {
+                // The user can pan the grid faster than Google answers; only the newest may paint.
+                if (requestId !== this.availabilityRequestSeq) return;
+                this.applyFacultyAvailability(result);
+            })
+            .catch(error => {
+                // The service already fails open (empty busy lists), so a failure here is a
+                // transport or access problem — most likely the caller has no access to the Apex
+                // class, whose only symptom is an overlay that never appears. Log it; a toast on
+                // every attempt would be noise.
+                console.error('Faculty availability load failed:', error);
+                if (requestId !== this.availabilityRequestSeq) return;
+                // Forget the de-dupe key so coming back to this range retries instead of staying blank.
+                this.lastAvailabilityKey = '';
+                this.clearFacultyAvailability();
+            });
+    }
+
+    clearFacultyAvailability() {
+        this.facultyBusyByDate = {};
+        this.busyTooltipByKey = {};
+        this.hoveredBusyTooltip = null;
+    }
+
+    /**
+     * Turn the service rows into per-day busy clusters once per response, so the grid getters only
+     * have to position what is already grouped.
+     * Google merges each faculty's own OVERLAPPING meetings before we see them; disjoint ones
+     * arrive separately, so both the clustering here (AC5) and the per-faculty interval merge in
+     * buildBusyCluster have real work to do.
+     */
+    applyFacultyAvailability(rows) {
+        // A response landing while the pointer sits on a block must not strand a card for a
+        // cluster that no longer exists.
+        this.clearBusyHover();
+        const segmentsByDate = {};
+        (rows || []).forEach(row => {
+            if (!row) return;
+            // A faculty whose calendar cannot be read comes back with an empty busy list, which is
+            // indistinguishable from genuinely free — an accepted product decision.
+            const colorHex = this.facultyColorFor(row.facultyId) || TimetableCalendar.BUSY_CONSOLIDATED_HEX;
+            const facultyName = (row.facultyName && String(row.facultyName).trim()) || 'Faculty';
+            (row.busy || []).forEach(block => {
+                this.splitBusyBlockByDay(block).forEach(part => {
+                    if (!segmentsByDate[part.dateStr]) segmentsByDate[part.dateStr] = [];
+                    segmentsByDate[part.dateStr].push({
+                        facultyId: row.facultyId,
+                        facultyName: facultyName,
+                        colorHex: colorHex,
+                        startMinutes: part.startMinutes,
+                        endMinutes: part.endMinutes
+                    });
+                });
+            });
+        });
+
+        const byDate = {};
+        const tooltips = {};
+        Object.keys(segmentsByDate).forEach(dateStr => {
+            const clusters = this.clusterBusySegments(segmentsByDate[dateStr], dateStr);
+            byDate[dateStr] = clusters;
+            clusters.forEach(cluster => { tooltips[cluster.key] = cluster.tooltip; });
+        });
+        this.facultyBusyByDate = byDate;
+        this.busyTooltipByKey = tooltips;
+    }
+
+    /** Apex Datetime arrives as epoch milliseconds; tolerate an ISO string too. */
+    toBusyDate(value) {
+        if (value == null || value === '') return null;
+        const d = typeof value === 'number' ? new Date(value) : new Date(String(value));
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    /**
+     * Cut one busy interval at local midnight so a block that crosses days renders on each day it
+     * covers instead of overflowing a single column. An all-day Google event arrives here as a
+     * local midnight-to-midnight interval and is drawn as an ordinary 24h timed block (AC6 — a
+     * separate all-day band — is out of scope for this part).
+     */
+    splitBusyBlockByDay(block) {
+        const start = this.toBusyDate(block && block.startTime);
+        const end = this.toBusyDate(block && block.endTime);
+        if (!start || !end || end.getTime() <= start.getTime()) return [];
+        const parts = [];
+        const cursor = new Date(start);
+        cursor.setHours(0, 0, 0, 0);
+        // Guard: a busy interval longer than a couple of months is not something this grid draws.
+        for (let guard = 0; guard < 70 && cursor.getTime() < end.getTime(); guard++) {
+            const dayStart = new Date(cursor);
+            const dayEnd = new Date(cursor);
+            dayEnd.setDate(dayEnd.getDate() + 1);
+            const fromMs = Math.max(start.getTime(), dayStart.getTime());
+            const toMs = Math.min(end.getTime(), dayEnd.getTime());
+            if (toMs > fromMs) {
+                parts.push({
+                    dateStr: this.formatDateLocal(dayStart),
+                    startMinutes: Math.round((fromMs - dayStart.getTime()) / 60000),
+                    endMinutes: Math.round((toMs - dayStart.getTime()) / 60000)
+                });
+            }
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        return parts;
+    }
+
+    /** Sort by start, then extend the cluster while the next interval starts before its current end. */
+    clusterBusySegments(segments, dateStr) {
+        const sorted = [...segments].sort(
+            (a, b) => (a.startMinutes - b.startMinutes) || (a.endMinutes - b.endMinutes)
+        );
+        const clusters = [];
+        let current = null;
+        sorted.forEach(seg => {
+            if (current && seg.startMinutes < current.endMinutes) {
+                current.endMinutes = Math.max(current.endMinutes, seg.endMinutes);
+                current.segments.push(seg);
+            } else {
+                current = { startMinutes: seg.startMinutes, endMinutes: seg.endMinutes, segments: [seg] };
+                clusters.push(current);
+            }
+        });
+        const dateLabel = this.formatDateForDisplay(dateStr);
+        return clusters.map((cluster, index) => this.buildBusyCluster(cluster, dateStr, dateLabel, index));
+    }
+
+    /**
+     * One rendered block. Clustering is transitive, so the span can be wider than any individual's
+     * busy time (A 9–10, B 9:30–11, C 10:30–12 chain into one cluster). That is why the tooltip
+     * carries each faculty's OWN times rather than the cluster span.
+     * A faculty can also appear in one cluster with a genuine gap in the middle (A 9–10 and 11–12,
+     * chained by B 9:30–11:30). Google merges a faculty's OVERLAPPING meetings, never disjoint
+     * ones, so the gap is real and must survive to the tooltip — hence intervals, not min/max.
+     */
+    buildBusyCluster(cluster, dateStr, dateLabel, index) {
+        const byFaculty = [];
+        cluster.segments.forEach(seg => {
+            let entry = byFaculty.find(m => this.idsEqual(m.facultyId, seg.facultyId));
+            if (!entry) {
+                entry = {
+                    facultyId: seg.facultyId,
+                    name: seg.facultyName,
+                    colorHex: seg.colorHex,
+                    intervals: []
+                };
+                byFaculty.push(entry);
+            }
+            entry.intervals.push({ startMinutes: seg.startMinutes, endMinutes: seg.endMinutes });
+        });
+        byFaculty.forEach(m => { m.intervals = this.mergeBusyIntervals(m.intervals); });
+        byFaculty.sort((a, b) =>
+            (a.intervals[0].startMinutes - b.intervals[0].startMinutes) ||
+            (a.intervals[0].endMinutes - b.intervals[0].endMinutes)
+        );
+
+        const isConsolidated = byFaculty.length > 1;
+        const key = `busy-${dateStr}-${index}`;
+        const label = isConsolidated ? `${byFaculty.length} Faculty Busy` : byFaculty[0].name;
+        const colorHex = isConsolidated ? TimetableCalendar.BUSY_CONSOLIDATED_HEX : byFaculty[0].colorHex;
+
+        return {
+            key: key,
+            startMinutes: cluster.startMinutes,
+            endMinutes: cluster.endMinutes,
+            isConsolidated: isConsolidated,
+            label: label,
+            colorHex: colorHex,
+            // AC4: name/count, date and clock times only. The service returns no title, description,
+            // location, organiser, attendee or reason, so there is nothing else here to render.
+            tooltip: {
+                heading: label,
+                isConsolidated: isConsolidated,
+                dateLabel: dateLabel,
+                timeLabel: this.formatBusyIntervals(byFaculty[0].intervals),
+                members: byFaculty.map(m => ({
+                    key: `${key}-${m.facultyId}`,
+                    name: m.name,
+                    timeLabel: this.formatBusyIntervals(m.intervals),
+                    dotStyle: `background-color: ${m.colorHex};`
+                }))
+            }
+        };
+    }
+
+    /**
+     * Merge one faculty's own intervals, and only where they actually touch or overlap. Note the
+     * `<=`: for a single faculty 9–10 then 10–11 is continuous busy time and reads as one span,
+     * whereas clustering across faculty uses a strict `<` so two touching blocks stay separate.
+     */
+    mergeBusyIntervals(intervals) {
+        const sorted = [...intervals].sort(
+            (a, b) => (a.startMinutes - b.startMinutes) || (a.endMinutes - b.endMinutes)
+        );
+        const merged = [];
+        sorted.forEach(iv => {
+            const last = merged[merged.length - 1];
+            if (last && iv.startMinutes <= last.endMinutes) {
+                last.endMinutes = Math.max(last.endMinutes, iv.endMinutes);
+            } else {
+                merged.push({ startMinutes: iv.startMinutes, endMinutes: iv.endMinutes });
+            }
+        });
+        return merged;
+    }
+
+    /** "9:00 AM - 10:00 AM, 11:00 AM - 12:00 PM" — a real gap in a faculty's day stays visible. */
+    formatBusyIntervals(intervals) {
+        return (intervals || [])
+            .map(iv => this.formatBusyRange(iv.startMinutes, iv.endMinutes))
+            .join(', ');
+    }
+
+    /** "9:00 AM - 10:30 AM" from minutes past local midnight; 1440 reads as 12:00 AM, not 12 PM. */
+    formatBusyRange(startMinutes, endMinutes) {
+        return `${this.formatBusyClock(startMinutes)} - ${this.formatBusyClock(endMinutes)}`;
+    }
+
+    formatBusyClock(minutes) {
+        const clamped = Math.max(0, Math.min(1440, Math.round(minutes)));
+        const hh = Math.floor(clamped / 60) % 24;
+        const mm = clamped % 60;
+        return this.formatTime12(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
+    }
+
+    /** A busy block steps aside where a session already occupies the slot (sessions take priority). */
+    busyOverlapsSession(sessionEvents, startMinutes, endMinutes) {
+        if (!sessionEvents || sessionEvents.length === 0) return false;
+        return sessionEvents.some(ev => {
+            const s = this.parseTimeToMinutes(ev.startTime);
+            const e = this.parseTimeToMinutes(ev.endTime);
+            return e > startMinutes && s < endMinutes;
+        });
+    }
+
+    /**
+     * Single-division time grid (week + day): busy tiles for one day column, using the same
+     * top/height maths as formatEventForDisplay so they line up with the session tiles.
+     * Full column width: the blocks are pointer-events:none, so a wash can sit over a tile without
+     * costing anything. Only the label steps aside, so tile text is never written over.
+     */
+    facultyBusyBlocksForDate(dateStr, sessionEvents) {
+        const clusters = this.facultyBusyByDate ? this.facultyBusyByDate[dateStr] : null;
+        if (!clusters || clusters.length === 0) return [];
+        const visibleStart = TimetableCalendar.DAY_START_HOUR * 60;
+        const visibleEnd = (TimetableCalendar.DAY_END_HOUR + 1) * 60;
+        const pxPerMin = TimetableCalendar.DAY_VIEW_HOUR_HEIGHT / 60;
+        const blocks = [];
+        clusters.forEach(cluster => {
+            const startM = Math.max(cluster.startMinutes, visibleStart);
+            const endM = Math.min(cluster.endMinutes, visibleEnd);
+            if (endM <= startM) return;
+            const top = (startM - visibleStart) * pxPerMin;
+            const height = Math.max((endM - startM) * pxPerMin, TimetableCalendar.BUSY_MIN_BLOCK_PX);
+            const quiet = this.busyOverlapsSession(sessionEvents, startM, endM);
+            blocks.push({
+                key: cluster.key,
+                label: cluster.label,
+                style: `top: ${top}px; height: ${height}px; ${TimetableCalendar.busyTintInlineStyle(cluster.colorHex)}`,
+                swatchStyle: `background-color: ${cluster.colorHex};`,
+                blockClass: `faculty-busy-block${quiet ? ' faculty-busy-block-quiet' : ''}`
+            });
+        });
+        return blocks;
+    }
+
+    /**
+     * All Divisions week grid: one CLIPPED SEGMENT PER HOUR CELL, the way the grid lays its own
+     * rows out. A single tall block anchored to its start hour would need its cell to stop
+     * clipping, and a cell that stops clipping also has to be promoted in paint order — which put
+     * a busy-only cell above its neighbour's spanning session tile. Segmenting removes that.
+     */
+    facultyBusyBlocksForCell(dateStr, hour, rowHeightPx, sessionEvents) {
+        const clusters = this.facultyBusyByDate ? this.facultyBusyByDate[dateStr] : null;
+        if (!clusters || clusters.length === 0) return [];
+        const hourStartMinutes = hour * 60;
+        const hourEndMinutes = Math.min(hourStartMinutes + 60, (TimetableCalendar.DAY_END_HOUR + 1) * 60);
+        const blocks = [];
+        clusters.forEach(cluster => {
+            const segStart = Math.max(cluster.startMinutes, hourStartMinutes);
+            const segEnd = Math.min(cluster.endMinutes, hourEndMinutes);
+            if (segEnd <= segStart) return;
+            const top = ((segStart - hourStartMinutes) / 60) * rowHeightPx;
+            const height = Math.max(((segEnd - segStart) / 60) * rowHeightPx, 6);
+            const quiet = this.busyOverlapsSession(sessionEvents, segStart, segEnd);
+            blocks.push({
+                key: cluster.key,
+                label: cluster.label,
+                style: `top: ${top}px; height: ${height}px; ${TimetableCalendar.busyTintInlineStyle(cluster.colorHex)}`,
+                swatchStyle: `background-color: ${cluster.colorHex};`,
+                blockClass: `faculty-busy-block${quiet ? ' faculty-busy-block-quiet' : ''}`
+            });
+        });
+        return blocks;
+    }
+
+    // ----- Availability overlay: hover -----
+    //
+    // The blocks themselves are pointer-events:none, so they can never take a click, a dragover, a
+    // drop or a resize-handle mousedown away from the grid underneath — clicking, dragging and
+    // resizing behave exactly as they did before the overlay existed. The tooltip is driven instead
+    // from a single listener on each grid, which turns the pointer's Y position back into minutes
+    // and looks the cluster up in the data we already hold.
+
+    /** Single-division grid: the day column is the measuring surface, one listener per column. */
+    handleBusyHoverMove(event) {
+        const column = event.currentTarget;
+        this.queueBusyHover(column, column.dataset.day, TimetableCalendar.DAY_START_HOUR,
+            TimetableCalendar.DAY_VIEW_HOUR_HEIGHT, TimetableCalendar.BUSY_MIN_BLOCK_PX, event);
+    }
+
+    /**
+     * All Divisions week grid: one listener on the grid, measuring against whichever hour cell the
+     * pointer resolves to. A spanning tile can put that cell an hour or two above the pointer, but
+     * the offset is added to that cell's own base hour so the resulting minute is still absolute.
+     */
+    handleBusyGridHoverMove(event) {
+        const cell = event.target && event.target.closest
+            ? event.target.closest('.divisions-week-cell')
+            : null;
+        this.queueBusyHover(cell, cell && cell.dataset.day,
+            cell ? (parseInt(cell.dataset.hour, 10) || 0) : 0,
+            TimetableCalendar.DIVISIONS_WEEK_ROW_HEIGHT, TimetableCalendar.BUSY_MIN_SEGMENT_PX, event);
+    }
+
+    handleBusyHoverLeave() {
+        this.clearBusyHover();
+    }
+
+    /**
+     * Keep the layout read off the mousemove: at most one resolve per animation frame, and none at
+     * all on a day with no busy time (the common case, since most users select no faculty).
+     */
+    queueBusyHover(surface, dateStr, baseHour, rowHeightPx, minBlockPx, event) {
+        const clusters = surface ? this.facultyBusyByDate[dateStr] : null;
+        if (!clusters || clusters.length === 0) {
+            this.clearBusyHover();
+            return;
+        }
+        this.pendingBusyHover = {
+            surface, clusters, baseHour, rowHeightPx, minBlockPx,
+            clientX: event.clientX, clientY: event.clientY
+        };
+        if (this.busyHoverFrameId != null) return;
+        this.busyHoverFrameId = requestAnimationFrame(() => {
+            this.busyHoverFrameId = null;
+            this.resolveBusyHover();
+        });
+    }
+
+    resolveBusyHover() {
+        const pending = this.pendingBusyHover;
+        if (!pending || !pending.surface || !pending.surface.isConnected) {
+            this.clearBusyHover();
+            return;
+        }
+        const pxPerMin = pending.rowHeightPx / 60;
+        const offsetY = pending.clientY - pending.surface.getBoundingClientRect().top;
+        const minutes = (pending.baseHour * 60) + (offsetY / pxPerMin);
+        // Allow for the minimum drawn height, so a very short block is hoverable over all of itself.
+        const slack = pending.minBlockPx / pxPerMin;
+        const hit = pending.clusters.find(c =>
+            minutes >= c.startMinutes && minutes < Math.max(c.endMinutes, c.startMinutes + slack)
+        );
+        const payload = hit ? this.busyTooltipByKey[hit.key] : null;
+        if (!payload) {
+            if (this.hoveredBusyTooltip != null) this.hoveredBusyTooltip = null;
+            return;
+        }
+        // Moving within the same block must not re-render: the card is pinned where it was entered,
+        // exactly like the session tooltip.
+        if (this.hoveredBusyTooltip === payload) return;
+        this.hoveredBusyTooltip = payload;
+        this.tooltipPosition = { x: pending.clientX, y: pending.clientY + 14 };
+    }
+
+    clearBusyHover() {
+        if (this.busyHoverFrameId != null) {
+            cancelAnimationFrame(this.busyHoverFrameId);
+            this.busyHoverFrameId = null;
+        }
+        this.pendingBusyHover = null;
+        if (this.hoveredBusyTooltip != null) this.hoveredBusyTooltip = null;
+    }
+
+    get showFacultyBusyTooltip() {
+        // A session tile is always the more important card, so it wins if both are somehow set.
+        return this.hoveredBusyTooltip != null && this.hoveredEventTooltip == null;
     }
 
     handleCourseChange(event) {
@@ -2445,6 +2905,11 @@ export default class TimetableCalendar extends LightningElement {
             document.removeEventListener('click', this.boundFacultyOutsideClick);
             this.boundFacultyOutsideClick = null;
         }
+        if (this.availabilityDebounceId) {
+            clearTimeout(this.availabilityDebounceId);
+            this.availabilityDebounceId = null;
+        }
+        this.clearBusyHover();
     }
 
     initializeTimeSlots() {
@@ -3324,6 +3789,8 @@ if (mergedPrograms.length > 0) {
                 date: date.getDate(),
                 isToday: isToday,
                 events: dayEvents,
+                // Faculty availability overlay: painted behind the session tiles (see .faculty-busy-block).
+                busyBlocks: this.facultyBusyBlocksForDate(dateStr, rawEvents),
                 headerClass: `day-header ${isToday ? 'today' : ''}`,
                 dateClass: `day-date ${isToday ? 'today-date' : ''}`,
                 columnClass: `day-column ${isToday ? 'today-column' : ''} ${isDropTarget ? 'drop-target' : ''}`,
@@ -4198,6 +4665,10 @@ if (mergedPrograms.length > 0) {
         // made numLanes the max concurrent sessions for the whole day, so a single session in a later hour
         // still got 1/N width from an earlier busy hour.
         const laneByDayHourAndEventKey = {};
+        // Availability overlay: a busy block steps aside for any session on the same day, not just
+        // the ones that happen to start in its own cell.
+        const dayEventsByKey = {};
+        days.forEach(day => { dayEventsByKey[day.key] = events.filter(e => e.date === day.key); });
         days.forEach(day => {
             hourSlots.forEach(hourObj => {
                 const cellStartEvents = events.filter(
@@ -4216,7 +4687,7 @@ if (mergedPrograms.length > 0) {
         const rows = [];
         hourSlots.forEach((hourObj, hourIndex) => {
             const rowIndex = hourIndex + 1; // 1-based for CSS grid
-            const rowHeightPx = 50;
+            const rowHeightPx = TimetableCalendar.DIVISIONS_WEEK_ROW_HEIGHT;
             const cells = days.map((day, dayIndex) => {
                 const matching = events.filter(e =>
                     e.date === day.key &&
@@ -4247,6 +4718,9 @@ if (mergedPrograms.length > 0) {
                         explicitHeightPx
                     });
                 });
+                const busyBlocks = this.facultyBusyBlocksForCell(
+                    day.key, hourObj.hour, rowHeightPx, dayEventsByKey[day.key]
+                );
                 const hasSpanningEvent = matching.some(e => this.getEventSpanRows(e, 60) > 1);
                 const hasAnyEvent = matching.length > 0;
                 const cellClass = `divisions-week-cell divisions-week-cell-clickable${(hasSpanningEvent || hasAnyEvent) ? ' divisions-week-cell-has-spanning-event' : ''}`;
@@ -4254,6 +4728,7 @@ if (mergedPrograms.length > 0) {
                     key: `t-${hourObj.hour}-${day.key}`,
                     dateStr: day.key,
                     events: cellEvents,
+                    busyBlocks: busyBlocks,
                     cellGridStyle: `grid-column: ${2 + dayIndex}; grid-row: ${rowIndex};`,
                     cellClass
                 };

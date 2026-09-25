@@ -166,7 +166,7 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
                     { api: "Name_Of_Spouse__c", span:3, type: "text", label: "Name of Spouse", maxlength: '255', visibleWhen: { "otherResources.showSpouseDetails": true }, },
                     { api: "Contact_No_of_Spouse__c", span:6, type: "tel", skipOnChangeValidation:true, label: "Contact No. of Spouse", visibleWhen: { "otherResources.showSpouseDetails": true }, },
 
-                    { api: "Category__c", type: "picklist", span:3, label: "Category", required: true },
+                    { api: "Category__c", type: "picklist", span:3, label: "Category", visibleWhen: { "otherResources.showCategoryField": true } },
                     { api: "OtherCategory__c", type: "text", span:3, label: "Enter the category", maxlength: '50', visibleWhen: { "otherResources.showOtherCategory": true }, },
                     { api: "LinkedIn_Profile_URL__c", type: "text", span:3, label: "LinkedIn ID", helpText:"Please enter shortened URL", maxlength: '255' },
                     { api: "Nationality__c", type: "picklist", span:3, label: "Nationality", required: true },
@@ -223,7 +223,7 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
                     <li>Eyes should be open and clearly visible.</li>
                     <li>Face must be straight, centered and fully visible.</li>
                     <li>Photograph should not be more than 6 months old.</li>
-                    <li>Photographs where the candidate is wearing a cap or sunglasses will be rejected.</li>
+                    <li>Do not upload a photograph wearing a cap or sunglasses.</li>
                 </ul>
             </div>`
                     }
@@ -504,6 +504,10 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
     get showOtherCategory() {
         const v = this.basic.personalDetails?.Category__c || '';
         return v === 'Other';
+    }
+
+    get showCategoryField() {
+        return this.basic?.personalDetails?.Nationality__c === 'Indian';
     }
 
     get showHavePassportField() {
@@ -918,6 +922,14 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
                     ? '^(?=.*[A-Z])[A-Z0-9]{8}$'
                     : '^[A-Z0-9]{3,20}$';
             }
+
+            const categoryField = this.metadata.personalDetails.fields.find(
+                f => f.api === "Category__c"
+            );
+
+            if (categoryField) {
+                categoryField.required = nationality === "Indian";
+            }
         }
 
 
@@ -1165,6 +1177,7 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
 
                 showSpouseDetails:this.showSpouseDetails,
                 showOtherCategory:this.showOtherCategory,
+                showCategoryField:this.showCategoryField,
 
                 showHavePassportField:this.showHavePassportField,
                 showPassportField:this.showPassportField,
@@ -1535,6 +1548,8 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
             if (nationality !== 'Indian') {
                 this.basic.personalDetails.AadhaarCardNumber__c = null;
                 this.basic.personalDetails.HavePassport__c = 'Yes';
+                this.basic.personalDetails.Category__c = null;
+                this.basic.personalDetails.OtherCategory__c = null;
             } else {
                 this.basic.personalDetails.HavePassport__c = 'No';
                 this.basic.personalDetails.PassportNumber__c = null;

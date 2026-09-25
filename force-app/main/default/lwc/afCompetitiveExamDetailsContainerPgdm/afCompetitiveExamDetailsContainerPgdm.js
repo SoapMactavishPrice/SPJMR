@@ -566,7 +566,7 @@ export default class AfCompetitiveExamDetailsContainerPgdm extends LightningElem
 <div style="background:#f3f3f3; padding:16px; border-radius:4px;">
 
     <div>
-        <p>The form can be submitted without the scores, provided you have entered your exam registration number carefully. You may not have your CAT/GMAT scores by the time you submit the form, hence that is not expected. The submitted application form will be made available again for applicants to update their entrance exam scores after the CAT results are declared.</p>
+        <p>The form can be submitted without the scores, however, please enter your exam registration number. You may not have your CAT/GMAT scores by the time you submit the form, hence that is not expected. The submitted application form will be made available again for applicants to update their entrance exam scores after the CAT results are declared.</p>
 
         <p>In case you have already taken the GMAT exam please enter the details as per below:</p>
 
@@ -575,12 +575,12 @@ export default class AfCompetitiveExamDetailsContainerPgdm extends LightningElem
             <li>Ensure to upload the scorecard in addition to entering your scores.</li>
             <li>If a downloadable scorecard is not available, please upload a screenshot of your scores.</li>
             <li>If a screenshot is uploaded, ensure that the screenshot has details of your appointment ID, GMAT ID and Name along with your score. You may club multiple screenshots and upload as a single PDF document.</li>
-            <li>It is mandatory to submit your GMAT scores through GMAC for the exams taken. Please use the code provided below to send your scores:
+            <li>In addition to entering the scores below, it is also mandatory to submit your official GMAT scores through GMAC, if shortlisted. Please use the code provided below to send your scores:
                 <br>- PGDM Programme code - 6DQ-MJ-98 or search by name "S.P. Jain Institute of management and research - Post graduate Diploma in Management"
                 <br>- PGDM (BM) Programme code - 6DQ-MJ-68 or search by name "S. P. Jain Institute of Management and Research – PGDM (Business Management)"
             </li>
-            <li>For both GMAT and the Focus Edition scores are accepted, provided the exam is taken at a test centre. GMAT Online scores are not accepted.</li>
-            <li>The GMAT scores will be considered only if the exam is taken between Jan 01, 2023 till Dec 10, 2025 for GMAT and Nov 2023 till Dec 10, 2025 for GMAT Focus Edition</li>
+            <li>Only GMAT scores for exams taken at a test centre are accepted.</li>
+            <li>The GMAT exams should be taken between Jan 01, 2024 and Dec 10, 2026.</li>
         </ul>
     </div>
 

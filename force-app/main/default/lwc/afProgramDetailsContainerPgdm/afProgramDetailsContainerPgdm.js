@@ -404,7 +404,7 @@ export default class AfProgramDetailsContainerPgdm extends LightningElement {
                             <li style="margin-bottom:8px;">
                                 To refer to the eligibility document of PGDM programme
                                 (Indian applicant)
-                                <a href="YOUR_PGDM_INDIAN_ELIGIBILITY_LINK" target="_blank">
+                                <a href="https://www.spjimr.org/wp-content/uploads/2026/09/eligibility-domestic-pgdm-27-29.pdf" target="_blank">
                                     click here
                                 </a>
                             </li>
@@ -412,14 +412,14 @@ export default class AfProgramDetailsContainerPgdm extends LightningElement {
                             <li style="margin-bottom:8px;">
                                 To refer to the eligibility document of PGDM programme
                                 (International applicant only)
-                                <a href="YOUR_PGDM_INTERNATIONAL_ELIGIBILITY_LINK" target="_blank">
+                                <a href="https://www.spjimr.org/wp-content/uploads/2026/09/eligibility-international-pgdm-27-29.pdf" target="_blank">
                                     click here
                                 </a>
                             </li>
 
                             <li>
                                 To refer to the eligibility document of PGDM (BM) programme
-                                <a href="YOUR_PGDM_BM_ELIGIBILITY_LINK" target="_blank">
+                                <a href="https://www.spjimr.org/wp-content/uploads/2026/09/eligibility-pgdm-bm-27-29.pdf" target="_blank">
                                     click here
                                 </a>
                             </li>
@@ -461,7 +461,7 @@ Choose the programme you wish to apply for
                 },
                 { 
                     api:'PrimaryProgramPreference__c', 
-                    span: 12, 
+                    span: 4, 
                     type:'picklist', 
                     label:'Please select your 1st preffered programme',
                     shortLabel: 'Preference 1',
@@ -475,12 +475,11 @@ Choose the programme you wish to apply for
                 },
                 { 
                     api:'SecondaryProgramPreference__c', 
-                    span: 12, 
+                    span: 4, 
                     type:'picklist', 
                     label:'Please select your 2nd preffered programme',
                     shortLabel: 'Preference 2',
                     required: true,
-                    readOnly: true,
                     visibleWhen: {
                         'otherResources.requireProgramPreference': true
                     },
@@ -494,16 +493,16 @@ Choose the programme you wish to apply for
                     span: 11,
                     value: `
                        <div>
-                            <a href="YOUR_IMA_LINK" target="_blank">
+                            <a href="https://drive.google.com/file/d/12FvLHnvdbdCoY7hzso1ee9Je1NbqNKVi/view?usp=drive_link" target="_blank">
                                 &#128229; Click here for more information on Information Management &amp; Analytics (IM &amp; A) Specialization
                             </a><br>
-                            <a href="YOUR_MARKETING_LINK" target="_blank">
+                            <a href="https://drive.google.com/file/d/1Kp0cz9WYp353vpdGlC1s1rpEZQNDdWjK/view?usp=drive_link" target="_blank">
                                 &#128229; Click here for more information on Marketing Specialization
                             </a><br>
-                            <a href="YOUR_OSCM_LINK" target="_blank">
+                            <a href="https://drive.google.com/file/d/1_54lZ_aF-1bJZLR9urthy6QXpt6SdUxX/view?usp=drive_link" target="_blank">
                                 &#128229; Click here for more information on Operations &amp; Supply Chain Management (OSCM) Specialization
                             </a><br>
-                            <a href="YOUR_FINANCE_LINK" target="_blank">
+                            <a href="https://drive.google.com/file/d/14RWWvZ658IC0xSBwFkc2mlMfknMeIKJF/view?usp=drive_link" target="_blank">
                                 &#128229; Click here for more information on Finance Specialization
                             </a>
                         </div>
@@ -1478,13 +1477,14 @@ Choose the programme you wish to apply for
             sectionKey === 'programSelection' &&
             (
                 api === 'ProgrammesInterestedIn__c' ||
-                api === 'PrimaryProgramPreference__c'
+                api === 'PrimaryProgramPreference__c'||
+                api === 'SecondaryProgramPreference__c'
             )
         ) {
             this.program[api] = normalized;
             this.education.programSelection = this.program;
 
-            this._syncSecondaryProgramPreference();
+            //this._syncSecondaryProgramPreference();
             this._cleanupHiddenFields(sectionKey);
             this._buildRenderModelAll();
 
@@ -1846,6 +1846,27 @@ Choose the programme you wish to apply for
                 );
             }
         });
+
+        const primaryPreference = psData.PrimaryProgramPreference__c;
+        const secondaryPreference = psData.SecondaryProgramPreference__c;
+
+        if (
+            primaryPreference &&
+            secondaryPreference &&
+            primaryPreference === secondaryPreference
+        ) {
+            addError(
+                "programSelection",
+                "PrimaryProgramPreference__c",
+                "Primary and Secondary programme preferences cannot be the same."
+            );
+
+            addError(
+                "programSelection",
+                "SecondaryProgramPreference__c",
+                "Primary and Secondary programme preferences cannot be the same."
+            );
+        }
 
 
         /********************************************

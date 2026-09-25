@@ -4,6 +4,8 @@ public without sharing class LeadPublicAPIService {
         Map<Id, Program> parentProgramById = new Map<Id, Program>();
         Map<String, Program> programByCode = new Map<String, Program>();
         Map<Id, Campaign> campaignById = new Map<Id, Campaign>();
+        // Active Lead.LeadSource values keyed by lower-case value, for case-insensitive matching.
+        Map<String, String> leadSourceByLowerValue = new Map<String, String>();
         Id indiaCountryId;
         Set<Integer> indiaAcceptedPhoneLengths = new Set<Integer>();
         String indiaCountryCode;
@@ -45,13 +47,9 @@ public without sharing class LeadPublicAPIService {
         for (Integer i = 0; i < rowCount; i++) {
             rowErrors.add(null);
             LeadPublicAPI.LeadWrapper lw = leadWrappers[i];
-            if (
-                String.isBlank(lw.LastName) ||
-                String.isBlank(lw.Email) ||
-                String.isBlank(lw.Phone) ||
-                String.isBlank(lw.Programme)
-            ) {
-                rowErrors.set(i, LeadPublicAPIMessages.MISSING_REQUIRED_FIELDS);
+            List<String> missingFields = missingRequiredFields(lw);
+            if (!missingFields.isEmpty()) {
+                rowErrors.set(i, LeadPublicAPIMessages.MISSING_REQUIRED_FIELDS.removeEnd('.') + ': ' + String.join(missingFields, ', '));
             } else if(!isValidPhone(lw.Phone)){
                 rowErrors.set(i, 'Phone number must include the country code 91 and start with +.');
             }
@@ -168,6 +166,7 @@ public without sharing class LeadPublicAPIService {
                     );
 
                 if (rw.leadRecord != null) {
+                    rw.leadRecord.LeadSource = resolveLeadSource(lw, utmFormValues, ref);
                     leadsToUpsert.add(rw.leadRecord);
                 }
                 indexToResult.put(i, rw);
@@ -270,6 +269,23 @@ public without sharing class LeadPublicAPIService {
         return outcome;
     }
 
+    private static List<String> missingRequiredFields(LeadPublicAPI.LeadWrapper lw) {
+        Map<String, String> required = new Map<String, String>{
+            'LastName' => lw.LastName,
+            'Email' => lw.Email,
+            'Phone' => lw.Phone,
+            'Programme' => lw.Programme,
+            'CampaignId' => lw.CampaignId
+        };
+        List<String> missing = new List<String>();
+        for (String fieldName : required.keySet()) {
+            if (String.isBlank(required.get(fieldName))) {
+                missing.add(fieldName);
+            }
+        }
+        return missing;
+    }
+
     private static List<LeadPublicAPI.LeadWrapper> parseLeadWrappers(String reqBody) {
         if (String.isBlank(reqBody)) {
             throw new LeadPublicAPIException('Request body is required.');
@@ -309,8 +325,14 @@ public without sharing class LeadPublicAPIService {
         }
 
         if (!campaignIds.isEmpty()) {
-            for (Campaign c : [SELECT Id, CampaignSource__c FROM Campaign WHERE Id IN :campaignIds]) {
+            for (Campaign c : [SELECT Id, CampaignSource__c, Source__r.Name FROM Campaign WHERE Id IN :campaignIds]) {
                 ref.campaignById.put(c.Id, c);
+            }
+        }
+
+        for (Schema.PicklistEntry pe : Lead.LeadSource.getDescribe().getPicklistValues()) {
+            if (pe.isActive()) {
+                ref.leadSourceByLowerValue.put(pe.getValue().toLowerCase(), pe.getValue());
             }
         }
 
@@ -510,6 +532,22 @@ public without sharing class LeadPublicAPIService {
         }
 
         return ref;
+    }
+
+    /*
+     * LeadSource = the Campaign's Integration Partner (Source__c) name, else utm_source --
+     * whichever is first found among the active LeadSource picklist values -- else 'Value Not Found'.
+     */
+    @TestVisible
+    private static String resolveLeadSource(LeadPublicAPI.LeadWrapper lw, Map<String, Object> utmFormValues, ReferenceData ref) {
+        Campaign cmp = ref.campaignById.get((Id) lw.CampaignId);
+        for (Object candidate : new List<Object>{ cmp?.Source__r?.Name, utmFormValues?.get('utm_source') }) {
+            String match = candidate == null ? null : ref.leadSourceByLowerValue.get(String.valueOf(candidate).trim().toLowerCase());
+            if (match != null) {
+                return match;
+            }
+        }
+        return 'Value Not Found';
     }
 
     private static Account resolveApplicantAccount(LeadPublicAPI.LeadWrapper lw, ReferenceData ref) {

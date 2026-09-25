@@ -8,6 +8,7 @@ import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import { buildErrorSummary } from "c/applicationFormService";
 import getAllPicklistsForObjects from '@salesforce/apex/AcademicFormController.getAllPicklistsForObjects';
 import getRecordTypesByName from '@salesforce/apex/AcademicFormController.getRecordTypesByName';
+import fetchMetadataBulk from '@salesforce/apex/ApplicationFormController.fetchMetadataBulk';
 
 import { validateNumber, validateTextConstraints } from "c/applicationFormService";
 
@@ -25,6 +26,8 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         'Latest Job',
         'Previous Job'
     ];
+
+    workExperiencePicklistFilters = {};
 
     isLoading = true; // Start spinner immediately
 
@@ -101,6 +104,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                 'Designation__c',
                 'Start_Date__c',
                 'End_Date__c',
+                'City__c',
                 'Gross_Annual_CTC__c',
                 'Responsibilities__c',
                 'Employment_Type__c',
@@ -208,6 +212,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             this.picklistCache = merged;
             this.dependentCache = {};
             await this._loadRecordTypes();
+            await this._loadWorkExperiencePicklistFilter();
             this._injectPicklists();
             this._updateActionState();
             this._buildRenderModelAll();
@@ -287,7 +292,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         <p><b>Instructions</b></p>
         <ul style="list-style-type: disc; list-style-position: outside; display:inline-block; text-align:left; margin-top:8px; padding-left:30px;">
             <li>Work experience is not mandatory for this programme, graduates with no work experience and those with less than five years of work experience can apply.</li>
-            <li>Relevant work experience after graduation will be considered. Internship/training/ project work where a part of the curriculum will not be considered as work experience or any period of apprenticeship such as articleship required as part of certain professional courses, or any unpaid work undertaken in any organization or institution will also not be considered as work-experience.</li>
+            <li>Relevant work experience after graduation will be considered. Internship/training/ project work which were a part of the curriculum or any periods of apprenticeship such as articleship required as part of certain professional courses (that are considered as equivalent to graduation) will not be considered as work experience. Any unpaid work undertaken in any organization or institution will also not be considered as work-experience.</li>
             <li>Proof of work experience such as offer letter, salary slips and the experience letter will have to be provided.</li>
         </ul>
     </div>
@@ -299,6 +304,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         this.metadata.workExperience = {
             key: 'workExperience',
             title: 'Work Experience Details',
+            objectApiName: 'Work_Experience__c',
             columnSystem: 10,
             layout: 'fluid',
             showSequenceLabel: true,
@@ -316,7 +322,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                         <ul style="list-style-type: circle; padding-left:30px;">
                             <li>If your company is not available in the <b>Name of Organization</b> dropdown, please select <b>Other</b> and enter your company name manually.</li>
                             <li>Please enter your <b>Gross Annual Salary</b> in rupees. For example, if your annual CTC is 7.1 lakhs, enter <b>710000</b>.</li>
-                            <li>Total work experience includes work experience with your current employer up to November 2026.</li>
+                            <li>Total work experience includes experience with your current employer calculated up to the application deadline.</li>
                         </ul> 
                     </div>
                 `
@@ -353,6 +359,25 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                     maxlength: '60',
                 },
                 { api:'Employment_Type__c', span: 2, type:'picklist', label:'Employment Type' },
+                { 
+                    api: "City__c",
+                    type: "lookup", 
+                    label: "Work Location (City)",
+                    span: 2,
+                    objectApi: "IndCity__c",
+                    sortInfo: ['Order__c DESC NULLS LAST'],
+                    dynamicFilter: "city",
+                    allowOther: true,
+                },
+                { 
+                    api: "OtherCity__c", 
+                    type: "text", 
+                    label: "Other City", 
+                    span: 2,
+                    requiredWhen: { "otherResources.showOtherCityField": true},
+                    visibleWhen: { "otherResources.showOtherCityField":true}, 
+                    maxlength: '100',
+                },
                 { api:'Designation__c', span: 2, type:'text', label:'Designation', maxlength: '255' },
                 { api:'Gross_Annual_CTC__c', span: 2, type:'currency', label:'Gross Annual Salary in Rupees', step:0.01, max: '999999999' },
                 {
@@ -396,7 +421,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
 
                 },
                 { api:'Experience_In_Months__c', span: 2, type:'number', label:'Experience (Months)', readOnly:true,  },
-                { api:'Responsibilities__c', span: 3, type:'textarea', label:'Describe your role briefly', shortLabel: "Role description", maxlength: '2500', maxWords: 100, showCounter: true, helpText:"Max. 100 words", }
+                { api:'Responsibilities__c', span: 3, type:'textarea', label:'Describe your role briefly', shortLabel: "Role description", maxlength: '2500', maxWords: 50, showCounter: true, helpText:"Max. 50 words", }
             ]
         };
 
@@ -941,6 +966,18 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
 
                 let options = resolveOptions(f.api, recordTypeId);
 
+                const filterKey =
+                    `${sec.objectApiName}.${f.api}`;
+
+                const allowedValues =
+                    this.workExperiencePicklistFilters[filterKey];
+
+                if (Array.isArray(allowedValues)) {
+                    options = options.filter(option =>
+                        allowedValues.includes(option.value)
+                    );
+                }
+
                 if (
                     optionalFields.includes(f.api) &&
                     !options.some(o => o.value === '')
@@ -961,6 +998,71 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         merge('overallVersatilityRating');
         merge('responsibilitiesShouldered');
         merge('informationSource');
+    }
+
+    async _loadWorkExperiencePicklistFilter() {
+        this.workExperiencePicklistFilters = {};
+
+        try {
+            const metadataResponse = await fetchMetadataBulk({
+                requests: [
+                    {
+                        metadataName: 'ApplicationProgramBasedConfig__mdt',
+                        fields: [
+                            'Intent__c',
+                            'ProgramCode__c',
+                            'Type__c',
+                            'ConfigValue__c'
+                        ],
+                        filters: [
+                            {
+                                field: 'Intent__c',
+                                operator: '=',
+                                value: 'WorkExperiencePicklistFilters'
+                            },
+                            {
+                                field: 'ProgramCode__c',
+                                operator: '=',
+                                value: 'PGDM'
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            const configRecords =
+                metadataResponse?.ApplicationProgramBasedConfig__mdt || [];
+
+            const config = configRecords[0];
+
+            if (
+                !config ||
+                String(config.Type__c || '').toLowerCase() !== 'map'
+            ) {
+                return;
+            }
+
+            const configMap =
+                JSON.parse(config.ConfigValue__c || '{}');
+
+            Object.entries(configMap).forEach(
+                ([fieldKey, allowedValues]) => {
+
+                    if (!Array.isArray(allowedValues)) {
+                        return;
+                    }
+
+                    this.workExperiencePicklistFilters[fieldKey] =
+                        allowedValues;
+                }
+            );
+
+        } catch (error) {
+            console.warn(
+                'Work Experience picklist metadata load failed',
+                error
+            );
+        }
     }
 
 
@@ -2331,6 +2433,12 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
     _applyDynamicFilter(metaForRender) {
         if (!metaForRender?.dynamicFilter) return;
 
+        if (metaForRender.dynamicFilter === 'city') {
+            metaForRender.filter =
+                this.getCityFilter(metaForRender.sequence);
+            return;
+        }
+
         const getter = this[metaForRender.dynamicFilter];
 
         if (getter === undefined) return;
@@ -2339,6 +2447,42 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             typeof getter === 'function'
                 ? getter.call(this)
                 : getter;
+    }
+
+    getCityFilter(sequence) {
+
+        const selectedCityId =
+            this.work.workExperience?.[sequence]?.City__c;
+
+        const criteria = [
+            {
+                fieldPath: 'District__r.State__r.Country_Master__r.Name',
+                operator: 'eq',
+                value: 'India'
+            },
+            {
+                fieldPath: 'Name',
+                operator: 'eq',
+                value: 'Other'
+            }
+        ];
+
+        let filterLogic = '1 OR 2';
+
+        if (selectedCityId) {
+            criteria.push({
+                fieldPath: 'Id',
+                operator: 'eq',
+                value: selectedCityId
+            });
+
+            filterLogic = '1 OR 2 OR 3';
+        }
+
+        return {
+            criteria,
+            filterLogic
+        };
     }
 
     _isRowActive(sectionKey, seq) {
@@ -2577,6 +2721,14 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             this.work.workExperience[sequence].Display ||= {};
             this.work.workExperience[sequence].Display[api] = displayValue;
 
+            // Clear stale Other City
+            if (
+                api === 'City__c' &&
+                displayValue !== 'Other'
+            ) {
+                this.work.workExperience[sequence].OtherCity__c = null;
+            }
+
             if (
                 api === 'Name_of_Organisation__c' &&
                 displayValue !== 'Other'
@@ -2719,6 +2871,14 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         this.work[sectionKey][sequence].Display ||= {};
 
         this.work[sectionKey][sequence].Display[api] = displayValue;
+
+        if (
+            sectionKey === 'workExperience' &&
+            api === 'City__c' &&
+            displayValue !== 'Other'
+        ) {
+            this.work[sectionKey][sequence].OtherCity__c = null;
+        }
 
         if (
             sectionKey === 'workExperience' &&
@@ -2970,6 +3130,16 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
     _resolveFieldConditionValue(path, sectionKey, sequence) {
         const parts = String(path || '').split('.');
         if (!parts.length) return undefined;
+
+        if (
+            path === 'otherResources.showOtherCityField' &&
+            sectionKey === 'workExperience'
+        ) {
+            const row =
+                this.work.workExperience?.[sequence];
+
+            return row?.Display?.City__c === 'Other';
+        }
 
         if (
             path === 'otherResources.showOtherOrganizationName' &&

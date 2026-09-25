@@ -4765,3 +4765,107 @@
     color: var(--color-primary, #6366f1);
     font-size: 0.8rem;
 }
+
+/* ========================================
+   FACULTY BUSY OVERLAY (availability on the grid)
+   Background information, never a booking: pale wash of the faculty colour, dashed edge.
+   pointer-events: none is the load-bearing line - the wash can never take a click, a dragover, a
+   drop or a resize-handle mousedown from the grid underneath, so every existing session
+   interaction behaves exactly as it did before the overlay existed. Because nothing can be
+   intercepted, z-order is chosen purely on looks: the wash paints OVER the tiles at ~10% alpha,
+   and a hovered tile (z-index 10) still rises clear of it.
+   ======================================== */
+.faculty-busy-block {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    z-index: 4;
+    pointer-events: none;
+    box-sizing: border-box;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    padding: 3px 6px;
+    border: 1px dashed rgba(107, 114, 128, 0.6);
+    border-radius: var(--radius-sm);
+    background-color: rgba(107, 114, 128, 0.10);
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+/* Over a session tile the wash stays, but the name would be written on top of the tile's own
+   text - so only the colour swatch survives, tucked to the top right. The tooltip has the name. */
+.faculty-busy-block-quiet {
+    justify-content: flex-end;
+}
+
+.faculty-busy-block-quiet .faculty-busy-label {
+    display: none;
+}
+
+.faculty-busy-swatch {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    margin-top: 3px;
+    border-radius: 2px;
+}
+
+.faculty-busy-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* All Divisions week grid: same overlay at that grid's tighter row scale. */
+.divisions-week-grid-inner .faculty-busy-block {
+    left: 2px;
+    right: 2px;
+    gap: 4px;
+    padding: 1px 4px;
+    font-size: 10px;
+}
+
+
+.divisions-week-grid-inner .faculty-busy-swatch {
+    width: 6px;
+    height: 6px;
+    margin-top: 2px;
+}
+
+/* Busy hover card: the session tooltip card with the per-faculty rows AC3 asks for. */
+.faculty-busy-tooltip-title {
+    font-weight: 700;
+    color: #111827;
+}
+
+.faculty-busy-tooltip-member {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.faculty-busy-tooltip-dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.faculty-busy-tooltip-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.faculty-busy-tooltip-time {
+    flex: 0 0 auto;
+    color: #4b5563;
+    white-space: nowrap;
+}

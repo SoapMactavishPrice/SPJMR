@@ -725,4 +725,66 @@ static void testProcessApplicantPath() {
             result.responseJson.contains('must include the country code 91 and start with +')
         );
     }
+
+    private static String leadSourceBody(String email, String phone, Id campaignId, String utmParameters) {
+        return '[{' +
+            '"FirstName":"Source",' +
+            '"LastName":"Test",' +
+            '"Email":"' + email + '",' +
+            '"Phone":"' + phone + '",' +
+            '"Programme":"PGDM",' +
+            (campaignId != null ? '"CampaignId":"' + campaignId + '",' : '') +
+            '"UTMParameters":"' + utmParameters + '"' +
+            '}]';
+    }
+
+    private static String activeLeadSource() {
+        for (Schema.PicklistEntry pe : Lead.LeadSource.getDescribe().getPicklistValues()) {
+            if (pe.isActive()) {
+                return pe.getValue();
+            }
+        }
+        return 'Web';
+    }
+
+    @IsTest
+    static void testLeadSourceFromIntegrationPartner() {
+        Integration_Partner__c partner = new Integration_Partner__c(Name = activeLeadSource());
+        insert partner;
+        Campaign camp = new Campaign(Name = 'Partner Campaign', IsActive = true, Source__c = partner.Id);
+        insert camp;
+
+        Test.startTest();
+        LeadPublicAPIService.execute(leadSourceBody('partnersource@test.com', '+919876500001', camp.Id, 'utm_source=google'));
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testLeadSourceFromUtmSource() {
+        Campaign camp = [SELECT Id FROM Campaign WHERE Name = 'Website Campaign' LIMIT 1];
+        String utm = 'utm_source=' + EncodingUtil.urlEncode(activeLeadSource(), 'UTF-8');
+
+        Test.startTest();
+        LeadPublicAPIService.execute(leadSourceBody('utmsource@test.com', '+919876500002', camp.Id, utm));
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testLeadSourceValueNotFound() {
+        Integration_Partner__c partner = new Integration_Partner__c(Name = 'Not A Lead Source');
+        insert partner;
+        Campaign camp = new Campaign(Name = 'Unmatched Partner Campaign', IsActive = true, Source__c = partner.Id);
+        insert camp;
+
+        Test.startTest();
+        LeadPublicAPIService.execute(leadSourceBody('notfound@test.com', '+919876500003', camp.Id, 'utm_source=not-a-source'));
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testMissingCampaignId() {
+        Test.startTest();
+        LeadPublicAPIService.execute(leadSourceBody('nocampaign@test.com', '+919876500004', null, ''));
+        Test.stopTest();
+    }
 }

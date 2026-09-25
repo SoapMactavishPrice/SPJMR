@@ -991,7 +991,7 @@ export default class CreateB2CLead extends NavigationMixin(LightningElement) {
         }
 
         const validationErrors = [];
-
+        
         if (!firstNameVal) {
             validationErrors.push('First Name is required.');
         }
@@ -1006,6 +1006,9 @@ export default class CreateB2CLead extends NavigationMixin(LightningElement) {
         }
 
         if (this.selectedProgramsList.length === 0) {
+            validationErrors.push('Please select at least one program.');
+        }
+        if(!leadSourceVal){
             validationErrors.push('Please select at least one program.');
         }
         if(this.dateOfBirth){
