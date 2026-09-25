@@ -102,6 +102,18 @@ public without sharing class ProgrammeGroupService {
             ];
         }
     }
+    
+    /**
+     * Returns existing Programme groups.
+     *
+     * This public wrapper is used by the
+     * ProgrammeSharingService.
+     */
+    public static Map<String, Group> getProgrammeGroups(
+        Set<String> programCodes
+    ) {
+        return getExistingGroups(programCodes);
+    }/**se-1390*/
 
 
     /**

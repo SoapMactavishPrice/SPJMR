@@ -90,6 +90,25 @@
     min-height: 2.75rem;
 }
 
+.prf-resend-btn {
+    background-color: #531f75;
+    border: 1px solid #531f75;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0 1rem;
+}
+
+.prf-resend-btn:hover,
+.prf-resend-btn:focus {
+    background-color: #43185f;
+    color: #ffffff;
+}
+
+.prf-resend-btn:disabled {
+    opacity: 0.6;
+    color: #ffffff;
+}
+
 .prf-login-link {
     color: #0176d3;
     font-size: 0.75rem;

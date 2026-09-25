@@ -158,7 +158,14 @@ public class ProgramTriggerHandler {
         }
     }
     /*975 End*/
-
+/*
+* Purpose:
+ * - Processes newly created Program records.
+ * - Identifies Programs that have a Program Code.
+ * - Enqueues the Queueable responsible for creating
+ *   the corresponding Programme Public Groups.
+ *
+ */
  public static void handleAfterInsert(List<Program> newPrograms) {
 
         if (newPrograms == null || newPrograms.isEmpty()) {

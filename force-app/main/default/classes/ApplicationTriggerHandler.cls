@@ -47,11 +47,13 @@ public without sharing class ApplicationTriggerHandler {
         }
         return true;
     }
+
     /**
      * Application_Stage__c value (label or common API value) → Opportunity StageName to set.
      */
     private static final Map<String, String> APP_STAGE_TO_OPP_STAGE = buildApplicationStageToOpportunityStageMap();
 
+    
     private static Map<String, String> buildApplicationStageToOpportunityStageMap() {
         Map<String, String> m = new Map<String, String>();
         m.put('Academic Details', 'Academic Details');
@@ -88,6 +90,11 @@ public without sharing class ApplicationTriggerHandler {
             return;
         }
 
+        Id pgdmRecordTypeId = Schema.SObjectType.Application__c
+            .getRecordTypeInfosByDeveloperName()
+            .get('PGDM')
+            .getRecordTypeId();
+
         for (Application__c app : newList) {
             Application__c oldApp = oldMap.get(app.Id);
             if (oldApp == null) {
@@ -96,6 +103,20 @@ public without sharing class ApplicationTriggerHandler {
 
             if (changedTo(app.Applicant_State_Management__c, oldApp.Applicant_State_Management__c, 'Offer Issued')) {
                 app.OfferWithdrawalDateTime__c = null;
+            }
+
+            // PGDM payment status mapping
+            if (app.RecordTypeId == pgdmRecordTypeId && changedTo(app.Application_Status__c, oldApp.Application_Status__c, 'Paid')) {
+                switch on app.Program_Code__c {
+                    when 'PGDM' {
+                        app.Application_Status__c = 'Paid For PGDM';
+                    }
+
+                    when 'PGDM-BM' {
+                        app.Application_Status__c = 'Paid For PGDM-BM';
+                    }
+
+                }
             }
         }
     }
@@ -157,11 +178,13 @@ public without sharing class ApplicationTriggerHandler {
      * @param oldApp Old Application version.
      * @return Whether opportunity sync should run for this row.
      */
+    
     private static Boolean hasRelevantChange(Application__c app, Application__c oldApp) {
         return app.Application_Status__c != oldApp.Application_Status__c
             || app.Application_Stage__c != oldApp.Application_Stage__c;
     }
 
+    
     private static Application__c findApplicationForOpp(List<Application__c> newList, Id applicationId) {
         for (Application__c a : newList) {
             if (a.Id == applicationId) {
@@ -214,6 +237,7 @@ public without sharing class ApplicationTriggerHandler {
      * @param applicationStageRaw Current Application_Stage__c value.
      * @return Opportunity stage string, or null if not in the configured set.
      */
+    
     private static String mapApplicationStageToOpportunityStage(String applicationStageRaw) {
         if (String.isBlank(applicationStageRaw)) {
             return null;
@@ -231,6 +255,7 @@ public without sharing class ApplicationTriggerHandler {
         return null;
     }
 
+    
     private static Boolean changedTo(String newVal, String oldVal, String target) {
         return newVal == target && oldVal != target;
     }
@@ -241,16 +266,16 @@ public without sharing class ApplicationTriggerHandler {
      * @param newList Trigger.new Application rows.
      * @param oldMap Trigger.oldMap, or null on insert (not used on after update only trigger).
      */
-    // public static void handleGMPEmail(List<Application__c> newList, Map<Id, Application__c> oldMap) {
-    //     for (Application__c app : newList) {
-    //         Application__c oldApp = oldMap != null ? oldMap.get(app.Id) : null;
+    //public static void handleGMPEmail(List<Application__c> newList, Map<Id, Application__c> oldMap) {
+        // for (Application__c app : newList) {
+        //     Application__c oldApp = oldMap != null ? oldMap.get(app.Id) : null;
 
-    //         Boolean statusChanged =
-    //             oldApp == null || oldApp.Application_Status__c != app.Application_Status__c;
+        //     Boolean statusChanged =
+        //         oldApp == null || oldApp.Application_Status__c != app.Application_Status__c;
 
-    //         if (statusChanged && app.Application_Status__c == 'Submitted') {
-    //             Map<String, Object> flowInputs = new Map<String, Object>();
-    //             flowInputs.put('recordId', app.Id);
+        //     if (statusChanged && app.Application_Status__c == 'Submitted') {
+        //         Map<String, Object> flowInputs = new Map<String, Object>();
+        //         flowInputs.put('recordId', app.Id);
 
         //         Flow.Interview.GMP_Application_Submitted_Email_Notification myFlow = new Flow.Interview.GMP_Application_Submitted_Email_Notification(
         //             flowInputs

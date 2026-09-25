@@ -142,7 +142,6 @@ public with sharing class ApAccountProgramController {
             try {
                 parsed = JSON.deserializeUntyped(rec.ConfigValue__c);
             } catch (Exception e) {
-                System.debug('Parsing Error occured'+ e);
                 continue;
             }
             if (!(parsed instanceof Map<String, Object>)) {

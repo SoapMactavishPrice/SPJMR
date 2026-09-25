@@ -40,17 +40,16 @@
                                     </h2>
 
                                     <p class="slds-m-top_x-small">
-                                        Your email ID is already registered with us. 
-                                        <button
-                                            type="button"
-                                            class="slds-button slds-button_reset slds-text-link"
-                                            onclick={handleResendVerification}
-                                            disabled={isResendingVerification}
-                                        >
-                                            Click here
-                                        </button>
-                                        to receive your credentials email and proceed with your application.
+                                        Your email ID is already registered with us.
                                     </p>
+                                    <button
+                                        type="button"
+                                        class="slds-button prf-resend-btn slds-m-top_small"
+                                        onclick={handleResendVerification}
+                                        disabled={isResendingVerification}
+                                    >
+                                        Click here to resend verification email
+                                    </button>
                                 </div>
                             </div>
                             </template>

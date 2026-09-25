@@ -18,6 +18,19 @@ public without sharing class ProgramRegistrationLeadService{
     }
 
     /**
+     * Resends the verification email. LeadTriggerHelper only sends on a change to TRUE,
+     * so a flag that is already TRUE is flipped to FALSE first.
+     */
+    @AuraEnabled
+    public static void resendVerificationEmail(Id leadId) {
+        Lead existing = [SELECT Send_Welcome_and_Verification_Email__c FROM Lead WHERE Id = :leadId];
+        if (existing.Send_Welcome_and_Verification_Email__c) {
+            update new Lead(Id = leadId, Send_Welcome_and_Verification_Email__c = false);
+        }
+        update new Lead(Id = leadId, Send_Welcome_and_Verification_Email__c = true);
+    }
+
+    /**
      * Saves registration: Lead/Lead_Program use programId; metadata lookups use registrationConfigProgramId when set, else programId.
      *
      * @param programId Target Program Id for Lead_Program__c (child or parent).
@@ -305,7 +318,7 @@ private static ProgramRegistrationFormController.SaveLeadResult saveRegistration
             lead.City = cities[0].Name;
         }
     }
-
+    lead.Communication_Consent__c  = 'Yes';
     String phoneValidationError = validatePhoneAgainstCountryRule(lead);
     system.debug('Phone Validation: '+phoneValidationError);
     if (String.isNotBlank(phoneValidationError)) {

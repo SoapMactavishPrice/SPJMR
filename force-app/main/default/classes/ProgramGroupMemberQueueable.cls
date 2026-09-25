@@ -1,3 +1,16 @@
+/**
+ * Queueable job responsible for asynchronously managing
+ * Programme Public Group membership.
+ *
+ * Purpose:
+ * - Runs outside the original Program Team Member transaction.
+ * - Avoids Mixed DML issues involving GroupMember setup records.
+ * - Retrieves the related Programme and User information.
+ * - Delegates membership management to ProgrammeGroupService.
+ *
+ * The job processes multiple Team Member records in a single
+ * Queueable execution to support bulk operations.
+ */
 public without sharing class ProgramGroupMemberQueueable
     implements Queueable {
 

@@ -281,15 +281,6 @@
     margin: 0;
 }
 
-.faculty-checkbox-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 240px;
-    overflow-y: auto;
-    padding: 2px 0;
-}
-
 .faculty-checkbox-row {
     min-height: 0;
 }
@@ -4404,6 +4395,15 @@
     margin-bottom: 0.25rem;
     display: block;
 }
+/*se-1339*/
+/* Division label font */
+.division-filter-item .filter-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #181818;
+    margin-bottom: 0.25rem;
+    display: block;
+}/*se-1339*/
 
 /* Reduce faculty combobox width/height feel */
 .faculty-filter-item lightning-combobox {
@@ -4574,4 +4574,194 @@
     color: #a86403;
     font-size: 12px;
     margin-top: 6px;
+}
+
+/* ========================================
+   FACULTY FILTER — CHIP BOX + DROPDOWN MENU
+   Appended last on purpose: .faculty-filter-pill is declared twice earlier in this
+   file, so anything here must sit after both to avoid being silently overridden.
+   ======================================== */
+
+/* Anchor for the absolutely-positioned menu; must not clip it */
+.filters-top-grid .faculty-filter-item {
+    position: relative;
+    overflow: visible;
+}
+
+.faculty-filter-picklist {
+    position: relative;
+}
+
+/* Chip box doubles as the dropdown trigger */
+.faculty-filter-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 3px 24px 3px 6px;
+    background: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-grid-light, #cbd5e1);
+    border-radius: var(--radius-sm, 6px);
+    cursor: pointer;
+    position: relative;
+}
+
+.faculty-filter-trigger:hover {
+    border-color: var(--color-text-muted, #94a3b8);
+}
+
+.faculty-filter-trigger:focus {
+    outline: 2px solid var(--color-primary, #6366f1);
+    outline-offset: 1px;
+}
+
+.faculty-filter-trigger.is-disabled {
+    background: var(--color-border-light, #f1f5f9);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.faculty-filter-trigger .faculty-filter-pills-container {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-height: 78px;
+    padding: 0;
+}
+
+/* Lives outside the scrolling chip list, so the affordance never scrolls out of reach */
+.faculty-filter-trigger > .faculty-filter-more-pill {
+    flex: 0 0 auto;
+    align-self: center;
+    white-space: nowrap;
+}
+
+.faculty-filter-trigger .faculty-filter-hint {
+    flex: 1 1 auto;
+    color: var(--color-text-muted, #94a3b8);
+    margin: 0;
+}
+
+.faculty-filter-caret {
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary, #64748b);
+    pointer-events: none;
+}
+
+/* "+N more" chip — neutral so it never looks like a faculty colour */
+.faculty-filter-more-pill {
+    background: var(--color-border-light, #f1f5f9);
+    color: var(--color-text-secondary, #64748b);
+    border: 1px dashed var(--color-grid-light, #cbd5e1);
+    font-family: inherit;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.faculty-filter-more-pill:hover {
+    background: var(--color-surface-hover, #f1f5f9);
+    color: var(--color-text-primary, #1e293b);
+}
+
+/* Dropdown menu */
+.faculty-filter-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    min-width: 200px;
+    z-index: 300;
+    background: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-grid-light, #cbd5e1);
+    border-radius: var(--radius-md, 8px);
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+    overflow: hidden;
+}
+
+.faculty-filter-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--color-border, #e2e8f0);
+}
+
+.faculty-filter-menu-count {
+    font-size: 0.72rem;
+    color: var(--color-text-muted, #94a3b8);
+}
+
+.faculty-filter-menu-action {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-primary, #6366f1);
+    cursor: pointer;
+}
+
+.faculty-filter-menu-action:hover {
+    text-decoration: underline;
+}
+
+.faculty-filter-menu-list {
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.faculty-filter-menu-list::-webkit-scrollbar {
+    width: 5px;
+}
+
+.faculty-filter-menu-list::-webkit-scrollbar-thumb {
+    background: var(--color-grid-light, #cbd5e1);
+    border-radius: 3px;
+}
+
+.faculty-filter-menu-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    color: var(--color-text-primary, #1e293b);
+    cursor: pointer;
+}
+
+.faculty-filter-menu-row:hover,
+.faculty-filter-menu-row:focus {
+    background: var(--color-surface-hover, #f1f5f9);
+    outline: none;
+}
+
+.faculty-filter-menu-row.is-selected {
+    font-weight: 600;
+}
+
+.faculty-filter-menu-dot {
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--color-grid-light, #cbd5e1);
+}
+
+.faculty-filter-menu-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.faculty-filter-menu-check {
+    flex: 0 0 auto;
+    color: var(--color-primary, #6366f1);
+    font-size: 0.8rem;
 }

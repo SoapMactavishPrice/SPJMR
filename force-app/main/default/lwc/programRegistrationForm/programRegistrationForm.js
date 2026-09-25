@@ -9,8 +9,8 @@ import getStatesByCountry from '@salesforce/apex/ProgramRegistrationLocationServ
 import getCitiesByState from '@salesforce/apex/ProgramRegistrationLocationService.getCitiesByState';
 import resolveCountryIdByName from '@salesforce/apex/ProgramRegistrationLocationService.resolveCountryIdByName';
 import getPhoneCountryOptions from '@salesforce/apex/ProgramRegistrationLocationService.getPhoneCountryOptions';
-import sendManualEmail from '@salesforce/apex/ProgramRegistrationFormController.sendManualEmail'
- 
+import resendVerificationEmail from '@salesforce/apex/ProgramRegistrationLeadService.resendVerificationEmail';
+
 /** Stable references so c-phone-input is not fed a new [] every render (breaks combobox / options sync). */
 const EMPTY_PICKLIST_OPTS = [];
 const EMPTY_PHONE_COUNTRY_OPTS = [];
@@ -157,15 +157,16 @@ export default class ProgramRegistrationForm extends LightningElement {
 }
     
 
-    async handleResendVerification(){
-       await  sendManualEmail({recordId:this.leadOrAccountId,SObjectName:this.leadOrAccountType})
-         .then((result)=>{
-            console.log('Result is '+result)
-            this.showToast('Email sent!','Please check your inbox','info')
-         })
-         .catch((error)=>{
-            console.log('Error happened: '+JSON.stringify(error))
-         })
+    async handleResendVerification() {
+        this.isResendingVerification = true;
+        try {
+            await resendVerificationEmail({ leadId: this.leadOrAccountId });
+            this.showToast('Email sent!', 'Please check your inbox for the verification email.', 'success');
+        } catch (error) {
+            this.showToast('Could not resend email', error?.body?.message || 'Please try again later.', 'error');
+        } finally {
+            this.isResendingVerification = false;
+        }
     }
     async handleRegisterFromVF(){
         if (this.isSaving) {

@@ -2520,4 +2520,24 @@ static void testCreateOpportunityAndApplication() {
         Test.stopTest();
     }
 }
+
+    @IsTest
+    static void testResendVerificationEmail() {
+        Lead l = new Lead(
+            FirstName = 'Resend',
+            LastName = 'Verification',
+            Company = 'Individual',
+            Email = 'resend' + System.currentTimeMillis() + '@test.com',
+            Phone = '+91 9876543210',
+            Status = 'Untouched',
+            Send_Welcome_and_Verification_Email__c = false
+        );
+        insert l;
+
+        Test.startTest();
+        // FALSE -> TRUE, then TRUE -> FALSE -> TRUE
+        ProgramRegistrationLeadService.resendVerificationEmail(l.Id);
+        ProgramRegistrationLeadService.resendVerificationEmail(l.Id);
+        Test.stopTest();
+    }
 }

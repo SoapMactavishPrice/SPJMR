@@ -37,6 +37,14 @@ public with sharing class ProgramTeamMemberTriggerHandler {
     public void afterUndelete(List<Program_Team_Members__c> newList, Map<Id, Program_Team_Members__c> newMap) {
     
     }
+/*
+* Purpose:
+ * - Processes newly created Programme Team Member records.
+ * - Identifies valid Team Member records containing a User
+ *   and Programme Team reference.
+ * - Enqueues a single Queueable job to manage Public Group
+ *   membership 
+*/
  public static void handleAfterInsert(
         List<Program_Team_Members__c> newMembers
     ) {

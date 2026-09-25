@@ -21,6 +21,11 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         versatility: 5
     };
 
+    workExperienceLabels = [
+        'Latest Job',
+        'Previous Job'
+    ];
+
     isLoading = true; // Start spinner immediately
 
     application = { Id: 'a0EC10000048Qd1MAE' };
@@ -297,6 +302,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             columnSystem: 10,
             layout: 'fluid',
             showSequenceLabel: true,
+            sequenceLabelOnTop: true,
             responsive: {
                 tablet: 'sequential-tablet',
                 tabletColumns: 12,
@@ -1313,8 +1319,11 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                     widthStyle: `grid-column: span 1;`,
                     fields: [{
                         key: `${sectionKey}-seq-label-${seq}-${rIdx}`,
-                        meta: { type: 'label', label: rIdx === 0 ? seq : '' },
-                        value: rIdx === 0 ? seq : null
+                        meta: { 
+                            type: 'label', 
+                            label: rIdx === 0 ? this._getSequenceLabel(sectionKey, seq) : '' 
+                        },
+                        value: rIdx === 0 ? this._getSequenceLabel(sectionKey, seq) : null
                     }]
                 };
                 renderRow.columns.push(seqCol);
@@ -1488,7 +1497,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                                 `${meta.key}-tablet-sequence-label-field-${seq}`,
                             meta: {
                                 type: 'label',
-                                label: `${seq}`
+                                label: this._getSequenceLabel(sectionKey, seq)
                             },
                             value: null
                         }]
@@ -1588,7 +1597,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                                 `${meta.key}-mobile-sequence-label-field-${seq}`,
                             meta: {
                                 type: 'label',
-                                label: `${seq}`
+                                label: this._getSequenceLabel(sectionKey, seq)
                             },
                             value: null
                         }]
@@ -2042,11 +2051,37 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         const rows = [];
         let fluidRowIdx = 0;
 
+        const showSequenceLabelOnTop =
+            meta.showSequenceLabel === true &&
+            meta.sequenceLabelOnTop === true;
+
         sequences.forEach((seq, seqIdx) => {
+
+            if (showSequenceLabelOnTop) {
+                rows.push({
+                    key: `${meta.key}-desktop-sequence-${seq}`,
+                    style:
+                        'display:grid;' +
+                        'grid-template-columns:1fr;' +
+                        'gap:8px;margin-bottom:4px;',
+                    columns: [{
+                        key: `${meta.key}-desktop-sequence-label-${seq}`,
+                        widthStyle: 'grid-column:1 / -1;',
+                        fields: [{
+                            key: `${meta.key}-desktop-sequence-label-field-${seq}`,
+                            meta: {
+                                type: 'label',
+                                label: this._getSequenceLabel(sectionKey, seq)
+                            },
+                            value: null
+                        }]
+                    }]
+                });
+            }
             
             let row = { columns: [], used: 0 };
 
-            if (sectionKey === 'workExperience' || sectionKey === 'achievements' || sectionKey === 'versatility') {
+            if (meta.showSequenceLabel === true && !showSequenceLabelOnTop && (sectionKey === 'workExperience' || sectionKey === 'achievements' || sectionKey === 'versatility')) {
                 row.columns.push({
                     key: `${meta.key}-seq-${seq}`,
                     widthStyle: 'grid-column: span 1;',
@@ -2054,7 +2089,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                         key: `${meta.key}-seq-${seq}`,
                         meta: {
                             type: 'label',
-                            label: `${seq}`
+                            label: this._getSequenceLabel(sectionKey, seq)
                         },
                         value: null
                     }]
@@ -2103,7 +2138,7 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                         });
                         row = { columns: [], used: 0 };
 
-                        if (sectionKey === 'workExperience' || sectionKey === 'achievements' || sectionKey === 'versatility') {
+                        if (meta.showSequenceLabel === true && !showSequenceLabelOnTop && (sectionKey === 'workExperience' || sectionKey === 'achievements' || sectionKey === 'versatility')) {
                             row.columns.push({
                                 key: `${meta.key}-seq-${seq}-cont-${fluidRowIdx}`,
                                 widthStyle: 'grid-column: span 1;',
@@ -2147,6 +2182,14 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         });
 
         return rows;
+    }
+
+    _getSequenceLabel(sectionKey, sequence) {
+        if (sectionKey === 'workExperience') {
+            return this.workExperienceLabels[sequence - 1] || `Work Experience ${sequence}`;
+        }
+
+        return `${sequence}`;
     }
 
     _getSequenceList(sectionKey, sectionData = this.work[sectionKey] || {}) {

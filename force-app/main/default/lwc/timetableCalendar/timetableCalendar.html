@@ -57,8 +57,8 @@
                             disabled={isBatchGroupNotSelected}>
                         </lightning-combobox>
                     </div>
-                    <div class="filter-item division-filter-item">
-                        <lightning-combobox
+                   <div class="filter-item division-filter-item">
+                     <!--   <lightning-combobox
                             label="Division"
                             value={selectedDivision}
                             placeholder="Select Division"
@@ -66,7 +66,35 @@
                             onchange={handleDivisionChange}
                             disabled={isTermNotSelected}>
                         </lightning-combobox>
-                    </div>
+                    </div>-->
+
+                    <span class="filter-label">Division</span>
+                        <div class="division-filter-picklist" role="group" aria-label="Division filter">
+                            <div class="division-filter-pills-wrap">
+                                <template if:true={hasDivisionPills}>
+                                    <div class="division-filter-pills-container">
+                                        <template for:each={divisionFilterPills} for:item="div">
+                                            <span key={div.value} class="division-filter-pill">
+                                            {div.label}
+                                            <button type="button" class="division-filter-pill-remove"
+                                            data-division-id={div.value}
+                                            onclick={handleDivisionFilterRemove}>×</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </template>
+            <!-- removed: <p class="faculty-filter-hint">No division selected</p> -->
+                                <lightning-combobox
+                                  placeholder="Add division..."
+                                  options={divisionFilterAvailableOptions}
+                                  value=""
+                                  onchange={handleDivisionFilterAdd}
+                                  variant="label-hidden"
+                                  disabled={isTermNotSelected}>
+                                </lightning-combobox>
+                            </div>
+                        </div>
+                    </div> 
                     <!-- Faculty Filter -->
                     <div class="filter-item faculty-filter-item">
                         <span class="filter-label">Faculty</span>
@@ -80,46 +108,108 @@
                             </template>
                             <template if:false={hasNoFacultyOptions}>
                                 <div class="faculty-filter-pills-wrap">
-                                    <template if:true={hasFilterFacultyPills}>
-                                        <div class="faculty-filter-pills-container">
-                                            <template for:each={filterFacultyPills}
-                                                    for:item="faculty">
-                                                <span key={faculty.value}
-                                                    class="faculty-filter-pill">
-                                                    {faculty.label}
-                                                    <button type="button"
-                                                            class="faculty-filter-pill-remove"
-                                                            data-faculty-id={faculty.value}
-                                                            onclick={handleFilterFacultyRemove}
-                                                            title="Remove faculty from filter">
-                                                        <svg viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            width="12"
-                                                            height="12">
-                                                            <path d="M18 6L6 18M6 6L18 18"
-                                                                stroke="currentColor"
-                                                                stroke-width="2"
-                                                                stroke-linecap="round"/>
-                                                        </svg>
-                                                    </button>
-                                                </span>
+                                    <!-- The chip box is the dropdown trigger -->
+                                    <div class={facultyTriggerClass}
+                                        role="button"
+                                        tabindex="0"
+                                        aria-haspopup="listbox"
+                                        aria-expanded={facultyMenuExpandedAttr}
+                                        aria-disabled={facultyTriggerDisabledAttr}
+                                        aria-label="Select faculty"
+                                        onclick={handleFacultyBoxClick}
+                                        onkeydown={handleFacultyBoxKeyDown}>
+                                        <template if:true={hasFilterFacultyPills}>
+                                            <div class="faculty-filter-pills-container">
+                                                <template for:each={visibleFilterFacultyPills}
+                                                        for:item="faculty">
+                                                    <span key={faculty.value}
+                                                        class="faculty-filter-pill"
+                                                        style={faculty.style}>
+                                                        {faculty.label}
+                                                        <button type="button"
+                                                                class="faculty-filter-pill-remove"
+                                                                data-faculty-id={faculty.value}
+                                                                onclick={handleFilterFacultyRemove}
+                                                                title="Remove faculty from filter">
+                                                            <svg viewBox="0 0 24 24"
+                                                                fill="none"
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                width="12"
+                                                                height="12">
+                                                                <path d="M18 6L6 18M6 6L18 18"
+                                                                    stroke="currentColor"
+                                                                    stroke-width="2"
+                                                                    stroke-linecap="round"/>
+                                                            </svg>
+                                                        </button>
+                                                    </span>
+                                                </template>
+                                            </div>
+                                            <!-- Sibling of the scrolling chip list so it is always visible -->
+                                            <template if:true={hasHiddenFacultyPills}>
+                                                <button type="button"
+                                                        class="faculty-filter-pill faculty-filter-more-pill"
+                                                        onclick={handleToggleFacultyPills}
+                                                        title="Show all selected faculty">
+                                                    {facultyMoreLabel}
+                                                </button>
                                             </template>
+                                        </template>
+                                        <template if:false={hasFilterFacultyPills}>
+                                            <p class="faculty-filter-hint">
+                                                Select faculty...
+                                            </p>
+                                        </template>
+                                        <svg class="faculty-filter-caret"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="12"
+                                            height="12"
+                                            aria-hidden="true">
+                                            <path d="M6 9L12 15L18 9"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"/>
+                                        </svg>
+                                    </div>
+                                    <template if:true={isFacultyMenuOpen}>
+                                        <div class="faculty-filter-menu"
+                                            onclick={handleFacultyMenuClick}>
+                                            <div class="faculty-filter-menu-header">
+                                                <span class="faculty-filter-menu-count">{facultySelectedCountText}</span>
+                                                <button type="button"
+                                                        class="faculty-filter-menu-action"
+                                                        onclick={handleFacultySelectAllToggle}>
+                                                    {facultySelectAllLabel}
+                                                </button>
+                                            </div>
+                                            <div class="faculty-filter-menu-list"
+                                                role="listbox"
+                                                aria-multiselectable="true"
+                                                aria-label="Faculty options">
+                                                <template for:each={facultyFilterOptionsWithChecked}
+                                                        for:item="faculty">
+                                                    <div key={faculty.value}
+                                                        class={faculty.rowClass}
+                                                        role="option"
+                                                        tabindex="0"
+                                                        aria-selected={faculty.selectedAttr}
+                                                        data-faculty-id={faculty.value}
+                                                        onclick={handleFacultyFilterCheck}
+                                                        onkeydown={handleFacultyRowKeyDown}>
+                                                        <span class="faculty-filter-menu-dot"
+                                                            style={faculty.dotStyle}></span>
+                                                        <span class="faculty-filter-menu-label">{faculty.label}</span>
+                                                        <template if:true={faculty.checked}>
+                                                            <span class="faculty-filter-menu-check"
+                                                                aria-hidden="true">&#10003;</span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
                                         </div>
                                     </template>
-                                    <template if:false={hasFilterFacultyPills}>
-                                        <p class="faculty-filter-hint">
-                                            No faculty selected
-                                        </p>
-                                    </template>
-                                    <lightning-combobox
-                                        placeholder="Select faculty to add..."
-                                        options={filterAvailableFacultyOptions}
-                                        value={filterFacultyComboboxValueDisplay}
-                                        onchange={handleFilterFacultyAdd}
-                                        variant="label-hidden"
-                                        disabled={isFacultyFilterDisabled}>
-                                    </lightning-combobox>
                                 </div>
                             </template>
                         </div>

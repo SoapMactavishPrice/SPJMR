@@ -20,5 +20,7 @@ public without sharing class ProgramGroupQueueable
         ];
 
         ProgrammeGroupService.createGroupsForPrograms(programs);
+         // New record-level sharing
+        ProgrammeSharingService.sharePrograms(programs);
     }
 }

@@ -1,21 +1,8 @@
 <template>
     <div class="slds-grid">
-        <!-- Month -->
-        <div class="slds-col">
-            <lightning-combobox
-                name="month"
-                placeholder="Month"
-                disabled={isMonthDisabled}
-                value={monthValue}
-                options={monthOptions}
-                onchange={handleMonthChange}
-                variant="label-hidden">
-            </lightning-combobox>
-        </div>
-
         <!-- Year -->
-        <div class="slds-col slds-p-horizontal_x-small">
-            <lightning-combobox
+        <div class="slds-col">
+             <lightning-combobox
                 name="year"
                 placeholder="Year"
                 disabled={isDisabled}
@@ -24,6 +11,19 @@
                 onchange={handleYearChange}
                 variant="label-hidden">
             </lightning-combobox>
+        </div>
+
+        <!-- Month -->
+        <div class="slds-col slds-p-horizontal_x-small">
+            <lightning-combobox
+                name="month"
+                placeholder="Month"
+                disabled={isMonthDisabled}
+                value={monthValue}
+                options={monthOptions}
+                onchange={handleMonthChange}
+                variant="label-hidden">
+            </lightning-combobox>        
         </div>
     </div>
 </template>
