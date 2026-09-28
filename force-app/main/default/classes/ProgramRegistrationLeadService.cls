@@ -18,19 +18,6 @@ public without sharing class ProgramRegistrationLeadService{
     }
 
     /**
-     * Resends the verification email. LeadTriggerHelper only sends on a change to TRUE,
-     * so a flag that is already TRUE is flipped to FALSE first.
-     */
-    @AuraEnabled
-    public static void resendVerificationEmail(Id leadId) {
-        Lead existing = [SELECT Send_Welcome_and_Verification_Email__c FROM Lead WHERE Id = :leadId];
-        if (existing.Send_Welcome_and_Verification_Email__c) {
-            update new Lead(Id = leadId, Send_Welcome_and_Verification_Email__c = false);
-        }
-        update new Lead(Id = leadId, Send_Welcome_and_Verification_Email__c = true);
-    }
-
-    /**
      * Saves registration: Lead/Lead_Program use programId; metadata lookups use registrationConfigProgramId when set, else programId.
      *
      * @param programId Target Program Id for Lead_Program__c (child or parent).
@@ -319,6 +306,7 @@ private static ProgramRegistrationFormController.SaveLeadResult saveRegistration
         }
     }
     lead.Communication_Consent__c  = 'Yes';
+    formatLeadPhone(lead);
     String phoneValidationError = validatePhoneAgainstCountryRule(lead);
     system.debug('Phone Validation: '+phoneValidationError);
     if (String.isNotBlank(phoneValidationError)) {
@@ -329,7 +317,7 @@ private static ProgramRegistrationFormController.SaveLeadResult saveRegistration
     Savepoint sp = Database.setSavepoint();
     try {
         Integer existingStatus = handleExistingRecords(
-            lead, programSfId, programName, programCodeForApplication, cfg
+            lead, programSfId, programName, programCodeForApplication, cfg, brochureMode
             );
 
         if (existingRecordId != null) {
@@ -572,6 +560,18 @@ private static ProgramRegistrationFormController.SaveLeadResult saveRegistration
     String programCode,
     Program_Registration_Config__mdt cfg
     ) {
+        return handleExistingRecords(lead, programId, programName, programCode, cfg, false);
+    }
+
+    @TestVisible
+    private static Integer handleExistingRecords(
+        Lead lead,
+    Id programId,
+    String programName,
+    String programCode,
+    Program_Registration_Config__mdt cfg,
+    Boolean brochureMode
+    ) {
         String email = normalizeEmail(lead.Email);
         String phoneRaw = lead.Phone != null ? lead.Phone.trim() : null;
         String phoneDigits = normalizePhone(phoneRaw);
@@ -713,17 +713,31 @@ private static ProgramRegistrationFormController.SaveLeadResult saveRegistration
 
         if (!leadList.isEmpty()) {
             Lead existingLead = leadList[0];
-            Boolean hasProgram = [
-        SELECT COUNT()
+            List<Lead_Program__c> existingLeadPrograms = [
+        SELECT Id, Downloaded_Brochure__c
         FROM Lead_Program__c
         WHERE Lead__c = :existingLead.Id
         AND Program__c = :programId
-    ] > 0;
+    ];
+            Boolean hasProgram = !existingLeadPrograms.isEmpty();
+
+            // Brochure download on a program the lead already registered for -- flag it if not already.
+            if (brochureMode == true) {
+                List<Lead_Program__c> toFlag = new List<Lead_Program__c>();
+                for (Lead_Program__c lp : existingLeadPrograms) {
+                    if (lp.Downloaded_Brochure__c != true) {
+                        toFlag.add(new Lead_Program__c(Id = lp.Id, Downloaded_Brochure__c = true));
+                    }
+                }
+                if (!toFlag.isEmpty()) {
+                    update toFlag;
+                }
+            }
 
             if (!hasProgram) {
                 existingRecordId = existingLead.Id;
                 existingRecordType = 'Lead';
-                createLeadProgram(existingLead.Id,programId,email,phoneRaw,cfg);
+                createLeadProgram(existingLead.Id,programId,email,phoneRaw,cfg,brochureMode);
 
                 return 1;
             }
@@ -808,13 +822,15 @@ private static ProgramRegistrationFormController.SaveLeadResult saveRegistration
     Id programId,
     String email,
     String phone,
-    Program_Registration_Config__mdt cfg
+    Program_Registration_Config__mdt cfg,
+    Boolean brochureMode
     ) {
         Lead_Program__c lp = new Lead_Program__c(
             Lead__c = leadId,
         Program__c = programId,
         Email__c = email,
-        Phone__c = phone
+        Phone__c = phone,
+        Downloaded_Brochure__c = brochureMode == true
             );
 
         if (String.isNotBlank(cfg.Default_Lead_Source__c)) {
@@ -871,6 +887,46 @@ private static ProgramRegistrationFormController.SaveLeadResult saveRegistration
     private static String normalizePhone(String phone) {
         return phone != null ? phone.replaceAll('[^0-9]', '') : null;
     }
+    /** "+<code> <number>", e.g. "+91 9876543210". Returns the phone unchanged when no code is known. */
+    @TestVisible
+    private static String formatPhoneWithCountryCode(String phone, String countryCode) {
+        String digits = digitsOnly(phone);
+        String code = digitsOnly(countryCode);
+        if (String.isBlank(digits) || String.isBlank(code)) {
+            return phone;
+        }
+        if (digits.startsWith(code)) {
+            digits = digits.substring(code.length());
+        }
+        return '+' + code + ' ' + digits;
+    }
+
+    /**
+     * Formats Lead.Phone as "+<code> <number>" using the Lead's country; when the form has no
+     * country field, the dial code is matched against Country_Master__c codes (longest match).
+     */
+    @TestVisible
+    private static void formatLeadPhone(Lead lead) {
+        if (lead == null || String.isBlank(lead.Phone)) {
+            return;
+        }
+        String code;
+        if (lead.Country_Master_backend__c != null) {
+            for (Country_Master__c c : [SELECT Country_Code__c FROM Country_Master__c WHERE Id = :lead.Country_Master_backend__c LIMIT 1]) {
+                code = c.Country_Code__c;
+            }
+        } else if (lead.Phone.trim().startsWith('+')) {
+            String digits = digitsOnly(lead.Phone);
+            for (Country_Master__c c : [SELECT Country_Code__c FROM Country_Master__c WHERE Country_Code__c != null]) {
+                String candidate = digitsOnly(c.Country_Code__c);
+                if (String.isNotBlank(candidate) && digits.startsWith(candidate) && candidate.length() > digitsOnly(code).length()) {
+                    code = c.Country_Code__c;
+                }
+            }
+        }
+        lead.Phone = formatPhoneWithCountryCode(lead.Phone, code);
+    }
+
     @TestVisible
     private static String validatePhoneAgainstCountryRule(Lead lead) {
         if (lead == null || String.isBlank(lead.Phone) || lead.Country_Master_backend__c == null) {
@@ -891,18 +947,7 @@ private static ProgramRegistrationFormController.SaveLeadResult saveRegistration
             return null;
         }
 
-        if (String.isNotBlank(lead.Phone) && country != null) {
-            if (String.isNotBlank(country.Country_Code__c)) {
-                String phone = digitsOnly(lead.Phone);
-                String countryCode = country.Country_Code__c.trim();
-
-                if (!phone.startsWith(digitsOnly(countryCode))) {
-                    lead.Phone = '+'+countryCode + ' ' + phone;
-                } else {
-                    lead.Phone =  '+'+countryCode + ' ' + phone.substring(digitsOnly(countryCode).length());
-                }
-            }
-        }
+        lead.Phone = formatPhoneWithCountryCode(lead.Phone, country.Country_Code__c);
 
         Set<Integer> accepted = parseAcceptedLengths(country.AcceptedNumberLength__c);
         if (accepted.isEmpty()) {

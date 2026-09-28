@@ -803,12 +803,20 @@
     vertical-align: top;
 }
 
-.divisions-week-header {
+.divisions-week-sticky-chrome {
     position: sticky;
     top: 0;
     z-index: 10;
     background: var(--color-background);
     box-shadow: 0 1px 0 0 var(--color-grid);
+}
+
+.divisions-week-header {
+    position: relative;
+    top: auto;
+    z-index: auto;
+    background: var(--color-background);
+    box-shadow: none;
     grid-template-rows: var(--divisions-week-row-height, 50px);
     min-height: var(--divisions-week-row-height, 50px);
     align-items: stretch;
@@ -887,12 +895,15 @@
 }
 
 
-/* Tighter session tiles in week grid so they fit within column width; z-index so grid lines don't show through */
+/* Tighter session tiles in week grid so they fit within column width; z-index so grid lines don't show through.
+   z-index 6 keeps the same rule the single-division grid states: a session tile always wins an
+   overlap. The busy overlay sits at 5 here (it has to clear a promoted neighbour cell's 2), so
+   without this a tile could be covered by a block that encroached on it. */
 .divisions-week-grid-inner .division-cell-event {
     padding: 1px 3px;
     margin-bottom: 0;
     gap: 0;
-    z-index: 3;
+    z-index: 6;
     position: relative;
     /*isolation: isolate;*/
  }
@@ -1332,6 +1343,16 @@
     }
 }
 
+/* Sticky day header + All Day band (scroll together above the hour grid) */
+.calendar-sticky-chrome {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    flex-shrink: 0;
+    background: var(--color-background);
+    box-shadow: 0 1px 0 0 var(--color-grid);
+}
+
 /* Days Header (inside .time-grid-container so scrollbar gutter matches day columns) */
 .days-header {
     display: grid;
@@ -1339,10 +1360,6 @@
     border-bottom: 1px solid var(--color-grid);
     background: var(--color-background);
     flex-shrink: 0;
-    position: sticky;
-    top: 0;
-    z-index: 12;
-    box-shadow: 0 1px 0 0 var(--color-grid);
 }
 
 .time-column-header {
@@ -1501,6 +1518,30 @@
 
 .day-column.today-column {
     background: rgba(99, 102, 241, 0.03);
+}
+
+/* All-day busy: soft hatch on the day column (mockup .alldaycol) — advisory only, does not block Save */
+.day-column.allday-column,
+.divisions-week-cell.allday-column {
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(253, 246, 233, 0.85) 10px,
+        rgba(253, 246, 233, 0.85) 20px
+    );
+}
+
+.day-column.today-column.allday-column {
+    background:
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(253, 246, 233, 0.7) 10px,
+            rgba(253, 246, 233, 0.7) 20px
+        ),
+        rgba(99, 102, 241, 0.03);
 }
 
 /* Drop Target Styling */
@@ -4760,60 +4801,90 @@
     white-space: nowrap;
 }
 
+.faculty-filter-menu-status {
+    flex: 0 0 auto;
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted, #8a8fa3);
+    white-space: nowrap;
+    padding-left: 8px;
+}
+
+.faculty-filter-menu-status.is-shown {
+    color: var(--color-primary, #6c5ce7);
+    font-weight: 600;
+}
+
 .faculty-filter-menu-check {
     flex: 0 0 auto;
     color: var(--color-primary, #6366f1);
     font-size: 0.8rem;
 }
 
-/* ========================================
-   FACULTY BUSY OVERLAY (availability on the grid)
-   Background information, never a booking: pale wash of the faculty colour, dashed edge.
-   pointer-events: none is the load-bearing line - the wash can never take a click, a dragover, a
-   drop or a resize-handle mousedown from the grid underneath, so every existing session
-   interaction behaves exactly as it did before the overlay existed. Because nothing can be
-   intercepted, z-order is chosen purely on looks: the wash paints OVER the tiles at ~10% alpha,
-   and a hovered tile (z-index 10) still rises clear of it.
-   ======================================== */
+.faculty-availability-badge {
+    display: inline-block;
+    background: #edd1ff;
+    color: #7c3aed;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 0.4px;
+}
+
+
 .faculty-busy-block {
     position: absolute;
     left: 4px;
     right: 4px;
-    z-index: 4;
+    z-index: 0;
     pointer-events: none;
     box-sizing: border-box;
     display: flex;
-    align-items: flex-start;
-    gap: 5px;
-    padding: 3px 6px;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 1px;
+    padding: 4px 6px;
     border: 1px dashed rgba(107, 114, 128, 0.6);
-    border-radius: var(--radius-sm);
-    background-color: rgba(107, 114, 128, 0.10);
+    border-radius: var(--radius-md);
+    background-color: #f3f4f6;
+    color: #1f2937;
     overflow: hidden;
     font-size: 11px;
-    line-height: 1.2;
+    line-height: 1.25;
 }
 
-/* Over a session tile the wash stays, but the name would be written on top of the tile's own
-   text - so only the colour swatch survives, tucked to the top right. The tooltip has the name. */
-.faculty-busy-block-quiet {
-    justify-content: flex-end;
+/* Sharing the column with a session: mirrors .calendar-event.overlapping-event, including the
+   min-width floor that stops a lane collapsing into an unreadable strip and the 2px left margin
+   that rule's :not(:first-of-type) variant applies to every laned session tile. */
+.faculty-busy-block-laned {
+    right: auto;
+    margin-left: 2px;
+    min-width: 56px;
 }
 
-.faculty-busy-block-quiet .faculty-busy-label {
-    display: none;
+.faculty-busy-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
 }
 
 .faculty-busy-swatch {
     flex: 0 0 auto;
     width: 8px;
     height: 8px;
-    margin-top: 3px;
     border-radius: 2px;
 }
 
+.faculty-busy-status {
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
 .faculty-busy-label {
-    flex: 1 1 auto;
     min-width: 0;
     font-weight: 600;
     white-space: nowrap;
@@ -4821,23 +4892,44 @@
     text-overflow: ellipsis;
 }
 
-/* All Divisions week grid: same overlay at that grid's tighter row scale. */
-.divisions-week-grid-inner .faculty-busy-block {
-    left: 2px;
-    right: 2px;
-    gap: 4px;
-    padding: 1px 4px;
-    font-size: 10px;
+.faculty-busy-time {
+    min-width: 0;
+    color: #4b5563;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+/* All Divisions week grid: same overlay at that grid's tighter row scale. Blocks are always laned
+   there, so left/width always come from the inline style. */
+.divisions-week-grid-inner .faculty-busy-block {
+    gap: 0;
+    padding: 1px 4px;
+    font-size: 10px;
+    line-height: 1.15;
+}
+
+.divisions-week-grid-inner .faculty-busy-block-laned {
+    margin-left: 0;   /* .division-cell-event has no margins, so there is nothing to line up with */
+    min-width: 40px;
+}
+
+
+.divisions-week-grid-inner .faculty-busy-block {
+    z-index: 5;
+}
 
 .divisions-week-grid-inner .faculty-busy-swatch {
     width: 6px;
     height: 6px;
-    margin-top: 2px;
 }
 
-/* Busy hover card: the session tooltip card with the per-faculty rows AC3 asks for. */
+/* Busy hover card: the session tooltip card with the per-faculty rows AC3 asks for. The member
+   rows carry a name and a time range side by side, so the card is allowed a little more width. */
+.faculty-busy-tooltip .session-tooltip-line {
+    max-width: 320px;
+}
+
 .faculty-busy-tooltip-title {
     font-weight: 700;
     color: #111827;
@@ -4868,4 +4960,83 @@
     flex: 0 0 auto;
     color: #4b5563;
     white-space: nowrap;
+}
+
+
+.faculty-allday-band {
+    display: grid;
+    background: #fffaf0;
+    border-bottom: 1px solid var(--color-grid);
+    min-height: 34px;
+    align-items: stretch;
+}
+
+.faculty-allday-band-week {
+    grid-template-columns: 70px repeat(7, 1fr);
+}
+
+.faculty-allday-band-day {
+    grid-template-columns: 70px 1fr;
+}
+
+.faculty-allday-band-divisions-week {
+    grid-template-columns: var(--divisions-week-columns);
+}
+
+.faculty-allday-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #a5771f;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 4px 8px;
+    border-right: 1px solid var(--color-grid);
+    letter-spacing: 0.3px;
+    text-align: right;
+}
+
+.faculty-allday-cell {
+    border-left: 1px solid var(--color-grid);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    justify-content: center;
+    min-width: 0;
+}
+
+.faculty-allday-pill {
+    background: #fdf1dc;
+    border: 1px solid #e0a94a;
+    border-radius: 6px;
+    padding: 3px 7px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #8a5a12;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: default;
+    line-height: 1.15;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.faculty-allday-pill-multi {
+    background: #fbe6c4;
+}
+
+.faculty-allday-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+}
+
+.faculty-allday-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }

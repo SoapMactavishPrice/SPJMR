@@ -77,8 +77,12 @@ private static Set<String> parseValues(String value) {
         system.debug('Using: '+programRecord.Lead_Verification_Number_Prefix__c );
         return programRecord.Lead_Verification_Number_Prefix__c ;
     }
-	system.debug('Using: '+programRecord.Program_Code__c);
-    return programRecord.Program_Code__c;
+    // Non-PGDM programmes use the Short Programme Code, falling back to the Programme Code when it's blank.
+    String shortProgrammeCode = String.isNotBlank(programRecord.Short_Programme_Code__c)
+        ? programRecord.Short_Programme_Code__c.trim()
+        : programCode;
+	system.debug('Using: '+shortProgrammeCode);
+    return shortProgrammeCode;
 }
 
     public static Boolean isAutoApplicationCreationEnabled() {
@@ -125,6 +129,7 @@ private static ConversionResult handleLeadConversionFailure(
          for (Program p : [
         SELECT Id,
                Program_Code__c,
+               Short_Programme_Code__c,
                Lead_Verification_Number_Prefix__c
         FROM Program
         WHERE Program_Code__c IN :uniqueProgramCodes
@@ -557,7 +562,8 @@ String formattedProgrammeNames =
                     }
                     Id programIdForApp = B2CProgramParentHelper.opportunityAndApplicationProgramId(members);
                     Program progRow = programById.get(programIdForApp);
-                    programCodesForNumbers.add(getApplicationNumberPrefix(progRow));
+                    // Pass the programme code; generateApplicationNumbersInBulk resolves the prefix.
+                    programCodesForNumbers.add(progRow != null ? progRow.Program_Code__c : null);
                     programIdForAppList.add(programIdForApp);
 
                     Lead_Program__c sourceLp;
@@ -665,11 +671,12 @@ String formattedProgrammeNames =
             WHERE Id = :opp.AccountId)];
             String UserId = applicantUserList[0].Id;
             String applicationNumber;
-            String applicationPrefix = getApplicationNumberPrefix(opp.Program__r);
+            // Pass the programme code; generateApplicationNumbersInBulk resolves the prefix.
+            String programCode = opp.Program__r != null ? opp.Program__r.Program_Code__c : null;
 
-            if (String.isNotBlank(applicationPrefix)) {
+            if (String.isNotBlank(programCode)) {
                 List<String> applicationNumbers = generateApplicationNumbersInBulk(
-                    new List<String>{ applicationPrefix }
+                    new List<String>{ programCode }
                 );
                 applicationNumber = !applicationNumbers.isEmpty() ? applicationNumbers[0] : null;
             }

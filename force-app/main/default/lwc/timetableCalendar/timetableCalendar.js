@@ -59,7 +59,7 @@ export default class TimetableCalendar extends LightningElement {
         red: '#B44E4E'
     };
 
-    /** Faculty overlay colours — the distinct hexes from DIVISION_COLOR_HEX, ordered so neighbours contrast. */
+    
     static FACULTY_COLOR_PALETTE = [
         '#406EA8', '#B44E4E', '#9EB094', '#702B99', '#C99500', '#54B1AC',
         '#7A3000', '#B2B28D', '#B58460', '#C0C600', '#AAAFAA', '#FAE3D6'
@@ -70,30 +70,37 @@ export default class TimetableCalendar extends LightningElement {
         return palette[i % palette.length];
     }
 
-    /** Availability overlay: neutral slate for a block that covers more than one faculty. */
+    
     static BUSY_CONSOLIDATED_HEX = '#6B7280';
-    /** Availability overlay: shortest block we will draw, so a 10-minute busy period stays visible. */
-    static BUSY_MIN_BLOCK_PX = 16;
-    /** Availability overlay: same floor for the All Divisions grid, whose rows are far shorter. */
-    static BUSY_MIN_SEGMENT_PX = 6;
-    /** All Divisions week grid row height; must stay in step with divisionsWeekGridBodyStyle. */
+    
+    static BUSY_MIN_BLOCK_PX = 24;
+    
+    static BUSY_MIN_SEGMENT_PX = 14;
+    
     static DIVISIONS_WEEK_ROW_HEIGHT = 50;
-    /** Availability overlay: week-paging changes the range on every click and each load is two live Google callouts. */
+    
     static AVAILABILITY_DEBOUNCE_MS = 350;
 
-    /**
-     * Busy blocks read as background information, not as a booking: a pale wash of the faculty
-     * colour with a dashed edge (the border colour is set here, the dash in CSS). The fill is kept
-     * at 10% so it can sit over a session tile without washing the tile's own colour out.
-     */
+    
+    static BUSY_NAME_MAX_LANES = 3;
+    
+    static BUSY_NAME_MIN_PX = 28;
+    
+    static BUSY_TIME_MAX_LANES = 2;
+    
+    static BUSY_TIME_MIN_PX = 44;
+
+    
     static busyTintInlineStyle(hex) {
         if (!hex || !/^#[0-9A-Fa-f]{6}$/i.test(hex)) return '';
         const n = parseInt(hex.slice(1), 16);
+        const towardsWhite = (c, keep) => Math.round(255 - ((255 - c) * keep));
         const r = (n >> 16) & 255;
         const g = (n >> 8) & 255;
         const b = n & 255;
-        const fg = TimetableCalendar.hexLuminance(hex) > 0.55 ? '#3f3f46' : hex;
-        return `background-color: rgba(${r}, ${g}, ${b}, 0.10); border-color: rgba(${r}, ${g}, ${b}, 0.6); color: ${fg};`;
+        const fill = `rgb(${towardsWhite(r, 0.16)}, ${towardsWhite(g, 0.16)}, ${towardsWhite(b, 0.16)})`;
+        const edge = `rgb(${towardsWhite(r, 0.55)}, ${towardsWhite(g, 0.55)}, ${towardsWhite(b, 0.55)})`;
+        return `background-color: ${fill}; border-color: ${edge};`;
     }
 
     static normalizeDivisionColorKey(picklistValue) {
@@ -174,22 +181,34 @@ export default class TimetableCalendar extends LightningElement {
     @track filterFacultyOptions = []; // Faculty options for sidebar filter (Division -> Course -> Faculty)
     @track isFacultyMenuOpen = false; // Faculty filter dropdown menu open/closed
     @track facultyPillsExpanded = false; // "+N more" chip expands the chip box
-    /** De-dupe key for the availability overlay load (selected faculty + current view range). */
+    
     lastAvailabilityKey = '';
-    /** Availability overlay: busy clusters keyed by 'YYYY-MM-DD', built once per response. */
+    
     @track facultyBusyByDate = {};
-    /** Availability overlay: tooltip payload by cluster key, so hover stays an O(1) lookup. */
+    
+    @track facultyAllDayByDate = {};
+    
+    facultyAvailabilityRows = [];
+    
+    @track facultyAvailabilitySummaryById = {};
+    
     busyTooltipByKey = {};
-    /** Availability overlay: hovered busy block's tooltip payload (name/count, date, times only). */
+    
     @track hoveredBusyTooltip = null;
-    /** Availability overlay: request stamp; a response that is no longer the newest is dropped. */
+    
     availabilityRequestSeq = 0;
-    /** Availability overlay: pending debounce timer id (cleared on disconnect). */
+    
     availabilityDebounceId = null;
-    /** Availability overlay: latest un-resolved hover, read once per animation frame. */
+    
     pendingBusyHover = null;
-    /** Availability overlay: pending requestAnimationFrame id for the hover resolve. */
+    
     busyHoverFrameId = null;
+    
+    busyHitAreasByKey = {};
+    
+    hasBusyOverlay = false;
+    
+    hasAllDayOverlay = false;
     /** Bound document listener that closes the faculty menu on an outside click (removed on disconnect). */
     boundFacultyOutsideClick = null;
     @track filterScheduleTypeDraft = false;
@@ -316,7 +335,6 @@ export default class TimetableCalendar extends LightningElement {
     @track editEnrolledSelectedIds = [];
     editStudentDivisionMap = {};
 
-    
     
     // Getter to show course assignments only when not in edit mode
     get showCourseAssignmentsAndNotEdit() {
@@ -502,7 +520,6 @@ export default class TimetableCalendar extends LightningElement {
                 f.value && !facultyIds.some(fid => this.idsEqual(f.value, fid))
             );
             const allFacultyOptions = (this.facultyOptions || []).slice();
-            // Exclude already-selected faculty from dropdowns (remove pill to make them appear again)
             const leadFacultyOptions = allFacultyOptions.filter(f =>
                 f.value && !leadFacultyIds.some(lid => this.idsEqual(f.value, lid))
             );
@@ -817,7 +834,6 @@ export default class TimetableCalendar extends LightningElement {
     // Wired result for refreshApex
     wiredSessionsResult;
 
-    // Bump this after saving a session so sessions wire re-runs and faculty filter reflects updates
     @track sessionsRefreshKey = 0;
 
     // Time slots configuration
@@ -841,7 +857,6 @@ export default class TimetableCalendar extends LightningElement {
             ? this.getCurrentViewDateRange()
             : { startDate: null, endDate: null };
         const filterPayload = { divisionId, divisionIds, startDate, endDate };
-        // Faculty filter: none selected → every session for the division/date range; some selected → only
         // theirs (Apex ORs the ids and matches lead + support via Session_Faculty__c); all selected → no
         // facultyIds at all, because the Apex filter drops sessions with no faculty assigned and "Select all"
         // must never show fewer sessions than selecting nobody.
@@ -863,7 +878,6 @@ export default class TimetableCalendar extends LightningElement {
         this.loadPrograms();
         this.loadCourseActivities();
         this.loadSessionTypes();
-        // Faculty dropdown closes on any click outside the chip box / menu (those stop propagation).
         this.boundFacultyOutsideClick = this.handleFacultyOutsideClick.bind(this);
         document.addEventListener('click', this.boundFacultyOutsideClick);
     }
@@ -983,7 +997,6 @@ export default class TimetableCalendar extends LightningElement {
                     && !selected.some(id => this.idsEqual(id, o.value)));
                 const allOption = (this.divisionOptions || [])
                 .find(o => o.value === TimetableCalendar.ALL_DIVISIONS_VALUE);
-        // "All Divisions" stays in the dropdown just like before — picking it is the shortcut.
         return allOption ? [allOption, ...specific] : specific;
     }
 
@@ -1206,12 +1219,18 @@ export default class TimetableCalendar extends LightningElement {
         return (match && match.label) ? String(match.label) : (this.modalCourse.split('|')[0] || 'Select Course');
     }
 
-    /** Rows for the faculty dropdown menu: colour dot (always shown) + label + tick for the selected ones. */
+    
     get facultyFilterOptionsWithChecked() {
         const selected = this.selectedFilterFacultyIds || [];
+        const summaries = this.facultyAvailabilitySummaryById || {};
         return (this.filterFacultyOptions || []).map((opt, index) => {
             const checked = selected.includes(opt.value);
             const hex = TimetableCalendar.facultyColorForIndex(index);
+            const summary = this.availabilitySummaryFor(opt.value, summaries);
+            // Selected rows match the prototype: replace counts with "✔ shown".
+            const statusText = checked
+                ? '✔ shown'
+                : (summary.statusText || '');
             return {
                 ...opt,
                 checked,
@@ -1219,7 +1238,12 @@ export default class TimetableCalendar extends LightningElement {
                 rowClass: checked
                     ? 'faculty-filter-menu-row is-selected'
                     : 'faculty-filter-menu-row',
-                dotStyle: `background-color: ${hex}; border-color: ${hex};`
+                dotStyle: `background-color: ${hex}; border-color: ${hex};`,
+                statusText,
+                showStatus: !!statusText,
+                statusClass: checked
+                    ? 'faculty-filter-menu-status is-shown'
+                    : 'faculty-filter-menu-status'
             };
         });
     }
@@ -1548,9 +1572,11 @@ export default class TimetableCalendar extends LightningElement {
         getFacultiesForFilter({ divisionId, divisionIds })
             .then(result => {
                 this.filterFacultyOptions = (result || []).map(o => ({ label: o.label, value: o.value }));
+                this.scheduleFacultyAvailabilityLoad();
             })
             .catch(() => {
                 this.filterFacultyOptions = [];
+                this.scheduleFacultyAvailabilityLoad();
             });
     } /*SE-1339*/ 
 
@@ -1663,31 +1689,35 @@ export default class TimetableCalendar extends LightningElement {
         this.scheduleFacultyAvailabilityLoad();
     }
 
-    /** Availability overlay seam: only reload when the faculty set or the visible date range actually changed. */
+    
     scheduleFacultyAvailabilityLoad() {
-        const ids = [...(this.selectedFilterFacultyIds || [])].sort();
+        const optionIds = (this.filterFacultyOptions || [])
+            .map(o => o && o.value)
+            .filter(id => !!id)
+            .map(String)
+            .sort();
         const { startDate, endDate } = this.getCurrentViewDateRange();
-        const key = `${ids.join(',')}::${startDate}::${endDate}`;
-        if (key === this.lastAvailabilityKey) return;
-        this.lastAvailabilityKey = key;
-        // Nothing to look up while no faculty is selected; the key is still stored so the next
-        // real selection is not mistaken for a repeat. Deselecting the last faculty must also drop
-        // the painted blocks, so clear here instead of just returning.
-        if (ids.length === 0) {
+        const fetchKey = `${optionIds.join(',')}::${startDate}::${endDate}`;
+
+        if (optionIds.length === 0 || this.currentView === 'month') {
             this.cancelPendingAvailabilityLoad();
-            this.availabilityRequestSeq += 1; // any response still in flight is now stale
+            this.availabilityRequestSeq += 1;
+            this.lastAvailabilityKey = fetchKey;
             this.clearFacultyAvailability();
             return;
         }
-        // Paging a week at a time changes the key on every click and each load is two live Google
-        // callouts with no platform caching, so let the navigation settle first.
+
+        if (fetchKey === this.lastAvailabilityKey) {
+            this.paintSelectedFacultyAvailability();
+            return;
+        }
+
+        this.lastAvailabilityKey = fetchKey;
         this.cancelPendingAvailabilityLoad();
-        // Stamp now, not in the loader: an older response must not be allowed to paint during the
-        // debounce window.
         this.availabilityRequestSeq += 1;
         this.availabilityDebounceId = setTimeout(() => {
             this.availabilityDebounceId = null;
-            this.loadFacultyAvailability();
+            this.loadFacultyAvailability(optionIds);
         }, TimetableCalendar.AVAILABILITY_DEBOUNCE_MS);
     }
 
@@ -1698,9 +1728,10 @@ export default class TimetableCalendar extends LightningElement {
         }
     }
 
-    loadFacultyAvailability() {
-        const facultyIds = [...(this.selectedFilterFacultyIds || [])];
-        // Month view has no time grid to paint, so a month-wide freeBusy call would be wasted.
+    loadFacultyAvailability(optionIds) {
+        const facultyIds = optionIds && optionIds.length
+            ? [...optionIds]
+            : (this.filterFacultyOptions || []).map(o => o.value).filter(Boolean);
         if (facultyIds.length === 0 || this.currentView === 'month') {
             this.availabilityRequestSeq += 1;
             this.clearFacultyAvailability();
@@ -1710,41 +1741,94 @@ export default class TimetableCalendar extends LightningElement {
         const requestId = ++this.availabilityRequestSeq;
         getAvailability({ facultyIds, rangeStart: startDate, rangeEnd: endDate })
             .then(result => {
-                // The user can pan the grid faster than Google answers; only the newest may paint.
                 if (requestId !== this.availabilityRequestSeq) return;
-                this.applyFacultyAvailability(result);
+                this.facultyAvailabilityRows = result || [];
+                this.facultyAvailabilitySummaryById =
+                    this.buildFacultyAvailabilitySummaries(this.facultyAvailabilityRows);
+                this.paintSelectedFacultyAvailability();
             })
             .catch(error => {
-                // The service already fails open (empty busy lists), so a failure here is a
-                // transport or access problem — most likely the caller has no access to the Apex
-                // class, whose only symptom is an overlay that never appears. Log it; a toast on
-                // every attempt would be noise.
                 console.error('Faculty availability load failed:', error);
                 if (requestId !== this.availabilityRequestSeq) return;
-                // Forget the de-dupe key so coming back to this range retries instead of staying blank.
                 this.lastAvailabilityKey = '';
                 this.clearFacultyAvailability();
             });
     }
 
-    clearFacultyAvailability() {
+    
+    paintSelectedFacultyAvailability() {
+        const selected = this.selectedFilterFacultyIds || [];
+        if (selected.length === 0) {
+            this.clearFacultyAvailabilityOverlay();
+            return;
+        }
+        const rows = (this.facultyAvailabilityRows || []).filter(row =>
+            row && selected.some(id => this.idsEqual(id, row.facultyId))
+        );
+        this.applyFacultyAvailability(rows);
+    }
+
+    availabilitySummaryFor(facultyId, summaries) {
+        const map = summaries || this.facultyAvailabilitySummaryById || {};
+        if (!facultyId) return {};
+        if (map[facultyId]) return map[facultyId];
+        const key = Object.keys(map).find(k => this.idsEqual(k, facultyId));
+        return key ? map[key] : {};
+    }
+
+    
+    buildFacultyAvailabilitySummaries(rows) {
+        const summaries = {};
+        (rows || []).forEach(row => {
+            if (!row || !row.facultyId) return;
+            let busyCount = 0;
+            const allDayDates = new Set();
+            (row.busy || []).forEach(block => {
+                this.splitBusyBlockByDay(block).forEach(part => {
+                    if (this.isAllDayDayPart(part)) {
+                        allDayDates.add(part.dateStr);
+                    } else {
+                        busyCount += 1;
+                    }
+                });
+            });
+            const allDayCount = allDayDates.size;
+            const parts = [];
+            if (busyCount > 0) parts.push(`${busyCount} busy`);
+            if (allDayCount > 0) parts.push(`${allDayCount} all-day`);
+            summaries[row.facultyId] = {
+                busyCount,
+                allDayCount,
+                statusText: parts.join(' · ')
+            };
+        });
+        return summaries;
+    }
+
+    clearFacultyAvailabilityOverlay() {
         this.facultyBusyByDate = {};
+        this.facultyAllDayByDate = {};
         this.busyTooltipByKey = {};
+        this.busyHitAreasByKey = {};
+        this.hasBusyOverlay = false;
+        this.hasAllDayOverlay = false;
         this.hoveredBusyTooltip = null;
     }
 
-    /**
-     * Turn the service rows into per-day busy clusters once per response, so the grid getters only
-     * have to position what is already grouped.
-     * Google merges each faculty's own OVERLAPPING meetings before we see them; disjoint ones
-     * arrive separately, so both the clustering here (AC5) and the per-faculty interval merge in
-     * buildBusyCluster have real work to do.
-     */
+    clearFacultyAvailability() {
+        this.clearFacultyAvailabilityOverlay();
+        this.facultyAvailabilityRows = [];
+        this.facultyAvailabilitySummaryById = {};
+    }
+
+    
     applyFacultyAvailability(rows) {
-        // A response landing while the pointer sits on a block must not strand a card for a
-        // cluster that no longer exists.
+        // cluster that no longer exists. The rendered lane bands go too: they are rebuilt by the
+        // next render, and a date that has just lost all its blocks must not keep its old bands.
         this.clearBusyHover();
+        this.busyHitAreasByKey = {};
         const segmentsByDate = {};
+        const allDayFacultyByDate = {};
         (rows || []).forEach(row => {
             if (!row) return;
             // A faculty whose calendar cannot be read comes back with an empty busy list, which is
@@ -1753,6 +1837,15 @@ export default class TimetableCalendar extends LightningElement {
             const facultyName = (row.facultyName && String(row.facultyName).trim()) || 'Faculty';
             (row.busy || []).forEach(block => {
                 this.splitBusyBlockByDay(block).forEach(part => {
+                    if (this.isAllDayDayPart(part)) {
+                        if (!allDayFacultyByDate[part.dateStr]) allDayFacultyByDate[part.dateStr] = {};
+                        allDayFacultyByDate[part.dateStr][row.facultyId] = {
+                            facultyId: row.facultyId,
+                            facultyName: facultyName,
+                            colorHex: colorHex
+                        };
+                        return;
+                    }
                     if (!segmentsByDate[part.dateStr]) segmentsByDate[part.dateStr] = [];
                     segmentsByDate[part.dateStr].push({
                         facultyId: row.facultyId,
@@ -1772,8 +1865,100 @@ export default class TimetableCalendar extends LightningElement {
             byDate[dateStr] = clusters;
             clusters.forEach(cluster => { tooltips[cluster.key] = cluster.tooltip; });
         });
+
+        const allDayByDate = {};
+        Object.keys(allDayFacultyByDate).forEach(dateStr => {
+            const pill = this.buildAllDayPill(dateStr, Object.values(allDayFacultyByDate[dateStr]));
+            allDayByDate[dateStr] = pill;
+            tooltips[pill.key] = pill.tooltip;
+        });
+
         this.facultyBusyByDate = byDate;
+        this.facultyAllDayByDate = allDayByDate;
         this.busyTooltipByKey = tooltips;
+        this.hasBusyOverlay = Object.keys(byDate).length > 0;
+        this.hasAllDayOverlay = Object.keys(allDayByDate).length > 0;
+    }
+
+    
+    isAllDayDayPart(part) {
+        return !!part && part.startMinutes === 0 && part.endMinutes >= 1440;
+    }
+
+    
+    shortFacultyDisplayName(name) {
+        const raw = (name && String(name).trim()) || 'Faculty';
+        return raw.replace(/^(Dr\.|Prof\.|Mr\.|Ms\.|Mrs\.)\s+/i, '').trim() || raw;
+    }
+
+    
+    buildAllDayPill(dateStr, facultyList) {
+        const members = (facultyList || []).slice().sort((a, b) =>
+            String(a.facultyName || '').localeCompare(String(b.facultyName || ''))
+        );
+        const isConsolidated = members.length > 1;
+        const key = `allday-${dateStr}`;
+        const dateLabel = this.formatDateForDisplay(dateStr);
+        const label = isConsolidated
+            ? `${members.length} Faculty · All Day`
+            : `${this.shortFacultyDisplayName(members[0].facultyName)} · All day`;
+        const colorHex = isConsolidated
+            ? TimetableCalendar.BUSY_CONSOLIDATED_HEX
+            : (members[0].colorHex || TimetableCalendar.BUSY_CONSOLIDATED_HEX);
+        return {
+            key: key,
+            label: label,
+            isConsolidated: isConsolidated,
+            pillClass: isConsolidated
+                ? 'faculty-allday-pill faculty-allday-pill-multi'
+                : 'faculty-allday-pill',
+            showDot: !isConsolidated,
+            swatchStyle: `background-color: ${colorHex};`,
+            tooltip: {
+                heading: isConsolidated ? `${members.length} Faculty Busy · All day` : members[0].facultyName,
+                isConsolidated: isConsolidated,
+                isAllDay: true,
+                dateLabel: dateLabel,
+                timeLabel: 'All day',
+                members: members.map(m => ({
+                    key: `${key}-${m.facultyId}`,
+                    name: m.facultyName,
+                    timeLabel: 'All day',
+                    dotStyle: `background-color: ${m.colorHex};`
+                }))
+            }
+        };
+    }
+
+    
+    get showAllDayBand() {
+        return !this.isMonthView
+            && Array.isArray(this.selectedFilterFacultyIds)
+            && this.selectedFilterFacultyIds.length > 0;
+    }
+
+    get allDayBandClass() {
+        return this.isDayView
+            ? 'faculty-allday-band faculty-allday-band-day'
+            : 'faculty-allday-band faculty-allday-band-week';
+    }
+
+    get divisionsAllDayBandClass() {
+        return 'faculty-allday-band faculty-allday-band-divisions-week';
+    }
+
+    
+    handleAllDayPillMove(event) {
+        const key = event.currentTarget && event.currentTarget.dataset
+            ? event.currentTarget.dataset.busyKey
+            : null;
+        const payload = key ? this.busyTooltipByKey[key] : null;
+        if (!payload) {
+            this.clearBusyHover();
+            return;
+        }
+        this.hoveredBusyTooltip = payload;
+        this.tooltipPosition = { x: event.clientX, y: event.clientY + 14 };
     }
 
     /** Apex Datetime arrives as epoch milliseconds; tolerate an ISO string too. */
@@ -1783,12 +1968,7 @@ export default class TimetableCalendar extends LightningElement {
         return Number.isNaN(d.getTime()) ? null : d;
     }
 
-    /**
-     * Cut one busy interval at local midnight so a block that crosses days renders on each day it
-     * covers instead of overflowing a single column. An all-day Google event arrives here as a
-     * local midnight-to-midnight interval and is drawn as an ordinary 24h timed block (AC6 — a
-     * separate all-day band — is out of scope for this part).
-     */
+    
     splitBusyBlockByDay(block) {
         const start = this.toBusyDate(block && block.startTime);
         const end = this.toBusyDate(block && block.endTime);
@@ -1796,7 +1976,6 @@ export default class TimetableCalendar extends LightningElement {
         const parts = [];
         const cursor = new Date(start);
         cursor.setHours(0, 0, 0, 0);
-        // Guard: a busy interval longer than a couple of months is not something this grid draws.
         for (let guard = 0; guard < 70 && cursor.getTime() < end.getTime(); guard++) {
             const dayStart = new Date(cursor);
             const dayEnd = new Date(cursor);
@@ -1835,14 +2014,7 @@ export default class TimetableCalendar extends LightningElement {
         return clusters.map((cluster, index) => this.buildBusyCluster(cluster, dateStr, dateLabel, index));
     }
 
-    /**
-     * One rendered block. Clustering is transitive, so the span can be wider than any individual's
-     * busy time (A 9–10, B 9:30–11, C 10:30–12 chain into one cluster). That is why the tooltip
-     * carries each faculty's OWN times rather than the cluster span.
-     * A faculty can also appear in one cluster with a genuine gap in the middle (A 9–10 and 11–12,
-     * chained by B 9:30–11:30). Google merges a faculty's OVERLAPPING meetings, never disjoint
-     * ones, so the gap is real and must survive to the tooltip — hence intervals, not min/max.
-     */
+    
     buildBusyCluster(cluster, dateStr, dateLabel, index) {
         const byFaculty = [];
         cluster.segments.forEach(seg => {
@@ -1876,11 +2048,15 @@ export default class TimetableCalendar extends LightningElement {
             isConsolidated: isConsolidated,
             label: label,
             colorHex: colorHex,
+            // Shown on the block itself; this is the block's own extent, which for a consolidated
+            // cluster can be wider than any one faculty's time. Per-faculty times are in the tooltip.
+            timeLabel: this.formatBusyRange(cluster.startMinutes, cluster.endMinutes),
             // AC4: name/count, date and clock times only. The service returns no title, description,
             // location, organiser, attendee or reason, so there is nothing else here to render.
             tooltip: {
                 heading: label,
                 isConsolidated: isConsolidated,
+                isAllDay: false,
                 dateLabel: dateLabel,
                 timeLabel: this.formatBusyIntervals(byFaculty[0].intervals),
                 members: byFaculty.map(m => ({
@@ -1893,11 +2069,7 @@ export default class TimetableCalendar extends LightningElement {
         };
     }
 
-    /**
-     * Merge one faculty's own intervals, and only where they actually touch or overlap. Note the
-     * `<=`: for a single faculty 9–10 then 10–11 is continuous busy time and reads as one span,
-     * whereas clustering across faculty uses a strict `<` so two touching blocks stay separate.
-     */
+    
     mergeBusyIntervals(intervals) {
         const sorted = [...intervals].sort(
             (a, b) => (a.startMinutes - b.startMinutes) || (a.endMinutes - b.endMinutes)
@@ -1921,7 +2093,7 @@ export default class TimetableCalendar extends LightningElement {
             .join(', ');
     }
 
-    /** "9:00 AM - 10:30 AM" from minutes past local midnight; 1440 reads as 12:00 AM, not 12 PM. */
+    
     formatBusyRange(startMinutes, endMinutes) {
         return `${this.formatBusyClock(startMinutes)} - ${this.formatBusyClock(endMinutes)}`;
     }
@@ -1933,90 +2105,219 @@ export default class TimetableCalendar extends LightningElement {
         return this.formatTime12(`${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
     }
 
-    /** A busy block steps aside where a session already occupies the slot (sessions take priority). */
-    busyOverlapsSession(sessionEvents, startMinutes, endMinutes) {
-        if (!sessionEvents || sessionEvents.length === 0) return false;
-        return sessionEvents.some(ev => {
-            const s = this.parseTimeToMinutes(ev.startTime);
-            const e = this.parseTimeToMinutes(ev.endTime);
-            return e > startMinutes && s < endMinutes;
+    
+    assignBusyLanes(sessions, baseLaneCounts, busyItems) {
+        const sessionLaneCounts = [...baseLaneCounts];
+        const busyPlacements = [];
+        const disjoint = (a, b) => a.endMinutes <= b.startMinutes || b.endMinutes <= a.startMinutes;
+
+        const laneOccupancy = [];
+        sessions.forEach(session => {
+            if (!laneOccupancy[session.lane]) laneOccupancy[session.lane] = [];
+            laneOccupancy[session.lane].push(session);
         });
+
+        busyItems.forEach(busy => {
+            let lane = 0;
+            while (lane < laneOccupancy.length) {
+                if ((laneOccupancy[lane] || []).every(placed => disjoint(busy, placed))) break;
+                lane++;
+            }
+            if (!laneOccupancy[lane]) laneOccupancy[lane] = [];
+            laneOccupancy[lane].push(busy);
+            busyPlacements.push({ lane, laneCount: lane + 1 });
+            // Only the sessions this cluster actually sits beside have to make room for it.
+            sessions.forEach((session, i) => {
+                if (disjoint(busy, session)) return;
+                sessionLaneCounts[i] = Math.max(sessionLaneCounts[i], lane + 1);
+            });
+        });
+
+        // Anything that shares screen space must divide the column by the same number, and raising
+        // one item can force the next, so run the agreement to a fixed point rather than once.
+        // A single pass let two time-overlapping sessions keep different divisors and collide.
+        if (busyPlacements.length > 0) {
+            for (let pass = 0; pass < 50; pass++) {
+                let changed = false;
+                const agree = (getA, setA, getB, setB) => {
+                    const shared = Math.max(getA(), getB());
+                    if (shared !== getA()) { setA(shared); changed = true; }
+                    if (shared !== getB()) { setB(shared); changed = true; }
+                };
+                busyPlacements.forEach((placement, j) => {
+                    sessions.forEach((session, i) => {
+                        if (disjoint(busyItems[j], session)) return;
+                        agree(() => placement.laneCount, v => { placement.laneCount = v; },
+                            () => sessionLaneCounts[i], v => { sessionLaneCounts[i] = v; });
+                    });
+                });
+                sessions.forEach((a, i) => {
+                    sessions.forEach((b, k) => {
+                        if (i === k || disjoint(a, b)) return;
+                        agree(() => sessionLaneCounts[i], v => { sessionLaneCounts[i] = v; },
+                            () => sessionLaneCounts[k], v => { sessionLaneCounts[k] = v; });
+                    });
+                });
+                if (!changed) break;
+            }
+        }
+
+        return { sessionLaneCounts, busyPlacements };
     }
 
-    /**
-     * Single-division time grid (week + day): busy tiles for one day column, using the same
-     * top/height maths as formatEventForDisplay so they line up with the session tiles.
-     * Full column width: the blocks are pointer-events:none, so a wash can sit over a tile without
-     * costing anything. Only the label steps aside, so tile text is never written over.
-     */
-    facultyBusyBlocksForDate(dateStr, sessionEvents) {
+    
+    formatBusyBlock(cluster, opts) {
+        const { top, height, lane, laneCount, laneAlways = false, widthGutterPx = 8 } = opts;
+        const laned = laneAlways || laneCount > 1;
+        const widthPct = 100 / laneCount;
+        // The `- 8px` gutter is the single-division grid's convention; the All Divisions cell
+        // formatter uses a plain percentage, so the caller says which one applies.
+        const widthCss = widthGutterPx > 0 ? `calc(${widthPct}% - ${widthGutterPx}px)` : `${widthPct}%`;
+        const laneStyle = laned ? `left: ${lane * widthPct}%; width: ${widthCss}; ` : '';
+        return {
+            key: cluster.key,
+            // Hover is resolved from pointer geometry, so the block's own band travels with it.
+            startMinutes: cluster.startMinutes,
+            endMinutes: cluster.endMinutes,
+            leftFrac: laned ? (lane * widthPct) / 100 : 0,
+            widthFrac: laned ? widthPct / 100 : 1,
+            label: cluster.label,
+            timeLabel: cluster.timeLabel,
+            showName: laneCount <= TimetableCalendar.BUSY_NAME_MAX_LANES
+                && height >= TimetableCalendar.BUSY_NAME_MIN_PX,
+            showTime: laneCount <= TimetableCalendar.BUSY_TIME_MAX_LANES
+                && height >= TimetableCalendar.BUSY_TIME_MIN_PX,
+            style: `top: ${top}px; height: ${height}px; ${laneStyle}${TimetableCalendar.busyTintInlineStyle(cluster.colorHex)}`,
+            swatchStyle: `background-color: ${cluster.colorHex};`,
+            blockClass: `faculty-busy-block${laned ? ' faculty-busy-block-laned' : ''}`
+        };
+    }
+
+    
+    layoutBusyLanesForDate(dateStr, sessionEvents, sessionLayout) {
+        const empty = { blocks: [], sessionLaneCounts: null };
         const clusters = this.facultyBusyByDate ? this.facultyBusyByDate[dateStr] : null;
-        if (!clusters || clusters.length === 0) return [];
+        if (!clusters || clusters.length === 0) return empty;
+
         const visibleStart = TimetableCalendar.DAY_START_HOUR * 60;
         const visibleEnd = (TimetableCalendar.DAY_END_HOUR + 1) * 60;
         const pxPerMin = TimetableCalendar.DAY_VIEW_HOUR_HEIGHT / 60;
-        const blocks = [];
+
+        const visible = [];
         clusters.forEach(cluster => {
-            const startM = Math.max(cluster.startMinutes, visibleStart);
-            const endM = Math.min(cluster.endMinutes, visibleEnd);
-            if (endM <= startM) return;
-            const top = (startM - visibleStart) * pxPerMin;
-            const height = Math.max((endM - startM) * pxPerMin, TimetableCalendar.BUSY_MIN_BLOCK_PX);
-            const quiet = this.busyOverlapsSession(sessionEvents, startM, endM);
-            blocks.push({
-                key: cluster.key,
-                label: cluster.label,
-                style: `top: ${top}px; height: ${height}px; ${TimetableCalendar.busyTintInlineStyle(cluster.colorHex)}`,
-                swatchStyle: `background-color: ${cluster.colorHex};`,
-                blockClass: `faculty-busy-block${quiet ? ' faculty-busy-block-quiet' : ''}`
-            });
+            const startMinutes = Math.max(cluster.startMinutes, visibleStart);
+            const endMinutes = Math.min(cluster.endMinutes, visibleEnd);
+            if (endMinutes > startMinutes) visible.push({ cluster, startMinutes, endMinutes });
         });
-        return blocks;
+        if (visible.length === 0) return empty;
+
+        const rows = sessionEvents || [];
+        const sessions = rows.map((ev, i) => ({
+            startMinutes: this.parseTimeToMinutes(ev.startTime),
+            endMinutes: this.parseTimeToMinutes(ev.endTime),
+            lane: (sessionLayout[i] && sessionLayout[i].column) || 0
+        }));
+        const baseLaneCounts = rows.map(
+            (ev, i) => (sessionLayout[i] && sessionLayout[i].totalColumns) || 1
+        );
+        const { sessionLaneCounts, busyPlacements } =
+            this.assignBusyLanes(sessions, baseLaneCounts, visible);
+
+        const blocks = visible.map((item, j) => this.formatBusyBlock(item.cluster, {
+            top: (item.startMinutes - visibleStart) * pxPerMin,
+            height: Math.max((item.endMinutes - item.startMinutes) * pxPerMin,
+                TimetableCalendar.BUSY_MIN_BLOCK_PX),
+            lane: busyPlacements[j].lane,
+            laneCount: busyPlacements[j].laneCount
+        }));
+        this.recordBusyHitAreas(dateStr, blocks);
+        return { blocks, sessionLaneCounts };
     }
 
-    /**
-     * All Divisions week grid: one CLIPPED SEGMENT PER HOUR CELL, the way the grid lays its own
-     * rows out. A single tall block anchored to its start hour would need its cell to stop
-     * clipping, and a cell that stops clipping also has to be promoted in paint order — which put
-     * a busy-only cell above its neighbour's spanning session tile. Segmenting removes that.
-     */
-    facultyBusyBlocksForCell(dateStr, hour, rowHeightPx, sessionEvents) {
+    
+    layoutBusyLanesForDayGrid(dateStr, dayEvents, laneByEventKey, rowHeightPx) {
         const clusters = this.facultyBusyByDate ? this.facultyBusyByDate[dateStr] : null;
-        if (!clusters || clusters.length === 0) return [];
-        const hourStartMinutes = hour * 60;
-        const hourEndMinutes = Math.min(hourStartMinutes + 60, (TimetableCalendar.DAY_END_HOUR + 1) * 60);
-        const blocks = [];
+        if (!clusters || clusters.length === 0) return null;
+
+        const visibleStart = TimetableCalendar.DAY_START_HOUR * 60;
+        const visibleEnd = (TimetableCalendar.DAY_END_HOUR + 1) * 60;
+        const visible = [];
         clusters.forEach(cluster => {
-            const segStart = Math.max(cluster.startMinutes, hourStartMinutes);
-            const segEnd = Math.min(cluster.endMinutes, hourEndMinutes);
-            if (segEnd <= segStart) return;
-            const top = ((segStart - hourStartMinutes) / 60) * rowHeightPx;
-            const height = Math.max(((segEnd - segStart) / 60) * rowHeightPx, 6);
-            const quiet = this.busyOverlapsSession(sessionEvents, segStart, segEnd);
-            blocks.push({
-                key: cluster.key,
-                label: cluster.label,
-                style: `top: ${top}px; height: ${height}px; ${TimetableCalendar.busyTintInlineStyle(cluster.colorHex)}`,
-                swatchStyle: `background-color: ${cluster.colorHex};`,
-                blockClass: `faculty-busy-block${quiet ? ' faculty-busy-block-quiet' : ''}`
-            });
+            const startMinutes = Math.max(cluster.startMinutes, visibleStart);
+            const endMinutes = Math.min(cluster.endMinutes, visibleEnd);
+            if (endMinutes > startMinutes) visible.push({ cluster, startMinutes, endMinutes });
         });
-        return blocks;
+        if (visible.length === 0) return null;
+
+        // Each session keeps the lane its own start cell gave it; only the divisor can grow.
+        const rows = (dayEvents || []).map(e => {
+            const key = e.rowKey || e.id;
+            const placed = laneByEventKey[key] || { laneIndex: 0, numLanes: 1 };
+            return {
+                key,
+                startMinutes: this.parseTimeToMinutes(e.startTime),
+                endMinutes: this.parseTimeToMinutes(e.endTime),
+                lane: placed.laneIndex,
+                numLanes: placed.numLanes || 1
+            };
+        });
+        const { sessionLaneCounts, busyPlacements } = this.assignBusyLanes(
+            rows, rows.map(r => r.numLanes), visible
+        );
+
+        const sessionLanes = {};
+        rows.forEach((r, i) => { sessionLanes[r.key] = sessionLaneCounts[i]; });
+
+        const blocksByHour = {};
+        visible.forEach((item, j) => {
+            const { lane, laneCount } = busyPlacements[j];
+            const firstHour = Math.floor(item.startMinutes / 60);
+            const lastHour = Math.floor((item.endMinutes - 1) / 60);
+            for (let hour = firstHour; hour <= lastHour; hour++) {
+                const segStart = Math.max(item.startMinutes, hour * 60);
+                const segEnd = Math.min(item.endMinutes, (hour + 1) * 60);
+                if (segEnd <= segStart) continue;
+                if (!blocksByHour[hour]) blocksByHour[hour] = [];
+                blocksByHour[hour].push(this.formatBusyBlock(item.cluster, {
+                    top: ((segStart - (hour * 60)) / 60) * rowHeightPx,
+                    height: Math.max(((segEnd - segStart) / 60) * rowHeightPx,
+                        TimetableCalendar.BUSY_MIN_SEGMENT_PX),
+                    lane,
+                    laneCount,
+                    laneAlways: true,
+                    widthGutterPx: 0
+                }));
+            }
+        });
+        Object.keys(blocksByHour).forEach(hour => {
+            this.recordBusyHitAreas(`${dateStr}__h${hour}`, blocksByHour[hour]);
+        });
+        return { blocksByHour, sessionLanes };
     }
 
-    // ----- Availability overlay: hover -----
+    
+    recordBusyHitAreas(areaKey, blocks) {
+        this.busyHitAreasByKey[areaKey] = blocks.map(b => ({
+            key: b.key,
+            startMinutes: b.startMinutes,
+            endMinutes: b.endMinutes,
+            leftFrac: b.leftFrac,
+            widthFrac: b.widthFrac
+        }));
+    }
+
     //
     // The blocks themselves are pointer-events:none, so they can never take a click, a dragover, a
     // drop or a resize-handle mousedown away from the grid underneath — clicking, dragging and
-    // resizing behave exactly as they did before the overlay existed. The tooltip is driven instead
     // from a single listener on each grid, which turns the pointer's Y position back into minutes
     // and looks the cluster up in the data we already hold.
 
     /** Single-division grid: the day column is the measuring surface, one listener per column. */
     handleBusyHoverMove(event) {
+        if (!this.hasBusyOverlay) return;
         const column = event.currentTarget;
         this.queueBusyHover(column, column.dataset.day, TimetableCalendar.DAY_START_HOUR,
-            TimetableCalendar.DAY_VIEW_HOUR_HEIGHT, TimetableCalendar.BUSY_MIN_BLOCK_PX, event);
+            TimetableCalendar.DAY_VIEW_HOUR_HEIGHT, TimetableCalendar.BUSY_MIN_BLOCK_PX, event, false);
     }
 
     /**
@@ -2025,30 +2326,29 @@ export default class TimetableCalendar extends LightningElement {
      * the offset is added to that cell's own base hour so the resulting minute is still absolute.
      */
     handleBusyGridHoverMove(event) {
+        // Guard before the DOM query: with no faculty selected this fires on every mousemove.
+        if (!this.hasBusyOverlay) return;
         const cell = event.target && event.target.closest
             ? event.target.closest('.divisions-week-cell')
             : null;
         this.queueBusyHover(cell, cell && cell.dataset.day,
             cell ? (parseInt(cell.dataset.hour, 10) || 0) : 0,
-            TimetableCalendar.DIVISIONS_WEEK_ROW_HEIGHT, TimetableCalendar.BUSY_MIN_SEGMENT_PX, event);
+            TimetableCalendar.DIVISIONS_WEEK_ROW_HEIGHT, TimetableCalendar.BUSY_MIN_SEGMENT_PX, event, true);
     }
 
     handleBusyHoverLeave() {
         this.clearBusyHover();
     }
 
-    /**
-     * Keep the layout read off the mousemove: at most one resolve per animation frame, and none at
-     * all on a day with no busy time (the common case, since most users select no faculty).
-     */
-    queueBusyHover(surface, dateStr, baseHour, rowHeightPx, minBlockPx, event) {
+    
+    queueBusyHover(surface, dateStr, baseHour, rowHeightPx, minBlockPx, event, perHour) {
         const clusters = surface ? this.facultyBusyByDate[dateStr] : null;
         if (!clusters || clusters.length === 0) {
             this.clearBusyHover();
             return;
         }
         this.pendingBusyHover = {
-            surface, clusters, baseHour, rowHeightPx, minBlockPx,
+            surface, dateStr, baseHour, rowHeightPx, minBlockPx, perHour,
             clientX: event.clientX, clientY: event.clientY
         };
         if (this.busyHoverFrameId != null) return;
@@ -2065,12 +2365,21 @@ export default class TimetableCalendar extends LightningElement {
             return;
         }
         const pxPerMin = pending.rowHeightPx / 60;
-        const offsetY = pending.clientY - pending.surface.getBoundingClientRect().top;
+        const rect = pending.surface.getBoundingClientRect();
+        const offsetY = pending.clientY - rect.top;
         const minutes = (pending.baseHour * 60) + (offsetY / pxPerMin);
+        // Blocks are laned now, so the pointer has to be inside the block's horizontal band too —
+        // testing the row alone popped the card over the empty lane beside a block.
+        const xFrac = rect.width > 0 ? (pending.clientX - rect.left) / rect.width : 0;
+        const areaKey = pending.perHour
+            ? `${pending.dateStr}__h${Math.floor(minutes / 60)}`
+            : pending.dateStr;
+        const areas = this.busyHitAreasByKey[areaKey] || [];
         // Allow for the minimum drawn height, so a very short block is hoverable over all of itself.
         const slack = pending.minBlockPx / pxPerMin;
-        const hit = pending.clusters.find(c =>
-            minutes >= c.startMinutes && minutes < Math.max(c.endMinutes, c.startMinutes + slack)
+        const hit = areas.find(a =>
+            minutes >= a.startMinutes && minutes < Math.max(a.endMinutes, a.startMinutes + slack)
+            && xFrac >= a.leftFrac && xFrac < a.leftFrac + a.widthFrac
         );
         const payload = hit ? this.busyTooltipByKey[hit.key] : null;
         if (!payload) {
@@ -2467,12 +2776,10 @@ export default class TimetableCalendar extends LightningElement {
             });
     }
 
-    // Getter to determine if faculty dropdown should be shown
     get showFacultyDropdown() {
         return this.selectedCourse && this.facultyOptions.length > 0;
     }
 
-    // Getter to determine if faculty dropdown should be disabled
     get isFacultyDisabled() {
         if (this.isEditSessionReadOnly) return true;
         // When editing a session that has division context (e.g. opened from All Divisions), only require course
@@ -3006,14 +3313,7 @@ export default class TimetableCalendar extends LightningElement {
         return String(value);
     }
 
-    /**
-     * Resolves the calendar row for a session. Multiple rows share the same Session Id (one per Session_Division__c);
-     * pass divisionId from the clicked/hovered tile when present.
-     *
-     * @param {string} sessionId Session__c Id
-     * @param {string} [divisionIdOpt] Division__c Id from data-division-id
-     * @returns {object|undefined} Event row or undefined
-     */
+    
     findEventRowForSession(sessionId, divisionIdOpt) {
         const list = this.events || [];
         const sid = sessionId != null ? String(sessionId).trim() : '';
@@ -3642,7 +3942,6 @@ if (mergedPrograms.length > 0) {
         const conflictMode = pendingEvent ? 'persist' : (this.isCreateSessionsMode ? 'create' : 'edit');
         try {
             const data = JSON.parse(msg);
-            // Reschedule availability re-check: the faculty is busy in Google at the new time.
             if (data && data.type === 'CALENDAR_CONFLICT' && Array.isArray(data.details) && data.details.length > 0) {
                 this.calendarConflicts = data.details;
                 this.facultyConflicts = [];
@@ -3751,31 +4050,38 @@ if (mergedPrograms.length > 0) {
             
             const rawEvents = this.getEventsForDate(dateStr);
             const layout = this.calculateEventLayout(rawEvents);
+            // above is computed from exactly the same input as before and is never recomputed;
+            // busyLanes.sessionLaneCounts is null unless this day actually has busy time, and even
+            // then only the sessions a cluster sits beside get a larger divisor.
+            const busyLanes = this.layoutBusyLanesForDate(dateStr, rawEvents, layout);
+            const allDayPill = (this.facultyAllDayByDate && this.facultyAllDayByDate[dateStr]) || null;
+            const hasAllDay = !!allDayPill;
             
             const dayEvents = rawEvents.map((event, index) => {
                 const formattedEvent = this.formatEventForDisplay(event, dateStr);
                 const eventLayout = layout[index];
+                const busyLaneCount = busyLanes.sessionLaneCounts
+                    ? busyLanes.sessionLaneCounts[index]
+                    : 0;
+                const widenedForBusy = !!eventLayout && busyLaneCount > eventLayout.totalColumns;
                 
-                if (eventLayout && eventLayout.totalColumns > 1) {
+                // .overlapping-event drops the tile's width and floors it at 80px, so it may only
+                // ever be applied together with an explicit width — hence the geometry check first.
+                const hasGeometry = typeof formattedEvent.topPx === 'number'
+                    && typeof formattedEvent.heightPx === 'number';
+                if (eventLayout && hasGeometry && (eventLayout.totalColumns > 1 || widenedForBusy)) {
                     // Apply layout positioning for overlapping events
-                    const leftPercent = eventLayout.left;
-                    const widthPercent = eventLayout.width;
-                    // Extract top and height from existing style
-                    const styleMatch = formattedEvent.style.match(/top:\s*(\d+)px;\s*height:\s*(\d+)px;/);
-                    if (styleMatch) {
-                        const top = styleMatch[1];
-                        const height = styleMatch[2];
-                        // Keep division/session tint (background-color / color). Rebuilding only
-                        // position styles previously dropped the tint → overlapping tiles looked blue.
-                        const tintMatch = formattedEvent.style.match(
-                            /background-color:\s*[^;]+;\s*color:\s*[^;]+;?/i
-                        );
-                        const tintStyle = tintMatch ? ` ${tintMatch[0].trim()}` : '';
-                        formattedEvent.style =
-                            `top: ${top}px; height: ${height}px; left: ${leftPercent}%; width: calc(${widthPercent}% - 8px);${tintStyle}`;
-                    }
+                    const widthPercent = widenedForBusy ? (100 / busyLaneCount) : eventLayout.width;
+                    const leftPercent = widenedForBusy
+                        ? (eventLayout.column * widthPercent)
+                        : eventLayout.left;
+                    // Keep division/session tint (background-color / color). Rebuilding only
+                    // position styles previously dropped the tint → overlapping tiles looked blue.
+                    const tintStyle = formattedEvent.tintStyle ? ` ${formattedEvent.tintStyle}` : '';
+                    formattedEvent.style =
+                        `top: ${formattedEvent.topPx}px; height: ${formattedEvent.heightPx}px; left: ${leftPercent}%; width: calc(${widthPercent}% - 8px);${tintStyle}`;
                     formattedEvent.layoutColumn = eventLayout.column;
-                    formattedEvent.totalColumns = eventLayout.totalColumns;
+                    formattedEvent.totalColumns = widenedForBusy ? busyLaneCount : eventLayout.totalColumns;
                     formattedEvent.eventClass += ' overlapping-event';
                 }
                 // If totalColumns is 1, use default full-width styling
@@ -3789,11 +4095,12 @@ if (mergedPrograms.length > 0) {
                 date: date.getDate(),
                 isToday: isToday,
                 events: dayEvents,
-                // Faculty availability overlay: painted behind the session tiles (see .faculty-busy-block).
-                busyBlocks: this.facultyBusyBlocksForDate(dateStr, rawEvents),
+                busyBlocks: busyLanes.blocks,
+                allDayPill: allDayPill,
+                hasAllDay: hasAllDay,
                 headerClass: `day-header ${isToday ? 'today' : ''}`,
                 dateClass: `day-date ${isToday ? 'today-date' : ''}`,
-                columnClass: `day-column ${isToday ? 'today-column' : ''} ${isDropTarget ? 'drop-target' : ''}`,
+                columnClass: `day-column ${isToday ? 'today-column' : ''} ${isDropTarget ? 'drop-target' : ''}${hasAllDay ? ' allday-column' : ''}`,
                 showDropIndicator: isDropTarget && this.dropTargetHour !== null,
                 dropIndicatorStyle: this.getDropIndicatorStyle()
             });
@@ -3829,7 +4136,6 @@ if (mergedPrograms.length > 0) {
         const lastDayOfWeek = endDate.getDay();
         endDate.setDate(endDate.getDate() + (6 - lastDayOfWeek));
         
-        // Generate all days in the month view (including days from previous/next month)
         let currentDate = new Date(startDate);
         let currentWeek = [];
         
@@ -4258,6 +4564,12 @@ if (mergedPrograms.length > 0) {
         const bg = hx ? TimetableCalendar.eventTintInlineStyle(hx) : '';
         return {
             ...event,
+            // Geometry as numbers: weekDays used to re-read these back out of the style string with
+            // a \d+ regex, which silently missed every fractional value (09:10 starts, 50/70/110
+            // minute durations) and left the tile with no width at all.
+            topPx: top,
+            heightPx: height,
+            tintStyle: bg,
             style: `top: ${top}px; height: ${height}px;${bg ? ` ${bg}` : ''}`,
             eventClass: `calendar-event ${hx ? 'event-division-tint' : `event-${event.color || 'blue'}`} ${densityClass} ${isDragged ? 'dragging' : ''}`.trim(),
             timeRange: `${startTime12} - ${endTime12}`,
@@ -4276,7 +4588,7 @@ if (mergedPrograms.length > 0) {
         return `${hour12}:${minutes} ${ampm}`;
     }
 
-    /** Hover / tooltip schedule: "9:00 AM to 1:00 PM". */
+    
     formatScheduleTimeTo(event) {
         if (!event || !event.startTime || !event.endTime) {
             return '—';
@@ -4544,10 +4856,13 @@ if (mergedPrograms.length > 0) {
             d.setHours(0, 0, 0, 0);
             const dateStr = this.formatDateLocal(d);
             const isToday = d.getTime() === today.getTime();
+            const allDayPill = (this.facultyAllDayByDate && this.facultyAllDayByDate[dateStr]) || null;
             days.push({
                 key: dateStr,
                 name: dayNames[d.getDay()],
                 date: d.getDate(),
+                allDayPill: allDayPill,
+                hasAllDay: !!allDayPill,
                 headerClass: `div-week-day-header ${isToday ? 'today' : ''}`
             });
         }
@@ -4626,7 +4941,7 @@ if (mergedPrograms.length > 0) {
         return Math.max(1, Math.ceil(duration / rowHeightMinutes));
     }
 
-    /** Assign lane index to each event so overlapping events get different lanes. Returns [{ event, laneIndex, numLanes }]. */
+    
     assignLanesForCellEvents(events) {
         if (!events || events.length === 0) return [];
         const withMinutes = events.map(e => ({
@@ -4661,14 +4976,13 @@ if (mergedPrograms.length > 0) {
         const events = Array.isArray(this.events) ? this.events : [];
         const hourSlots = this.weekViewHourSlots;
 
-        // Lane width/position per day + start hour only (events that begin in this cell). Using all-day events
         // made numLanes the max concurrent sessions for the whole day, so a single session in a later hour
         // still got 1/N width from an earlier busy hour.
         const laneByDayHourAndEventKey = {};
-        // Availability overlay: a busy block steps aside for any session on the same day, not just
-        // the ones that happen to start in its own cell.
-        const dayEventsByKey = {};
-        days.forEach(day => { dayEventsByKey[day.key] = events.filter(e => e.date === day.key); });
+        // assignLanesForCellEvents just produced, so the sessions keep their lanes and only widen
+        // where a segment actually sits next to them.
+        const busyByDay = {};
+        const laneKeyOf = (e) => (e && e.rowKey ? e.rowKey : (e && e.id ? e.id : null));
         days.forEach(day => {
             hourSlots.forEach(hourObj => {
                 const cellStartEvents = events.filter(
@@ -4678,10 +4992,31 @@ if (mergedPrograms.length > 0) {
                 const hourKey = `${day.key}__h${hourObj.hour}`;
                 laneByDayHourAndEventKey[hourKey] = {};
                 withLanes.forEach(({ event: e, laneIndex, numLanes }) => {
-                    const lk = e && e.rowKey ? e.rowKey : (e && e.id ? e.id : null);
+                    const lk = laneKeyOf(e);
                     if (lk) laneByDayHourAndEventKey[hourKey][lk] = { laneIndex, numLanes };
                 });
             });
+        });
+        // with no busy time costs a single property read. This used to walk every day x 24 hours
+        // building a covering-session array before discovering there was nothing to lane, which
+        // cost the All Divisions week view ~58% even for users who never pick a faculty.
+        // evaluated once per render, so there is nothing to gain from a second source of truth.
+        days.forEach(day => {
+            const clusters = this.facultyBusyByDate[day.key];
+            if (!clusters || clusters.length === 0) return;
+            const dayEvents = events.filter(e => e.date === day.key);
+            const laneByEventKey = {};
+            dayEvents.forEach(e => {
+                const lk = laneKeyOf(e);
+                if (!lk) return;
+                const startHour = Math.floor(this.parseTimeToMinutes(e.startTime) / 60);
+                const placed = (laneByDayHourAndEventKey[`${day.key}__h${startHour}`] || {})[lk];
+                if (placed) laneByEventKey[lk] = placed;
+            });
+            const result = this.layoutBusyLanesForDayGrid(
+                day.key, dayEvents, laneByEventKey, TimetableCalendar.DIVISIONS_WEEK_ROW_HEIGHT
+            );
+            if (result) busyByDay[day.key] = result;
         });
 
         const rows = [];
@@ -4695,11 +5030,15 @@ if (mergedPrograms.length > 0) {
                 );
                 const sorted = this.sortEventsByStartTime(matching);
                 const hourKey = `${day.key}__h${hourObj.hour}`;
+                const dayBusy = busyByDay[day.key];
                 const cellEvents = sorted.map(e => {
                     const laneKey = e.rowKey || e.id;
                     const laneInfo =
                         (laneByDayHourAndEventKey[hourKey] && laneByDayHourAndEventKey[hourKey][laneKey]) ||
                         { laneIndex: 0, numLanes: 1 };
+                    // Only larger where a cluster took a lane beside this session anywhere in its
+                    // run — the tile is drawn once, here in its start cell.
+                    const numLanes = (dayBusy && dayBusy.sessionLanes[laneKey]) || laneInfo.numLanes;
                     const div = this.getDivisionForEvent(e);
                     const startMinutes = this.parseTimeToMinutes(e.startTime);
                     const endMinutes = this.parseTimeToMinutes(e.endTime);
@@ -4712,18 +5051,17 @@ if (mergedPrograms.length > 0) {
                     return this.formatEventForDivisionCell(e, div || { value: e.divisionId, label: e.divisionName || 'Unknown', divisionColor: null }, {
                         spanRows,
                         laneIndex: laneInfo.laneIndex,
-                        numLanes: laneInfo.numLanes,
+                        numLanes: numLanes,
                         rowHeightPx,
                         topOffsetPx,
                         explicitHeightPx
                     });
                 });
-                const busyBlocks = this.facultyBusyBlocksForCell(
-                    day.key, hourObj.hour, rowHeightPx, dayEventsByKey[day.key]
-                );
+                const busyBlocks = (dayBusy && dayBusy.blocksByHour[hourObj.hour]) || [];
                 const hasSpanningEvent = matching.some(e => this.getEventSpanRows(e, 60) > 1);
                 const hasAnyEvent = matching.length > 0;
-                const cellClass = `divisions-week-cell divisions-week-cell-clickable${(hasSpanningEvent || hasAnyEvent) ? ' divisions-week-cell-has-spanning-event' : ''}`;
+                const hasAllDay = !!(this.facultyAllDayByDate && this.facultyAllDayByDate[day.key]);
+                const cellClass = `divisions-week-cell divisions-week-cell-clickable${(hasSpanningEvent || hasAnyEvent) ? ' divisions-week-cell-has-spanning-event' : ''}${hasAllDay ? ' allday-column' : ''}`;
                 return {
                     key: `t-${hourObj.hour}-${day.key}`,
                     dateStr: day.key,
@@ -4755,7 +5093,7 @@ if (mergedPrograms.length > 0) {
             return '';
         }
         const totalRows = this.divisionWeekRows.length;
-        const rowHeightPx = 50;
+        const rowHeightPx = TimetableCalendar.DIVISIONS_WEEK_ROW_HEIGHT;
         const totalHeightPx = totalRows * rowHeightPx;
         return `--divisions-week-rows: ${totalRows}; --divisions-week-row-height: ${rowHeightPx}px; grid-template-rows: repeat(${totalRows}, ${rowHeightPx}px); grid-auto-rows: ${rowHeightPx}px; grid-template-columns: var(--divisions-week-columns); min-height: ${totalHeightPx}px;`;
     }
@@ -6809,15 +7147,7 @@ if (mergedPrograms.length > 0) {
         this.showConflictsModal = true;
     }
 
-    /**
-     * Whether the form moves this session to a different date or time than the one saved in the
-     * org. Only then is a Google availability read worth its callout — the same condition the org
-     * applies in TimetableSessionController.isRescheduleNeedingCalendarCheck, so the client and
-     * the server agree on when a reschedule is a reschedule.
-     *
-     * @param editingEvent The session row as loaded from the org; null when creating.
-     * @return True when the date, the start time or the end time differs.
-     */
+    
     hasTimingChangedFromSavedSession(editingEvent) {
         if (!editingEvent) {
             return false; // a create: the screen has already checked availability

@@ -343,6 +343,25 @@
                         <template if:true={reasonsChoiceHasError}>
                             <p class="field-error">Please select exactly 2 reasons.</p>
                         </template>
+
+                        <template if:true={showBetterPlacementSpecifyField}>
+                            <div class="conditional-field">
+                                <label class="field-label field-label_sub">
+                                    Specify
+                                    <span class="required-mark">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    class={betterPlacementSpecifyFieldClass}
+                                    placeholder="Please specify the type of roles / placements"
+                                    value={betterPlacementSpecifyText}
+                                    onchange={handleBetterPlacementSpecifyChange}
+                                />
+                                <template if:true={betterPlacementHasError}>
+                                    <p class="field-error">This field is required.</p>
+                                </template>
+                            </div>
+                        </template>
                     </div>
                 </div>
 

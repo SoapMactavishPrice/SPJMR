@@ -989,14 +989,7 @@ public without sharing class LeadPublicAPIService {
             }
 
             if (processingErrors.containsKey(i)) {
-                responses.add(
-                new Map<String, Object>{
-                    'index' => i,
-                    'success' => false,
-                    'message' => processingErrors.get(i),
-                    'scenario' => null,
-                    'recordType' => null,
-                    'lead' => name
+                responses.add(new Map<String, Object>{'index' => i,'success' => false,'message' => processingErrors.get(i),'scenario' => null,'recordType' => null,'lead' => name
                 }
 
                 );
@@ -1088,8 +1081,7 @@ public without sharing class LeadPublicAPIService {
             phoneDigits.substring(configuredCountryCode.length());
 
         if (!acceptedLengths.contains(localNumber.length())) {
-            throw new LeadPublicAPIException(
-                'Invalid phone number length.'
+            throw new LeadPublicAPIException('Invalid phone number length.'
                 );
         }
     }

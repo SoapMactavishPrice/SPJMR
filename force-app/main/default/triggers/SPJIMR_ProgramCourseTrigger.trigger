@@ -5,6 +5,33 @@ trigger SPJIMR_ProgramCourseTrigger on Program_Courses__c (after insert, after u
     if (Trigger.isAfter && Trigger.isInsert) {
         //ProgramCourseTriggerHandler.createInstructorRecords(Trigger.new);
     }
+    if (Trigger.isAfter && (Trigger.isInsert || Trigger.isUpdate)) {
+
+        Map<Id, String> newCodes = new Map<Id, String>();
+        Map<Id, String> oldCodes = new Map<Id, String>();
+
+        for (Program_Courses__c record : Trigger.new) {
+            newCodes.put(
+                record.Id,
+                record.Program_Code__c
+            );
+        }
+
+        if (Trigger.isUpdate) {
+            for (Program_Courses__c record : Trigger.old) {
+                oldCodes.put(
+                    record.Id,
+                    record.Program_Code__c
+                );
+            }
+        }
+
+        ProgrammeSharingService.shareRecords(
+            'Program_Courses__c',
+            newCodes,
+            Trigger.isUpdate ? oldCodes : null
+        );
+    }
     if(Trigger.isBefore && (Trigger.isInsert || Trigger.isUpdate))
         SPJIMR_ProgramCodeCopyHandler.syncProgramCourses(Trigger.new, Trigger.oldMap);
     

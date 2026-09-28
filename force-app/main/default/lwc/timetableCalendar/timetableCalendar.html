@@ -97,7 +97,9 @@
                     </div> 
                     <!-- Faculty Filter -->
                     <div class="filter-item faculty-filter-item">
-                        <span class="filter-label">Faculty</span>
+                        <span class="filter-label">Faculty
+                            <span class="faculty-availability-badge">NEW · Availability</span>
+                        </span>
                         <div class="faculty-filter-picklist"
                             role="group"
                             aria-label="Faculty filter">
@@ -201,9 +203,8 @@
                                                         <span class="faculty-filter-menu-dot"
                                                             style={faculty.dotStyle}></span>
                                                         <span class="faculty-filter-menu-label">{faculty.label}</span>
-                                                        <template if:true={faculty.checked}>
-                                                            <span class="faculty-filter-menu-check"
-                                                                aria-hidden="true">&#10003;</span>
+                                                        <template if:true={faculty.showStatus}>
+                                                            <span class={faculty.statusClass}>{faculty.statusText}</span>
                                                         </template>
                                                     </div>
                                                 </template>
@@ -344,6 +345,7 @@
                 <template if:true={isAllDivisionsSelected}>
                     <template if:true={isWeekView}>
                         <div class="divisions-week-grid">
+                            <div class="divisions-week-sticky-chrome">
                             <div class="divisions-week-header divisions-week-header-cols-time-only">
                                 <div class="divisions-header-cell divisions-week-time-header-cell">TIME</div>
                                 <template for:each={weekMatrixDays} for:item="day">
@@ -352,6 +354,27 @@
                                         <div class="div-week-day-date">{day.date}</div>
                                     </div>
                                 </template>
+                            </div>
+                            <template if:true={showAllDayBand}>
+                                <div class={divisionsAllDayBandClass}>
+                                    <div class="faculty-allday-label">All day</div>
+                                    <template for:each={weekMatrixDays} for:item="day">
+                                        <div key={day.key} class="faculty-allday-cell">
+                                            <template if:true={day.allDayPill}>
+                                                <div class={day.allDayPill.pillClass}
+                                                     data-busy-key={day.allDayPill.key}
+                                                     onmousemove={handleAllDayPillMove}
+                                                     onmouseleave={handleBusyHoverLeave}>
+                                                    <template if:true={day.allDayPill.showDot}>
+                                                        <span class="faculty-allday-dot" style={day.allDayPill.swatchStyle}></span>
+                                                    </template>
+                                                    <span class="faculty-allday-text">{day.allDayPill.label}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
                             </div>
                             <div class="divisions-week-body">
                                 <div class="divisions-week-grid-inner"
@@ -367,14 +390,22 @@
                                                  data-day={cell.dateStr}
                                                  data-hour={row.hour}
                                                  onclick={handleAllDivisionsWeekCellClick}>
-                                                <!-- Faculty busy overlay: inert wash, clipped to this hour cell; hover handled by the grid -->
+                                                <!-- Faculty busy overlay: laned beside this cell's tiles, clipped to the hour; hover handled by the grid -->
                                                 <template for:each={cell.busyBlocks} for:item="busy">
                                                     <div key={busy.key}
                                                          class={busy.blockClass}
                                                          style={busy.style}
                                                          aria-hidden="true">
-                                                        <span class="faculty-busy-swatch" style={busy.swatchStyle}></span>
-                                                        <span class="faculty-busy-label">{busy.label}</span>
+                                                        <span class="faculty-busy-head">
+                                                            <span class="faculty-busy-swatch" style={busy.swatchStyle}></span>
+                                                            <span class="faculty-busy-status">Busy</span>
+                                                        </span>
+                                                        <template if:true={busy.showName}>
+                                                            <span class="faculty-busy-label">{busy.label}</span>
+                                                        </template>
+                                                        <template if:true={busy.showTime}>
+                                                            <span class="faculty-busy-time">{busy.timeLabel}</span>
+                                                        </template>
                                                     </div>
                                                 </template>
                                                 <template for:each={cell.events} for:item="event">
@@ -454,6 +485,7 @@
                 <template if:false={isAllDivisionsSelected}>
                 <!-- Time Grid (header inside same scrollport so column widths match scrollbar) -->
                 <div class="time-grid-container" style={timeGridWrapperStyle}>
+                    <div class="calendar-sticky-chrome">
                     <div class="days-header">
                         <div class="time-column-header"></div>
                         <template for:each={weekDays} for:item="day">
@@ -467,6 +499,27 @@
                                 </template>
                             </div>
                         </template>
+                    </div>
+                    <template if:true={showAllDayBand}>
+                        <div class={allDayBandClass}>
+                            <div class="faculty-allday-label">All day</div>
+                            <template for:each={weekDays} for:item="day">
+                                <div key={day.key} class="faculty-allday-cell">
+                                    <template if:true={day.allDayPill}>
+                                        <div class={day.allDayPill.pillClass}
+                                             data-busy-key={day.allDayPill.key}
+                                             onmousemove={handleAllDayPillMove}
+                                             onmouseleave={handleBusyHoverLeave}>
+                                            <template if:true={day.allDayPill.showDot}>
+                                                <span class="faculty-allday-dot" style={day.allDayPill.swatchStyle}></span>
+                                            </template>
+                                            <span class="faculty-allday-text">{day.allDayPill.label}</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
                     </div>
                     <div class="time-grid-body">
                     <div class="time-grid">
@@ -499,14 +552,22 @@
                                              ondragover={handleCellDragOver}
                                              ondrop={handleCellDrop}></div>
                                     </template>
-                                    <!-- Faculty busy overlay: inert wash (pointer-events:none); the column's onmousemove drives the tooltip -->
+                                    <!-- Faculty busy overlay: laned beside the tiles, inert (pointer-events:none); the column's onmousemove drives the tooltip -->
                                     <template for:each={day.busyBlocks} for:item="busy">
                                         <div key={busy.key}
                                              class={busy.blockClass}
                                              style={busy.style}
                                              aria-hidden="true">
-                                            <span class="faculty-busy-swatch" style={busy.swatchStyle}></span>
-                                            <span class="faculty-busy-label">{busy.label}</span>
+                                            <span class="faculty-busy-head">
+                                                <span class="faculty-busy-swatch" style={busy.swatchStyle}></span>
+                                                <span class="faculty-busy-status">Busy</span>
+                                            </span>
+                                            <template if:true={busy.showName}>
+                                                <span class="faculty-busy-label">{busy.label}</span>
+                                            </template>
+                                            <template if:true={busy.showTime}>
+                                                <span class="faculty-busy-time">{busy.timeLabel}</span>
+                                            </template>
                                         </div>
                                     </template>
                                     <!-- Events for this day -->
@@ -1933,8 +1994,15 @@
                     <div class="session-tooltip-line"><span class="session-tooltip-label">Status:</span> Busy</div>
                 </template>
                 <div class="session-tooltip-line"><span class="session-tooltip-label">Date:</span> {hoveredBusyTooltip.dateLabel}</div>
-                <template if:false={hoveredBusyTooltip.isConsolidated}>
-                    <div class="session-tooltip-line"><span class="session-tooltip-label">Time:</span> {hoveredBusyTooltip.timeLabel}</div>
+                <template if:true={hoveredBusyTooltip.isAllDay}>
+                    <template if:false={hoveredBusyTooltip.isConsolidated}>
+                        <div class="session-tooltip-line"><span class="session-tooltip-label">Time:</span> All day</div>
+                    </template>
+                </template>
+                <template if:false={hoveredBusyTooltip.isAllDay}>
+                    <template if:false={hoveredBusyTooltip.isConsolidated}>
+                        <div class="session-tooltip-line"><span class="session-tooltip-label">Time:</span> {hoveredBusyTooltip.timeLabel}</div>
+                    </template>
                 </template>
                 <template if:true={hoveredBusyTooltip.isConsolidated}>
                     <template for:each={hoveredBusyTooltip.members} for:item="member">

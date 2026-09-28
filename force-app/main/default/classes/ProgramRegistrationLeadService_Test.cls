@@ -2522,22 +2522,50 @@ static void testCreateOpportunityAndApplication() {
 }
 
     @IsTest
-    static void testResendVerificationEmail() {
-        Lead l = new Lead(
-            FirstName = 'Resend',
-            LastName = 'Verification',
-            Company = 'Individual',
-            Email = 'resend' + System.currentTimeMillis() + '@test.com',
-            Phone = '+91 9876543210',
-            Status = 'Untouched',
-            Send_Welcome_and_Verification_Email__c = false
+    static void testHandleExistingRecords_brochureModeFlagsLeadProgram() {
+        Program p = getTestProgram();
+        Program_Registration_Config__mdt cfg = new Program_Registration_Config__mdt(Default_Lead_Source__c = 'Website');
+        String email = 'brochurelead' + System.currentTimeMillis() + '@test.com';
+
+        Lead existingLead = new Lead(
+            FirstName = 'Brochure', LastName = 'Lead', Company = 'Individual',
+            Email = email, Phone = '+91 9876501234', Status = 'Untouched'
         );
-        insert l;
+        insert existingLead;
+        Lead_Program__c lp = new Lead_Program__c(
+            Lead__c = existingLead.Id, Program__c = p.Id, Email__c = email, Downloaded_Brochure__c = false
+        );
+        insert lp;
+
+        Lead incoming = new Lead(FirstName = 'Brochure', LastName = 'Lead', Email = email, Phone = '+91 9876501234');
 
         Test.startTest();
-        // FALSE -> TRUE, then TRUE -> FALSE -> TRUE
-        ProgramRegistrationLeadService.resendVerificationEmail(l.Id);
-        ProgramRegistrationLeadService.resendVerificationEmail(l.Id);
+        // Same program again in brochure mode -- existing Lead Program gets flagged
+        ProgramRegistrationLeadService.handleExistingRecords(incoming, p.Id, p.Name, p.Program_Code__c, cfg, true);
+
+        // Program not linked yet in brochure mode -- new Lead Program created with the flag
+        delete [SELECT Id FROM Lead_Program__c WHERE Lead__c = :existingLead.Id];
+        ProgramRegistrationLeadService.handleExistingRecords(incoming, p.Id, p.Name, p.Program_Code__c, cfg, true);
+        Test.stopTest();
+    }
+
+    @IsTest
+    static void testFormatLeadPhone() {
+        Country_Master__c country = new Country_Master__c(
+            Name = 'India', Country_Code__c = '+91', AcceptedNumberLength__c = '10'
+        );
+        insert country;
+
+        Test.startTest();
+        // Country on the Lead
+        ProgramRegistrationLeadService.formatLeadPhone(new Lead(Phone = '9876543210', Country_Master_backend__c = country.Id));
+        // No country -- dial code matched against Country_Master__c
+        ProgramRegistrationLeadService.formatLeadPhone(new Lead(Phone = '+919876543210'));
+        // No country, no dial code -- left as is
+        ProgramRegistrationLeadService.formatLeadPhone(new Lead(Phone = '9876543210'));
+        // No phone
+        ProgramRegistrationLeadService.formatLeadPhone(new Lead());
+        ProgramRegistrationLeadService.formatPhoneWithCountryCode('9876543210', null);
         Test.stopTest();
     }
 }

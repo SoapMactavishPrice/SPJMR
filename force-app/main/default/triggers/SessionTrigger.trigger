@@ -46,20 +46,35 @@ trigger SessionTrigger on Session__c (before insert, before update, after update
         SessionCalendarInviteHandler.handleSessionCalendarInvites(
             (Map<Id, Session__c>) Trigger.newMap,
             null
-        );
-    Map<Id, String> sessionCodes = new Map<Id, String>();
+        );    
+   }
+   if (Trigger.isAfter && (Trigger.isInsert || Trigger.isUpdate)) {
 
-    for (Session__c sessionRecord : Trigger.new) {
-        sessionCodes.put(
-            sessionRecord.Id,
-            sessionRecord.Program_Code__c
+        Map<Id, String> newCodes = new Map<Id, String>();
+        Map<Id, String> oldCodes = new Map<Id, String>();
+
+        for (Session__c record : Trigger.new) {
+            newCodes.put(
+                record.Id,
+                record.Program_Code__c
+            );
+        }
+
+        if (Trigger.isUpdate) {
+            for (Session__c record : Trigger.old) {
+                oldCodes.put(
+                    record.Id,
+                    record.Program_Code__c
+                );
+            }
+        }
+
+        ProgrammeSharingService.shareRecords(
+            'Session__c',
+            newCodes,
+            Trigger.isUpdate ? oldCodes : null
         );
     }
-
-    ProgrammeSharingService.shareRecords(
-        'Session__c',sessionCodes
-    );    
-   }
    
     if (Trigger.isAfter && Trigger.isDelete) {
         // SE-1047 D3: cancel the Google event for any deleted Session that had one.

@@ -147,7 +147,7 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
                     {
                         fluid: true,
                         fields: ["First_Name__c","Middle_Name__c","Last_Name__c","Gender__c","Date_of_Birth_As_Per_10th_Marksheet__c","FormattedAge__c",
-                            "Marital_Status__c","Name_Of_Spouse__c","Contact_No_of_Spouse__c", "Category__c", "OtherCategory__c",
+                            "Marital_Status__c", "Category__c", "OtherCategory__c",
                             "LinkedIn_Profile_URL__c","Nationality__c","HavePassport__c","HaveAadhaar__c","PassportNumber__c","AadhaarCardNumber__c",
                             "Indian_Origin_Card_IOC__c","StudyInIndiaRegNo__c"
                         ]
@@ -163,11 +163,9 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
                     { api: "FormattedAge__c", span:3, type: "text", label: "Age as on: __refDate__", readOnly: true },
 
                     { api: "Marital_Status__c", span:3, type: "picklist", label: "Marital Status", required: true },
-                    { api: "Name_Of_Spouse__c", span:3, type: "text", label: "Name of Spouse", maxlength: '255', visibleWhen: { "otherResources.showSpouseDetails": true }, },
-                    { api: "Contact_No_of_Spouse__c", span:6, type: "tel", skipOnChangeValidation:true, label: "Contact No. of Spouse", visibleWhen: { "otherResources.showSpouseDetails": true }, },
 
                     { api: "Category__c", type: "picklist", span:3, label: "Category", visibleWhen: { "otherResources.showCategoryField": true } },
-                    { api: "OtherCategory__c", type: "text", span:3, label: "Enter the category", maxlength: '50', visibleWhen: { "otherResources.showOtherCategory": true }, },
+                    { api: "OtherCategory__c", type: "text", span:3, label: "Enter the category", maxlength: '50', visibleWhen: { "otherResources.showOtherCategory": true }, required: true },
                     { api: "LinkedIn_Profile_URL__c", type: "text", span:3, label: "LinkedIn ID", helpText:"Please enter shortened URL", maxlength: '255' },
                     { api: "Nationality__c", type: "picklist", span:3, label: "Nationality", required: true },
 
@@ -176,7 +174,7 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
                     { api: "HaveAadhaar__c", type: "picklist", span:3, label: "Do you have an Aadhaar?", required: true },
                     { api: "AadhaarCardNumber__c", type: "text", span:3, label: "Aadhaar Card Number", maxlength: '80', pattern:"^[2-9][0-9]{11}$",required: true, visibleWhen: { "otherResources.showAadhaarField": true }, },
 
-                    { api: "Indian_Origin_Card_IOC__c", type: "text", span:3, label: "Indian Origin Card (IOC)", maxlength: '80', pattern:"^[A-Za-z0-9\/-]{3,50}$", visibleWhen: { "otherResources.showIocField": true }, },
+                    { api: "Indian_Origin_Card_IOC__c", type: "picklist", span:3, label: "Indian Origin Card (IOC)", visibleWhen: { "otherResources.showIocField": true }, required: true },
                     { api: "StudyInIndiaRegNo__c", type: "text", span:3, label: "Study in India (SII) Registration Number", maxlength: '80', pattern:"^[A-Za-z0-9\/-]{3,50}$",required: true, visibleWhen: { "otherResources.showSiiField": true }, },
                 ]
             },
@@ -494,11 +492,6 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
             },
 
         };
-    }
-
-    get showSpouseDetails() {
-        const v = this.basic.personalDetails?.Marital_Status__c || '';
-        return v === 'Married';
     }
 
     get showOtherCategory() {
@@ -883,7 +876,6 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
         if (!this.metadata || !this._telCountryOptions?.length) return;
 
         const telTargets = [
-            { section: 'personalDetails', apis: ['Contact_No_of_Spouse__c'] },
             { section: 'contactDetails', apis: ['Mobile_Number__c', 'Alternate_Mobile_Number__c', 'Parent_s_Mobile_Number__c'] },
         ];
 
@@ -1016,6 +1008,8 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
 
         setOptions("personalDetails", "HavePassport__c", toOptions(pick.HavePassport__c));
         setOptions("personalDetails", "HaveAadhaar__c", toOptions(pick.HaveAadhaar__c));
+
+        setOptions("personalDetails", "Indian_Origin_Card_IOC__c", toOptions(pick.Indian_Origin_Card_IOC__c));
 
 
         const moveToTop = (options, valueToTop) => {
@@ -1175,7 +1169,6 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
             applicationId: this.application?.Id,
             otherResources: {
 
-                showSpouseDetails:this.showSpouseDetails,
                 showOtherCategory:this.showOtherCategory,
                 showCategoryField:this.showCategoryField,
 
@@ -1483,7 +1476,6 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
             'First_Name__c',
             'Middle_Name__c',
             'Last_Name__c',
-            'Name_Of_Spouse__c'
         ];
 
         const shouldApplyTitleCase =
@@ -1563,12 +1555,6 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
             }
         }
 
-        if(api == 'Marital_Status__c') {
-            if(normalized === "Married") {
-                ["Name_Of_Spouse__c", "Contact_No_of_Spouse__c"]
-                    .forEach(f => this.basic.personalDetails[f] = null);
-            }
-        }
 
         // --- Correspondence hierarchy ---
         if (api === 'Corr_Country__c') {
@@ -1890,7 +1876,7 @@ export default class AfBasicDetailsContainerPgdm extends LightningElement {
             else if (!isNaN(minAge) && actualAge < minAge) {
                 errors.personalDetails ||= {};
                 errors.personalDetails.FormattedAge__c =
-                    `Age should be greater than or equal to ${minAge}`;
+                    `Minimum Age should be ${minAge}`;
             }
 
             else if (!isNaN(maxAge) && actualAge > maxAge) {

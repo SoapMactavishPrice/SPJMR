@@ -1009,7 +1009,7 @@ export default class CreateB2CLead extends NavigationMixin(LightningElement) {
             validationErrors.push('Please select at least one program.');
         }
         if(!leadSourceVal){
-            validationErrors.push('Please select at least one program.');
+            validationErrors.push('Please select the lead source.');
         }
         if(this.dateOfBirth){
              const today = new Date();

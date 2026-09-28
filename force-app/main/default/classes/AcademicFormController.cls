@@ -551,8 +551,12 @@ public with sharing class AcademicFormController {
         HttpResponse res = http.send(req);
         if (res.getStatusCode() != 200) return out;
 
+        String encodedStr = res.getBody(); // Contains &amp;
+        String decodedStr = encodedStr.unescapeHtml4(); // Converts &amp; back to &
+
+
         Map<String, Object> payload =
-            (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+            (Map<String, Object>) JSON.deserializeUntyped(decodedStr);
 
         Map<String, Object> fieldValues =
             (Map<String, Object>) payload.get('picklistFieldValues');

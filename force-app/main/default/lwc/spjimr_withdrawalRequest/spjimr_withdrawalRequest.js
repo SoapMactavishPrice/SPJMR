@@ -12,6 +12,7 @@ const MAX_REASONS_FOR_CHOICE = 2;
 const REASON_OTHER = 'other';
 const REASON_JOINING_OTHER_INSTITUTE = 'personal';
 const INSTITUTE_OTHER = 'other_institute';
+const REASON_CHOICE_BETTER_PLACEMENTS = 'placements';
 
 const WITHDRAWAL_REASON_OPTIONS = [
     { value: 'personal', label: 'Joining other Institute' },
@@ -297,6 +298,7 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
     @track registeredEmail = '';
     @track spjimrEmail = '';
     @track reasonsForChoice = [];
+    @track betterPlacementSpecifyText = '';
     @track otherInformation = '';
 
     @track isSubmitting = false;
@@ -340,6 +342,10 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
 
     get reasonsChoiceAtMax() {
         return this.reasonsForChoice.length >= MAX_REASONS_FOR_CHOICE;
+    }
+
+    get showBetterPlacementSpecifyField() {
+        return this.reasonsForChoice.includes(REASON_CHOICE_BETTER_PLACEMENTS);
     }
 
     get reasonsChoiceRemainingLabel() {
@@ -388,6 +394,12 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
         return this.submitAttempted && this.reasonsForChoice.length !== MAX_REASONS_FOR_CHOICE;
     }
 
+    get betterPlacementHasError() {
+        return this.submitAttempted
+            && this.showBetterPlacementSpecifyField
+            && !this.betterPlacementSpecifyText?.trim();
+    }
+
     get isFormValid() {
         if (!this.reason) return false;
         if (this.showOtherReasonField && !this.otherReasonText?.trim()) return false;
@@ -399,6 +411,7 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
         if (!this.registeredEmail?.trim()) return false;
         if (!this.spjimrEmail?.trim()) return false;
         if (this.reasonsForChoice.length !== MAX_REASONS_FOR_CHOICE) return false;
+        if (this.showBetterPlacementSpecifyField && !this.betterPlacementSpecifyText?.trim()) return false;
         return true;
     }
 
@@ -414,6 +427,9 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
     }
     get otherInstituteFieldClass() {
         return this.otherInstituteHasError ? 'text-input text-input_error' : 'text-input';
+    }
+    get betterPlacementSpecifyFieldClass() {
+        return this.betterPlacementHasError ? 'text-input text-input_error' : 'text-input';
     }
 
     get trackerStatusLabel() {
@@ -495,6 +511,13 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
     handleReasonsChoiceRemove(event) {
         const value = event.currentTarget.dataset.value;
         this.reasonsForChoice = this.reasonsForChoice.filter((v) => v !== value);
+        if (value === REASON_CHOICE_BETTER_PLACEMENTS) {
+            this.betterPlacementSpecifyText = '';
+        }
+    }
+
+    handleBetterPlacementSpecifyChange(event) {
+        this.betterPlacementSpecifyText = event.target.value;
     }
 
     handleOtherInformationChange(event) {
@@ -596,6 +619,9 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
             registeredEmail: this.registeredEmail,
             spjimrEmail: this.spjimrEmail,
             reasonsForChoiceLabels,
+            betterPlacementDescription: this.showBetterPlacementSpecifyField
+                ? this.betterPlacementSpecifyText
+                : null,
             otherInformation: this.otherInformation,
             documentBase64,
             documentFileName
@@ -630,6 +656,7 @@ export default class Spjimr_withdrawalRequest extends LightningElement {
         this.bankDetails = '';
         this.documentFile = null;
         this.reasonsForChoice = [];
+        this.betterPlacementSpecifyText = '';
         this.otherInformation = '';
         this.submitAttempted = false;
 

@@ -30,8 +30,6 @@ export const context = {
                 "Age_as_on_Customisable_Date__c",
                 "FormattedAge__c",
                 "Marital_Status__c",
-                "Name_Of_Spouse__c",
-                "Contact_No_of_Spouse__c",
                 "Application__r.Batch__r.CalculateAgeAsOf__c",
                 "Application__r.Batch__r.UpperAgeBound__c",
                 "Application__r.Batch__r.LowerAgeBound__c",

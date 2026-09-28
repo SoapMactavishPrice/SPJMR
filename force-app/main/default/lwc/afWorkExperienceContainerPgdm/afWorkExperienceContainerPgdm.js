@@ -113,21 +113,21 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
             ]
         },
 
-        achievements: {
-            requiredFields: [
-                'Title_of_the_Award__c',
-                'Institute_Granting_the_Award__c',
-                'Year__c'
-            ]
-        },
+        // achievements: {
+        //     requiredFields: [
+        //         'Title_of_the_Award__c',
+        //         'Institute_Granting_the_Award__c',
+        //         'Year__c'
+        //     ]
+        // },
 
-        versatility: {
-            requiredFields: [
-                'Title_of_the_Award__c',
-                'Institute_Granting_the_Award__c',
-                'Year__c'
-            ]
-        },
+        // versatility: {
+        //     requiredFields: [
+        //         'Title_of_the_Award__c',
+        //         'Institute_Granting_the_Award__c',
+        //         'Year__c'
+        //     ]
+        // },
     };
 
     _isFieldRequired(sectionKey, api, sequence, fieldMeta) {
@@ -727,7 +727,6 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
                     api: 'OverallVersatilityRating__c',
                     type: 'picklist',
                     label: 'Overall Versatility Rating',
-                    required: true
                 }
             ]
         };
@@ -936,13 +935,17 @@ export default class AfWorkExperienceContainerPgdm extends LightningElement {
         const optionalPicklists = {
             achievements: [
                 'Award_Position__c',
-                'Level__c'
+                'Level__c',
+                'Year__c'
             ],
             versatility: [
                 'Interest__c',
                 'Proficiency__c',
                 'Award__c',
                 'Level__c'
+            ],
+            overallVersatilityRating: [
+                'OverallVersatilityRating__c'
             ],
             responsibilitiesShouldered: [
                 'PersonalResponsibilityLevel__c',

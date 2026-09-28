@@ -1675,6 +1675,11 @@ public static String saveEmergencyContact(String recordId, String name, String r
         @AuraEnabled public String errorDetail;
     }
 
+    // Must match the label sent from the LWC (REASONS_FOR_CHOICE_OPTIONS -> 'placements').
+    // Note: the dash is an en dash (–), same as in the LWC constant.
+    private static final String BETTER_PLACEMENTS_REASON_LABEL =
+        'Better placements – type of roles being offered';
+
     // Real Status__c picklist values (confirmed from the record's Status
     // field edit dropdown) that block a new submission while active.
     private static final Set<String> WITHDRAWAL_BLOCKING_STATUSES = new Set<String>{
@@ -1693,6 +1698,7 @@ public static String saveEmergencyContact(String recordId, String name, String r
         String registeredEmail,
         String spjimrEmail,
         List<String> reasonsForChoiceLabels,
+        String betterPlacementDescription,
         String otherInformation,
         String documentBase64,
         String documentFileName
@@ -1706,6 +1712,11 @@ public static String saveEmergencyContact(String recordId, String name, String r
             }
             if (reasonsForChoiceLabels == null || reasonsForChoiceLabels.size() != 2) {
                 result.message = 'Please select exactly 2 Reasons for Choice.';
+                return result;
+            }
+            if (reasonsForChoiceLabels.contains(BETTER_PLACEMENTS_REASON_LABEL)
+                    && String.isBlank(betterPlacementDescription)) {
+                result.message = 'Please specify the details for "Better placements – type of roles being offered".';
                 return result;
             }
 
@@ -1787,6 +1798,12 @@ public static String saveEmergencyContact(String recordId, String name, String r
             req.Registered_Email_ID__c = registeredEmail;
             req.SPJIMR_Email_ID__c = spjimrEmail;
             req.Reasons_for_Choice__c = String.join(reasonsForChoiceLabels, ', ');
+            // Save the "Specify" text only when the Better placements reason is
+            // actually one of the selected choices (server-side safeguard).
+            req.Better_Placement_Choice_s_Description__c =
+                reasonsForChoiceLabels.contains(BETTER_PLACEMENTS_REASON_LABEL)
+                    ? betterPlacementDescription.trim()
+                    : null;
             req.Any_Other_Information__c = otherInformation;
             req.Status__c = 'Applied';
 
