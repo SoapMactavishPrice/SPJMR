@@ -1,7 +1,7 @@
 /**
  * Sends Email + Salesforce Custom Notification when a Withdrawal_Request__c
  * is submitted (After Insert via WithdrawalRequestTrigger):
- *   1. Programme Office approvers (existing)
+ *   1. Programme Manager approvers (existing)
  *   2. The submitting student (portal User linked to Student__c)
  *
  * Approve / reject / recall student notifications stay in
@@ -24,12 +24,12 @@
  * 2. Recipients are resolved exactly the way the Deferment and Leave flows
  *    resolve theirs: Withdrawal_Request__c.Programme_Master__c ->
  *    Program_Team_Members__c (via Program_Team__r.Program__c) filtered to
- *    Role__c = 'Programme Office'. There is no queue and no fallback list -
- *    when a request's Programme has no Programme Office team member (or the
+ *    Role__c = 'Manager'. There is no queue and no fallback list -
+ *    when a request's Programme has no Manager team member (or the
  *    Programme lookup is blank), that request is logged as a STOP and no
- *    PO notification is sent for it, matching LeaveApproverResolver /
+ *    Manager notification is sent for it, matching LeaveApproverResolver /
  *    DefermentApprovalNotificationService behaviour. Student acknowledgement
- *    still runs independently of PO recipient resolution.
+ *    still runs independently of Manager recipient resolution.
  *
  * 3. Email is built manually (not via a stored EmailTemplate). Salesforce
  *    does not allow setWhatId() together with setTargetObjectId() when the
@@ -49,7 +49,7 @@
 public without sharing class WithdrawalRequestNotificationService {
 
     private static final String CUSTOM_NOTIFICATION_NAME = 'Withdrawal_Request_Notification';
-    private static final String PROGRAMME_OFFICE_ROLE = 'Programme Office';
+    private static final String PROGRAMME_OFFICE_ROLE = 'Manager';
     private static final String LOG_PREFIX = 'WithdrawalRequestNotificationService: ';
 
     // Must match the Display Name of the Org-Wide Email Address in
@@ -86,10 +86,10 @@ public without sharing class WithdrawalRequestNotificationService {
             }
         }
 
-        // 2. Programme Office approvers per Programme, resolved the same way as
+        // 2. Programme Manager approvers per Programme, resolved the same way as
         // the Deferment / Leave flows: Program_Team_Members__c joined to its
-        // Programme via Program_Team__r.Program__c, filtered to the Programme
-        // Office role. One bulk query, no queue, no fallback list.
+        // Programme via Program_Team__r.Program__c, filtered to the Manager
+        // role. One bulk query, no queue, no fallback list.
         Map<Id, Set<Id>> programmeToUserIds = new Map<Id, Set<Id>>();
         if (!programmeMasterIds.isEmpty()) {
             for (Program_Team_Members__c member : [
@@ -109,7 +109,7 @@ public without sharing class WithdrawalRequestNotificationService {
             }
         }
 
-        // 3. Resolve recipients per request from the Programme Office team only.
+        // 3. Resolve recipients per request from the Manager team only.
         Map<Id, Set<Id>> requestToUserIds = new Map<Id, Set<Id>>();
         Set<Id> allCandidateUserIds = new Set<Id>();
         for (Withdrawal_Request__c request : withdrawalRequests) {
@@ -118,7 +118,7 @@ public without sharing class WithdrawalRequestNotificationService {
                 : null;
             if (recipients == null || recipients.isEmpty()) {
                 log(diagnosticLines, 'STOP: Request ' + request.Id
-                    + ' has no Programme Office team member for Programme '
+                    + ' has no Manager team member for Programme '
                     + request.Programme_Master__c + ' - nothing sent for this request.');
                 continue;
             }
@@ -127,7 +127,7 @@ public without sharing class WithdrawalRequestNotificationService {
         }
 
         if (allCandidateUserIds.isEmpty()) {
-            log(diagnosticLines, 'STOP: no Programme Office recipients resolved for any request.');
+            log(diagnosticLines, 'STOP: no Manager recipients resolved for any request.');
             return;
         }
 
@@ -231,7 +231,7 @@ public without sharing class WithdrawalRequestNotificationService {
                     '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #ddd;">' +
                     '<div style="background:#4b2e83;color:#fff;padding:16px 20px;font-size:18px;font-weight:bold;">Withdrawal Request</div>' +
                     '<div style="padding:20px;">' +
-                    '<p style="font-weight:bold;">Dear Program Office, a new withdrawal request has been submitted and is now available for review in the system.</p>' +
+                    '<p style="font-weight:bold;">Dear Programme Manager, a new withdrawal request has been submitted and is now available for review in the system.</p>' +
                     '<table style="width:100%;border-collapse:collapse;margin-top:12px;">' +
                     buildEmailRow('Student Name', studentName) +
                     buildEmailRow('Student Roll Number', rollNumber) +

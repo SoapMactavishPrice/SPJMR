@@ -1,10 +1,10 @@
 trigger WithdrawalRequestTrigger on Withdrawal_Request__c (after insert,after update) {
     if (Trigger.isAfter && Trigger.isInsert) {
         // Submit each new 'Applied' request into the standard Approval Process,
-        // routed to the Programme Office team. Never throws.
+        // routed to the Programme Manager team. Never throws.
         WithdrawalApprovalService.submitForApproval(Trigger.new);
 
-        // Styled email + custom bell notification to Programme Office and the student.
+        // Styled email + custom bell notification to Programme Manager and the student.
         WithdrawalRequestNotificationService.sendNotifications(Trigger.new);
     }
     if (Trigger.isAfter && (Trigger.isInsert || Trigger.isUpdate)) {

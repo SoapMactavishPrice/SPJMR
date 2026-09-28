@@ -14,8 +14,8 @@
  *
  *  - getProgrammeApprovers(...) is the single place that maps a Programme +
  *    business role to Program_Team_Members__c user Ids. Role mapping:
- *      Programme Office approver -> Role__c = 'Programme Office'
- *      Chairperson approver      -> Role__c = 'Deputy Chairperson'
+ *      Programme Manager approver -> Role__c = 'Manager'
+ *      Chairperson approver       -> Role__c = 'Deputy Chairperson'
  *    (the same mapping the Deferment flow uses for its Chairperson level).
  *
  * WITH SYSTEM_MODE is forced on every query because portal (Experience Cloud)
@@ -26,7 +26,7 @@ public without sharing class WithdrawalApprovalService {
 
     @TestVisible
     private static final String PROCESS_DEF_NAME = 'Withdrawal_Request_Approval_Process';
-    private static final String PROGRAMME_OFFICE_ROLE = 'Programme Office';
+    private static final String PROGRAMME_OFFICE_ROLE = 'Manager';
     private static final String STATUS_APPLIED = 'Applied';
     private static final String LOG_PREFIX = 'WithdrawalApprovalService: ';
 
@@ -59,7 +59,7 @@ public without sharing class WithdrawalApprovalService {
 
     /**
      * Submits each freshly inserted 'Applied' Withdrawal Request into the
-     * standard approval process, routed to the Programme Office team.
+     * standard approval process, routed to the Programme Manager team.
      */
     public static void submitForApproval(List<Withdrawal_Request__c> requests) {
         if (requests == null || requests.isEmpty()) {
@@ -115,13 +115,13 @@ public without sharing class WithdrawalApprovalService {
                     continue;
                 }
                 if (req.Programme_Master__c == null) {
-                    lines.add(LOG_PREFIX + 'STOP: Programme_Master__c is blank - cannot route to a Programme Office approver.');
+                    lines.add(LOG_PREFIX + 'STOP: Programme_Master__c is blank - cannot route to a Programme Manager approver.');
                     continue;
                 }
 
                 List<Id> approvers = getProgrammeApprovers(req.Programme_Master__c, PROGRAMME_OFFICE_ROLE);
                 if (approvers.isEmpty()) {
-                    lines.add(LOG_PREFIX + 'STOP: no Programme Office team member for Programme ' + req.Programme_Master__c
+                    lines.add(LOG_PREFIX + 'STOP: no Manager team member for Programme ' + req.Programme_Master__c
                         + ' - request not submitted for approval.');
                     continue;
                 }
@@ -129,7 +129,7 @@ public without sharing class WithdrawalApprovalService {
                 approversByRequest.put(reqId, approvers);
                 toStage.add(new Withdrawal_Request__c(
                     Id = reqId,
-                    Current_Role__c = 'Programme Office',
+                    Current_Role__c = 'Programme Manager',
                     Current_Approver_User__c = approvers[0],
                     Current_Approver_Ids__c = joinIds(approvers)
                 ));

@@ -7,14 +7,14 @@
  *   - WithdrawalRequestTrigger -> WithdrawalApprovalService.submitForApproval
  *     submits every new 'Applied' request and stamps
  *     Current_Approver_User__c / Current_Approver_Ids__c / Current_Role__c
- *     ('Programme Office'). Step 1 of the process assigns to
+ *     ('Programme Manager'). Step 1 of the process assigns to
  *     Current_Approver_User__c via a related-user field.
  *
  *   - processApproval() below finds the pending ProcessInstanceWorkitem and
  *     drives it with Approval.process (Approve / Reject), then mirrors the
  *     outcome onto Status__c and the audit fields and notifies the student.
  *
- *   - Escalation is optional. When the Programme Office approver checks the
+ *   - Escalation is optional. When the Programme Manager approver checks the
  *     "send to Chairperson" box, we set Escalate_To_Chairperson__c = true and
  *     route the step-1 approval to the Deputy Chairperson team members; the
  *     process's conditional step 2 then runs. Unchecked, step 2 is skipped and
@@ -26,7 +26,7 @@
  */
 public without sharing class WithdrawalApprovalController {
 
-    private static final String ROLE_PROGRAMME_OFFICE = 'Programme Office';
+    private static final String ROLE_PROGRAMME_OFFICE = 'Manager';
     private static final String ROLE_CHAIRPERSON = 'Chairperson';
     private static final String CHAIRPERSON_TEAM_ROLE = 'Deputy Chairperson';
 
@@ -91,7 +91,7 @@ public without sharing class WithdrawalApprovalController {
 
         Withdrawal_Request__c req = reqs[0];
         Boolean isApprover = isUserInApproverIds(req.Current_Approver_Ids__c, UserInfo.getUserId());
-        // After PO escalates / final approve, Recalled must still show for Programme Office
+        // After PO escalates / final approve, Recalled must still show for Programme Manager
         // + Chairperson without enabling Approve/Reject for those users incorrectly.
         Boolean canRecallAsPoOrChairTeam =
             (req.Status__c == STATUS_PENDING_CHAIRPERSON
@@ -262,7 +262,7 @@ public without sharing class WithdrawalApprovalController {
             }
 
             // APPROVE
-            if (req.Current_Role__c == ROLE_PROGRAMME_OFFICE) {
+            if (req.Current_Role__c == 'Programme Manager') {
                 approveAsProgrammeOffice(req, workItemId, comments, escalateToChairperson == true);
                 return;
             }
@@ -385,7 +385,7 @@ public without sharing class WithdrawalApprovalController {
             ProcessInstanceWorkitem wi = workItems[workItems.size() - 1];
             String stepName = (req.Current_Role__c == ROLE_CHAIRPERSON)
                 ? 'Chairperson Approval'
-                : 'Programme Office Verification';
+                : 'Programme Manager Verification';
             ApprovalHistoryRow pending = new ApprovalHistoryRow();
             pending.stepId = 'PENDING_' + wi.Id;
             pending.stepName = stepName;
@@ -465,8 +465,8 @@ public without sharing class WithdrawalApprovalController {
         if (stepName.containsIgnoreCase('Chairperson')) {
             return String.isBlank(chairNames) ? 'Chairperson' : chairNames;
         }
-        if (stepName.containsIgnoreCase('Programme Office')) {
-            return String.isBlank(poNames) ? 'Programme Office' : poNames;
+        if (stepName.containsIgnoreCase('Programme Manager')) {
+            return String.isBlank(poNames) ? 'Programme Manager' : poNames;
         }
         return '';
     }
@@ -637,7 +637,7 @@ public without sharing class WithdrawalApprovalController {
         // Clear role / single-user pointer so Approve/Reject routing stays inactive.
         req.Current_Role__c = null;
         req.Current_Approver_User__c = null;
-        // Recalled must be available to BOTH Programme Office and Chairperson
+        // Recalled must be available to BOTH Programme Manager and Chairperson
         // after escalate+approve (otherwise only chairperson Ids remain).
         req.Current_Approver_Ids__c = joinIds(
             collectRecallEligibleApproverIds(req.Programme_Master__c)
@@ -660,7 +660,7 @@ public without sharing class WithdrawalApprovalController {
     }
 
     /**
-     * Users who may see Recalled after Status = Approved: Programme Office +
+     * Users who may see Recalled after Status = Approved: Programme Manager +
      * Deputy Chairperson team members for the request's Programme.
      */
     private static List<Id> collectRecallEligibleApproverIds(Id programmeId) {
