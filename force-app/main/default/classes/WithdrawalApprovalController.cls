@@ -27,6 +27,7 @@
 public without sharing class WithdrawalApprovalController {
 
     private static final String ROLE_PROGRAMME_OFFICE = 'Manager';
+    private static final String CURRENT_ROLE_PROGRAMME_MANAGER = 'Programme Manager';
     private static final String ROLE_CHAIRPERSON = 'Chairperson';
     private static final String CHAIRPERSON_TEAM_ROLE = 'Deputy Chairperson';
 
@@ -114,7 +115,7 @@ public without sharing class WithdrawalApprovalController {
                 || req.Status__c == STATUS_PENDING_CHAIRPERSON)) {
             vis.showApprove = true;
             vis.showReject = true;
-            vis.showEscalateOption = ROLE_PROGRAMME_OFFICE.equals(req.Current_Role__c);
+            vis.showEscalateOption = CURRENT_ROLE_PROGRAMME_MANAGER.equals(req.Current_Role__c);
         }
 
         // Recalled button only.
@@ -262,7 +263,7 @@ public without sharing class WithdrawalApprovalController {
             }
 
             // APPROVE
-            if (req.Current_Role__c == 'Programme Manager') {
+            if (req.Current_Role__c == CURRENT_ROLE_PROGRAMME_MANAGER) {
                 approveAsProgrammeOffice(req, workItemId, comments, escalateToChairperson == true);
                 return;
             }

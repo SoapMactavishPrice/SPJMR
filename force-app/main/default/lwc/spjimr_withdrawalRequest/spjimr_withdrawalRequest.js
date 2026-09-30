@@ -62,7 +62,7 @@ const REASONS_FOR_CHOICE_OPTIONS = [
 // the status pill still shows the real status text via trackerStatusLabel.
 const TRACKER_STEPS = [
     { number: 1, label: 'Applied', value: 'Applied' },
-    { number: 2, label: 'Accepted (PO Review)', value: 'Accepted (PO Review)' },
+    { number: 2, label: 'Accepted (PM Review)', value: 'Accepted (PO Review)' },
     { number: 3, label: 'Chairperson Review', value: 'CHAIRPERSON_REVIEW', chairpersonStep: true },
     { number: 4, label: 'Clearance & Exit', value: 'Clearance & Exit' },
     { number: 5, label: 'Final Approval', value: 'Final Approval' },
